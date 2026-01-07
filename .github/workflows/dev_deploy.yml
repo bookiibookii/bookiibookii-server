@@ -56,7 +56,8 @@ jobs:
         run: |
           set -e
 
-          echo "$EC2_SSH_KEY" > private_key.pem
+          printf '%s\n' "$EC2_SSH_KEY" > private_key.pem
+          sed -i 's/\r$//' private_key.pem
           chmod 600 private_key.pem
 
           jar_file=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
@@ -66,21 +67,26 @@ jobs:
           fi
 
           scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" \
-            $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/dev/bookiiDev.jar
+            "${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/dev/bookiiDev.jar"
 
+          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+            "${EC2_USERNAME}@${EC2_HOST}" bash -se <<EOF
+          set -e
 
-          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
-            set -e
+          mkdir -p "/home/${EC2_USERNAME}/logs/dev"
 
-            pkill -f "/home/$EC2_USERNAME/dev/bookiiDev.jar" || true
+          pgrep java | xargs -r kill -15 || true
+          sleep 10
 
-            nohup env \
-              SPRING_PROFILES_ACTIVE='$SPRING_PROFILES_ACTIVE' \
-              DB_URL='$DB_URL' \
-              DB_USERNAME='$DB_USERNAME' \
-              DB_PASSWORD='$DB_PASSWORD' \
-              java -jar /home/$EC2_USERNAME/dev/bookiiDev.jar \
-              > /home/$EC2_USERNAME/logs/dev/app.log 2>&1 &
-          "
+          nohup env \
+            SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE}" \
+            DB_URL="${DB_URL}" \
+            DB_USERNAME="${DB_USERNAME}" \
+            DB_PASSWORD="${DB_PASSWORD}" \
+            java -jar "/home/${EC2_USERNAME}/dev/bookiiDev.jar" \
+            > "/home/${EC2_USERNAME}/logs/dev/app.log" 2>&1 &
+
+          echo "DEPLOY DONE"
+          EOF
 
           rm -f private_key.pem

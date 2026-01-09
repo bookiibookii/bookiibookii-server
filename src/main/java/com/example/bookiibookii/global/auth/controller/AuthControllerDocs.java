@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface AuthControllerDocs {
@@ -24,7 +25,7 @@ public interface AuthControllerDocs {
             """
     )
     @PostMapping("/login")
-    AuthResDTO.TokenResponse socialLogin(AuthReqDTO request);
+    ApiResponse<AuthResDTO.TokenResponse> socialLogin(@RequestBody AuthReqDTO request);
 
     @Operation(
             summary = "Access Token 재발급",
@@ -50,7 +51,7 @@ public interface AuthControllerDocs {
             )
     })
     @PostMapping("/refresh")
-    AuthResDTO.TokenResponse refresh(HttpServletRequest request);
+    ApiResponse<AuthResDTO.TokenResponse> refresh(HttpServletRequest request);
 
     @Operation(
             summary = "로그아웃",

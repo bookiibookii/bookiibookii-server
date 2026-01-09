@@ -1,9 +1,9 @@
 package com.example.bookiibookii.global.auth.controller;
 
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
+import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import com.example.bookiibookii.global.auth.dto.AuthReqDTO;
 import com.example.bookiibookii.global.auth.dto.AuthResDTO;
-import com.example.bookiibookii.global.auth.exception.code.AuthSuccessCode;
 import com.example.bookiibookii.global.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -20,20 +20,21 @@ public class AuthController implements AuthControllerDocs{
 
     @Override
     @PostMapping("/login")
-    public AuthResDTO.TokenResponse socialLogin(
+    public ApiResponse<AuthResDTO.TokenResponse> socialLogin(
             @RequestBody AuthReqDTO request
     ) {
-        return authService.socialLogin(
-                request.getSocialType(),
-                request.getToken()
-        );
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.REQUEST_OK,
+                authService.socialLogin(request.getSocialType(),request.getToken()));
     }
 
     // 토큰 재발급
     @Override
     @PostMapping("/refresh")
-    public AuthResDTO.TokenResponse refresh(HttpServletRequest request) {
-        return authService.refresh(request);
+    public ApiResponse<AuthResDTO.TokenResponse> refresh(HttpServletRequest request) {
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.REQUEST_OK,
+                authService.refresh(request));
     }
 
     // 로그아웃
@@ -41,7 +42,7 @@ public class AuthController implements AuthControllerDocs{
     @PostMapping("/logout")
     public ApiResponse<Void> logout(HttpServletRequest request) {
         authService.logout(request);
-        return ApiResponse.onSuccess(AuthSuccessCode.LOGOUT_SUCCESS, null);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
 
     // TODO : 회원 탈퇴 (소셜 계정 연결 해제 요청)

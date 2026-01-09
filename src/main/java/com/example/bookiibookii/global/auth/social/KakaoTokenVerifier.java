@@ -4,6 +4,8 @@ import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -13,7 +15,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class KakaoTokenVerifier implements SocialTokenVerifier {
-
+    private static final Logger log = LoggerFactory.getLogger(KakaoTokenVerifier.class);
     private final RestTemplate restTemplate; // 토큰 검증을 위해 소셜 서버에 HTTP 요청을 보냄
 
     private static final String KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
@@ -29,7 +31,6 @@ public class KakaoTokenVerifier implements SocialTokenVerifier {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         HttpEntity<?> request = new HttpEntity<>(headers);
 
@@ -42,6 +43,7 @@ public class KakaoTokenVerifier implements SocialTokenVerifier {
                     Map.class
             );
         } catch (Exception e) {
+            log.error("Failed to verify Kakao token", e);
             throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
         }
 
@@ -50,7 +52,11 @@ public class KakaoTokenVerifier implements SocialTokenVerifier {
             throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
         }
 
-        String socialId = String.valueOf(body.get("id"));
+        Object idObj = body.get("id");
+        if (idObj == null) {
+            throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
+        String socialId = String.valueOf(idObj);
         return new SocialUserInfo(socialId);
     }
 }

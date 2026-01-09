@@ -42,6 +42,7 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
+                .claim("type", "access")
                 .claim("role", role)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
@@ -56,23 +57,33 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
+                .claim("type", "refresh")
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
+    private JwtParser jwtParser() {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build();
+    }
+
     // JWT 유효성 검증
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .setSigningKey(secretKey)
-                    .build()
-                    .parseClaimsJws(token);
+            jwtParser().parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    // JWT Claims 추출
+    private Claims parseClaims(String token) {
+        return jwtParser().parseClaimsJws(token)
+                .getBody();
     }
 
     public Long getUserId(String token) {
@@ -96,14 +107,5 @@ public class JwtProvider {
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + role))
         );
-    }
-
-    // JWT Claims 추출
-    private Claims parseClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
     }
 }

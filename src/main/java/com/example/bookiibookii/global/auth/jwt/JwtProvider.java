@@ -100,7 +100,12 @@ public class JwtProvider {
     public Authentication getAuthentication(String token) {
         Claims claims = parseClaims(token);
         Long userId = Long.valueOf(claims.getSubject());
+        String type = claims.get("type", String.class);
+        if(!"access".equals(type))
+            throw new JwtException("Not an access token");
         String role = claims.get("role", String.class);
+        if(role == null || role.isBlank())
+            throw new JwtException("Missing role claim");
 
         return new UsernamePasswordAuthenticationToken(
                 userId,

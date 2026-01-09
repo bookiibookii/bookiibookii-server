@@ -2,6 +2,7 @@ package com.example.bookiibookii.global.auth.service;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserService;
 import com.example.bookiibookii.global.auth.dto.AuthResDTO;
 import com.example.bookiibookii.global.auth.entity.RefreshToken;
@@ -23,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class AuthService {
-
+    private final UserRepository userRepository;
     private final UserService userService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenResolver jwtTokenResolver;
@@ -35,7 +36,12 @@ public class AuthService {
     // 소셜 로그인
     public AuthResDTO.TokenResponse socialLogin(String socialType, String token) {
 
-        SocialType social = SocialType.valueOf(socialType);
+        final SocialType social;
+        try {
+            social = SocialType.valueOf(socialType);
+        } catch(IllegalArgumentException | NullPointerException e) {
+            throw new AuthException(AuthErrorCode.UNSUPPORTED_SOCIAL_TYPE);
+        }
 
         // socialType에 맞는 verifier 선택
         SocialTokenVerifier verifier = tokenVerifiers.stream()
@@ -86,7 +92,6 @@ public class AuthService {
         jwtProvider.validateToken(refreshToken);
 
         Long userId = jwtProvider.getUserId(refreshToken);
-        String role = jwtProvider.getRole(refreshToken);
 
         RefreshToken savedToken = refreshTokenRepository.findByUserId(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN));
@@ -94,6 +99,11 @@ public class AuthService {
         if (!savedToken.getToken().equals(refreshToken)) {
             throw new AuthException(AuthErrorCode.NOT_FOUND);
         }
+
+        // role은 DB 기준으로 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.NOT_FOUND));
+        String role = user.getRole().name();
 
         // 새 토큰 발급
         String newAccessToken = jwtProvider.createAccessToken(userId, role);
@@ -117,7 +127,12 @@ public class AuthService {
             return; // 로그인 안 되어 있어도 로그아웃은 성공
         }
 
-        Long userId = jwtProvider.getUserId(refreshToken);
-        refreshTokenRepository.deleteByUserId(userId);
+        try {
+            jwtProvider.validateToken(refreshToken);
+            Long userId = jwtProvider.getUserId(refreshToken);
+            refreshTokenRepository.deleteByUserId(userId);
+        } catch (AuthException e) {
+            return;
+        }
     }
 }

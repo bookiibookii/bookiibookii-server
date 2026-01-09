@@ -61,7 +61,7 @@ public interface AuthControllerDocs {
             """
     )
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "204",
+            responseCode = "200",
             description = "로그아웃 성공"
     )
     @PostMapping("/logout")

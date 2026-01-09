@@ -20,7 +20,7 @@ public class AuthController implements AuthControllerDocs{
 
     @Override
     @PostMapping("/login")
-    public AuthResDTO.TokenResponse sociallogin(
+    public AuthResDTO.TokenResponse socialLogin(
             @RequestBody AuthReqDTO request
     ) {
         return authService.socialLogin(

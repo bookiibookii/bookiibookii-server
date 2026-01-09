@@ -24,7 +24,7 @@ public interface AuthControllerDocs {
             """
     )
     @PostMapping("/login")
-    AuthResDTO.TokenResponse sociallogin(AuthReqDTO request);
+    AuthResDTO.TokenResponse socialLogin(AuthReqDTO request);
 
     @Operation(
             summary = "Access Token 재발급",

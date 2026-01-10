@@ -34,5 +34,13 @@ public class Tracker extends BaseEntity {
     private Integer extensionCount = 0;
     private Integer extensionDays = 0;
 
+    public void changeStatus(TrackerStatus trackerStatus){
+        this.trackerStatus = trackerStatus;
+    }
+
+    public void markIssue(String reason){
+        this.isIssue = true;
+        this.issueReason = reason;
+    }
 
 }

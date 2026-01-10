@@ -20,20 +20,24 @@ public class Report extends BaseEntity {
 
     // 어떤 트래커에서 발생한 신고인지 연결
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tracker_id")
+    @JoinColumn(name = "tracker_id", nullable = false)
     private Tracker tracker;
 
     // 신고자 ID (User 엔티티와 연관관계를 맺거나, ID값만 보관)
+    @Column(nullable = false)
     private Long reporterId;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private IssueType issueType;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column(nullable = false)
     private String content; // 상세 신고 내용
 
     @Enumerated(EnumType.STRING)
-    private ReportStatus reportStatus;
+    @Column(nullable = false)
+    private ReportStatus reportStatus = ReportStatus.PENDING;
 
     @Builder
     public Report(Tracker tracker, Long reporterId, IssueType issueType, String content, ReportStatus reportStatus) {
@@ -41,7 +45,7 @@ public class Report extends BaseEntity {
         this.reporterId = reporterId;
         this.issueType = issueType;
         this.content = content;
-        this.reportStatus = reportStatus;
+        this.reportStatus = (reportStatus != null) ? reportStatus : ReportStatus.PENDING;
     }
 
     // 신고 처리 상태를 변경하는 로직

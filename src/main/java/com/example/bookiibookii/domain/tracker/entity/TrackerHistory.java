@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -28,5 +29,13 @@ public class TrackerHistory extends BaseEntity {
     private String trackingNumber;
     private String imageUrl;
 
+    @Builder
+    public TrackerHistory(Tracker tracker, TrackerStatus trackerStatus, String deliveryCompany, String trackingNumber, String imageUrl) {
+        this.tracker = tracker;
+        this.trackerStatus = trackerStatus;
+        this.deliveryCompany = deliveryCompany;
+        this.trackingNumber = trackingNumber;
+        this.imageUrl = imageUrl;
+    }
 
 }

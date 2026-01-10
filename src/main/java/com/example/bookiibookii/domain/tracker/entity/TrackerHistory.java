@@ -14,11 +14,12 @@ import lombok.NoArgsConstructor;
 public class TrackerHistory extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "tracker_history_id")
     private Long id;
 
-//    @OneToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "group_matching_id")
-//    private MatchedGroup matchedGroup;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tracker_id")
+    private Tracker tracker;
 
     @Enumerated(EnumType.STRING)
     private TrackerStatus trackerStatus;

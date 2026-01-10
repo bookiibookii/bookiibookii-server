@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 public class Tracker extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "tracker_id")
     private Long id;
 
 //    @OneToOne(fetch = FetchType.LAZY)

@@ -19,10 +19,11 @@ public class TrackerHistory extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tracker_id")
+    @JoinColumn(name = "tracker_id", nullable = false)
     private Tracker tracker;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TrackerStatus trackerStatus;
 
     private String deliveryCompany;

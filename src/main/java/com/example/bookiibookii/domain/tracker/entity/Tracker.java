@@ -23,24 +23,38 @@ public class Tracker extends BaseEntity {
 //    private MatchedGroup matchedGroup;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TrackerStatus trackerStatus;
 
+    @Column(nullable = false)
     private Boolean isIssue = false;
     private String issueReason;
 
+    @Column(nullable = false)
     private LocalDateTime startDate;
+    @Column(nullable = false)
     private LocalDateTime endDate;
 
+    @Column(nullable = false)
     private Integer extensionCount = 0;
+    @Column(nullable = false)
     private Integer extensionDays = 0;
 
+    // 상태 변경 메서드
     public void changeStatus(TrackerStatus trackerStatus){
         this.trackerStatus = trackerStatus;
     }
 
+    // 이슈 발생 메서드
     public void markIssue(String reason){
         this.isIssue = true;
         this.issueReason = reason;
+    }
+
+    // 이슈 해결 메서드
+    public void resolveIssue() {
+        this.isIssue = false;
+        this.issueReason = null;
     }
 
 }

@@ -7,8 +7,8 @@ import lombok.*;
 
 
 @Entity
+@Table(name = "matchedgroup")
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class MatchedGroup extends BaseEntity {

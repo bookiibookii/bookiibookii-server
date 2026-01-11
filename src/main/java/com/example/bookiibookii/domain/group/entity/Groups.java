@@ -14,7 +14,6 @@ import java.util.List;
 @Entity
 @Table(name = "`groups`")//예약어 피하기
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Groups extends BaseEntity {

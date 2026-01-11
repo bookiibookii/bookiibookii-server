@@ -9,7 +9,6 @@ import lombok.*;
 @Entity
 @Table(name = "application")
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Application extends BaseEntity {

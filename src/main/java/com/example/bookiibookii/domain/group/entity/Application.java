@@ -16,7 +16,7 @@ public class Application extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "applicaiton_id")
+    @Column(name = "application_id")
     private Long applicationId;
 
     @ManyToOne(fetch = FetchType.LAZY)

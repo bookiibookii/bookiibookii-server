@@ -20,16 +20,16 @@ public class Application extends BaseEntity {
     private Long applicationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
+    @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "guest_id")
+    @JoinColumn(name = "guest_id", nullable = false)
     private User guest;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "application_status")
+    @Column(name = "application_status",nullable = false)
     private ApplicationStatus applicationStatus;
 
     @Column(name = "apply_msg", length = 500)

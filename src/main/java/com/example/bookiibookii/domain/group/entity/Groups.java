@@ -29,7 +29,7 @@ public class Groups extends BaseEntity {
     //private Book bookId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id") // 방장(Host) FK 매핑
+    @JoinColumn(name = "host_id") // 방장(Host) FK 매핑
     private User host;
 
     @Column(name = "max_capacity")

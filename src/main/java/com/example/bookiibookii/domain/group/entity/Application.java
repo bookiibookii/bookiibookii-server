@@ -23,17 +23,14 @@ public class Application extends BaseEntity {
     @JoinColumn(name = "group_id")
     private Groups group;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "host_id")
-    private User host;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "guest_id")
     private User guest;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "member_status")
-    private ApplicationStatus memberStatus;
+    @Column(name = "application_status")
+    private ApplicationStatus applicationStatus;
 
     @Column(name = "apply_msg", length = 500)
     private String applyMsg;

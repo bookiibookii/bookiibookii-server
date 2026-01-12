@@ -36,6 +36,6 @@ public class Application extends BaseEntity {
     private ApplicationStatus memberStatus;
 
     @Column(name = "apply_msg", length = 500)
-    private String apply_msg;
+    private String applyMsg;
 
 }

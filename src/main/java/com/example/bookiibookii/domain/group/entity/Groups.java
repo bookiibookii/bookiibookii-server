@@ -48,9 +48,11 @@ public class Groups extends BaseEntity {
     @Column(name = "group_comment")
     private String groupComment;
 
+    @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedGroup> matchedGroups = new ArrayList<>();
 

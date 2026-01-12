@@ -9,6 +9,7 @@ import lombok.*;
 @Entity
 @Table(name = "matchedgroup")
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class MatchedGroup extends BaseEntity {

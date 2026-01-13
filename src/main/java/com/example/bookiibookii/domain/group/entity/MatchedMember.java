@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.entity;
 
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -12,12 +13,12 @@ import lombok.*;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class MatchedGroup extends BaseEntity {
+public class MatchedMember extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "groupmatched_id")
-    private Long groupMatchedId;
+    @Column(name = "matchedmember_id")
+    private Long matchedMember;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
@@ -25,5 +26,12 @@ public class MatchedGroup extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User groupGuest; //최종 승인된 멤버
+    private User userId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    private RoleStatus role;
+
+    @Column(name = "reading_order", nullable = false)
+    private Integer readingOrder; // 1, 2, 3... 순서 저장
 }

@@ -24,9 +24,9 @@ public class Groups extends BaseEntity {
     @Column(name = "group_id")
     private Long groupId;
 
-    //@ManyToOne(fetch = FetchType.LAZY)
-    //@Column(name = "book_id")
-    //private Book bookId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @Column(name = "book_id")
+    private Book bookId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_id") // 방장(Host) FK 매핑
@@ -45,7 +45,7 @@ public class Groups extends BaseEntity {
     @Column(name = "group_status")
     private GroupStatus status; // RECRUITING, MATCHED, COMPLETED
 
-    @Column(name = "group_comment")
+    @Column(name = "group_comment", length = 200)
     private String groupComment;
 
     @Builder.Default
@@ -54,6 +54,6 @@ public class Groups extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    private List<MatchedGroup> matchedGroups = new ArrayList<>();
+    private List<MatchedMember> matchedMember = new ArrayList<>();
 
 }

@@ -23,16 +23,18 @@ public class Application extends BaseEntity {
     @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "guest_id", nullable = false)
     private User guest;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "application_status",nullable = false)
-    private ApplicationStatus applicationStatus;
+    private ApplicationStatus applicationStatus; //PENDING, ACCEPTED, REJECTED
 
-    @Column(name = "apply_msg", length = 500)
+
+    @Column(name = "apply_msg", length = 200)
     private String applyMsg;
+
+
 
 }

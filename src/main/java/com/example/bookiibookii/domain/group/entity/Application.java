@@ -35,6 +35,9 @@ public class Application extends BaseEntity {
     @Column(name = "apply_msg", length = 200)
     private String applyMsg;
 
-
+    //신청 상태 변경 메서드
+    public void updateStatus(ApplicationStatus status) {
+        this.applicationStatus = status;
+    }
 
 }

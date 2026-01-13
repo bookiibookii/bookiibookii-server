@@ -24,9 +24,9 @@ public class Groups extends BaseEntity {
     @Column(name = "group_id")
     private Long groupId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @Column(name = "book_id")
-    private Book bookId;
+    //@ManyToOne(fetch = FetchType.LAZY)
+    //@Column(name = "book_id")
+    //private Book bookId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_id") // 방장(Host) FK 매핑
@@ -47,6 +47,10 @@ public class Groups extends BaseEntity {
 
     @Column(name = "group_comment", length = 200)
     private String groupComment;
+
+    //@Builder.Default
+    //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
+    //private List<GroupTag> groupTags = new ArrayList<>()
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)

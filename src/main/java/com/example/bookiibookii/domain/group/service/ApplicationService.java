@@ -1,16 +1,21 @@
 package com.example.bookiibookii.domain.group.service;
 
 
+import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
+import com.example.bookiibookii.domain.user.exception.UserException;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,16 +32,17 @@ import java.util.stream.Collectors;
 public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final GroupsRepository groupsRepository;
+    private final UserRepository userRepository;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
         // 1. 그룹 존재 여부 확인
         Groups group = groupsRepository.findById(groupId)
-                .orElseThrow(() -> new GeneralException(GroupErrorCode.GROUP_NOT_FOUND));
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 2. 권한 체크: 현재 로그인한 유저가 이 그룹의 방장(Host)인지 확인
         if (!group.getHost().getId().equals(currentUserId)) {
-            throw new GeneralException(GroupErrorCode.MEMBER_NOT_HOST);
+            throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
         }
 
         // 3. 신청자 명단 조회 (Fetch Join으로 User와 Tag까지 한 번에!)
@@ -59,17 +65,17 @@ public class ApplicationService {
 
         // 1. 신청 내역 존재 여부 확인
         Application application = applicationRepository.findById(applyId)
-                .orElseThrow(() -> new GeneralException(GroupErrorCode.APPLICATION_NOT_FOUND));
+                .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
         // 2. 권한 체크: 이 신청이 들어온 그룹의 방장이 요청자(userId)와 일치하는지 확인
         if (!application.getGroup().getHost().getId().equals(userId)) {
-            throw new GeneralException(GroupErrorCode.MEMBER_NOT_HOST);
+            throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
         }
 
         //3. 이미 처리된 신청인지 확인
         // 상태가 PENDING(대기 중)이 아닐 때 수락/거절을 시도하면 예외 발생
         if (application.getApplicationStatus() != ApplicationStatus.PENDING) {
-            throw new GeneralException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
+            throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
         // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
@@ -81,7 +87,7 @@ public class ApplicationService {
 
             // 이미 정원이 찼는데 또 수락하려는 경우 예외 발생
             if (currentAcceptedCount >= groups.getMaxCapacity()) {
-                throw new GeneralException(GroupErrorCode.GROUP_FULL);
+                throw new GroupException(GroupErrorCode.GROUP_FULL);
             }
         }
 
@@ -123,7 +129,53 @@ public class ApplicationService {
                 .groupStatus(application.getGroup().getGroupStatus())
                 .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
+
+
     }
+
+    //참가신청 service
+    @Transactional(readOnly = false)
+    public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
+        //그룹 존재여부 확인
+        Groups group = groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        //그룹 상태 확인(RECRUTING)
+        if(group.getGroupStatus() != GroupStatus.RECRUITING){
+            throw new GroupException(GroupErrorCode.GROUP_NOT_RECRUTING);
+        }
+
+        //권한체크(HOST는 참가신청불가)
+        if(group.getHost().getId().equals(userId)){
+            throw new GroupException(GroupErrorCode.HOST_CANNOT_APPLY);
+        }
+
+        //중복신청확인
+        if(applicationRepository.existsByGroupGroupIdAndGuestId(groupId,userId)){
+            throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
+        }
+
+        //유저 정보 조회
+        User guest = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        // 신청 엔티티 생성 및 저장
+        Application application = Application.builder()
+                .group(group)
+                .guest(guest)
+                .applyMsg(request.getApplyMsg())
+                .applicationStatus(ApplicationStatus.PENDING)
+                .build();
+
+        applicationRepository.save(application);
+
+        return ApplicationResponseDTO.JoinResultDTO.builder()
+                .applicationId(application.getApplicationId())
+                .status(application.getApplicationStatus().name())
+                .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
+                .build();
+    }
+
     private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
         User guest = application.getGuest();
 

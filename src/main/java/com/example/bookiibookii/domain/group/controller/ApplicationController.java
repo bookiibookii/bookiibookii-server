@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,6 +58,21 @@ public class ApplicationController {
     ) {
         ApplicationResponseDTO.UpdateResultDTO result =
                 applicationService.updateApplicationStatus(applyId, userId, request.getStatus());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    @PostMapping("/{groupId}/apply")
+    @Operation(summary = "그룹 참여 신청 API", description = "게스트가 특정 그룹에 참여 신청을 보냅니다.")
+    @Parameters({
+            @Parameter(name = "groupId", description = "참여하려는 그룹의 ID", example = "1"),
+            @Parameter(name = "userId", description = "현재 로그인한 유저의 ID (테스트용)", example = "2")
+    })
+    public ApiResponse<ApplicationResponseDTO.JoinResultDTO> joinGroup(
+            @PathVariable(name = "groupId") Long groupId,
+            @RequestParam(name = "userId") Long userId, // 실제 배포 시에는 Authentication 객체 등으로 교체 예정
+            @RequestBody @Valid ApplicationRequestDTO.JoinApplicationDTO request // @Valid로 글자 수 등 검증
+    ) {
+        ApplicationResponseDTO.JoinResultDTO result = applicationService.joinGroup(groupId, userId, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 }

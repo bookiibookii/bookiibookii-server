@@ -13,9 +13,11 @@ public enum GroupErrorCode implements BaseCode {
     APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP4002", "신청 내역을 찾을 수 없습니다."),
     ALREADY_PROCESSED_APPLICATION(HttpStatus.BAD_REQUEST, "GROUP4005", "이미 처리된 신청 내역입니다."),
     GROUP_FULL(HttpStatus.BAD_REQUEST, "GROUP4006", "이미 정원이 가득 찬 그룹입니다."),
+    GROUP_NOT_RECRUTING(HttpStatus.BAD_REQUEST, "GROUP4007", "그룹이 RECRUTING 상태가 아닙니다."),
 
     // 403 Forbidden
-    MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP4003", "Host만 접근 가능한 메뉴입니다.");
+    MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP4003", "Host만 접근 가능한 메뉴입니다."),
+    HOST_CANNOT_APPLY(HttpStatus.FORBIDDEN, "GROUP4008", "Host는 신청 할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

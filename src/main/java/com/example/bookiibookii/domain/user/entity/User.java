@@ -70,4 +70,7 @@ public class User extends BaseEntity {
     public void withdraw() {
         this.status = Status.WITHDRAWN;
     }
+    public void reactivate() {
+        this.status = Status.ACTIVE;
+    }
 }

@@ -1,5 +1,9 @@
 package com.example.bookiibookii.global.auth.jwt;
 
+import com.example.bookiibookii.domain.user.enums.Status;
+import com.example.bookiibookii.domain.user.exception.UserException;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,6 +22,7 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtTokenResolver tokenResolver; // JWT 토큰 추출
     private final JwtProvider jwtProvider; // JWT 검증
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -30,6 +35,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
+                jwtProvider.validateToken(token);
+
+                // ACTIVE 유저만 인증 허용
+                Long userId = jwtProvider.getUserId(token);
+                userRepository.findByIdAndStatus(userId, Status.ACTIVE)
+                        .orElseThrow(() -> new UserException(UserErrorCode.USER_WITHDRAWN));
+
                 Authentication auth = jwtProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtException e) {

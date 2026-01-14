@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.controller;
 
+import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.service.ApplicationService;
@@ -46,15 +47,16 @@ public class ApplicationController {
     @Operation(summary = "참여요청 수락/거절 API", description = "신청자의 참여 요청을 수락하거나 거절합니다.")
     @Parameters({
             @Parameter(name = "applyId", description = "신청(Application) ID", example = "10"),
-            @Parameter(name = "userId", description = "현재 로그인한 유저의 ID (방장 확인용)", example = "1"),
-            @Parameter(name = "status", description = "변경할 상태 (ACCEPTED/REJECTED)", example = "ACCEPTED")
+            @Parameter(name = "userId", description = "현재 로그인한 유저의 ID (방장 확인용)", example = "1"),//로그인 연동전까지 유지
+
     })
     public ApiResponse<ApplicationResponseDTO.UpdateResultDTO> updateApplicationStatus(
             @PathVariable(name = "applyId") Long applyId,
             @RequestParam(name = "userId") Long userId,
-            @RequestParam(name = "status") ApplicationStatus status
+            @RequestBody ApplicationRequestDTO.UpdateStatusDTO request
     ) {
-        ApplicationResponseDTO.UpdateResultDTO result = applicationService.updateApplicationStatus(applyId, userId, status);
+        ApplicationResponseDTO.UpdateResultDTO result =
+                applicationService.updateApplicationStatus(applyId, userId, request.getStatus());
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 }

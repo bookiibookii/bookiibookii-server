@@ -65,20 +65,26 @@ public class ApplicationService {
             throw new GeneralException(GroupErrorCode.MEMBER_NOT_HOST);
         }
 
-        // 3. 상태 업데이트 (JPA Dirty Checking으로 자동 반영)
+        //3. 이미 처리된 신청인지 확인
+        // 상태가 PENDING(대기 중)이 아닐 때 수락/거절을 시도하면 예외 발생
+        if (application.getApplicationStatus() != ApplicationStatus.PENDING) {
+            throw new GeneralException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
+        }
+
+        // 4. 상태 업데이트 (JPA Dirty Checking으로 자동 반영)
         application.updateStatus(status);
 
-        // 3. 수락 시: 그룹 상태를 진행중으로 변경(MATCHED)
+        // 5. 수락 시: 그룹 상태를 진행중으로 변경(MATCHED)
         if (status == ApplicationStatus.ACCEPTED) {
             application.getGroup().updateStatus(GroupStatus.MATCHED);
         }
 
-        // 4. 거절 시: 알람 발송
+        // 6. 거절 시: 알람 발송
         //if (status == ApplicationStatus.REJECTED) {
         //    notificationService.sendRejectNotification(application.getGuest(), application.getGroup());
         //}
 
-        // 4. 결과 DTO 반환
+        // 7. 결과 DTO 반환
         return ApplicationResponseDTO.UpdateResultDTO.builder()
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus())

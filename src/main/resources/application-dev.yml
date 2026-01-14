@@ -27,3 +27,5 @@ jwt:
       access: 1800000      # 30분
       refresh: 1209600000  # 14일
 
+aladin:
+  ttbkey: ${ALADIN_TTB_KEY}

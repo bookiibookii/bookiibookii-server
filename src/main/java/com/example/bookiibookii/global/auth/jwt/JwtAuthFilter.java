@@ -1,5 +1,6 @@
 package com.example.bookiibookii.global.auth.jwt;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,11 +28,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = tokenResolver.resolve(request);
 
-        if (token != null && jwtProvider.validateToken(token)) {
-            Authentication authentication = jwtProvider.getAuthentication(token);
-            SecurityContextHolder
-                    .getContext()
-                    .setAuthentication(authentication);
+        if (token != null) {
+            try {
+                Authentication auth = jwtProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (JwtException e) {
+                request.setAttribute("jwt_exception", e);
+            }
         }
 
         filterChain.doFilter(request, response);

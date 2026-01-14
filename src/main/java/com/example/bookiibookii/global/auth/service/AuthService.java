@@ -13,6 +13,7 @@ import com.example.bookiibookii.global.auth.jwt.JwtTokenResolver;
 import com.example.bookiibookii.global.auth.social.SocialTokenVerifier;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.auth.repository.RefreshTokenRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -88,8 +89,11 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.NOT_FOUND_REFRESH_TOKEN);
         }
 
-        // refresh token 유효성 검증
-        jwtProvider.validateToken(refreshToken);
+        try{
+            jwtProvider.validateToken(refreshToken); // refresh token 유효성 검증
+        } catch(JwtException | IllegalArgumentException e) {
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+        }
 
         Long userId = jwtProvider.getUserId(refreshToken);
 

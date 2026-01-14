@@ -4,8 +4,13 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,4 +21,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
             String socialId,
             SocialType socialType
     );
+
+    @Modifying
+    @Query("""
+    DELETE FROM User u
+    WHERE u.status = 'WITHDRAWN'
+    AND u.updatedAt <= :deleteBefore
+""")
+    int deleteWithdrawnUsersBefore(@Param("deleteBefore") LocalDateTime deleteBefore);
+
 }

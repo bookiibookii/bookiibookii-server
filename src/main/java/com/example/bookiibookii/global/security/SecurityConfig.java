@@ -31,7 +31,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",        // 로그인, 토큰 재발급, 로그아웃
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/api/groups/**",
+                                "/api/test/**"// 로그인 구현 전 api 테스트 용도(나중에 삭제 필요)
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

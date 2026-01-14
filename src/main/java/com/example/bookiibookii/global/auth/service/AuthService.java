@@ -2,6 +2,9 @@ package com.example.bookiibookii.global.auth.service;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
+import com.example.bookiibookii.domain.user.enums.Status;
+import com.example.bookiibookii.domain.user.exception.UserException;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserService;
 import com.example.bookiibookii.global.auth.dto.AuthResDTO;
@@ -80,7 +83,7 @@ public class AuthService {
     }
 
     
-    // Access Token 재발급
+    // Token 재발급
     public AuthResDTO.TokenResponse refresh(HttpServletRequest request) {
 
         String refreshToken = jwtTokenResolver.resolve(request);
@@ -105,7 +108,7 @@ public class AuthService {
         }
 
         // role은 DB 기준으로 조회
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndStatus(userId, Status.ACTIVE)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.NOT_FOUND));
         String role = user.getRole().name();
 
@@ -139,4 +142,24 @@ public class AuthService {
             return;
         }
     }
+
+    // 회원탈퇴
+    public void withdraw(HttpServletRequest request) {
+
+        String accessToken = jwtTokenResolver.resolve(request);
+        if (accessToken == null) {
+            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
+        }
+
+        jwtProvider.validateToken(accessToken);
+        Long userId = jwtProvider.getUserId(accessToken);
+
+        User user = userRepository
+                .findByIdAndStatus(userId, Status.ACTIVE)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        refreshTokenRepository.deleteByUserId(userId); // RefreshToken 제거
+        user.withdraw();
+    }
+
 }

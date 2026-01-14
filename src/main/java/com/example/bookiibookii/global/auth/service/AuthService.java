@@ -108,7 +108,7 @@ public class AuthService {
         }
 
         // role은 DB 기준으로 조회
-        User user = userRepository.findByIdAndStatus(userId, Status.ACTIVE)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.NOT_FOUND));
         String role = user.getRole().name();
 
@@ -155,7 +155,7 @@ public class AuthService {
         Long userId = jwtProvider.getUserId(accessToken);
 
         User user = userRepository
-                .findByIdAndStatus(userId, Status.ACTIVE)
+                .findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         refreshTokenRepository.deleteByUserId(userId); // RefreshToken 제거

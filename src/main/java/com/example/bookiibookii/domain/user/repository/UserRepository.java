@@ -15,11 +15,17 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByIdAndStatus(Long id, Status status);
+    Optional<User> findById(Long id);
 
+    // status='ACTIVE' 필터 무시용 (WITHDRAWN까지 조회하여 재가입 로직 구성)
+    @Query("""
+    SELECT u FROM User u
+    WHERE u.socialId = :socialId
+      AND u.socialType = :socialType
+    """)
     Optional<User> findBySocialIdAndSocialType(
-            String socialId,
-            SocialType socialType
+            @Param("socialId") String socialId,
+            @Param("socialType") SocialType socialType
     );
 
     @Modifying
@@ -27,7 +33,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     DELETE FROM User u
     WHERE u.status = 'WITHDRAWN'
     AND u.updatedAt <= :deleteBefore
-""")
+    """)
     int deleteWithdrawnUsersBefore(@Param("deleteBefore") LocalDateTime deleteBefore);
 
 }

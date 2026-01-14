@@ -35,9 +35,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
-                // ACTIVE 유저만 인증 허용
                 Long userId = jwtProvider.getUserId(token);
-                userRepository.findByIdAndStatus(userId, Status.ACTIVE)
+                userRepository.findById(userId)
                         .orElseThrow(() -> new UserException(UserErrorCode.USER_WITHDRAWN));
 
                 Authentication auth = jwtProvider.getAuthentication(token);

@@ -17,6 +17,12 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findById(Long id);
 
+    @Query("""
+    SELECT u FROM User u
+    WHERE u.id = :id
+""")
+    Optional<User> findByIdIncludingWithdrawn(@Param("id") Long id);
+
     // status='ACTIVE' 필터 무시용 (WITHDRAWN까지 조회하여 재가입 로직 구성)
     @Query("""
     SELECT u FROM User u

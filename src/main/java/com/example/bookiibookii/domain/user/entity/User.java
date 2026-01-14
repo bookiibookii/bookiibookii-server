@@ -8,6 +8,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
 
 import java.time.LocalDate;
 
@@ -20,6 +21,7 @@ import static com.example.bookiibookii.domain.user.enums.Status.ACTIVE;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Filter(name = "activeUserFilter", condition = "status = 'ACTIVE'")
+@FilterDef(name = "activeUserFilter", defaultCondition = "status = 'ACTIVE'")
 @Table(
         name = "users",
         uniqueConstraints = {

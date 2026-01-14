@@ -1,5 +1,6 @@
 package com.example.bookiibookii.global.auth.jwt;
 
+import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -36,8 +37,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (token != null) {
             try {
                 Long userId = jwtProvider.getUserId(token);
-                userRepository.findById(userId)
-                        .orElseThrow(() -> new UserException(UserErrorCode.USER_WITHDRAWN));
+                User user = userRepository.findByIdIncludingWithdrawn(userId)
+                        .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+                if (user.getStatus() == Status.WITHDRAWN) {
+                    throw new UserException(UserErrorCode.USER_WITHDRAWN);
+                }
 
                 Authentication auth = jwtProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);

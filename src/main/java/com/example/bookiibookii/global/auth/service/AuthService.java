@@ -151,7 +151,11 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
         }
 
-        jwtProvider.validateToken(accessToken);
+        try {
+            jwtProvider.validateToken(accessToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
         Long userId = jwtProvider.getUserId(accessToken);
 
         User user = userRepository

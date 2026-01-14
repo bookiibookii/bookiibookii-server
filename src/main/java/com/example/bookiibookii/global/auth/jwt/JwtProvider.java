@@ -108,7 +108,14 @@ public class JwtProvider {
         if(!"access".equals(type))
             throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
 
-        Role role = Role.valueOf(claims.get("role", String.class));
+        String roleString = claims.get("role", String.class);
+        Role role;
+        try{
+            role = Role.valueOf(roleString);
+        } catch (IllegalArgumentException e){
+            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
+
         return new UsernamePasswordAuthenticationToken(
                 userId,
                 null,

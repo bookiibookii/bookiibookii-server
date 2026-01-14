@@ -35,8 +35,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
-                jwtProvider.validateToken(token);
-
                 // ACTIVE 유저만 인증 허용
                 Long userId = jwtProvider.getUserId(token);
                 userRepository.findByIdAndStatus(userId, Status.ACTIVE)
@@ -44,7 +42,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 Authentication auth = jwtProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (JwtException e) {
+            } catch (JwtException | UserException e) {
                 request.setAttribute("jwt_exception", e);
             }
         }

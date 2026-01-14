@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.user.entity;
 
 import com.example.bookiibookii.domain.user.enums.Role;
 import com.example.bookiibookii.domain.user.enums.SocialType;
+import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -10,6 +11,7 @@ import lombok.*;
 import java.time.LocalDate;
 
 import static com.example.bookiibookii.domain.user.enums.Role.USER;
+import static com.example.bookiibookii.domain.user.enums.Status.ACTIVE;
 
 @Entity
 @Builder
@@ -46,6 +48,11 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
+    private Status status = ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
     private Role role = USER;
 
     // 소셜 로그인 유저 생성
@@ -58,5 +65,9 @@ public class User extends BaseEntity {
                 .socialId(info.getSocialId())
                 .role(USER)
                 .build();
+    }
+
+    public void withdraw() {
+        this.status = Status.WITHDRAWN;
     }
 }

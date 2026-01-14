@@ -8,7 +8,7 @@ import lombok.*;
 
 
 @Entity
-@Table(name = "matchedgroup")
+@Table(name = "matchedmember")
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

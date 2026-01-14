@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -71,12 +72,43 @@ public class ApplicationService {
             throw new GeneralException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
-        // 4. 상태 업데이트 (JPA Dirty Checking으로 자동 반영)
+        // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
+        if (status == ApplicationStatus.ACCEPTED) {
+            Groups groups = application.getGroup();
+
+            // 현재 이미 수락된 인원수 계산
+            long currentAcceptedCount = applicationRepository.countByGroupGroupIdAndApplicationStatus(groups.getGroupId(), ApplicationStatus.ACCEPTED);
+
+            // 이미 정원이 찼는데 또 수락하려는 경우 예외 발생
+            if (currentAcceptedCount >= groups.getMaxCapacity()) {
+                throw new GeneralException(GroupErrorCode.GROUP_FULL);
+            }
+        }
+
+        // 4. 상태 업데이트
         application.updateStatus(status);
 
         // 5. 수락 시: 그룹 상태를 진행중으로 변경(MATCHED)
         if (status == ApplicationStatus.ACCEPTED) {
-            application.getGroup().updateStatus(GroupStatus.MATCHED);
+            Groups groups = application.getGroup();
+            // 현재 수락된 총 인원수 계산
+            long currentAcceptedCount = applicationRepository.countByGroupGroupIdAndApplicationStatus(groups.getGroupId(), ApplicationStatus.ACCEPTED);
+
+            // 정원이 다 찼을 경우만
+            if (currentAcceptedCount >= groups.getMaxCapacity()) {
+                groups.updateStatus(GroupStatus.MATCHED);
+
+                // 나머지 PENDING 인원들 조회 및 일괄 거절
+                List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(groups.getGroupId());
+
+                for (Application pendingApp : pendingApplications) {
+                    pendingApp.updateStatus(ApplicationStatus.REJECTED);
+
+                    //시스템 알람 발송 (알람 파트 구현 시 주석 해제)
+                    // notificationService.sendAutoRejectNotification(pendingApp.getGuest(), group);
+                }
+            }
+
         }
 
         // 6. 거절 시: 알람 발송
@@ -84,7 +116,7 @@ public class ApplicationService {
         //    notificationService.sendRejectNotification(application.getGuest(), application.getGroup());
         //}
 
-        // 7. 결과 DTO 반환
+        //  결과 DTO 반환
         return ApplicationResponseDTO.UpdateResultDTO.builder()
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus())

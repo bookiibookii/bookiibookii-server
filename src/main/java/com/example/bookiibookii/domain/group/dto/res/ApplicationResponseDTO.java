@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.group.dto.res;
 
 
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,6 +46,7 @@ public class ApplicationResponseDTO {
     public static class UpdateResultDTO {
         private Long applicationId;      // 수정된 신청 ID
         private ApplicationStatus status; // 변경된 상태
+        private GroupStatus groupStatus; //그룹상태(RECRUTING, MATCHED)
         private String updatedAt;         // 변경된 시간 (포맷팅된 문자열)
     }
 

@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
@@ -67,10 +68,21 @@ public class ApplicationService {
         // 3. 상태 업데이트 (JPA Dirty Checking으로 자동 반영)
         application.updateStatus(status);
 
+        // 3. 수락 시: 그룹 상태를 진행중으로 변경(MATCHED)
+        if (status == ApplicationStatus.ACCEPTED) {
+            application.getGroup().updateStatus(GroupStatus.MATCHED);
+        }
+
+        // 4. 거절 시: 알람 발송
+        //if (status == ApplicationStatus.REJECTED) {
+        //    notificationService.sendRejectNotification(application.getGuest(), application.getGroup());
+        //}
+
         // 4. 결과 DTO 반환
         return ApplicationResponseDTO.UpdateResultDTO.builder()
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus())
+                .groupStatus(application.getGroup().getGroupStatus())
                 .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
     }

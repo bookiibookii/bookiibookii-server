@@ -43,7 +43,7 @@ public class Groups extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "group_status")
-    private GroupStatus status; // RECRUITING, MATCHED, COMPLETED
+    private GroupStatus groupStatus; // RECRUITING, MATCHED, COMPLETED
 
     @Column(name = "group_comment", length = 200)
     private String groupComment;
@@ -60,4 +60,7 @@ public class Groups extends BaseEntity {
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedMember> matchedMember = new ArrayList<>();
 
+    public void updateStatus(GroupStatus status) {
+        this.groupStatus = status;
+    }
 }

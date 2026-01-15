@@ -3,15 +3,17 @@ package com.example.bookiibookii.domain.tracker.entity;
 
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
+
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+@Table(name = "tracker_history")
 public class TrackerHistory extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +24,11 @@ public class TrackerHistory extends BaseEntity {
     @JoinColumn(name = "tracker_id", nullable = false)
     private Tracker tracker;
 
+    private Long senderMatchedMemberId;
+
+    @Column(nullable = false)
+    private Long receiverMatchedMemberId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TrackerStatus trackerStatus;
@@ -31,12 +38,16 @@ public class TrackerHistory extends BaseEntity {
     private String imageUrl;
 
     @Builder
-    public TrackerHistory(Tracker tracker, TrackerStatus trackerStatus, String deliveryCompany, String trackingNumber, String imageUrl) {
-        this.tracker = tracker;
-        this.trackerStatus = trackerStatus;
-        this.deliveryCompany = deliveryCompany;
-        this.trackingNumber = trackingNumber;
-        this.imageUrl = imageUrl;
+    public static TrackerHistory createHistory(Tracker tracker, Long senderId, Long receiverId,
+                                               TrackerStatus status, String company, String number) {
+        return TrackerHistory.builder()
+                .tracker(tracker)
+                .senderMatchedMemberId(senderId)
+                .receiverMatchedMemberId(receiverId)
+                .trackerStatus(status)
+                .deliveryCompany(company)
+                .trackingNumber(number)
+                .build();
     }
 
 }

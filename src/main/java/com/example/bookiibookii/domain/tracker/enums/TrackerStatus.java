@@ -8,11 +8,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum TrackerStatus {
 
-    HOST_READING("호스트 읽는 중"),
-    SHIPPING_TO_GUEST("게스트에게 배송 중"),
-    GUEST_READING("게스트 읽는 중"),
-    SHIPPING_TO_HOST("호스트에게 배송 중"),
-    RETURNED("회수완료");
+    READY("준비중"),
+    READING("읽는중"),
+    SHIPPING("배송중"),
+    RECEIVED("수령완료"),
+    RETURNED("회수완료"),
+    COMPLETED("릴레이종료");
 
     private final String description;
 

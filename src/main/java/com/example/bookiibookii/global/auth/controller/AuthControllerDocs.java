@@ -5,6 +5,7 @@ import com.example.bookiibookii.global.auth.dto.AuthResDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -67,4 +68,15 @@ public interface AuthControllerDocs {
     )
     @PostMapping("/logout")
     ApiResponse<Void> logout(HttpServletRequest request);
+
+    @Operation(
+            summary = "회원탈퇴",
+            description = "회원탈퇴 처리 API입니다."
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "회원탈퇴 성공"
+    )
+    @DeleteMapping("/withdraw")
+    ApiResponse<Void> withdraw(HttpServletRequest request);
 }

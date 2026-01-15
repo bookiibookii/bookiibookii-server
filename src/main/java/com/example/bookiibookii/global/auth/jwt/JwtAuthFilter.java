@@ -1,5 +1,11 @@
 package com.example.bookiibookii.global.auth.jwt;
 
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.enums.Status;
+import com.example.bookiibookii.domain.user.exception.UserException;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +23,7 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtTokenResolver tokenResolver; // JWT 토큰 추출
     private final JwtProvider jwtProvider; // JWT 검증
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -27,11 +34,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = tokenResolver.resolve(request);
 
-        if (token != null && jwtProvider.validateToken(token)) {
-            Authentication authentication = jwtProvider.getAuthentication(token);
-            SecurityContextHolder
-                    .getContext()
-                    .setAuthentication(authentication);
+        if (token != null) {
+            try {
+                Long userId = jwtProvider.getUserId(token);
+                User user = userRepository.findByIdIncludingWithdrawn(userId)
+                        .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+                if (user.getStatus() == Status.WITHDRAWN) {
+                    throw new UserException(UserErrorCode.USER_WITHDRAWN);
+                }
+
+                Authentication auth = jwtProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (JwtException | UserException e) {
+                request.setAttribute("jwt_exception", e);
+            }
         }
 
         filterChain.doFilter(request, response);

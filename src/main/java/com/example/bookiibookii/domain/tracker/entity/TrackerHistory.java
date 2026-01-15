@@ -37,7 +37,6 @@ public class TrackerHistory extends BaseEntity {
     private String trackingNumber;
     private String imageUrl;
 
-    @Builder
     public static TrackerHistory createHistory(Tracker tracker, Long senderId, Long receiverId,
                                                TrackerStatus status, String company, String number) {
         return TrackerHistory.builder()

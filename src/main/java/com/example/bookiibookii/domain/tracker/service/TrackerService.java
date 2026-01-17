@@ -19,12 +19,11 @@ public class TrackerService {
     private final TrackerRepository trackerRepository;
     private final TrackerConverter trackerConverter;
 
-    public TrackerDetailResponse getTrackerDetail(Long trackerId) {
 
-        Tracker tracker = trackerRepository.findById(trackerId)
+    public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId) {
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-            return trackerConverter.toDetailResponse(tracker);
-
+        return trackerConverter.toDetailResponse(tracker);
     }
 }

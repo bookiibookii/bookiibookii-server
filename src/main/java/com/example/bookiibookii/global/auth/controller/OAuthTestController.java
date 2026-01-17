@@ -2,7 +2,7 @@ package com.example.bookiibookii.global.auth.controller;
 
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
-import com.example.bookiibookii.global.auth.dto.AuthResDTO;
+import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.auth.service.AuthService;
@@ -38,7 +38,7 @@ public class OAuthTestController {
 
 
     @GetMapping("/kakao/callback")
-    public ApiResponse<AuthResDTO.TokenResponse> kakaoCallback(@RequestParam String code) {
+    public ApiResponse<AuthResponseDTO.TokenResponse> kakaoCallback(@RequestParam String code) {
         // 테스트용 코드 → 실제 AuthService 호출 가능
         // 여기선 code를 토큰처럼 사용하여 AuthService를 호출하도록 시뮬레이션
         String accessToken = getKakaoAccessToken(code);
@@ -49,7 +49,7 @@ public class OAuthTestController {
     }
 
     @GetMapping("/google/callback")
-    public AuthResDTO.TokenResponse googleCallback(@RequestParam String code) {
+    public AuthResponseDTO.TokenResponse googleCallback(@RequestParam String code) {
         return authService.socialLogin("GOOGLE", code);
     }
 

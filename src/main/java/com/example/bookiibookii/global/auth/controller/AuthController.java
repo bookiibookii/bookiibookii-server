@@ -2,8 +2,8 @@ package com.example.bookiibookii.global.auth.controller;
 
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
-import com.example.bookiibookii.global.auth.dto.AuthReqDTO;
-import com.example.bookiibookii.global.auth.dto.AuthResDTO;
+import com.example.bookiibookii.global.auth.dto.req.AuthRequestDTO;
+import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import com.example.bookiibookii.global.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +17,8 @@ public class AuthController implements AuthControllerDocs{
 
     @Override
     @PostMapping("/login")
-    public ApiResponse<AuthResDTO.TokenResponse> socialLogin(
-            @RequestBody AuthReqDTO request
+    public ApiResponse<AuthResponseDTO.TokenResponse> socialLogin(
+            @RequestBody AuthRequestDTO request
     ) {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK,
@@ -28,7 +28,7 @@ public class AuthController implements AuthControllerDocs{
     // 토큰 재발급
     @Override
     @PostMapping("/refresh")
-    public ApiResponse<AuthResDTO.TokenResponse> refresh(HttpServletRequest request) {
+    public ApiResponse<AuthResponseDTO.TokenResponse> refresh(HttpServletRequest request) {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK,
                 authService.refresh(request));

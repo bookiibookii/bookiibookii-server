@@ -1,21 +1,13 @@
 package com.example.bookiibookii.global.auth.jwt;
-
-import com.example.bookiibookii.domain.user.enums.Role;
-import com.example.bookiibookii.global.auth.exception.AuthException;
-import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Date;
-import java.util.List;
 
 // JWT 생성, 검증, Authentication 객체 생성
 @Component
@@ -84,7 +76,7 @@ public class JwtProvider {
     }
 
     // JWT Claims 추출
-    private Claims parseClaims(String token) {
+    public Claims parseClaims(String token) {
         return jwtParser().parseClaimsJws(token)
                 .getBody();
     }
@@ -97,29 +89,5 @@ public class JwtProvider {
     public String getRole(String token) {
         Claims claims = parseClaims(token);
         return claims.get("role", String.class);
-    }
-
-    // Authentication 생성
-    public Authentication getAuthentication(String token) {
-        Claims claims = parseClaims(token);
-        Long userId = Long.valueOf(claims.getSubject());
-        String type = claims.get("type", String.class);
-
-        if(!"access".equals(type))
-            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
-
-        String roleString = claims.get("role", String.class);
-        Role role;
-        try{
-            role = Role.valueOf(roleString);
-        } catch (IllegalArgumentException e){
-            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
-        }
-
-        return new UsernamePasswordAuthenticationToken(
-                userId,
-                null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
-        );
     }
 }

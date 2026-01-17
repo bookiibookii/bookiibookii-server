@@ -5,14 +5,19 @@ import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
+import com.example.bookiibookii.global.auth.CustomUserDetails;
+import com.example.bookiibookii.global.auth.exception.AuthException;
+import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -36,14 +41,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
-                Long userId = jwtProvider.getUserId(token);
+                Claims claims = jwtProvider.parseClaims(token);
+
+                Long userId = Long.valueOf(claims.getSubject());
+                String type = claims.get("type", String.class);
+
+                if(!"access".equals(type))
+                    throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+
                 User user = userRepository.findByIdIncludingWithdrawn(userId)
                         .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
                 if (user.getStatus() == Status.WITHDRAWN) {
                     throw new UserException(UserErrorCode.USER_WITHDRAWN);
                 }
+                CustomUserDetails userDetails = new CustomUserDetails(user);
 
-                Authentication auth = jwtProvider.getAuthentication(token);
+                // Authentication 생성
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        userDetails, // 인증 전용 객체
+                        null,
+                        userDetails.getAuthorities()
+                );
+                auth.setDetails(
+                        new WebAuthenticationDetailsSource()
+                                .buildDetails(request)
+                );
+
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtException | UserException e) {
                 request.setAttribute("jwt_exception", e);

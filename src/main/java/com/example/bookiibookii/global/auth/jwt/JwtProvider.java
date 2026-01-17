@@ -1,5 +1,8 @@
 package com.example.bookiibookii.global.auth.jwt;
 
+import com.example.bookiibookii.domain.user.enums.Role;
+import com.example.bookiibookii.global.auth.exception.AuthException;
+import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -101,16 +104,22 @@ public class JwtProvider {
         Claims claims = parseClaims(token);
         Long userId = Long.valueOf(claims.getSubject());
         String type = claims.get("type", String.class);
+
         if(!"access".equals(type))
-            throw new JwtException("Not an access token");
-        String role = claims.get("role", String.class);
-        if(role == null || role.isBlank())
-            throw new JwtException("Missing role claim");
+            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+
+        String roleString = claims.get("role", String.class);
+        Role role;
+        try{
+            role = Role.valueOf(roleString);
+        } catch (IllegalArgumentException e){
+            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
 
         return new UsernamePasswordAuthenticationToken(
                 userId,
                 null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
         );
     }
 }

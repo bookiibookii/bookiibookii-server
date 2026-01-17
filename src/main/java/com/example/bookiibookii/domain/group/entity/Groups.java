@@ -43,10 +43,14 @@ public class Groups extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "group_status")
-    private GroupStatus status; // RECRUITING, MATCHED, COMPLETED
+    private GroupStatus groupStatus; // RECRUITING, MATCHED, COMPLETED
 
-    @Column(name = "group_comment")
+    @Column(name = "group_comment", length = 200)
     private String groupComment;
+
+    //@Builder.Default
+    //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
+    //private List<GroupTag> groupTags = new ArrayList<>()
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
@@ -54,6 +58,9 @@ public class Groups extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    private List<MatchedGroup> matchedGroups = new ArrayList<>();
+    private List<MatchedMember> matchedMember = new ArrayList<>();
 
+    public void updateStatus(GroupStatus status) {
+        this.groupStatus = status;
+    }
 }

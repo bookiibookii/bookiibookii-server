@@ -7,10 +7,7 @@ import com.example.bookiibookii.global.auth.dto.AuthResDTO;
 import com.example.bookiibookii.global.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,5 +42,10 @@ public class AuthController implements AuthControllerDocs{
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
 
-    // TODO : 회원 탈퇴 (소셜 계정 연결 해제 요청)
+    // 회원탈퇴
+    @DeleteMapping("/withdraw")
+    public ApiResponse<Void> withdraw(HttpServletRequest request) {
+        authService.withdraw(request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
+    }
 }

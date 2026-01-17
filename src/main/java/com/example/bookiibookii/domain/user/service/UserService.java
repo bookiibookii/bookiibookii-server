@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.user.service;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
+import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import jakarta.transaction.Transactional;
@@ -22,6 +23,12 @@ public class UserService {
     ) {
         try {
             return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
+                    .map(user -> {
+                        if (user.getStatus() == Status.WITHDRAWN) {
+                            user.reactivate();
+                        }
+                        return user;
+                    })
                     .orElseGet(() -> userRepository.save(User.createSocialUser(info, socialType)));
         } catch (DataIntegrityViolationException e) {
             return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)

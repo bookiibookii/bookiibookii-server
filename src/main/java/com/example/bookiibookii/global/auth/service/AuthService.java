@@ -2,6 +2,9 @@ package com.example.bookiibookii.global.auth.service;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
+import com.example.bookiibookii.domain.user.enums.Status;
+import com.example.bookiibookii.domain.user.exception.UserException;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserService;
 import com.example.bookiibookii.global.auth.dto.AuthResDTO;
@@ -13,6 +16,7 @@ import com.example.bookiibookii.global.auth.jwt.JwtTokenResolver;
 import com.example.bookiibookii.global.auth.social.SocialTokenVerifier;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.auth.repository.RefreshTokenRepository;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -79,7 +83,7 @@ public class AuthService {
     }
 
     
-    // Access Token 재발급
+    // Token 재발급
     public AuthResDTO.TokenResponse refresh(HttpServletRequest request) {
 
         String refreshToken = jwtTokenResolver.resolve(request);
@@ -88,8 +92,11 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.NOT_FOUND_REFRESH_TOKEN);
         }
 
-        // refresh token 유효성 검증
-        jwtProvider.validateToken(refreshToken);
+        try{
+            jwtProvider.validateToken(refreshToken); // refresh token 유효성 검증
+        } catch(JwtException | IllegalArgumentException e) {
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+        }
 
         Long userId = jwtProvider.getUserId(refreshToken);
 
@@ -135,4 +142,28 @@ public class AuthService {
             return;
         }
     }
+
+    // 회원탈퇴
+    public void withdraw(HttpServletRequest request) {
+
+        String accessToken = jwtTokenResolver.resolve(request);
+        if (accessToken == null) {
+            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
+        }
+
+        try {
+            jwtProvider.validateToken(accessToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
+        Long userId = jwtProvider.getUserId(accessToken);
+
+        User user = userRepository
+                .findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        refreshTokenRepository.deleteByUserId(userId); // RefreshToken 제거
+        user.withdraw();
+    }
+
 }

@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.controller.docs.TrackerApi;
 import com.example.bookiibookii.domain.tracker.dto.response.TrackerDetailResponse;
+import com.example.bookiibookii.domain.tracker.dto.response.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.service.TrackerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 //@RestController
 //@RequestMapping("/api/v1/trackers")
@@ -36,9 +39,10 @@ public class TrackerController implements TrackerApi {
         return ResponseEntity.ok(trackerService.getTrackerDetailByGroupId(groupId));
     }
 
-    // 히스토리 조회: GET /api/v1/groups/{groupId}/tracker/histories
-//    @GetMapping("/{groupId}/tracker/histories")
-//    public ResponseEntity<List<TrackerHistoryResponse>> getTrackerHistories(@PathVariable Long groupId) {
-//        return ResponseEntity.ok(trackerService.getTrackerHistoriesByGroupId(groupId));
-//    }
+    // 히스토리 조회: GET /api/groups/{groupId}/tracker/histories
+    @GetMapping("/{groupId}/tracker/histories")
+    public ResponseEntity<List<TrackerHistoryResponse>> getTrackerHistories(@PathVariable Long groupId) {
+        return ResponseEntity.ok(trackerService.getTrackerHistoriesByGroupId(groupId));
+    }
+
 }

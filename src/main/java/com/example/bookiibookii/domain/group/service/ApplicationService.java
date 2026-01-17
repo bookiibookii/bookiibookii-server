@@ -17,6 +17,7 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -167,7 +168,12 @@ public class ApplicationService {
                 .applicationStatus(ApplicationStatus.PENDING)
                 .build();
 
-        applicationRepository.save(application);
+        try {
+            applicationRepository.save(application);
+        } catch (DataIntegrityViolationException ex) {
+            // DB에서 유니크 제약조건 위반이 발생하면(중복 신청 시) 처리
+            throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
+        }
 
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())

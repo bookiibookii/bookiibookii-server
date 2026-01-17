@@ -142,7 +142,7 @@ public class ApplicationService {
 
         //그룹 상태 확인(RECRUTING)
         if(group.getGroupStatus() != GroupStatus.RECRUITING){
-            throw new GroupException(GroupErrorCode.GROUP_NOT_RECRUTING);
+            throw new GroupException(GroupErrorCode.GROUP_NOT_RECRUITING);
         }
 
         //권한체크(HOST는 참가신청불가)

@@ -35,6 +35,9 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "name",nullable = false)
+    private String name;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "social_type", nullable = false, length = 30)
     private SocialType socialType;

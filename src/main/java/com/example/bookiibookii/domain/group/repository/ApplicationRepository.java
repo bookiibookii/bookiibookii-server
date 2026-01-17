@@ -25,4 +25,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     //특정 그룹의 '대기 중'인 신청서들만 조회 (Fetch Join으로 Guest 정보까지 한 번에)
     @Query("SELECT a FROM Application a JOIN FETCH a.guest WHERE a.group.id = :groupId AND a.applicationStatus = 'PENDING'")
     List<Application> findAllPendingByGroupId(@Param("groupId") Long groupId);
+
+    // 중복 신청 확인: 특정 그룹에 특정 유저가 이미 신청했는지 여부
+    boolean existsByGroupGroupIdAndGuestId(Long groupId, Long guestId);
 }

@@ -19,7 +19,7 @@ public class ApplicationResponseDTO {
     @Getter
     @Builder
     @AllArgsConstructor
-    public static class ApplicationListDTO{
+    public static class ApplicationListDTO {
         @Builder.Default
         private List<ApplicationDetailDTO> applicationList = new ArrayList<>();
         private Integer totalCount;
@@ -50,4 +50,13 @@ public class ApplicationResponseDTO {
         private String updatedAt;         // 변경된 시간 (포맷팅된 문자열)
     }
 
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class JoinResultDTO {
+        private Long applicationId;  // 신청서 ID
+        private String status;       // 신청 상태 (PENDING 등)
+        private String createdAt;    // 신청 일자
+    }
 }

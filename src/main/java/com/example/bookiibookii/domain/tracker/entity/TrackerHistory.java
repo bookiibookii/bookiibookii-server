@@ -33,17 +33,23 @@ public class TrackerHistory extends BaseEntity {
     @Column(nullable = false)
     private TrackerStatus trackerStatus;
 
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
+
     private String deliveryCompany;
     private String trackingNumber;
     private String imageUrl;
 
     public static TrackerHistory createHistory(Tracker tracker, Long senderId, Long receiverId,
-                                               TrackerStatus status, String company, String number) {
+                                               TrackerStatus status, LocalDateTime startDate, LocalDateTime endDate,
+                                               String company, String number) {
         return TrackerHistory.builder()
                 .tracker(tracker)
                 .senderMatchedMemberId(senderId)
                 .receiverMatchedMemberId(receiverId)
                 .trackerStatus(status)
+                .startDate(startDate)
+                .endDate(endDate)
                 .deliveryCompany(company)
                 .trackingNumber(number)
                 .build();

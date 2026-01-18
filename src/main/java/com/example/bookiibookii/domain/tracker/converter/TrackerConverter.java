@@ -31,7 +31,7 @@ public class TrackerConverter {
                 .senderUserId(senderUserId)
                 .receiverUserId(receiverUserId)
                 .trackerStatus(history.getTrackerStatus())
-                .DeliveryCompany(history.getDeliveryCompany())
+                .deliveryCompany(history.getDeliveryCompany())
                 .trackingNumber(history.getTrackingNumber())
                 .start_date(history.getStartDate())
                 .end_date(history.getEndDate())

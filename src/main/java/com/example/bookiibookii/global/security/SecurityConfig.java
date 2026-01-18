@@ -32,8 +32,7 @@ public class SecurityConfig {
                                 "/api/auth/**",        // 로그인, 토큰 재발급, 로그아웃
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/groups/**",
-                                "/api/v1/trackers/**"
+                                "/api/groups/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

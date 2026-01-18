@@ -45,7 +45,7 @@ public class Tracker extends BaseEntity {
 
     // 현재 주자를 지목하는 1:1 관계
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "matchedmember_id")
+    @JoinColumn(name = "matchedmember_id", nullable = false)
     private MatchedMember currentMember;
 
     // 히스토리와의 1:N 관계

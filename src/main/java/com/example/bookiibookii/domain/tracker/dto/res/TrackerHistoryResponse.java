@@ -13,7 +13,7 @@ public class TrackerHistoryResponse {
     private Long senderUserId;
     private Long receiverUserId;
     private TrackerStatus trackerStatus;  // 당시 상태 (SHIPPING, RECEIVED 등)
-    private String DeliveryCompany;
+    private String deliveryCompany;
     private String trackingNumber; // 운송장 번호
     private LocalDateTime start_date;
     private LocalDateTime end_date;

@@ -22,7 +22,7 @@ public class TrackerController implements TrackerApi {
 
     private final TrackerService trackerService;
 
-    // 상세 현황 조회: GET /api/v1/groups/{groupId}/tracker
+    // 상세 현황 조회: GET /api/groups/{groupId}/tracker
     @GetMapping("/{groupId}/tracker")
     public ResponseEntity<TrackerDetailResponse> getTrackerDetail(@PathVariable Long groupId) {
         return ResponseEntity.ok(trackerService.getTrackerDetailByGroupId(groupId));

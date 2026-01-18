@@ -11,9 +11,9 @@ import java.util.Map;
 public interface UserControllerDocs {
     // api/users/name-validation
     @Operation(
-            summary = "닉네임 검증 API",
+            summary = "닉네임 중복 검증 API",
             description = """
-            님네임의 중복 여부를 검증합니다.
+            닉네임의 중복 여부를 검증합니다.
 
             - TRUE : 사용 가능한 닉네임입니다.
             - FALSE : 이미 존재하는 닉네임입니다.

@@ -1,12 +1,11 @@
 package com.example.bookiibookii.domain.tracker.converter;
 
-import com.example.bookiibookii.domain.tracker.dto.response.TrackerDetailResponse;
-import com.example.bookiibookii.domain.tracker.dto.response.TrackerHistoryResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class TrackerConverter {
@@ -37,6 +36,15 @@ public class TrackerConverter {
                 .start_date(history.getStartDate())
                 .end_date(history.getEndDate())
                 .createdAt(history.getCreatedAt())
+                .build();
+    }
+
+    public TrackerListResponse toListResponse(Tracker tracker, String role) {
+        return TrackerListResponse.builder()
+                .groupId(tracker.getGroupId())
+                .bookTitle("제목 없음")
+                .status(tracker.getTrackerStatus())
+                .role(role)
                 .build();
     }
 

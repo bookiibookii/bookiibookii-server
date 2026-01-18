@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.tracker.dto.response;
+package com.example.bookiibookii.domain.tracker.dto.res;
 
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import lombok.AllArgsConstructor;

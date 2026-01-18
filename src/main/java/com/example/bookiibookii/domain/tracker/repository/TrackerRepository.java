@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 @Repository
 public interface TrackerRepository extends JpaRepository<Tracker, Long> {
@@ -19,4 +20,11 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
             "join fetch m.userId " +
             "where t.groupId = :groupId")
     Optional<Tracker> findByGroupId(@Param("groupId") Long groupId);
+
+//    @Query("SELECT t FROM Tracker t " +
+//            "JOIN FETCH t.groupId g " +
+//            "WHERE g IN (SELECT mm.group FROM MatchedMember mm WHERE mm.userId.id = :userId)")
+//    List<Tracker> findAllByUserIdWithGroup(@Param("userId") Long userId);
+
+
 }

@@ -1,11 +1,10 @@
 package com.example.bookiibookii.domain.tracker.controller.docs;
 
-import com.example.bookiibookii.domain.tracker.dto.response.TrackerDetailResponse;
-import com.example.bookiibookii.domain.tracker.dto.response.TrackerHistoryResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,3 +42,4 @@ public interface TrackerApi {
             @PathVariable Long groupId
     );
 }
+

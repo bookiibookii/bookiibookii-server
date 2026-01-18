@@ -1,10 +1,9 @@
 package com.example.bookiibookii.domain.tracker.service;
 
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.repository.MatchedGroupRepository;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
-import com.example.bookiibookii.domain.tracker.dto.response.TrackerDetailResponse;
-import com.example.bookiibookii.domain.tracker.dto.response.TrackerHistoryResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
@@ -62,4 +61,7 @@ public class TrackerService {
             return trackerConverter.toHistoryResponse(history, senderUserId, receiverUserId);
         }).collect(Collectors.toList());
     }
+
+
+
 }

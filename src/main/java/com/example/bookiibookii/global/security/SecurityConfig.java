@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능
                         .requestMatchers(
+                                "/**",                 // 테스트용 임시 설정 (제거 예정)
                                 "/api/auth/**",        // 로그인, 토큰 재발급, 로그아웃
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",

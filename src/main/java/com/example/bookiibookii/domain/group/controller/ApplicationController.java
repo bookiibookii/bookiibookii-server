@@ -3,7 +3,6 @@ package com.example.bookiibookii.domain.group.controller;
 import com.example.bookiibookii.domain.group.docs.ApplicationApi;
 import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
-import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.service.ApplicationService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -33,7 +32,6 @@ public class ApplicationController implements ApplicationApi {
         ApplicationResponseDTO.ApplicationListDTO response = applicationService.getApplicantList(groupId, user.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, response);
     }
-
 
     @PatchMapping("/apply/{applyId}")
     public ApiResponse<ApplicationResponseDTO.UpdateResultDTO> updateApplicationStatus(

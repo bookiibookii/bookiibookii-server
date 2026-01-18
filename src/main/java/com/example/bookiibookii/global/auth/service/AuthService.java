@@ -2,12 +2,11 @@ package com.example.bookiibookii.global.auth.service;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
-import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserService;
-import com.example.bookiibookii.global.auth.dto.AuthResDTO;
+import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import com.example.bookiibookii.global.auth.entity.RefreshToken;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.auth.exception.AuthException;
@@ -38,7 +37,7 @@ public class AuthService {
     private final List<SocialTokenVerifier> tokenVerifiers;
 
     // 소셜 로그인
-    public AuthResDTO.TokenResponse socialLogin(String socialType, String token) {
+    public AuthResponseDTO.TokenResponse socialLogin(String socialType, String token) {
 
         final SocialType social;
         try {
@@ -75,7 +74,7 @@ public class AuthService {
                         )
                 );
         
-        return AuthResDTO.TokenResponse.builder()
+        return AuthResponseDTO.TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(userId)
@@ -84,7 +83,7 @@ public class AuthService {
 
     
     // Token 재발급
-    public AuthResDTO.TokenResponse refresh(HttpServletRequest request) {
+    public AuthResponseDTO.TokenResponse refresh(HttpServletRequest request) {
 
         String refreshToken = jwtTokenResolver.resolve(request);
 
@@ -118,7 +117,7 @@ public class AuthService {
 
         savedToken.update(newRefreshToken);
 
-        return AuthResDTO.TokenResponse.builder()
+        return AuthResponseDTO.TokenResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .userId(userId)

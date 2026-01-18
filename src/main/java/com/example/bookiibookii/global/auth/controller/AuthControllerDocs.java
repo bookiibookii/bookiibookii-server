@@ -1,7 +1,7 @@
 package com.example.bookiibookii.global.auth.controller;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
-import com.example.bookiibookii.global.auth.dto.AuthReqDTO;
-import com.example.bookiibookii.global.auth.dto.AuthResDTO;
+import com.example.bookiibookii.global.auth.dto.req.AuthRequestDTO;
+import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,7 +26,7 @@ public interface AuthControllerDocs {
             """
     )
     @PostMapping("/login")
-    ApiResponse<AuthResDTO.TokenResponse> socialLogin(@RequestBody AuthReqDTO request);
+    ApiResponse<AuthResponseDTO.TokenResponse> socialLogin(@RequestBody AuthRequestDTO request);
 
     @Operation(
             summary = "Access Token 재발급",
@@ -52,7 +52,7 @@ public interface AuthControllerDocs {
             )
     })
     @PostMapping("/refresh")
-    ApiResponse<AuthResDTO.TokenResponse> refresh(HttpServletRequest request);
+    ApiResponse<AuthResponseDTO.TokenResponse> refresh(HttpServletRequest request);
 
     @Operation(
             summary = "로그아웃",

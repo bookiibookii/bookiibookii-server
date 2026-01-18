@@ -30,6 +30,8 @@ jwt:
 oauth:
   google:
     client-id: ${GOOGLE_CLIENT_ID}
+  kakao:
+    client-id: ${KAKAO_REST_API_KEY}
 
 aladin:
   ttbkey: ${ALADIN_TTB_KEY}

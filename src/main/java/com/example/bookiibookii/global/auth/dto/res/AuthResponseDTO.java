@@ -1,8 +1,8 @@
-package com.example.bookiibookii.global.auth.dto;
+package com.example.bookiibookii.global.auth.dto.res;
 
 import lombok.Builder;
 
-public class AuthResDTO {
+public class AuthResponseDTO {
     @Builder
     public record TokenResponse(
             String accessToken,

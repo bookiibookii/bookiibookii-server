@@ -17,7 +17,7 @@ public class CardImage extends BaseEntity {
     @Column(name = "card_image_id")
     private Long id;
 
-    @Column(name = "s3_key", length = 255, unique = true)
+    @Column(name = "s3_key", length = 255, unique = true,  nullable = false)
     private String s3Key;
 
     @ManyToOne(fetch = FetchType.LAZY)

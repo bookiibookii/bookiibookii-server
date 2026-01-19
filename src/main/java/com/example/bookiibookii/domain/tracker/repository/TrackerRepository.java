@@ -30,7 +30,7 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 //    List<Tracker> findAllByUserIdWithGroup(@Param("userId") Long userId);
 
 
-    @Query("SELECT t FROM Tracker t " +
+    @Query("SELECT DISTINCT t FROM Tracker t " +
             "JOIN FETCH t.group g " +
             "LEFT JOIN FETCH t.histories " +
             "WHERE g.groupId IN (SELECT mm.group.groupId FROM MatchedMember mm WHERE mm.userId.id = :userId) " +

@@ -109,10 +109,15 @@ public class TrackerService {
         List<String> dates = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM. dd.");
 
-        addDateIfPresent(dates, tracker.getHistories(), TrackerStatus.HOST_READING, formatter);    // 배송 중
-        addDateIfPresent(dates, tracker.getHistories(), TrackerStatus.SHIPPING, formatter);    // 배송 중
-        addDateIfPresent(dates, tracker.getHistories(), TrackerStatus.GUEST_READING, formatter); // 게스트 읽는 중
-        addDateIfPresent(dates, tracker.getHistories(), TrackerStatus.SHIPPING_TO_HOST, formatter);   // 회수 중
+        List<TrackerHistory> histories = tracker.getHistories();
+            if (histories == null || histories.isEmpty()) {
+                 return dates;
+              }
+
+        addDateIfPresent(dates, histories, TrackerStatus.HOST_READING, formatter);    // 호스트 읽는중
+        addDateIfPresent(dates, histories, TrackerStatus.SHIPPING, formatter);    // 배송 중
+        addDateIfPresent(dates, histories, TrackerStatus.GUEST_READING, formatter); // 게스트 읽는 중
+        addDateIfPresent(dates, histories, TrackerStatus.SHIPPING_TO_HOST, formatter);   // 회수 중
 
         return dates;
     }

@@ -13,7 +13,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
 
     @Query("SELECT mm FROM MatchedMember mm " +
             "JOIN FETCH mm.group g " +
-            "JOIN FETCH Tracker t ON t.group = g " +
+            "JOIN FETCH g.tracker t " +  // g.getTracker()를 탐색하는 방식
             "WHERE mm.userId.id = :userId")
     List<MatchedMember> findAllByUserIdWithTracker(@Param("userId") Long userId);
 

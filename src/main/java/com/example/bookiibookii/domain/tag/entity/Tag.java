@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tag.entity;
 
+import com.example.bookiibookii.domain.tag.enums.TagCode;
 import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -23,6 +24,7 @@ public class Tag extends BaseEntity {
     @Column(nullable = false, length = 20)
     private TagType type;
 
-    @Column(name = "name", length = 50, nullable = false)
-    private String name;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TagCode code;
 }

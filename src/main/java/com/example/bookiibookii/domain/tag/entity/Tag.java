@@ -1,14 +1,11 @@
-package com.example.bookiibookii.domain.user.entity;
+package com.example.bookiibookii.domain.tag.entity;
 
-import com.example.bookiibookii.domain.user.enums.Role;
-import com.example.bookiibookii.domain.user.enums.TagType;
+import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
-
-import static com.example.bookiibookii.domain.user.enums.Role.USER;
 
 @Entity
 @Builder

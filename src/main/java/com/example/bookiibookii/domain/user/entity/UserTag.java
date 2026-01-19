@@ -1,7 +1,6 @@
-package com.example.bookiibookii.domain.user.entity.mapping;
+package com.example.bookiibookii.domain.user.entity;
 
-import com.example.bookiibookii.domain.user.entity.Tag;
-import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;

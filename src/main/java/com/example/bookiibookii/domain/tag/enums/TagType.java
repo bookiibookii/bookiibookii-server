@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.user.enums;
+package com.example.bookiibookii.domain.tag.enums;
 
 public enum TagType {
     GERNRE,

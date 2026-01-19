@@ -14,7 +14,6 @@ public class GroupReviewResponseDTO {
     @Getter
     @Builder
     @AllArgsConstructor
-    @NoArgsConstructor
     public static class GroupReviewDetailDTO {
 
     }

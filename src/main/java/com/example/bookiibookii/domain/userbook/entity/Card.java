@@ -31,5 +31,6 @@ public class Card extends BaseEntity {
     private String memo;
 
     @OneToMany(mappedBy = "card", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<CardImage> cardImages = new ArrayList<>();
 }

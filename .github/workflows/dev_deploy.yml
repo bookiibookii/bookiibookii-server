@@ -55,6 +55,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           ALADIN_TTB_KEY: ${{ secrets.ALADIN_TTB_KEY }}
         run: |
           set -e
@@ -88,6 +89,7 @@ jobs:
             DB_PASSWORD="${DB_PASSWORD}" \
             JWT_SECRET_KEY="${JWT_SECRET_KEY}" \
             GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
+            KAKAO_REST_API_KEY="${KAKAO_REST_API_KEY}" \
             ALADIN_TTB_KEY="${ALADIN_TTB_KEY}" \
             java -jar "/home/${EC2_USERNAME}/dev/bookiiDev.jar" \
             > "/home/${EC2_USERNAME}/logs/dev/app.log" 2>&1 &

@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.tag.enums;
 
 public enum TagType {
-    GERNRE,
+    GENRE,
     METHOD,
     SPEED,
     VIBE,

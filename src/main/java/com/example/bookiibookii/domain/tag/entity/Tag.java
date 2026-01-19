@@ -9,6 +9,10 @@ import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
 @Entity
+@Table(name = "tag",
+        uniqueConstraints = {
+            @UniqueConstraint(name = "uk_tag_type_code", columnNames = {"type", "code"})
+        })
 @Builder
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

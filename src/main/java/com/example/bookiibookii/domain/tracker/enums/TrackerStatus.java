@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 public enum TrackerStatus {
 
 
-//    READING("읽는중"),
-//    SHIPPING("배송중"),
+    READING("읽는중"),
+    SHIPPING("배송중"),
 
 
     // 1 대 1 매칭만 고려했을 때 enum값

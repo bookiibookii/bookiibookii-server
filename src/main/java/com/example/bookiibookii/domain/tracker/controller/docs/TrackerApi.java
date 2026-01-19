@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.controller.docs;
 
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
@@ -9,13 +10,29 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
 @Tag(name = "Tracker", description = "도서 트래킹 관련 API (상태 조회 및 이력 관리)")
 public interface TrackerApi {
+
+    @Operation(
+            summary = "배송 시작 등록",
+            description = "책 읽기를 완료하고 다음 주자에게 배송을 시작할 때 정보를 등록합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "배송 등록 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 입력값 (Validation 실패)", content = @Content),
+            @ApiResponse(responseCode = "404", description = "트래커 또는 다음 멤버를 찾을 수 없음", content = @Content)
+    })
+    ResponseEntity<Void> registerShipping(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @RequestBody @Valid TrackerShippingRequest request
+    );
 
     @Operation(
             summary = "내 트래커 리스트 조회",

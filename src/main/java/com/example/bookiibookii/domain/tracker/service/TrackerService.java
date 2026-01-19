@@ -1,8 +1,10 @@
 package com.example.bookiibookii.domain.tracker.service;
 
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.repository.MatchedGroupRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
@@ -18,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -132,4 +135,42 @@ public class TrackerService {
     }
 
 
+    @Transactional
+    public void registerShipping(Long groupId, TrackerShippingRequest request) {
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        if (tracker.getTrackerStatus() != TrackerStatus.HOST_READING &&
+                tracker.getTrackerStatus() != TrackerStatus.GUEST_READING &&
+        tracker.getTrackerStatus() != TrackerStatus.READING) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        MatchedMember currentMember = tracker.getCurrentMember(); // 현재 책을 가지고 있는 사람
+        int totalCapacity = tracker.getGroup().getMaxCapacity();
+
+        // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
+        int nextOrder = (currentMember.getReadingOrder() % totalCapacity) + 1;
+
+        // 다음 주자(receiver) 조회
+        MatchedMember nextMember = matchedMemberRepository.findByGroup_GroupIdAndReadingOrder(groupId, nextOrder)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+
+        // 엔티티에 판단 위임 (위에 작성한 메서드 호출)
+        tracker.updateShippingStatus(currentMember, nextMember);
+
+        // 배송 로그(History) 저장
+        TrackerHistory history = TrackerHistory.builder()
+                .tracker(tracker)
+                .senderMatchedMemberId(currentMember.getMatchedMember())
+                .receiverMatchedMemberId(nextMember.getMatchedMember())
+                .trackerStatus(tracker.getTrackerStatus()) // 엔티티에서 결정된 상태 사용
+                .deliveryCompany(request.deliveryCompany())
+                .trackingNumber(request.trackingNumber())
+                .imageUrl(request.authenticationImageUrl())
+                .startDate(LocalDateTime.now())
+                .build();
+
+        trackerHistoryRepository.save(history);
+    }
 }

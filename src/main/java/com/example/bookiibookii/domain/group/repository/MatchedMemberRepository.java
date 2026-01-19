@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Long> {
 
@@ -17,5 +18,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
             "WHERE mm.userId.id = :userId")
     List<MatchedMember> findAllByUserIdWithTracker(@Param("userId") Long userId);
 
+
+    Optional<MatchedMember> findByGroup_GroupIdAndReadingOrder(Long groupId, int readingOrder);
 
 }

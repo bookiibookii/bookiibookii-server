@@ -48,16 +48,15 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.controller.docs.TrackerApi;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.service.TrackerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -89,5 +88,16 @@ public class TrackerController implements TrackerApi {
     @GetMapping("/{groupId}/tracker/histories")
     public ResponseEntity<List<TrackerHistoryResponse>> getTrackerHistories(@PathVariable Long groupId) {
         return ResponseEntity.ok(trackerService.getTrackerHistoriesByGroupId(groupId));
+    }
+
+    @Override
+    @PostMapping("/{groupId}/tracker/shipping")
+    public ResponseEntity<Void> registerShipping(
+            @PathVariable Long groupId,
+            @RequestBody @Valid TrackerShippingRequest request
+    ) {
+        // 성진님, 여기서도 필요하다면 tempUserId = 1L을 사용하여 권한 체크를 할 수 있습니다.
+        trackerService.registerShipping(groupId, request);
+        return ResponseEntity.ok().build();
     }
 }

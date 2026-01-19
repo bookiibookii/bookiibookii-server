@@ -5,12 +5,15 @@ import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -34,6 +37,7 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final GroupsRepository groupsRepository;
     private final UserRepository userRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -68,6 +72,8 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applyId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
+        Groups group = application.getGroup();
+
         // 2. 권한 체크: 이 신청이 들어온 그룹의 방장이 요청자(userId)와 일치하는지 확인
         if (!application.getGroup().getHost().getId().equals(userId)) {
             throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
@@ -81,58 +87,53 @@ public class ApplicationService {
 
         // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
         if (status == ApplicationStatus.ACCEPTED) {
-            Groups groups = application.getGroup();
+            // [핵심] 방장을 포함한 현재 확정 인원수 계산 (MatchedMember에서 조회)
+            long currentTotalCount = matchedMemberRepository.countByGroup(group);
 
-            // 현재 이미 수락된 인원수 계산
-            long currentAcceptedCount = applicationRepository.countByGroupGroupIdAndApplicationStatus(groups.getGroupId(), ApplicationStatus.ACCEPTED);
-
-            // 이미 정원이 찼는데 또 수락하려는 경우 예외 발생
-            if (currentAcceptedCount >= groups.getMaxCapacity()) {
-                throw new GroupException(GroupErrorCode.GROUP_FULL);
-            }
-        }
-
-        // 4. 상태 업데이트
-        application.updateStatus(status);
-
-        // 5. 수락 시: 그룹 상태를 진행중으로 변경(MATCHED)
-        if (status == ApplicationStatus.ACCEPTED) {
-            Groups groups = application.getGroup();
-            // 현재 수락된 총 인원수 계산
-            long currentAcceptedCount = applicationRepository.countByGroupGroupIdAndApplicationStatus(groups.getGroupId(), ApplicationStatus.ACCEPTED);
-
-            // 정원이 다 찼을 경우만
-            if (currentAcceptedCount >= groups.getMaxCapacity()) {
-                groups.updateStatus(GroupStatus.MATCHED);
-
-                // 나머지 PENDING 인원들 조회 및 일괄 거절
-                List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(groups.getGroupId());
-
-                for (Application pendingApp : pendingApplications) {
-                    pendingApp.updateStatus(ApplicationStatus.REJECTED);
-
-                    //시스템 알람 발송 (알람 파트 구현 시 주석 해제)
-                    // notificationService.sendAutoRejectNotification(pendingApp.getGuest(), group);
+                // 정원 초과 체크 (방장 포함 maxCapacity와 비교)
+                if (currentTotalCount >= group.getMaxCapacity()) {
+                    throw new GroupException(GroupErrorCode.GROUP_FULL);
                 }
+
+                // [핵심] MatchedMember에 새 멤버 등록 및 순서 부여
+                // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
+                MatchedMember newMember = MatchedMember.builder()
+                        .group(group)
+                        .userId(application.getGuest()) // 엔티티 필드명 userId에 게스트 저장
+                        .role(RoleStatus.GUEST)
+                        .readingOrder((int) currentTotalCount + 1) // 현재 인원 + 1 순서 부여
+                        .build();
+                // 수락 알람 발송 (추가 가능)
+                // notificationService.sendAcceptNotification(application.getGuest(), group);
+                matchedMemberRepository.save(newMember);
+
+                // 신청서 상태 업데이트
+                application.updateStatus(ApplicationStatus.ACCEPTED);
+
+                // 3. 정원이 다 찼을 경우 (RELAY는 2명, TOGETHER는 설정값) 그룹 상태 변경 및 나머지 거절
+                if (currentTotalCount + 1 >= group.getMaxCapacity()) {
+                    group.updateStatus(GroupStatus.MATCHED);
+
+                    // 나머지 대기 인원 일괄 거절
+                    List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
+                    for (Application pendingApp : pendingApplications) {
+                        pendingApp.updateStatus(ApplicationStatus.REJECTED);
+                        //  시스템 자동 거절 알람 발송
+                        // notificationService.sendAutoRejectNotification(pendingApp.getGuest(), group);
+                    }
+                }
+            } else {
+                application.updateStatus(ApplicationStatus.REJECTED);
+            // notificationService.sendRejectNotification(application.getGuest(), group);
             }
 
+            return ApplicationResponseDTO.UpdateResultDTO.builder()
+                    .applicationId(application.getApplicationId())
+                    .status(application.getApplicationStatus())
+                    .groupStatus(group.getGroupStatus())
+                    .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                    .build();
         }
-
-        // 6. 거절 시: 알람 발송
-        //if (status == ApplicationStatus.REJECTED) {
-        //    notificationService.sendRejectNotification(application.getGuest(), application.getGroup());
-        //}
-
-        //  결과 DTO 반환
-        return ApplicationResponseDTO.UpdateResultDTO.builder()
-                .applicationId(application.getApplicationId())
-                .status(application.getApplicationStatus())
-                .groupStatus(application.getGroup().getGroupStatus())
-                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
-                .build();
-
-
-    }
 
     //참가신청 service
     @Transactional(readOnly = false)

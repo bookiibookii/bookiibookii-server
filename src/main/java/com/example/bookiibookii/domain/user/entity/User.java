@@ -62,6 +62,12 @@ public class User extends BaseEntity {
     @Builder.Default
     private Role role = USER;
 
+    @Column(name = "region")
+    private String region;
+
+    @Column(name = "meet_place")
+    private String meetPlace;
+
     // 소셜 로그인 유저 생성
     public static User createSocialUser(
             SocialUserInfo info,

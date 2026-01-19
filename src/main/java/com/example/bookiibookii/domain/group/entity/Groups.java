@@ -1,6 +1,8 @@
 package com.example.bookiibookii.domain.group.entity;
 
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -25,7 +27,7 @@ public class Groups extends BaseEntity {
     private Long groupId;
 
     //@ManyToOne(fetch = FetchType.LAZY)
-    //@Column(name = "book_id")
+    //@JoinColumn(name = "book_id")
     //private Book bookId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,9 +50,19 @@ public class Groups extends BaseEntity {
     @Column(name = "group_comment", length = 200)
     private String groupComment;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "group_type")
+    private GroupType groupType; //RELAY, TOGETHER
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trade_type")
+    private TradeType tradeType;//DIRECT, DELIVERY
+    
     //@Builder.Default
     //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     //private List<GroupTag> groupTags = new ArrayList<>()
+
+
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)

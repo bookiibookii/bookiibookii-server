@@ -152,9 +152,6 @@ public class TrackerService {
         int nextOrder = (currentMember.getReadingOrder() % totalCapacity) + 1;
 
         // 다음 주자(receiver) 조회
-//        MatchedMember nextMember = matchedMemberRepository.findByGroup_GroupIdAndReadingOrder(groupId, nextOrder)
-//                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
-
         MatchedMember nextMember = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
 

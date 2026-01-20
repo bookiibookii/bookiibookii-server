@@ -18,8 +18,6 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
             "WHERE mm.userId.id = :userId")
     List<MatchedMember> findAllByUserIdWithTracker(@Param("userId") Long userId);
 
-
-//    Optional<MatchedMember> findByGroup_GroupIdAndReadingOrder(Long groupId, int readingOrder);
 @Query("SELECT mm FROM MatchedMember mm " +
         "JOIN FETCH mm.group g " +
         "WHERE g.groupId = :groupId AND mm.readingOrder = :readingOrder")

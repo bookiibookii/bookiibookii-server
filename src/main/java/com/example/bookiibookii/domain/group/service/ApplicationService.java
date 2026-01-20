@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.group.service;
 
-
 import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
@@ -72,7 +71,9 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applyId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
-        Groups group = application.getGroup();
+        // 그룹 조회를 할 때 락을 겁어 Race Condition 해결 (이 시점에 다른 쓰레드는 대기 상태가 됨)
+        Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getGroupId())
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 2. 권한 체크: 이 신청이 들어온 그룹의 방장이 요청자(userId)와 일치하는지 확인
         if (!application.getGroup().getHost().getId().equals(userId)) {

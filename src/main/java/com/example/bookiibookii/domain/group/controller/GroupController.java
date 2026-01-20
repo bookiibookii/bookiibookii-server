@@ -2,7 +2,6 @@ package com.example.bookiibookii.domain.group.controller;
 
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.service.GroupService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -21,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
-public class GroupController {
+public class GroupController implements GroupControllerDocs{
 
     private final GroupService groupService;
 

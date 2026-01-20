@@ -1,17 +1,11 @@
 package com.example.bookiibookii.domain.group.controller;
 
-import com.example.bookiibookii.domain.group.docs.ApplicationApi;
 import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.service.ApplicationService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/groups")
-public class ApplicationController implements ApplicationApi {
+public class ApplicationController implements ApplicationControllerDocs {
 
     private final ApplicationService applicationService;
 

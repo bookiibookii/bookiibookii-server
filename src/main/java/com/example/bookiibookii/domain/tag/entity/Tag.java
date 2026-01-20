@@ -9,16 +9,11 @@ import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
 @Entity
-@Table(name = "tag",
-        uniqueConstraints = {
-            @UniqueConstraint(name = "uk_tag_type_code", columnNames = {"type", "code"})
-        })
+@Table(name = "tag")
 @Builder
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Filter(name = "activeUserFilter", condition = "status = 'ACTIVE'")
-@FilterDef(name = "activeUserFilter", defaultCondition = "status = 'ACTIVE'")
 public class Tag extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

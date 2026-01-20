@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
-import com.example.bookiibookii.domain.group.dto.req.GroupUpdateDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;

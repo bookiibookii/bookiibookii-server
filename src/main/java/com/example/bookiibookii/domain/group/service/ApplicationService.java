@@ -90,7 +90,6 @@ public class ApplicationService {
         if (status == ApplicationStatus.ACCEPTED) {
             // [핵심] 방장을 포함한 현재 확정 인원수 계산 (MatchedMember에서 조회)
             long currentTotalCount = matchedMemberRepository.countByGroup(group);
-
                 // 정원 초과 체크 (방장 포함 maxCapacity와 비교)
                 if (currentTotalCount >= group.getMaxCapacity()) {
                     throw new GroupException(GroupErrorCode.GROUP_FULL);

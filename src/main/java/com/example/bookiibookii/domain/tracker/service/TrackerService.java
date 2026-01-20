@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.tracker.service;
 
-import com.example.bookiibookii.domain.group.repository.MatchedGroupRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;

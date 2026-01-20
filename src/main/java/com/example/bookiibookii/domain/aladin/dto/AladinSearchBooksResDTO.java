@@ -8,7 +8,7 @@ import java.util.List;
 
 @Getter
 @Builder
-public class AladinSearchResponseDto {
+public class AladinSearchBooksResDTO {
     // json response by bookiebookie
     private List<BookResDTO> books;
     private int totalPage;

@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.aladin.service;
 
 import com.example.bookiibookii.domain.aladin.config.AladinClient;
-import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDto;
+import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
 import com.example.bookiibookii.domain.book.dto.BookResDTO;
 import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ public class AladinService {
     private final AladinClient aladinClient;
     private final BookCategoryMapper bookCategoryMapper;
 
-    public AladinSearchBooksResDto searchBooks(String keyword, int page, int size) {
+    public AladinSearchBooksResDTO searchBooks(String keyword, int page, int size) {
         AladinClient.AladinItemSearchResponse raw = aladinClient.searchBooksByKeyword(keyword, page, size);
 
         int totalResults = raw.totalResults();
@@ -46,7 +46,7 @@ public class AladinService {
 
         int totalPage = (int) Math.ceil(totalResults / (double) size);
 
-        return AladinSearchBooksResDto.builder()
+        return AladinSearchBooksResDTO.builder()
                 .books(books)
                 .totalResults(totalResults)
                 .totalPage(totalPage)

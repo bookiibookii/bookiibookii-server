@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
 import com.example.bookiibookii.domain.userbook.service.CardImageService;
 import com.example.bookiibookii.domain.userbook.service.CardImageS3Service;
+import com.example.bookiibookii.domain.userbook.service.CardImageValidationService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import jakarta.validation.Valid;
@@ -25,6 +26,7 @@ public class CardImageController implements CardImageControllerDocs {
 
     private final CardImageS3Service cardImageS3Service;
     private final CardImageService cardImageService;
+    private final CardImageValidationService cardImageValidationService;
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -56,6 +58,11 @@ public class CardImageController implements CardImageControllerDocs {
             @PathVariable Long cardId,
             @Valid @RequestBody CardImageRequestDTO request
     ) {
+        // s3Key 검증: 형식 및 cardId 일치 확인
+        if (!cardImageValidationService.isValidS3Key(request.getS3Key(), cardId)) {
+            throw new IllegalArgumentException("유효하지 않은 S3 키입니다. 올바른 형식: image/cards/{cardId}/{uuid}");
+        }
+
         // S3Key 중복 체크 (다른 카드에서 사용 중인지 확인)
         if (cardImageService.existsByS3Key(request.getS3Key())) {
             throw new IllegalArgumentException("이미 존재하는 S3 키입니다: " + request.getS3Key());

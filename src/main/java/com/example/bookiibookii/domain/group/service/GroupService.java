@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
+import com.example.bookiibookii.domain.group.dto.req.GroupUpdateDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
@@ -87,6 +88,8 @@ public class GroupService {
                 .groupStatus(savedGroup.getGroupStatus()) //
                 .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
+
+
     }
 
     private void validateCommonPolicy(GroupRequestDTO.CreateDTO request) {
@@ -121,6 +124,24 @@ public class GroupService {
         // 방장 포함 인원수는 최소 2명에서 최대 8명까지
         if (request.getMaxCapacity() == null || request.getMaxCapacity() < 2 || request.getMaxCapacity() > 8) {
             throw new GroupException(GroupErrorCode.INVALID_GROUP_CAPACITY);
+        }
+    }
+
+    @Transactional
+    public GroupRequestDTO.UpdateDTO updateGroup(Long groupId, User host, GroupRequestDTO.UpdateDTO request){
+
+        //락으로 그룹 조회
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        //host 권한 체크
+        if(!group.getHost().getId().equals(host.getId())){
+            throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
+        }
+
+        //날짜수정 (이미 시작한 그룹은 수정불가)
+        if(request.getStartDate()!=null || request.getReadingPeriod() != null){
+            if(request.)
         }
     }
 }

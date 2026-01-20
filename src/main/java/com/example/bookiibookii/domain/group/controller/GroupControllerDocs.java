@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "Group API", description = "그룹 생성 및 관리 관련 API")
@@ -21,7 +22,7 @@ public interface GroupControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_7", description = "호스트 장소 정보 없음")
     })
     ApiResponse<GroupResponseDTO.CreateResultDTO> createGroup(
-            User host,
+            @AuthenticationPrincipal User host,
             @RequestBody @Valid GroupRequestDTO.CreateDTO request
     );
 }

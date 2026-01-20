@@ -20,4 +20,12 @@ public class GroupRequestDTO {
         private TradeType tradeType;   // DELIVERY, DIRECT
         // 독서 태그 리스트 (예: ["#메모환영", "#깔끔"]) 추가 필요
     }
+
+    @Getter
+    public static class UpdateDTO{
+            private LocalDateTime startDate;
+            private Integer readingPeriod;
+            private String groupComment;
+            //태그리스트
+    }
 }

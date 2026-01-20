@@ -15,8 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Validated
 @RestController
@@ -30,79 +29,75 @@ public class CardImageController implements CardImageControllerDocs {
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     /**
-     * Presigned PUT URL 발급
-     * POST /api/cards/{cardId}/images/presigned-url?imageCount=3
+     * Presigned PUT URL 발급 API
+     * POST /api/cards/{cardId}/images/presigned-url
      */
     @PostMapping("/{cardId}/images/presigned-url")
-    public ResponseEntity<ApiResponse<List<PresignedUrlResponseDTO>>> getPresignedPutUrls(
-            @PathVariable Long cardId,
-            @RequestParam(defaultValue = "1") int imageCount
+    public ResponseEntity<ApiResponse<PresignedUrlResponseDTO>> getPresignedPutUrl(
+            @PathVariable Long cardId
     ) {
-        List<CardImageS3Service.PresignedUrlResponse> presignedUrls = 
-                cardImageS3Service.generatePresignedPutUrls(cardId, imageCount, PRESIGNED_URL_EXPIRATION_MINUTES);
+        CardImageS3Service.PresignedUrlResponse presignedUrl = 
+                cardImageS3Service.generatePresignedPutUrl(cardId, PRESIGNED_URL_EXPIRATION_MINUTES);
 
-        List<PresignedUrlResponseDTO> responseDTOs = presignedUrls.stream()
-                .map(url -> PresignedUrlResponseDTO.builder()
-                        .s3Key(url.s3Key())
-                        .presignedUrl(url.presignedUrl())
-                        .build())
-                .collect(Collectors.toList());
+        PresignedUrlResponseDTO responseDTO = PresignedUrlResponseDTO.builder()
+                .s3Key(presignedUrl.s3Key())
+                .presignedUrl(presignedUrl.presignedUrl())
+                .build();
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, responseDTOs));
+        return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, responseDTO));
     }
 
     /**
-     * 카드 이미지 DB 저장
+     * 카드 이미지 DB 저장 또는 업데이트 API
      * POST /api/cards/{cardId}/images
      */
     @PostMapping("/{cardId}/images")
-    public ResponseEntity<ApiResponse<List<CardImageResponseDTO>>> saveCardImages(
+    public ResponseEntity<ApiResponse<CardImageResponseDTO>> saveCardImage(
             @PathVariable Long cardId,
             @Valid @RequestBody CardImageRequestDTO request
     ) {
-        // 중복 체크
-        for (String s3Key : request.getS3Keys()) {
-            if (cardImageService.existsByS3Key(s3Key)) {
-                throw new IllegalArgumentException("이미 존재하는 S3 키입니다: " + s3Key);
-            }
+        // S3Key 중복 체크 (다른 카드에서 사용 중인지 확인)
+        if (cardImageService.existsByS3Key(request.getS3Key())) {
+            throw new IllegalArgumentException("이미 존재하는 S3 키입니다: " + request.getS3Key());
         }
 
-        List<CardImage> savedImages = cardImageService.saveCardImages(cardId, request.getS3Keys());
+        CardImage savedImage = cardImageService.saveOrUpdateCardImage(cardId, request.getS3Key());
 
-        List<CardImageResponseDTO> responseDTOs = savedImages.stream()
-                .map(image -> CardImageResponseDTO.builder()
-                        .cardImageId(image.getId())
-                        .s3Key(image.getS3Key())
-                        .imageUrl(cardImageS3Service.generatePresignedGetUrl(
-                                image.getS3Key(), 
-                                PRESIGNED_GET_URL_EXPIRATION_MINUTES))
-                        .build())
-                .collect(Collectors.toList());
+        CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
+                .cardImageId(savedImage.getId())
+                .s3Key(savedImage.getS3Key())
+                .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                        savedImage.getS3Key(), 
+                        PRESIGNED_GET_URL_EXPIRATION_MINUTES))
+                .build();
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.onSuccess(GeneralSuccessCode.CREATED, responseDTOs));
+                .body(ApiResponse.onSuccess(GeneralSuccessCode.CREATED, responseDTO));
     }
 
     /**
-     * 카드 이미지 조회
+     * 카드 이미지 조회 API
      * GET /api/cards/{cardId}/images
      */
     @GetMapping("/{cardId}/images")
-    public ResponseEntity<ApiResponse<List<CardImageResponseDTO>>> getCardImages(
+    public ResponseEntity<ApiResponse<CardImageResponseDTO>> getCardImage(
             @PathVariable Long cardId
     ) {
-        List<CardImage> cardImages = cardImageService.getCardImagesByCardId(cardId);
+        Optional<CardImage> cardImageOpt = cardImageService.getCardImageByCardId(cardId);
 
-        List<CardImageResponseDTO> responseDTOs = cardImages.stream()
-                .map(image -> CardImageResponseDTO.builder()
-                        .cardImageId(image.getId())
-                        .s3Key(image.getS3Key())
-                        .imageUrl(cardImageS3Service.generatePresignedGetUrl(
-                                image.getS3Key(), 
-                                PRESIGNED_GET_URL_EXPIRATION_MINUTES))
-                        .build())
-                .collect(Collectors.toList());
+        if (cardImageOpt.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.FOUND, null));
+        }
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.FOUND, responseDTOs));
+        CardImage cardImage = cardImageOpt.get();
+        CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
+                .cardImageId(cardImage.getId())
+                .s3Key(cardImage.getS3Key())
+                .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                        cardImage.getS3Key(), 
+                        PRESIGNED_GET_URL_EXPIRATION_MINUTES))
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.FOUND, responseDTO));
     }
 }

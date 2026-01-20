@@ -9,7 +9,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,12 +22,7 @@ public class CardImageS3Service {
         this.awsS3Properties = awsS3Properties;
     }
 
-    /**
-     * Presigned PUT URL 생성 (업로드용)
-     * @param cardId 카드 ID
-     * @param expirationMinutes URL 만료 시간 (분)
-     * @return S3 key와 presigned URL을 포함한 객체
-     */
+    //Presigned PUT URL 생성 (업로드용)
     public PresignedUrlResponse generatePresignedPutUrl(Long cardId, int expirationMinutes) {
         String uuid = UUID.randomUUID().toString();
         String s3Key = String.format("image/cards/%d/%s", cardId, uuid);
@@ -47,12 +41,8 @@ public class CardImageS3Service {
         return new PresignedUrlResponse(s3Key, presignedRequest.url().toString());
     }
 
-    /**
-     * Presigned GET URL 생성 (조회용)
-     * @param s3Key S3 객체 키
-     * @param expirationMinutes URL 만료 시간 (분)
-     * @return presigned URL
-     */
+    //Presigned GET URL 생성 (조회용)
+
     public String generatePresignedGetUrl(String s3Key, int expirationMinutes) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(awsS3Properties.bucketName())
@@ -68,22 +58,9 @@ public class CardImageS3Service {
         return presignedRequest.url().toString();
     }
 
-    /**
-     * 여러 이미지에 대한 Presigned PUT URL 생성 (업로드용)
-     * @param cardId 카드 ID
-     * @param imageCount 이미지 개수
-     * @param expirationMinutes URL 만료 시간 (분)
-     * @return S3 key와 presigned URL 리스트
-     */
-    public List<PresignedUrlResponse> generatePresignedPutUrls(Long cardId, int imageCount, int expirationMinutes) {
-        return java.util.stream.IntStream.range(0, imageCount)
-                .mapToObj(i -> generatePresignedPutUrl(cardId, expirationMinutes))
-                .toList();
-    }
 
-    /**
-     * Presigned URL 응답 DTO
-     */
+    //Presigned URL 응답 DTO
+
     public record PresignedUrlResponse(
             String s3Key,
             String presignedUrl

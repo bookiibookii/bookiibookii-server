@@ -13,8 +13,6 @@ import com.example.bookiibookii.domain.userbook.service.CardImageValidationServi
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,12 +30,9 @@ public class CardImageController implements CardImageControllerDocs {
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
-    /**
-     * Presigned PUT URL 발급 API
-     * POST /api/cards/{cardId}/images/presigned-url
-     */
+    @Override
     @PostMapping("/{cardId}/images/presigned-url")
-    public ResponseEntity<ApiResponse<PresignedUrlResponseDTO>> getPresignedPutUrl(
+    public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
             @PathVariable Long cardId
     ) {
         CardImageS3Service.PresignedUrlResponse presignedUrl = 
@@ -48,15 +43,12 @@ public class CardImageController implements CardImageControllerDocs {
                 .presignedUrl(presignedUrl.presignedUrl())
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO));
+        return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
     }
 
-    /**
-     * 카드 이미지 DB 저장 또는 업데이트 API
-     * POST /api/cards/{cardId}/images
-     */
+    @Override
     @PostMapping("/{cardId}/images")
-    public ResponseEntity<ApiResponse<CardImageResponseDTO>> saveCardImage(
+    public ApiResponse<CardImageResponseDTO> saveCardImage(
             @PathVariable Long cardId,
             @Valid @RequestBody CardImageRequestDTO request
     ) {
@@ -80,22 +72,18 @@ public class CardImageController implements CardImageControllerDocs {
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_SAVED, responseDTO));
+        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_SAVED, responseDTO);
     }
 
-    /**
-     * 카드 이미지 조회 API
-     * GET /api/cards/{cardId}/images
-     */
+    @Override
     @GetMapping("/{cardId}/images")
-    public ResponseEntity<ApiResponse<CardImageResponseDTO>> getCardImage(
+    public ApiResponse<CardImageResponseDTO> getCardImage(
             @PathVariable Long cardId
     ) {
         Optional<CardImage> cardImageOpt = cardImageService.getCardImageByCardId(cardId);
 
         if (cardImageOpt.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, null));
+            return ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, null);
         }
 
         CardImage cardImage = cardImageOpt.get();
@@ -107,6 +95,6 @@ public class CardImageController implements CardImageControllerDocs {
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, responseDTO));
+        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, responseDTO);
     }
 }

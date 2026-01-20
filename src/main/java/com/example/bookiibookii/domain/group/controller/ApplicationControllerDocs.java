@@ -20,8 +20,8 @@ public interface ApplicationControllerDocs {
     @Operation(summary = "신청자 명단 조회 API", description = "방장이 그룹 신청자 목록을 조회합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공입니다."),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP4001", description = "해당 그룹을 찾을 수 없습니다."),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "MEMBER4002", description = "방장 권한이 없습니다.")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_1", description = "그룹을 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_1", description = "Host만 접근 가능한 메뉴입니다.")
     })
     @Parameters({
             @Parameter(name = "groupId", description = "조회할 그룹 ID", example = "1"),
@@ -31,8 +31,15 @@ public interface ApplicationControllerDocs {
             @PathVariable(name = "groupId") Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     );
-
     @Operation(summary = "참여요청 수락/거절 API", description = "신청자의 참여 요청을 수락하거나 거절합니다. (방장 권한 필요)")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공입니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_1", description = "그룹을 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_2", description = "신청 내역을 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_1", description = "Host만 접근 가능한 메뉴입니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_1", description = "이미 처리된 신청 내역입니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_2", description = "이미 정원이 가득 찬 그룹입니다.")
+    })
     @Parameters({
             @Parameter(name = "applyId", description = "신청(Application) ID", example = "10")
     })
@@ -43,12 +50,19 @@ public interface ApplicationControllerDocs {
     );
 
     @Operation(summary = "그룹 참여 신청 API", description = "게스트가 특정 그룹에 참여 신청을 보냅니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공입니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_1", description = "그룹을 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_3", description = "그룹이 RECRUITING 상태가 아닙니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_2", description = "Host는 신청할 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_1", description = "이미 신청한 내역이 있습니다.")
+    })
     @Parameters({
             @Parameter(name = "groupId", description = "참여하려는 그룹의 ID", example = "1")
     })
     ApiResponse<ApplicationResponseDTO.JoinResultDTO> joinGroup(
             @PathVariable(name = "groupId") Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user, // 컨트롤러와 동일하게 수정
+            @AuthenticationPrincipal(expression = "user") User user,
             @RequestBody @Valid ApplicationRequestDTO.JoinApplicationDTO request
     );
 }

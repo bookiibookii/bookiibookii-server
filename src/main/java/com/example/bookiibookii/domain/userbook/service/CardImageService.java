@@ -2,6 +2,8 @@ package com.example.bookiibookii.domain.userbook.service;
 
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
+import com.example.bookiibookii.domain.userbook.exception.CardImageException;
+import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,16 +20,12 @@ public class CardImageService {
     private final CardImageRepository cardImageRepository;
     private final CardRepository cardRepository;
 
-    /**
-     * CardImage 저장 또는 업데이트 (카드당 이미지는 하나만 존재)
-     * @param cardId 카드 ID
-     * @param s3Key S3 객체 키
-     * @return 저장/업데이트된 CardImage
-     */
+    // CardImage 저장 또는 업데이트
+
     @Transactional
     public CardImage saveOrUpdateCardImage(Long cardId, String s3Key) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Card not found with id: " + cardId));
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
 
         // 기존 이미지가 있으면 업데이트, 없으면 새로 생성
         Optional<CardImage> existingImageOpt = cardImageRepository.findByCard_Id(cardId);
@@ -46,39 +44,25 @@ public class CardImageService {
         return cardImageRepository.save(cardImage);
     }
 
-    /**
-     * CardImage 조회
-     * @param cardImageId CardImage ID
-     * @return CardImage
-     */
+    // CardImage 조회
+
     public CardImage getCardImage(Long cardImageId) {
         return cardImageRepository.findById(cardImageId)
-                .orElseThrow(() -> new IllegalArgumentException("CardImage not found with id: " + cardImageId));
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND));
     }
 
-    /**
-     * Card에 속한 CardImage 조회 (카드당 이미지는 하나)
-     * @param cardId 카드 ID
-     * @return CardImage (Optional)
-     */
+    // Card에 속한 CardImage 조회 (카드당 이미지는 하나)
     public Optional<CardImage> getCardImageByCardId(Long cardId) {
         return cardImageRepository.findByCard_Id(cardId);
     }
 
-    /**
-     * S3Key 중복 체크
-     * @param s3Key S3 객체 키
-     * @return 존재 여부
-     */
+    // S3Key 중복 체크
+
     public boolean existsByS3Key(String s3Key) {
         return cardImageRepository.existsByS3Key(s3Key);
     }
 
-    /**
-     * 카드에 이미지가 존재하는지 확인
-     * @param cardId 카드 ID
-     * @return 존재 여부
-     */
+    // 카드에 이미지가 존재하는지 확인
     public boolean existsByCardId(Long cardId) {
         return cardImageRepository.existsByCard_Id(cardId);
     }

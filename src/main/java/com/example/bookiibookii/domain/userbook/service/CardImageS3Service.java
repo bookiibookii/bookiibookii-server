@@ -22,7 +22,7 @@ public class CardImageS3Service {
         this.awsS3Properties = awsS3Properties;
     }
 
-    //Presigned PUT URL 생성 (업로드용)
+    // Presigned PUT URL 생성 (업로드용)
     public PresignedUrlResponse generatePresignedPutUrl(Long cardId, int expirationMinutes) {
         String uuid = UUID.randomUUID().toString();
         String s3Key = String.format("image/cards/%d/%s", cardId, uuid);
@@ -41,7 +41,7 @@ public class CardImageS3Service {
         return new PresignedUrlResponse(s3Key, presignedRequest.url().toString());
     }
 
-    //Presigned GET URL 생성 (조회용)
+    // Presigned GET URL 생성 (조회용)
 
     public String generatePresignedGetUrl(String s3Key, int expirationMinutes) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -59,7 +59,7 @@ public class CardImageS3Service {
     }
 
 
-    //Presigned URL 응답 DTO
+    // Presigned URL 응답 DTO
 
     public record PresignedUrlResponse(
             String s3Key,

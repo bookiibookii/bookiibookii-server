@@ -4,11 +4,13 @@ import com.example.bookiibookii.domain.userbook.dto.req.CardImageRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
+import com.example.bookiibookii.domain.userbook.exception.CardImageException;
+import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
+import com.example.bookiibookii.domain.userbook.exception.code.CardImageSuccessCode;
 import com.example.bookiibookii.domain.userbook.service.CardImageService;
 import com.example.bookiibookii.domain.userbook.service.CardImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.CardImageValidationService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
-import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,7 +48,7 @@ public class CardImageController implements CardImageControllerDocs {
                 .presignedUrl(presignedUrl.presignedUrl())
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, responseDTO));
+        return ResponseEntity.ok(ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO));
     }
 
     /**
@@ -60,12 +62,12 @@ public class CardImageController implements CardImageControllerDocs {
     ) {
         // s3Key 검증: 형식 및 cardId 일치 확인
         if (!cardImageValidationService.isValidS3Key(request.getS3Key(), cardId)) {
-            throw new IllegalArgumentException("유효하지 않은 S3 키입니다. 올바른 형식: image/cards/{cardId}/{uuid}");
+            throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
         }
 
         // S3Key 중복 체크 (다른 카드에서 사용 중인지 확인)
         if (cardImageService.existsByS3Key(request.getS3Key())) {
-            throw new IllegalArgumentException("이미 존재하는 S3 키입니다: " + request.getS3Key());
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 
         CardImage savedImage = cardImageService.saveOrUpdateCardImage(cardId, request.getS3Key());
@@ -79,7 +81,7 @@ public class CardImageController implements CardImageControllerDocs {
                 .build();
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.onSuccess(GeneralSuccessCode.CREATED, responseDTO));
+                .body(ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_SAVED, responseDTO));
     }
 
     /**
@@ -93,7 +95,7 @@ public class CardImageController implements CardImageControllerDocs {
         Optional<CardImage> cardImageOpt = cardImageService.getCardImageByCardId(cardId);
 
         if (cardImageOpt.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.FOUND, null));
+            return ResponseEntity.ok(ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, null));
         }
 
         CardImage cardImage = cardImageOpt.get();
@@ -105,6 +107,6 @@ public class CardImageController implements CardImageControllerDocs {
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(GeneralSuccessCode.FOUND, responseDTO));
+        return ResponseEntity.ok(ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, responseDTO));
     }
 }

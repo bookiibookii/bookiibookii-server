@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.group.repository;
 
 
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,4 +24,5 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
         "WHERE g.groupId = :groupId AND mm.readingOrder = :readingOrder")
 Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("readingOrder") int readingOrder);
 
+    long countByGroup(Groups groups);
 }

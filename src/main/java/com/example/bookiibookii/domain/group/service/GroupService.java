@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
-import com.example.bookiibookii.domain.group.dto.req.GroupUpdateDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
@@ -127,7 +126,8 @@ public class GroupService {
         }
     }
 
-    @Transactional
+    //그룹수정 service
+    /*@Transactional
     public GroupRequestDTO.UpdateDTO updateGroup(Long groupId, User host, GroupRequestDTO.UpdateDTO request){
 
         //락으로 그룹 조회
@@ -143,7 +143,7 @@ public class GroupService {
         if(request.getStartDate()!=null || request.getReadingPeriod() != null){
             if(request.)
         }
-    }
+    }*/
 }
 
 

@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -65,6 +66,19 @@ public class CardImageS3Service {
         );
 
         return presignedRequest.url().toString();
+    }
+
+    /**
+     * 여러 이미지에 대한 Presigned PUT URL 생성 (업로드용)
+     * @param cardId 카드 ID
+     * @param imageCount 이미지 개수
+     * @param expirationMinutes URL 만료 시간 (분)
+     * @return S3 key와 presigned URL 리스트
+     */
+    public List<PresignedUrlResponse> generatePresignedPutUrls(Long cardId, int imageCount, int expirationMinutes) {
+        return java.util.stream.IntStream.range(0, imageCount)
+                .mapToObj(i -> generatePresignedPutUrl(cardId, expirationMinutes))
+                .toList();
     }
 
     /**

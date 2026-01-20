@@ -75,8 +75,15 @@ public class CardImageService {
      * @return CardImage 리스트
      */
     public List<CardImage> getCardImagesByCardId(Long cardId) {
-        Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("Card not found with id: " + cardId));
-        return card.getCardImages();
+        return cardImageRepository.findAllByCard_IdOrderByIdAsc(cardId);
+    }
+
+    /**
+     * S3Key 중복 체크
+     * @param s3Key S3 객체 키
+     * @return 존재 여부
+     */
+    public boolean existsByS3Key(String s3Key) {
+        return cardImageRepository.existsByS3Key(s3Key);
     }
 }

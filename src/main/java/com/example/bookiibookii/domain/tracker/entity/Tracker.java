@@ -119,6 +119,8 @@ public class Tracker extends BaseEntity {
             this.trackerStatus = TrackerStatus.RETURNED; // 호스트가 돌려받음
         } else if (this.trackerStatus == TrackerStatus.SHIPPING_TO_GUEST || this.trackerStatus == TrackerStatus.SHIPPING) {
             this.trackerStatus = TrackerStatus.RECEIVED; // 게스트가 전달받음
+        } else {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
     }
@@ -152,6 +154,16 @@ public class Tracker extends BaseEntity {
     }
 
     public void extensionDays(int days) {
+        if(days <= 0){
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);
+        }
+
+        if(this.trackerStatus != TrackerStatus.HOST_READING &&
+        this.trackerStatus != TrackerStatus.GUEST_READING &&
+        this.trackerStatus != TrackerStatus.READING){
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
         // 1. 최대 연장 횟수 초과 체크( 현재는 최대 한번만 연장 가능)
         if (this.extensionCount >= 1) {
             throw new TrackerException(TrackerErrorCode.EXTENSION_LIMIT_EXCEEDED);

@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.repository.MatchedGroupRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
@@ -33,7 +32,6 @@ public class TrackerService {
 
     private final TrackerRepository trackerRepository;
     private final TrackerHistoryRepository trackerHistoryRepository;
-    private final MatchedGroupRepository matchedGroupRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final TrackerConverter trackerConverter;
 

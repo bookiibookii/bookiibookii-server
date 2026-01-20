@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.entity;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -22,8 +23,9 @@ public class Tracker extends BaseEntity {
     @Column(name = "tracker_id")
     private Long id;
 
-    @Column(name = "group_id", nullable = false)
-    private Long groupId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Groups group;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -45,7 +47,7 @@ public class Tracker extends BaseEntity {
 
     // 현재 주자를 지목하는 1:1 관계
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "matchedmember_id")
+    @JoinColumn(name = "matchedmember_id", nullable = false)
     private MatchedMember currentMember;
 
     // 히스토리와의 1:N 관계

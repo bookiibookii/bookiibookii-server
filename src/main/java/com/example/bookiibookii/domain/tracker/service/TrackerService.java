@@ -135,42 +135,123 @@ public class TrackerService {
     }
 
 
+    // 배송 등록
     @Transactional
     public void registerShipping(Long groupId, TrackerShippingRequest request) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        if (tracker.getTrackerStatus() != TrackerStatus.HOST_READING &&
-                tracker.getTrackerStatus() != TrackerStatus.GUEST_READING &&
-        tracker.getTrackerStatus() != TrackerStatus.READING) {
+        if (tracker.getTrackerStatus() != TrackerStatus.HOST_DONE &&
+                tracker.getTrackerStatus() != TrackerStatus.GUEST_DONE &&
+        tracker.getTrackerStatus() != TrackerStatus.READ_DONE) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
         MatchedMember currentMember = tracker.getCurrentMember(); // 현재 책을 가지고 있는 사람
-        int totalCapacity = tracker.getGroup().getMaxCapacity();
 
+        int totalCapacity = tracker.getGroup().getMaxCapacity();
         // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
         int nextOrder = (currentMember.getReadingOrder() % totalCapacity) + 1;
 
         // 다음 주자(receiver) 조회
-        MatchedMember nextMember = matchedMemberRepository.findByGroup_GroupIdAndReadingOrder(groupId, nextOrder)
+//        MatchedMember nextMember = matchedMemberRepository.findByGroup_GroupIdAndReadingOrder(groupId, nextOrder)
+//                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+
+        MatchedMember nextMember = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
 
         // 엔티티에 판단 위임 (위에 작성한 메서드 호출)
         tracker.updateShippingStatus(currentMember, nextMember);
 
-        // 배송 로그(History) 저장
-        TrackerHistory history = TrackerHistory.builder()
-                .tracker(tracker)
-                .senderMatchedMemberId(currentMember.getMatchedMember())
-                .receiverMatchedMemberId(nextMember.getMatchedMember())
-                .trackerStatus(tracker.getTrackerStatus()) // 엔티티에서 결정된 상태 사용
-                .deliveryCompany(request.deliveryCompany())
-                .trackingNumber(request.trackingNumber())
-                .imageUrl(request.authenticationImageUrl())
-                .startDate(LocalDateTime.now())
-                .build();
+        // 트래커 히스토리에 write.
+        TrackerHistory shippingHistory = tracker.createHistorySnapshot(
+                currentMember.getMatchedMember(),      // 보내는 사람
+                nextMember.getMatchedMember(),       // 받는 사람
+                request.deliveryCompany(),
+                request.trackingNumber(),
+                request.authenticationImageUrl()
+        );
+        trackerHistoryRepository.save(shippingHistory);
 
-        trackerHistoryRepository.save(history);
     }
+
+
+    //수령 완료
+    @Transactional
+    public void registerReceive(Long groupId) {
+        // 1. 트래커 조회
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        // 2. [상태 변경] 엔티티 상태 업데이트 (SHIPPING -> RECEIVED/RETURNED)
+        tracker.updateReceiveStatus();
+
+        // 3. [새로운 단계 기록] '수령 완료' 상태가 시작되었음을 히스토리에 기록
+        // 수령 완료는 배송이 아니므로 senderId는 null, receiverId는 현재 주자로 기록합니다.
+        TrackerHistory receiveHistory = tracker.createHistorySnapshot(
+                null,
+                tracker.getCurrentMember().getMatchedMember(),
+                null, null, null
+        );
+        trackerHistoryRepository.save(receiveHistory);
+    }
+
+
+    // 독서 시작
+    @Transactional
+    public void registerReading(Long groupId) {
+        // 1. 트래커 조회
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        // 2. [상태 변경] 엔티티 상태 업데이트 (RECEIVED -> GUEST_READING 등)
+        // 성진님이 짜놓으신 엔티티 내 startReading() 호출
+        tracker.startReading();
+
+        // 3. [새로운 단계 기록] '독서 중' 상태가 시작되었음을 히스토리에 기록
+        // 독서 중에는 보내는 사람이 없으므로 senderId는 null, receiverId는 현재 읽는 사람(나)
+        TrackerHistory readingHistory = tracker.createHistorySnapshot(
+                null,
+                tracker.getCurrentMember().getMatchedMember(),
+                null, null, null
+        );
+        trackerHistoryRepository.save(readingHistory);
+    }
+
+    // 독서 완료
+    @Transactional
+    public void registerReadingDone(Long groupId) {
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        tracker.completeReading();
+
+        TrackerHistory doneHistory = tracker.createHistorySnapshot(
+                null,
+                tracker.getCurrentMember().getMatchedMember(),
+                null, null, null
+        );
+        trackerHistoryRepository.save(doneHistory);
+    }
+
+    // 기간 연장
+    @Transactional
+    public void registerExtensionDays(Long groupId, int days) {
+        // 1. 트래커 조회
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        // 2. [상태/데이터 변경] 엔티티의 연장 로직 호출
+        tracker.extensionDays(days);
+
+        // 3. [새로운 단계 기록] 연장된 정보가 반영된 새로운 히스토리 생성
+        TrackerHistory extensionHistory = tracker.createHistorySnapshot(
+                null,
+                tracker.getCurrentMember().getMatchedMember(),
+                null, null, null
+        );
+        trackerHistoryRepository.save(extensionHistory);
+    }
+
+
 }

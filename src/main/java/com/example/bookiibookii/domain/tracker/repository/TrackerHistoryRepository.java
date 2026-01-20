@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.repository;
 
+import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -7,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TrackerHistoryRepository extends JpaRepository<TrackerHistory, Long> {
@@ -20,4 +22,7 @@ public interface TrackerHistoryRepository extends JpaRepository<TrackerHistory, 
             "where t.group.groupId = :groupId " +
             "order by h.createdAt desc")
     List<TrackerHistory> findAllByGroupId(@Param("groupId") Long groupId);
+
+
+
 }

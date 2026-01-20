@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.aladin.config;
 
+import com.example.bookiibookii.domain.aladin.exception.AladinException;
+import com.example.bookiibookii.domain.aladin.exception.code.AladinErrorCode;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,7 +26,7 @@ public class AladinClient {
                 .build();
     }
 
-    public AladinSearchRawResponse searchBooksJson(String keyword, int page, int size) {
+    public AladinItemSearchResponse searchBooksByKeyword(String keyword, int page, int size) {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/ItemSearch.aspx")
@@ -38,13 +40,40 @@ public class AladinClient {
                         .queryParam("Version", "20131101")
                         .build())
                 .retrieve()
-                .body(AladinSearchRawResponse.class);
+                .body(AladinItemSearchResponse.class);
     }
 
-    // json response by Aladin
+    public AladinBookItem lookupBookByIsbn13(String isbn13) {
+        AladinItemLookupResponse raw = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/ItemLookUp.aspx")
+                        .queryParam("ttbkey", aladinKey)
+                        .queryParam("itemIdType", "ISBN13")
+                        .queryParam("ItemId", isbn13)
+                        .queryParam("SubSearchTarget", "Book")
+                        .queryParam("cover", "Big")
+                        .queryParam("output", "JS")
+                        .queryParam("Version", "20131101")
+                        .build())
+                .retrieve()
+                .body(AladinItemLookupResponse.class);
+
+        if (raw.item() == null || raw.item().isEmpty()) {
+            throw new AladinException(AladinErrorCode.ALADIN_NOT_FOUND);
+        }
+        return raw.item().get(0);
+    }
+
+    // json response by Aladin - 여러 건 조회
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record AladinSearchRawResponse(
+    public record AladinItemSearchResponse(
             @JsonProperty("totalResults") int totalResults,
+            @JsonProperty("item") List<AladinBookItem> item
+    ) {}
+
+    // json response by Aladin - 단건 조회
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record AladinItemLookupResponse(
             @JsonProperty("item") List<AladinBookItem> item
     ) {}
 

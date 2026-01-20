@@ -13,7 +13,7 @@ public class BookResDTO {
     private String image;
     private String publisher;
     // private LocalDate publishDate;
-    private String isbn;
+    private String isbn13;
     // private Long categoryId;
     private CustomCategory category;
     private String categoryLabel;

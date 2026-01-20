@@ -9,10 +9,10 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum BookErrorCode implements BaseCode {
     // 404 Not Found
-    BookNotFoundException(HttpStatus.NOT_FOUND, "BOOK404_1", "책을 찾을 수 없습니다."),
+    BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "BOOK404_1", "책을 찾을 수 없습니다."),
 
     // 400 Bad Request
-    BlockedCategoryException(HttpStatus.BAD_REQUEST, "BOOK400_1", "지원하지 않는 카테고리의 도서입니다.");
+    BLOCKED_CATEGORY(HttpStatus.BAD_REQUEST, "BOOK400_1", "지원하지 않는 카테고리의 도서입니다.");
 
     private final HttpStatus status;
     private final String code;

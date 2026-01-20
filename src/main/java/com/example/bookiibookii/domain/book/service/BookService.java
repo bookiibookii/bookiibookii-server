@@ -20,6 +20,7 @@ public class BookService {
     private final AladinClient aladinClient;
     private final BookCategoryMapper bookCategoryMapper;
 
+    // Transactional 수정 필요 (save에만 걸리게끔)
     @Transactional
     public Book getOrCreateByIsbn13(String isbn13) {
         // 그룹 생성 시 book 저장 로직
@@ -30,7 +31,7 @@ public class BookService {
                     AladinClient.AladinBookItem item = aladinClient.lookupBookByIsbn13(isbn13);
                     Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryName());
                     if (cc.isEmpty()) {
-                        throw new BookException(BookErrorCode.BlockedCategoryException);
+                        throw new BookException(BookErrorCode.BLOCKED_CATEGORY);
                     }
 
                     // 2) 엔티티 생성
@@ -57,6 +58,6 @@ public class BookService {
     @Transactional(readOnly = true)
     public Book getByIsbn13(String isbn13) {
         return bookRepository.findByIsbn13(isbn13)
-                .orElseThrow(() -> new IllegalArgumentException("Book not found: " + isbn13));
+                .orElseThrow(() -> new BookException(BookErrorCode.BOOK_NOT_FOUND));
     }
 }

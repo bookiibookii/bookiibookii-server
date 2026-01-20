@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.aladin.service;
 import com.example.bookiibookii.domain.aladin.config.AladinClient;
 import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
 import com.example.bookiibookii.domain.book.dto.BookResDTO;
+import com.example.bookiibookii.domain.book.exception.BookException;
+import com.example.bookiibookii.domain.book.exception.code.BookErrorCode;
 import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,12 +57,10 @@ public class AladinService {
 
     public BookResDTO searchBookByISBN(String isbn13){
         AladinClient.AladinBookItem bookItem = aladinClient.lookupBookByIsbn13(isbn13);
-        System.out.println(bookItem);
 
         Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(bookItem.categoryName());
         if (cc.isEmpty()) {
-            throw new IllegalArgumentException("Blocked category: " + bookItem.categoryName());
-            // 커스텀 예외 도입 고민중
+            throw new BookException(BookErrorCode.BLOCKED_CATEGORY);
         }
 
         return BookResDTO.builder()

@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.group.entity;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -62,7 +63,8 @@ public class Groups extends BaseEntity {
     //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     //private List<GroupTag> groupTags = new ArrayList<>()
 
-
+    @OneToOne(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Tracker tracker;
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)

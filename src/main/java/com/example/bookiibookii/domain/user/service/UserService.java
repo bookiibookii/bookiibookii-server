@@ -35,4 +35,9 @@ public class UserService {
                     .orElseThrow(() -> new RuntimeException("소셜 유저 생성 중 동시성 오류로 사용자 조회 실패"));
         }
     }
-}
+    
+    // 닉네임 검증
+    public boolean isNicknameAvailable(String nickname) {
+        return !userRepository.existsByName(nickname); // 중복되면 False 반환
+    }
+}   

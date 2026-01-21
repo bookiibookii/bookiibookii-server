@@ -35,7 +35,7 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name",nullable = false)
+    @Column(name = "name")
     private String name;
 
     @Enumerated(EnumType.STRING)
@@ -80,4 +80,5 @@ public class User extends BaseEntity {
     public void reactivate() {
         this.status = Status.ACTIVE;
     }
+    public void updateName(String name) { this.name = name; }
 }

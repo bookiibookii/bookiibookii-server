@@ -12,8 +12,7 @@ import org.hibernate.annotations.FilterDef;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Filter(name = "activeUserFilter", condition = "status = 'ACTIVE'")
-@FilterDef(name = "activeUserFilter", defaultCondition = "status = 'ACTIVE'")
+@Table(name = "user_tag")
 public class UserTag extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,6 +23,17 @@ public class UserTag extends BaseEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id")
+    @JoinColumn(name = "tag_id", nullable = false)
     private Tag tag;
+
+    @Column(name = "score", nullable = false)
+    private Integer score; // METHOD, VIBE Type의 tag별 누적도
+
+    public static UserTag create(User user, Tag tag) {
+        return UserTag.builder()
+                .user(user)
+                .tag(tag)
+                .score(0)
+                .build();
+    }
 }

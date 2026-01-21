@@ -141,7 +141,7 @@ public class GroupService {
         }
 
         //진행중(MATCHED)인 그룹은 수정 불가
-        if(group.getGroupStatus() != GroupStatus.MATCHED){
+        if(group.getGroupStatus() != GroupStatus.RECRUITING){
             throw new GroupException(GroupErrorCode.GROUP_CANT_UPDATE);
         }
 

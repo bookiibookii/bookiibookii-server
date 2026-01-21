@@ -41,5 +41,5 @@ public interface UserControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "온보딩 저장 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "온보딩 저장 실패")
     })
-    ApiResponse<Void> createUserOnboarding(User user, @Valid @RequestBody UserRequestDTO.OnboardingReqDTO request);
+    ApiResponse<Void> createUserOnboarding(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.OnboardingReqDTO request);
 }

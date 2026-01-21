@@ -61,7 +61,8 @@ public class UserService {
     public void createUserOnboarding(Long userId, UserRequestDTO.OnboardingReqDTO request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
-        user.updateName(request.name());
+
+        if(isNicknameAvailable(request.name())) user.updateName(request.name());
 
         List<UserTag> userTags = new ArrayList<>();
         for (UserRequestDTO.TagSettingDTO tagDto : request.tags()) {
@@ -75,6 +76,7 @@ public class UserService {
             tags.forEach(tag -> userTags.add(UserTag.create(user, tag)));
         }
 
+        userTagRepository.deleteAllByUser(userId);
         userTagRepository.saveAll(userTags);
     }
 }   

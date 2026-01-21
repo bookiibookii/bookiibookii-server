@@ -76,7 +76,7 @@ public class UserService {
             tags.forEach(tag -> userTags.add(UserTag.create(user, tag)));
         }
 
-        userTagRepository.deleteAllByUser(userId);
+        userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);
     }
 }   

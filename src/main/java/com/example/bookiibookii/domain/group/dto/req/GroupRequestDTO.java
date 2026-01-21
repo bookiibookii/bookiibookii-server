@@ -11,7 +11,7 @@ public class GroupRequestDTO {
     @Getter
     //그룹생성 req
     public static class CreateDTO{
-        private Long bookId;           // 대상 도서 ID
+        private String isbn13;          // 대상 도서 ID
         private Integer maxCapacity;   // TOGETHER일 때 인원수
         private LocalDateTime startDate;
         private Integer readingPeriod;

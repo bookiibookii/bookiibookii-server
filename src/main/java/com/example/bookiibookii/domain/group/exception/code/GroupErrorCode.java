@@ -21,6 +21,8 @@ public enum GroupErrorCode implements BaseCode {
     INVALID_READING_PERIOD(HttpStatus.BAD_REQUEST, "GROUP400_6", "독서 기간은 3일에서 30일 사이여야 합니다."),
     USER_LOCATION_NOT_FOUND(HttpStatus.BAD_REQUEST, "GROUP400_7", "직접 교환을 위해 마이페이지에서 장소를 설정해주세요."),
     INVALID_GROUP_CAPACITY(HttpStatus.BAD_REQUEST, "GROUP400_8", "함께읽기 정원은 방장 포함 2~8명 사이여야 합니다."),
+    GROUP_CANT_UPDATE(HttpStatus.BAD_REQUEST, "GROUP400_9", "그룹을 수정할 수 없습니다."),
+    GROUP_CANT_DELETE(HttpStatus.BAD_REQUEST, "GROUP400_10", "그룹을 삭제할 수 없습니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),

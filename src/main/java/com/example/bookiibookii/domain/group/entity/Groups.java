@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.entity;
 
+import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
@@ -17,6 +18,7 @@ import java.util.List;
 @Entity
 @Table(name = "`groups`")//예약어 피하기
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -27,9 +29,9 @@ public class Groups extends BaseEntity {
     @Column(name = "group_id")
     private Long groupId;
 
-    //@ManyToOne(fetch = FetchType.LAZY)
-    //@JoinColumn(name = "book_id")
-    //private Book bookId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_id")
+    private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_id") // 방장(Host) FK 매핑
@@ -77,4 +79,6 @@ public class Groups extends BaseEntity {
     public void updateStatus(GroupStatus status) {
         this.groupStatus = status;
     }
+
+    public void markAsDELETED(){ this.groupStatus = GroupStatus.DELETED; }
 }

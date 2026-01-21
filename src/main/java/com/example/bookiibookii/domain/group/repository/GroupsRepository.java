@@ -16,14 +16,14 @@ import java.util.Optional;
 public interface GroupsRepository extends JpaRepository<Groups, Long> {
     // 전체 모집 중인 그룹 조회 (Slice 적용)
     @Query("select g from Groups g " +
-            //"join fetch g.book " +
+            "join fetch g.book " +
             "join fetch g.host " +
             "where g.groupStatus = 'RECRUITING'")
     Slice<Groups> findAllWithBookAndHost(Pageable pageable);
 
     // 지역별 필터링 조회 (Slice 적용) 그룹리스트api용?
     @Query("select g from Groups g " +
-            //"join fetch g.book " +
+            "join fetch g.book " +
             "join fetch g.host h " +
             "where h.region = :region " +
             "and g.tradeType = 'DIRECT' " +
@@ -32,6 +32,6 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
 
     // [추가] 동시성 제어를 위한 비관적 락 메서드
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select g from Groups g where g.groupId = :groupId")
+    @Query("select g from Groups g where g.groupId = :groupId and g.groupStatus != 'DELETED'")
     Optional<Groups> findByIdForUpdate(@Param("groupId") Long groupId);
 }

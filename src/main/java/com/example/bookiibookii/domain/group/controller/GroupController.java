@@ -11,10 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Group API", description = "그룹 생성 및 조회 관련 API")
 @RestController
@@ -32,5 +29,27 @@ public class GroupController implements GroupControllerDocs{
 
         GroupResponseDTO.CreateResultDTO result = groupService.createGroup(host, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK,result);
+    }
+
+    @PatchMapping("/{groupId}")
+    public ApiResponse<GroupResponseDTO.UpdateResultDTO> updateGroup(
+            @PathVariable(name = "groupId") Long groupId,
+            @AuthenticationPrincipal User host,
+            @RequestBody @Valid GroupRequestDTO.UpdateDTO request) { // @RequestBody와 @Valid 추가
+
+        // 서비스에서 비관적 락(Pessimistic Lock)과 RECRUITING 상태 체크를 수행합니다.
+        GroupResponseDTO.UpdateResultDTO result = groupService.updateGroup(groupId, host, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    // 그룹 삭제 API (DELETE - Soft Delete 방식)
+    @DeleteMapping("/{groupId}")
+    public ApiResponse<GroupResponseDTO.DeleteResultDTO> deleteGroup(
+            @PathVariable(name = "groupId") Long groupId,
+            @AuthenticationPrincipal User host) {
+
+        // 실제 데이터를 지우지 않고 groupStatus를 DELETED로 변경합니다.
+        GroupResponseDTO.DeleteResultDTO result = groupService.deleteGroup(groupId, host);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 }

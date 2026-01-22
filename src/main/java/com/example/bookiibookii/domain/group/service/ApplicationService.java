@@ -200,7 +200,6 @@ public class ApplicationService {
             throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
         }
 
-        Groups group = member.getGroup();
 
         //그룹이 모집중(RECRUITING) 일때만 취소가능
         if(group.getGroupStatus() != GroupStatus.RECRUITING){

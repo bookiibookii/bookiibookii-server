@@ -1,7 +1,5 @@
 package com.example.bookiibookii.domain.userbook.service;
 
-import com.example.bookiibookii.domain.userbook.exception.UserBookException;
-import com.example.bookiibookii.domain.userbook.exception.code.UserBookErrorCode;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,7 +12,6 @@ public class UserBookService {
     private final UserBookRepository userBookRepository;
 
     public String findRecentBookTitleByUserId(Long userId) {
-        return userBookRepository.findRecentBookTitle(userId)
-                .orElseThrow(() -> new UserBookException(UserBookErrorCode.NOT_FOUND));
+        return userBookRepository.findRecentBookTitle(userId).orElse(null);
     }
 }

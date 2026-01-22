@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class GroupRequestDTO {
@@ -11,9 +12,9 @@ public class GroupRequestDTO {
     @Getter
     //그룹생성 req
     public static class CreateDTO{
-        private Long bookId;           // 대상 도서 ID
+        private String isbn13;          // 대상 도서 ID
         private Integer maxCapacity;   // TOGETHER일 때 인원수
-        private LocalDateTime startDate;
+        private LocalDate startDate;
         private Integer readingPeriod;
         private String groupComment;
         private GroupType groupType;   // RELAY, TOGETHER
@@ -23,7 +24,7 @@ public class GroupRequestDTO {
 
     @Getter
     public static class UpdateDTO{
-            private LocalDateTime startDate;
+            private LocalDate startDate;
             private Integer readingPeriod;
             private String groupComment;
             //태그리스트

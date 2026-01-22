@@ -4,6 +4,5 @@ public enum TagType {
     GENRE,
     METHOD,
     SPEED,
-    VIBE,
-    REVIEW
+    VIBE
 }

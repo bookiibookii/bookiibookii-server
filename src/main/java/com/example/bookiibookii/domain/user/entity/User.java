@@ -86,4 +86,5 @@ public class User extends BaseEntity {
     public void reactivate() {
         this.status = Status.ACTIVE;
     }
+    public void updateName(String name) { this.name = name; }
 }

@@ -1,14 +1,17 @@
 package com.example.bookiibookii.domain.user.controller;
 
+import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.exception.code.UserSuccessCode;
 import com.example.bookiibookii.domain.user.service.UserService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -26,6 +29,17 @@ public class UserController implements UserControllerDocs{
     ) {
         boolean isAvailable = userService.isNicknameAvailable(nickname);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, Map.of("isAvailable", isAvailable));
+    }
+
+    // User 온보딩 설정
+    @Override
+    @PostMapping("/api/onboarding")
+    public ApiResponse<Void> createUserOnboarding(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.OnboardingReqDTO request
+    ) {
+        userService.createUserOnboarding(user.getId(), request);
+        return ApiResponse.onSuccess(UserSuccessCode.ONBOARDING_SUCCESS, null);
     }
 
 }

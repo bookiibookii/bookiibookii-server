@@ -1,12 +1,9 @@
 package com.example.bookiibookii.domain.tag.entity;
 
-import com.example.bookiibookii.domain.tag.enums.TagCode;
 import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
 
 @Entity
 @Table(name = "tag")
@@ -23,7 +20,6 @@ public class Tag extends BaseEntity {
     @Column(nullable = false, length = 20)
     private TagType type;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private TagCode code;
+    private String code;
 }

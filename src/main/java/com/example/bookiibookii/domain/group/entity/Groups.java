@@ -10,6 +10,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +41,8 @@ public class Groups extends BaseEntity {
     @Column(name = "max_capacity")
     private Integer maxCapacity; // 모집 인원
 
-    @Column(name = "start_date") // 시작 날짜
-    private LocalDateTime startDate;
+    @Column(name = "start_date") // 시작 날짜(시간포함x)
+    private LocalDate startDate;
 
     @Column(name = "group_period") // 독서 기간
     private Integer readingPeriod;

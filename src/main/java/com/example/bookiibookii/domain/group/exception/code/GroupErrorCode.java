@@ -23,6 +23,7 @@ public enum GroupErrorCode implements BaseCode {
     INVALID_GROUP_CAPACITY(HttpStatus.BAD_REQUEST, "GROUP400_8", "함께읽기 정원은 방장 포함 2~8명 사이여야 합니다."),
     GROUP_CANT_UPDATE(HttpStatus.BAD_REQUEST, "GROUP400_9", "그룹을 수정할 수 없습니다."),
     GROUP_CANT_DELETE(HttpStatus.BAD_REQUEST, "GROUP400_10", "그룹을 삭제할 수 없습니다."),
+    COMMENT_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_11", "그룹 소개글을 입력해야 합니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),

@@ -71,7 +71,7 @@ public interface ApplicationControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공입니다."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_3", description = "해당 그룹의 참여자가 아닙니다."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_3", description = "방장은 취소할 수 없습니다."),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_4", description = "정원이 가득 찼거나 이미 진행 중인 그룹은 취소할 수 없습니다.")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_12", description = "그룹 신청을 취소할 수 없습니다.")
     })
     @Parameters({
             @Parameter(name = "groupId", description = "참여 취소하려는 그룹의 ID", example = "1")

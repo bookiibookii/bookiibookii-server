@@ -187,7 +187,11 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.CancelResultDTO cancelApplication (Long groupId, Long userId){
 
-        //참여정보 확인하기
+        // 그룹에 비관적 락을 먼저 걸고 조회
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        // 참여 정보 확인
         MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUserId_Id(groupId, userId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.MEMBER_NOT_FOUND));
 

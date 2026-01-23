@@ -36,7 +36,7 @@ public class RecommendationService {
             throw new UserException(UserErrorCode.USER_TAG_NOT_FOUND);
         }
         List<Tag> myTopTags = userTagService.extractTopTags(currentUserTags, 2);
-        if(myTopTags.size() < 2) return null;
+        if(myTopTags.size() < 2) return Collections.emptyList();
         // 기준 Tag Set
         Set<Long> baseTagIds = myTopTags.stream()
                 .map(Tag::getId)
@@ -45,7 +45,7 @@ public class RecommendationService {
 
         // 후보 UserTag 전체 조회
         List<UserTag> candidateUserTags = userTagRepository.findRecommendUserTags(userId, targetTagTypes, GroupStatus.RECRUITING);
-        if (candidateUserTags.isEmpty()) return null;
+        if (candidateUserTags.isEmpty()) return Collections.emptyList();
 
         // userId 기준으로 UserTag 묶기
         Map<Long, List<UserTag>> userTagMap = candidateUserTags.stream()

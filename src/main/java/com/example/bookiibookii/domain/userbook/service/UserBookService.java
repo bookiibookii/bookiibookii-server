@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.userbook.service;
 
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,8 @@ public class UserBookService {
     private final UserBookRepository userBookRepository;
 
     public String findRecentBookTitleByUserId(Long userId) {
-        return userBookRepository.findRecentBookTitle(userId).orElse(null);
+        return userBookRepository.findRecentBookTitle(userId, PageRequest.of(0, 1))
+                .stream()
+                .findFirst().orElse(null);
     }
 }

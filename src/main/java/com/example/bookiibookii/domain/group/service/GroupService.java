@@ -7,12 +7,10 @@ import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
-import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -23,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional
@@ -31,6 +31,7 @@ public class GroupService {
 
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final ApplicationRepository applicationRepository;
     private final BookService bookService;
 
     //그룹생성 service
@@ -222,6 +223,105 @@ public class GroupService {
 
     }
 
-}
+    //그룹조회
+    @Transactional(readOnly = true)
+    public GroupResponseDTO.GroupDetailDTO getGroupDetail(Long groupId, Long userId) {
+
+        // 1. 그룹의 핵심 정보(도서, 호스트)를 한 번에 조회 (Fetch Join 활용으로 성능 최적화)
+        Groups group = groupsRepository.findDetailById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroup(group);
+
+        // 3. 현재 '대기 중'인 신청자 수를 카운트 (방장 버튼의 숫자 표시 및 HOT 배지 계산용)
+        int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
+
+        // 4. 대기 인원이 정원의 3배 이상일 경우 'HOT' 배지 활성화 여부 판단
+        boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
+
+        // 5. 기획서 UI에 맞춰 확정 멤버 정보와 빈 슬롯(EMPTY)을 혼합하여 참여자 목록 가공
+        List<GroupResponseDTO.ParticipantSlotDTO> participantSlots = buildParticipantSlots(group, matchedMembers, userId);
+
+        // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
+        String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
+
+        // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
+        return GroupResponseDTO.GroupDetailDTO.builder()
+                .groupId(group.getGroupId())
+                .title(group.getBook().getTitle())
+                .groupComment(group.getGroupComment())
+                .groupStatus(group.getGroupStatus().name())
+                .isHost(group.getHost().getId().equals(userId))
+                .bookTitle(group.getBook().getTitle())
+                .bookImage(group.getBook().getImage())
+                .author(group.getBook().getAuthor())
+                .category(group.getBook().getCategory().label())
+                .readingPeriod(group.getReadingPeriod())
+                .matchedCount(matchedMembers.size())
+                .maxCapacity(group.getMaxCapacity())
+                .waitingCount(waitingCount)
+                .isHot(isHot)
+                .hostNickname(group.getHost().getName())
+                .hostProfileImage(group.getHost().getImageUrl())
+                .createdAt(group.getHost().getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 방장 가입일
+                //.tags(new ArrayList<>())
+                .participantSlots(participantSlots)
+                .buttonStatus(buttonStatus)
+                .build();
+    }
+
+    private List<GroupResponseDTO.ParticipantSlotDTO> buildParticipantSlots(Groups group, List<MatchedMember> matchedMembers, Long userId) {
+        List<GroupResponseDTO.ParticipantSlotDTO> slots = new ArrayList<>();
+
+        for (MatchedMember mm : matchedMembers) {
+            slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
+                    .nickname(mm.getUserId().getName())
+                    //.profileImage(mm.getUserId().getImageUrl())
+                    .role(mm.getRole().name())
+                    .isMe(mm.getUserId().getId().equals(userId))
+                    .build());
+        }
+
+        int emptyCount = group.getMaxCapacity() - matchedMembers.size();
+        for (int i = 0; i < emptyCount; i++) {
+            slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
+                    .role("EMPTY")
+                    .isMe(false)
+                    .build());
+        }
+        return slots;
+    }
+
+    private String determineButtonStatus(Groups group, Long userId, List<MatchedMember> matchedMembers) {
+        // 1. 방장인 경우
+        if (group.getHost().getId().equals(userId)) {
+            return group.getGroupStatus() == GroupStatus.RECRUITING ? "MANAGE" : "TRACKER";
+        }
+
+        // 2. 이미 참여 확정된 게스트인지 확인
+        boolean isMatched = matchedMembers.stream()
+                .anyMatch(mm -> mm.getUserId().getId().equals(userId));
+        if (isMatched) {
+            return "TRACKER";
+        }
+
+        // 3. 신청 대기 중인지 확인
+        if (applicationRepository.existsByGroupGroupIdAndGuestId(group.getGroupId(), userId)) {
+            return "CANCEL";
+        }
+
+        // 4. 모집 완료 및 신청 가능 여부
+        if (group.getGroupStatus() == GroupStatus.MATCHED) {
+            return "FULL";
+        }
+
+        return "APPLY";
+    }
+
+
+    }
+
+
 
 

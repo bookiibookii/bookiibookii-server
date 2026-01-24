@@ -22,16 +22,16 @@ logging:
 
 jwt:
   token:
-    secret-key: ${JWT_SECRET_KEY}
+    secret-key: bookiibookii-local-jwt-secret-key-sample-256bits!!
     expiration:
       access: 1800000      # 30분
       refresh: 1209600000  # 14일
 
 oauth:
   google:
-    client-id: ${GOOGLE_CLIENT_ID}
+    client-id: 981312459836-lfj61e863f9a6nolo76cq0cgc84it5vi.apps.googleusercontent.com
   kakao:
-    client-id: ${KAKAO_REST_API_KEY}
+    client-id: 1d55fc7fcf8b8f41295f87d737babee3
 
 aladin:
   ttbkey: ${ALADIN_TTB_KEY}

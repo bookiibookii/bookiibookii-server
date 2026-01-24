@@ -52,4 +52,13 @@ public class GroupController implements GroupControllerDocs{
         GroupResponseDTO.DeleteResultDTO result = groupService.deleteGroup(groupId, host);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
+
+    //그룹 조회 API
+    @GetMapping("/{groupId}")
+    public ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
+            @PathVariable(name = "groupId") Long groupId,
+            @AuthenticationPrincipal User user) {
+        GroupResponseDTO.GroupDetailDTO result = groupService.getGroupDetail(groupId, user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
 }

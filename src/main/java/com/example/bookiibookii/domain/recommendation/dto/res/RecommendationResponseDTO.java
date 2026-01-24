@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.recommendation.dto.res;
 
-import com.example.bookiibookii.domain.tag.entity.Tag;
 import lombok.Builder;
 
 import java.util.List;
@@ -11,7 +10,7 @@ public class RecommendationResponseDTO {
             // TODO : 프로필 이미지 추가
             Long userId,
             String nickname,
-            List<String> tagTypes,
+            List<String> matchedTags,
             String recentBookTitle
     ){}
 

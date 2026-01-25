@@ -10,6 +10,7 @@ import com.example.bookiibookii.domain.comment.exception.code.CommentErrorCode;
 import com.example.bookiibookii.domain.comment.exception.CommentException;
 import com.example.bookiibookii.domain.comment.repository.CommentRepository;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
@@ -39,6 +40,16 @@ public class CommentService {
         Groups group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
+        // 댓글 작성자의 그룹 내 역할
+        WriterRole writerRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
+                .map(r -> r == RoleStatus.HOST ? WriterRole.HOST : WriterRole.GUEST)
+                .orElse(WriterRole.NONE);
+
+        // 진행 중 그룹에 그룹 멤버가 아닌 유저가 댓글 달 시 에러처리
+        if (group.getGroupStatus() != GroupStatus.RECRUITING && writerRole == WriterRole.NONE) {
+            throw new CommentException(CommentErrorCode.COMMENT_WRITE_FORBIDDEN);
+        }
+
         Comment parent = null;
         if (req.getParentId() != null) {
             parent = commentRepository.findById(req.getParentId())
@@ -60,10 +71,6 @@ public class CommentService {
                 .parent(parent)
                 .build();
         Comment saved = commentRepository.save(comment);
-
-        WriterRole writerRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
-                .map(r -> r == RoleStatus.HOST ? WriterRole.HOST : WriterRole.GUEST)
-                .orElse(WriterRole.NONE);
 
         return toCreateResDTO(saved, writerRole);
     }

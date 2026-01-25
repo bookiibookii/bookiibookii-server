@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.recommendation.service;
 
-import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.recommendation.dto.res.RecommendationResponseDTO;
 import com.example.bookiibookii.domain.tag.entity.Tag;

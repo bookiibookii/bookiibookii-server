@@ -10,7 +10,8 @@ import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.example.bookiibookii.domain.user.enums.Role.USER;
 import static com.example.bookiibookii.domain.user.enums.Status.ACTIVE;
@@ -67,6 +68,11 @@ public class User extends BaseEntity {
 
     @Column(name = "meet_place")
     private String meetPlace;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserTag> userTags = new ArrayList<>();
+
 
     // 소셜 로그인 유저 생성
     public static User createSocialUser(

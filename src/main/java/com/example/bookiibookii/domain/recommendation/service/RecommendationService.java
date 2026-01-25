@@ -49,14 +49,13 @@ public class RecommendationService {
             matchedUsers = findForTwoTagUser(userId, myTopTags, targetTypes);
         }
 
-        String recentBook = userBookService.findRecentBookTitleByUserId(userId);
         return matchedUsers.stream()
                 .map(user -> RecommendationResponseDTO.BookmateDto.builder()
                         .userId(user.getId())
                         .nickname(user.getName())
-                        // TODO: 이미지
+                        // TODO: 프로필 이미지
                         .matchedTags(displayTags)
-                        .recentBookTitle(recentBook)
+                        .recentBookTitle(userBookService.findRecentBookTitleByUserId(user.getId()))
                         .build())
                 .collect(Collectors.toList());
     }

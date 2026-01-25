@@ -26,7 +26,7 @@ public interface CommentControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "댓글 작성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "댓글 작성 실패")
     })
-    @PostMapping("/groups/{groupId}/comments/{userId}")
+    @PostMapping("/groups/{groupId}/comments")
     public ApiResponse<CommentCreateResDTO> create(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user,

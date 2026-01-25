@@ -43,7 +43,7 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
   from MatchedMember mm
   where mm.group.groupId = :groupId
 """)
-    List<WriterRow> findWriterRowsByGroupId(Long groupId);
+    List<WriterRow> findWriterRowsByGroupId(@Param("groupId") Long groupId);
 
     interface WriterRow {
         Long getUserId();

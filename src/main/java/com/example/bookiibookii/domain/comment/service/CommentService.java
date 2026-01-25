@@ -69,6 +69,7 @@ public class CommentService {
     }
 
     // 그룹 페이지 내 모든 댓글 조회(대댓글 포함)
+    @Transactional(readOnly = true)
     public List<CommentTreeResDTO> getTree(Long groupId) {
         List<Comment> comments =
                 commentRepository.findAllByGroupIdWithUserOrderByCreatedAtAsc(groupId);

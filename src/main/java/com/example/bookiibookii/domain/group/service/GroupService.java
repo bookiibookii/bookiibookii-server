@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
-import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
@@ -15,6 +14,11 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.tag.entity.Tag;
+import com.example.bookiibookii.domain.tag.enums.TagType;
+import com.example.bookiibookii.domain.tag.exception.TagException;
+import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
+import com.example.bookiibookii.domain.tag.repository.TagRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional
@@ -32,6 +38,7 @@ public class GroupService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final BookService bookService;
+    private final TagRepository tagRepository;
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -71,7 +78,18 @@ public class GroupService {
                 .build();
 
         // 5. 독서 태그 저장 로직
-        //TODO
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            for (GroupRequestDTO.TagSettingDTO tagDto : request.getTags()) {
+                TagType type = tagDto.type();
+                List<String> codes = tagDto.value();
+                List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
+
+                if (tags.size() != codes.size()) {
+                    throw new TagException(TagErrorCode.INVALID_TAG_CODE);
+                }
+                tags.forEach(group::addGroupTag);
+            }
+        }
 
         Groups savedGroup = groupsRepository.save(group);
 
@@ -186,7 +204,20 @@ public class GroupService {
         }
 
         //독서 태그 수정
-        //TO DO
+        if (request.getTags() != null) {
+            group.clearGroupTags();
+            for (GroupRequestDTO.TagSettingDTO tagDto : request.getTags()) {
+                TagType type = tagDto.type();
+                List<String> codes = tagDto.value();
+
+                List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
+
+                if (tags.size() != codes.size()) {
+                    throw new TagException(TagErrorCode.INVALID_TAG_CODE);
+                }
+                tags.forEach(group::addGroupTag);
+            }
+        }
 
         return GroupResponseDTO.UpdateResultDTO.builder()
                 .groupId(group.getGroupId())

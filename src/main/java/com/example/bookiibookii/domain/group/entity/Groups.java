@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -61,10 +62,6 @@ public class Groups extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "trade_type")
     private TradeType tradeType;//DIRECT, DELIVERY
-    
-    //@Builder.Default
-    //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    //private List<GroupTag> groupTags = new ArrayList<>()
 
     @OneToOne(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Tracker tracker;
@@ -77,9 +74,24 @@ public class Groups extends BaseEntity {
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedMember> matchedMember = new ArrayList<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GroupTag> groupTags = new ArrayList<>();
+
     public void updateStatus(GroupStatus status) {
         this.groupStatus = status;
     }
 
     public void markAsDELETED(){ this.groupStatus = GroupStatus.DELETED; }
+
+    // 태그 추가
+    public void addGroupTag(Tag tag) {
+        GroupTag groupTag = GroupTag.create(this, tag);
+        this.groupTags.add(groupTag);
+    }
+
+    // 태그 전체 삭제
+    public void clearGroupTags() {
+        this.groupTags.clear();
+    }
 }

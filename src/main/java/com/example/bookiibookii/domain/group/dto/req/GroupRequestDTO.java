@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.group.dto.req;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.enums.TagType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -30,6 +31,7 @@ public class GroupRequestDTO {
             private LocalDate startDate;
             private Integer readingPeriod;
             private String groupComment;
+            @Valid
             private List<GroupRequestDTO.TagSettingDTO> tags;
     }
 

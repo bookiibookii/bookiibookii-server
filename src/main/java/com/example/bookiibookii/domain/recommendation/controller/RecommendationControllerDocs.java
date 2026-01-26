@@ -32,8 +32,7 @@ public interface RecommendationControllerDocs {
             """
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "부키메이트 조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "USERTAG404_1", description = "사용자의 태그가 존재하지 않습니다.")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "추천 그룹 조회 성공")
     })
     ApiResponse<List<RecommendationResponseDTO.RecommendedGroupDto>> recommendGroups(
             @AuthenticationPrincipal User user,

@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
 
 @Validated
 @RestController
@@ -58,7 +57,7 @@ public class CardImageController implements CardImageControllerDocs {
         }
 
         // S3Key 중복 체크 (다른 카드에서 사용 중인지 확인)
-        if (cardImageService.existsByS3Key(request.getS3Key())) {
+        if (cardImageService.existsByS3KeyForOtherCard(cardId, request.getS3Key())) {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 
@@ -80,13 +79,9 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<CardImageResponseDTO> getCardImage(
             @PathVariable Long cardId
     ) {
-        Optional<CardImage> cardImageOpt = cardImageService.getCardImageByCardId(cardId);
+        CardImage cardImage = cardImageService.getCardImageByCardId(cardId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND));
 
-        if (cardImageOpt.isEmpty()) {
-            return ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, null);
-        }
-
-        CardImage cardImage = cardImageOpt.get();
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())
                 .s3Key(cardImage.getS3Key())

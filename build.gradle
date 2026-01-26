@@ -51,9 +51,10 @@ dependencies {
     implementation 'com.google.http-client:google-http-client-jackson2:2.0.3'
 
     // AWS SDK v2
-    implementation 'software.amazon.awssdk:s3:2.20.0'
-    implementation 'software.amazon.awssdk:auth:2.20.0'
+    implementation 'software.amazon.awssdk:s3:2.41.10'
+    implementation 'software.amazon.awssdk:auth:2.41.10'
 }
+
 
 tasks.named('test') {
 	useJUnitPlatform()

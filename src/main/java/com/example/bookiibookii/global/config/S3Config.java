@@ -17,7 +17,7 @@ public class S3Config {
         this.awsS3Properties = awsS3Properties;
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public S3Client s3Client() {
         return S3Client.builder()
                 .region(Region.of(awsS3Properties.region()))
@@ -25,7 +25,7 @@ public class S3Config {
                 .build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public S3Presigner s3Presigner() {
         return S3Presigner.builder()
                 .region(Region.of(awsS3Properties.region()))

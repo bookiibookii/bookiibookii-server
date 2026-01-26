@@ -70,10 +70,46 @@ public class CardImageService {
             CardImage savedImage = cardImageRepository.save(cardImage);
             return new SaveOrUpdateResult(savedImage, isCreated);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // 제약조건 위반 종류 확인
+            Throwable rootCause = e.getRootCause();
+            String errorMessage = "";
+            
+            // SQLException에서 정확한 에러 메시지 추출
+            if (rootCause instanceof java.sql.SQLException) {
+                errorMessage = rootCause.getMessage() != null ? rootCause.getMessage().toLowerCase() : "";
+            } else if (rootCause != null) {
+                errorMessage = rootCause.getMessage() != null ? rootCause.getMessage().toLowerCase() : "";
+            } else {
+                errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            }
+            
+            // s3_key unique constraint 위반 확인
+            if (errorMessage.contains("s3_key") || errorMessage.contains("'s3_key'")) {
+                throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+            }
+            
+            // card_id unique constraint 위반 (race condition)
             // 동일 cardId에 대한 중복 삽입 시도 시, 기존 이미지를 다시 조회하여 반환
-            CardImage existingImage = cardImageRepository.findByCard_Id(cardId)
-                    .orElseThrow(() -> new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY));
-            return new SaveOrUpdateResult(existingImage, false);
+            if (errorMessage.contains("card_id") || errorMessage.contains("'card_id'")) {
+                CardImage existingImage = cardImageRepository.findByCard_Id(cardId)
+                        .orElseThrow(() -> new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY));
+                return new SaveOrUpdateResult(existingImage, false);
+            }
+            
+            // 제약조건 위반이지만 어떤 constraint인지 명확하지 않은 경우
+            // s3Key 중복 여부를 다시 확인하여 정확한 에러 반환
+            if (existsByS3Key(s3Key)) {
+                throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+            }
+            
+            // cardId에 이미 이미지가 있는지 확인 (race condition 가능성)
+            Optional<CardImage> raceConditionImage = cardImageRepository.findByCard_Id(cardId);
+            if (raceConditionImage.isPresent()) {
+                return new SaveOrUpdateResult(raceConditionImage.get(), false);
+            }
+            
+            // 기타 제약조건 위반은 s3_key 중복으로 간주
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
     }
 

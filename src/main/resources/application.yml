@@ -3,4 +3,4 @@ spring:
     name: bookiibookii
 
   profiles:
-    active: dev햐
+    active: dev

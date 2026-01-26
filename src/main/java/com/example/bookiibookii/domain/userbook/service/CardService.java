@@ -99,7 +99,7 @@ public class CardService {
                 .build();
         
         try {
-            CardImage savedImage = cardImageRepository.save(newCardImage);
+            CardImage savedImage = cardImageRepository.saveAndFlush(newCardImage);
             return new CardImageUpdateResult(card, savedImage, true);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             // s3_key unique constraint 위반 처리
@@ -129,8 +129,12 @@ public class CardService {
             if (raceConditionImage.isPresent()) {
                 CardImage existingImage = raceConditionImage.get();
                 existingImage.updateS3Key(s3Key);
-                CardImage updatedImage = cardImageRepository.save(existingImage);
-                return new CardImageUpdateResult(card, updatedImage, false);
+                try {
+                    CardImage updatedImage = cardImageRepository.saveAndFlush(existingImage);
+                    return new CardImageUpdateResult(card, updatedImage, false);
+                } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+                    throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+                }
             }
             
             // 기타 제약조건 위반은 s3_key 중복으로 간주

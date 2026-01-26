@@ -99,7 +99,7 @@ public class ApplicationService {
                 // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
                 MatchedMember newMember = MatchedMember.builder()
                         .group(group)
-                        .user(application.getGuest()) // 엔티티 필드명 userId에 게스트 저장
+                        .user(application.getGuest())
                         .role(RoleStatus.GUEST)
                         .readingOrder((int) currentTotalCount + 1) // 현재 인원 + 1 순서 부여
                         .build();
@@ -192,7 +192,7 @@ public class ApplicationService {
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 참여 정보 확인
-        MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUserId_Id(groupId, userId)
+        MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.MEMBER_NOT_FOUND));
 
         //권한 체크 (Host)는 취소 불가

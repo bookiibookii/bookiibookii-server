@@ -27,7 +27,7 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
     long countByGroup(Groups groups);
 
     //참여 취소를 위한 조회 메서드
-    Optional<MatchedMember> findByGroup_GroupIdAndUserId_Id(Long groupId, Long userId);
+    Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
 
     // comment 도메인에서 사용
     @Query("""

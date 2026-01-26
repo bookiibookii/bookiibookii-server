@@ -60,8 +60,35 @@ public class CardService {
             }
             // 기존 엔티티의 s3Key만 업데이트
             existingImage.updateS3Key(s3Key);
-            CardImage updatedImage = cardImageRepository.save(existingImage);
-            return new CardImageUpdateResult(card, updatedImage, false);
+            try {
+                CardImage updatedImage = cardImageRepository.saveAndFlush(existingImage);
+                return new CardImageUpdateResult(card, updatedImage, false);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                // s3_key unique constraint 위반 처리
+                Throwable rootCause = e.getRootCause();
+                String errorMessage = "";
+                
+                if (rootCause instanceof java.sql.SQLException) {
+                    errorMessage = rootCause.getMessage() != null ? rootCause.getMessage().toLowerCase() : "";
+                } else if (rootCause != null) {
+                    errorMessage = rootCause.getMessage() != null ? rootCause.getMessage().toLowerCase() : "";
+                } else {
+                    errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                }
+                
+                // s3_key unique constraint 위반 확인
+                if (errorMessage.contains("s3_key") || errorMessage.contains("'s3_key'")) {
+                    throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+                }
+                
+                // 기타 제약조건 위반 (race condition 등)
+                if (cardImageRepository.existsByS3Key(s3Key)) {
+                    throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+                }
+                
+                // 기타 제약조건 위반은 s3_key 중복으로 간주
+                throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+            }
         }
         
         // Card는 있지만 CardImage가 없는 경우 (이론적으로 발생하지 않아야 함)
@@ -92,7 +119,7 @@ public class CardService {
                 throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
             }
             
-            // 기타 제약조건 위반 (race condition 등)
+            // 기타 제약조건 위반
             if (cardImageRepository.existsByS3Key(s3Key)) {
                 throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
             }

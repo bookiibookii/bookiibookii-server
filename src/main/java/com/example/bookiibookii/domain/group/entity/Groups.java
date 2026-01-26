@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -32,7 +33,7 @@ public class Groups extends BaseEntity {
     private Long groupId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id")
+    @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)

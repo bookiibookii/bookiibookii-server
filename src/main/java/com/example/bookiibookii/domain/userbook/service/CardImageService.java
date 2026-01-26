@@ -19,11 +19,20 @@ public class CardImageService {
 
     private final CardImageRepository cardImageRepository;
     private final CardRepository cardRepository;
+    private final CardImageValidationService cardImageValidationService;
 
-    // CardImage 저장 또는 업데이트
+    // CardImage 저장 또는 업데이트 결과
+    public record SaveOrUpdateResult(CardImage cardImage, boolean isCreated) {}
+
+    // CardImage 저장 또는 업데이트 (검증 포함)
 
     @Transactional
-    public CardImage saveOrUpdateCardImage(Long cardId, String s3Key) {
+    public SaveOrUpdateResult saveOrUpdateCardImage(Long cardId, String s3Key) {
+        // s3Key 검증: 형식 및 cardId 일치 확인
+        if (!cardImageValidationService.isValidS3Key(s3Key, cardId)) {
+            throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
 
@@ -35,15 +44,20 @@ public class CardImageService {
         // 기존 이미지가 있으면 업데이트, 없으면 새로 생성
         Optional<CardImage> existingImageOpt = cardImageRepository.findByCard_Id(cardId);
         
+        boolean isCreated;
         CardImage cardImage;
+        
         if (existingImageOpt.isPresent()) {
-            // 기존 이미지가 있으면 삭제하고 새로 생성 (더 안전한 방식)
+            // 기존 이미지가 있으면 업데이트
             CardImage existingImage = existingImageOpt.get();
             // s3Key가 동일하면 업데이트 불필요
             if (existingImage.getS3Key().equals(s3Key)) {
-                return existingImage;
+                return new SaveOrUpdateResult(existingImage, false);
             }
             cardImageRepository.delete(existingImage);
+            isCreated = false;
+        } else {
+            isCreated = true;
         }
         
         // 새 이미지 생성
@@ -53,12 +67,13 @@ public class CardImageService {
                 .build();
         
         try {
-            return cardImageRepository.save(cardImage);
+            CardImage savedImage = cardImageRepository.save(cardImage);
+            return new SaveOrUpdateResult(savedImage, isCreated);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            // 데이터베이스 제약조건 위반 시 (race condition 등)
             // 동일 cardId에 대한 중복 삽입 시도 시, 기존 이미지를 다시 조회하여 반환
-            return cardImageRepository.findByCard_Id(cardId)
+            CardImage existingImage = cardImageRepository.findByCard_Id(cardId)
                     .orElseThrow(() -> new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY));
+            return new SaveOrUpdateResult(existingImage, false);
         }
     }
 

@@ -9,7 +9,8 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum CardImageSuccessCode implements BaseCode {
     PRESIGNED_URL_ISSUED(HttpStatus.OK, "CARDIMG200_1", "카드 이미지 업로드용 Presigned URL을 발급했습니다."),
-    CARD_IMAGE_SAVED(HttpStatus.CREATED, "CARDIMG201_1", "카드 이미지를 저장(또는 업데이트)했습니다."),
+    CARD_IMAGE_SAVED(HttpStatus.CREATED, "CARDIMG201_1", "카드 이미지를 저장했습니다."),
+    CARD_IMAGE_UPDATED(HttpStatus.OK, "CARDIMG200_3", "카드 이미지를 업데이트했습니다."),
     CARD_IMAGE_FOUND(HttpStatus.OK, "CARDIMG200_2", "카드 이미지를 조회했습니다.");
 
     private final HttpStatus status;

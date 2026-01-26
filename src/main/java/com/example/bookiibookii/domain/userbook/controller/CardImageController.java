@@ -9,7 +9,6 @@ import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCod
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageSuccessCode;
 import com.example.bookiibookii.domain.userbook.service.CardImageService;
 import com.example.bookiibookii.domain.userbook.service.CardImageS3Service;
-import com.example.bookiibookii.domain.userbook.service.CardImageValidationService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +24,6 @@ public class CardImageController implements CardImageControllerDocs {
 
     private final CardImageS3Service cardImageS3Service;
     private final CardImageService cardImageService;
-    private final CardImageValidationService cardImageValidationService;
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -34,13 +32,8 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
             @PathVariable Long cardId
     ) {
-        CardImageS3Service.PresignedUrlResponse presignedUrl = 
+        PresignedUrlResponseDTO responseDTO = 
                 cardImageS3Service.generatePresignedPutUrl(cardId, PRESIGNED_URL_EXPIRATION_MINUTES);
-
-        PresignedUrlResponseDTO responseDTO = PresignedUrlResponseDTO.builder()
-                .s3Key(presignedUrl.s3Key())
-                .presignedUrl(presignedUrl.presignedUrl())
-                .build();
 
         return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
     }
@@ -51,27 +44,22 @@ public class CardImageController implements CardImageControllerDocs {
             @PathVariable Long cardId,
             @Valid @RequestBody CardImageRequestDTO request
     ) {
-        // s3Key 검증: 형식 및 cardId 일치 확인
-        if (!cardImageValidationService.isValidS3Key(request.getS3Key(), cardId)) {
-            throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
-        }
-
-        // S3Key 중복 체크 (다른 카드에서 사용 중인지 확인)
-        if (cardImageService.existsByS3KeyForOtherCard(cardId, request.getS3Key())) {
-            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
-        }
-
-        CardImage savedImage = cardImageService.saveOrUpdateCardImage(cardId, request.getS3Key());
+        CardImageService.SaveOrUpdateResult result = 
+                cardImageService.saveOrUpdateCardImage(cardId, request.getS3Key());
 
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
-                .cardImageId(savedImage.getId())
-                .s3Key(savedImage.getS3Key())
+                .cardImageId(result.cardImage().getId())
+                .s3Key(result.cardImage().getS3Key())
                 .imageUrl(cardImageS3Service.generatePresignedGetUrl(
-                        savedImage.getS3Key(), 
+                        result.cardImage().getS3Key(), 
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();
 
-        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_SAVED, responseDTO);
+        CardImageSuccessCode successCode = result.isCreated() 
+                ? CardImageSuccessCode.CARD_IMAGE_SAVED 
+                : CardImageSuccessCode.CARD_IMAGE_UPDATED;
+
+        return ApiResponse.onSuccess(successCode, responseDTO);
     }
 
     @Override

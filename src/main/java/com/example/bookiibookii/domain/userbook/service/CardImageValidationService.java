@@ -1,11 +1,11 @@
 package com.example.bookiibookii.domain.userbook.service;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-@Service
+@Component
 public class CardImageValidationService {
 
     private static final Pattern S3_KEY_PATTERN = Pattern.compile("^image/cards/(\\d+)/([a-f0-9-]{36})$");

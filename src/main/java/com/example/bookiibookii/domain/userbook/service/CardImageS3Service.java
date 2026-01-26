@@ -1,6 +1,8 @@
 package com.example.bookiibookii.domain.userbook.service;
 
+import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.aws.AwsS3Properties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -12,18 +14,14 @@ import java.time.Duration;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class CardImageS3Service {
 
     private final S3Presigner s3Presigner;
     private final AwsS3Properties awsS3Properties;
 
-    public CardImageS3Service(S3Presigner s3Presigner, AwsS3Properties awsS3Properties) {
-        this.s3Presigner = s3Presigner;
-        this.awsS3Properties = awsS3Properties;
-    }
-
     // Presigned PUT URL 생성 (업로드용)
-    public PresignedUrlResponse generatePresignedPutUrl(Long cardId, int expirationMinutes) {
+    public PresignedUrlResponseDTO generatePresignedPutUrl(Long cardId, int expirationMinutes) {
         String uuid = UUID.randomUUID().toString();
         String s3Key = String.format("image/cards/%d/%s", cardId, uuid);
 
@@ -38,7 +36,10 @@ public class CardImageS3Service {
                         .putObjectRequest(putObjectRequest)
         );
 
-        return new PresignedUrlResponse(s3Key, presignedRequest.url().toString());
+        return PresignedUrlResponseDTO.builder()
+                .s3Key(s3Key)
+                .presignedUrl(presignedRequest.url().toString())
+                .build();
     }
 
     // Presigned GET URL 생성 (조회용)
@@ -57,12 +58,4 @@ public class CardImageS3Service {
 
         return presignedRequest.url().toString();
     }
-
-
-    // Presigned URL 응답 DTO
-
-    public record PresignedUrlResponse(
-            String s3Key,
-            String presignedUrl
-    ) {}
 }

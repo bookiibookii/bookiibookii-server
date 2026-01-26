@@ -2,3 +2,5 @@ spring:
   application:
     name: bookiibookii
 
+  profiles:
+    active: dev햐

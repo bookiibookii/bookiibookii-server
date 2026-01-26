@@ -62,11 +62,11 @@ public class GroupResponseDTO {
         private Integer maxCapacity;   // 정원
         private Integer waitingCount; // 대기자 수
         private Boolean isHot;         // 대기자가 정원의 3배 이상인지 여부 (Service에서 계산)
+        private String createdAt;
 
         // 4. 호스트 정보 및 태그
         private String hostNickname;
         private String hostProfileImage;
-        private String createdAt;      // "2024. 01. 24" 형식 (호스트 계정 생성일?)
 
         // TODO: 그룹 태그 리스트 (현재 GroupTag 엔티티와 매핑 필요)
         // Groups 엔티티의 List<GroupTag>를 순회하며 Tag의 name들을 추출해 담아야 합니다.

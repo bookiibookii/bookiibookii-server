@@ -28,4 +28,11 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     // 중복 신청 확인: 특정 그룹에 특정 유저가 이미 신청했는지 여부
     boolean existsByGroupGroupIdAndGuestId(Long groupId, Long guestId);
+
+    //신청 상태값 조회메서드
+    boolean existsByGroupGroupIdAndGuestIdAndApplicationStatus(
+            Long groupId,
+            Long guestId,
+            ApplicationStatus status
+    );
 }

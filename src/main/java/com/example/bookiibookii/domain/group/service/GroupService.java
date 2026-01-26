@@ -232,7 +232,7 @@ public class GroupService {
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
-        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroup(group);
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByReadingOrderAsc(group);
 
         // 3. 현재 '대기 중'인 신청자 수를 카운트 (방장 버튼의 숫자 표시 및 HOT 배지 계산용)
         int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
@@ -264,7 +264,7 @@ public class GroupService {
                 .isHot(isHot)
                 .hostNickname(group.getHost().getName())
                 .hostProfileImage(group.getHost().getImageUrl())
-                .createdAt(group.getHost().getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 방장 가입일
+                .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 //.tags(new ArrayList<>())
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
@@ -307,7 +307,7 @@ public class GroupService {
         }
 
         // 3. 신청 대기 중인지 확인
-        if (applicationRepository.existsByGroupGroupIdAndGuestId(group.getGroupId(), userId)) {
+        if (applicationRepository.existsByGroupGroupIdAndGuestIdAndApplicationStatus(group.getGroupId(), userId, ApplicationStatus.PENDING)) {
             return "CANCEL";
         }
 

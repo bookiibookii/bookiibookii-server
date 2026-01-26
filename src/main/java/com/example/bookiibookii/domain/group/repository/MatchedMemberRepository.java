@@ -27,6 +27,6 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
     //현재까지의 참여맴버 수
     long countByGroup(Groups groups);
 
-    //참여맴버 리스트
-    List<MatchedMember> findAllByGroup(Groups group);
+    //참여맴버 리스트(읽는 순서대로 정렬)
+    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(Groups group);
 }

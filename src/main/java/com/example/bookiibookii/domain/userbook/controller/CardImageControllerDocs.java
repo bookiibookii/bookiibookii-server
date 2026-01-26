@@ -80,17 +80,17 @@ public interface CardImageControllerDocs {
             특정 카드에 속한 이미지를 조회합니다.
             
             - presigned GET URL이 포함되어 있습니다.
-            - 이미지가 없으면 null을 반환합니다.
+            - 카드는 항상 이미지를 가져야 하므로, 이미지가 없으면 404 에러가 발생합니다.
             """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
-                    description = "조회 성공 (이미지가 없으면 null 반환)"
+                    description = "조회 성공"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "카드를 찾을 수 없음"
+                    description = "카드 또는 카드 이미지를 찾을 수 없음"
             )
     })
     @GetMapping("/{cardId}/images")

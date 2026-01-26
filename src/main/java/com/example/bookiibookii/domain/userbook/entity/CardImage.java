@@ -23,4 +23,9 @@ public class CardImage extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "card_id", nullable = false, unique = true)
     private Card card;
+
+    // S3 Key 업데이트 메서드
+    public void updateS3Key(String newS3Key) {
+        this.s3Key = newS3Key;
+    }
 }

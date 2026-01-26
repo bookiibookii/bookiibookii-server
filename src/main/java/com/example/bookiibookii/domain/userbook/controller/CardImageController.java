@@ -7,8 +7,8 @@ import com.example.bookiibookii.domain.userbook.entity.CardImage;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageSuccessCode;
-import com.example.bookiibookii.domain.userbook.service.CardImageService;
 import com.example.bookiibookii.domain.userbook.service.CardImageS3Service;
+import com.example.bookiibookii.domain.userbook.service.CardService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class CardImageController implements CardImageControllerDocs {
 
     private final CardImageS3Service cardImageS3Service;
-    private final CardImageService cardImageService;
+    private final CardService cardService;
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -44,8 +44,9 @@ public class CardImageController implements CardImageControllerDocs {
             @PathVariable Long cardId,
             @Valid @RequestBody CardImageRequestDTO request
     ) {
-        CardImageService.SaveOrUpdateResult result = 
-                cardImageService.saveOrUpdateCardImage(cardId, request.getS3Key());
+        // CardService를 통해 Card와 CardImage를 함께 관리
+        CardService.CardImageUpdateResult result = 
+                cardService.updateCardImage(cardId, request.getS3Key());
 
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
                 .cardImageId(result.cardImage().getId())
@@ -67,8 +68,8 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<CardImageResponseDTO> getCardImage(
             @PathVariable Long cardId
     ) {
-        CardImage cardImage = cardImageService.getCardImageByCardId(cardId)
-                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND));
+        // CardService를 통해 Card와 함께 CardImage 조회
+        CardImage cardImage = cardService.getCardImage(cardId);
 
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())

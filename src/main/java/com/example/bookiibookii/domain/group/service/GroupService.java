@@ -132,7 +132,8 @@ public class GroupService {
                 // "마이페이지에서 배송지를 먼저 등록해주세요." 에러 발생
                 throw new GroupException(GroupErrorCode.ADDRESS_NOT_FOUND);
             }*/
-        }
+
+    }
 
 
 

@@ -65,4 +65,20 @@ public interface ApplicationControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @RequestBody @Valid ApplicationRequestDTO.JoinApplicationDTO request
     );
+
+    @Operation(summary = "참여 신청 취소 API", description = "게스트가 본인의 참여 신청을 취소하거나 그룹에서 나갑니다. (모집 중인 그룹만 가능)")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공입니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_1", description = "그룹을 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_3", description = "해당 그룹의 참여자가 아닙니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_3", description = "방장은 취소할 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_12", description = "그룹 신청을 취소할 수 없습니다.")
+    })
+    @Parameters({
+            @Parameter(name = "groupId", description = "참여 취소하려는 그룹의 ID", example = "1")
+    })
+    ApiResponse<ApplicationResponseDTO.CancelResultDTO> cancelApplication(
+            @PathVariable(name = "groupId") Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    );
 }

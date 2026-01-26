@@ -14,5 +14,10 @@ public class RecommendationResponseDTO {
             String recentBookTitle
     ){}
 
-    // TODO: 추천그룹DTO(groupID, 도서표지 이미지, BookTitle-해당 그룹의 책 제목)
+    @Builder
+    public record RecommendedGroupDto  (
+            // TODO : 도서표지 이미지 추가
+            Long groupId,
+            String bookTitle
+    ){}
 }

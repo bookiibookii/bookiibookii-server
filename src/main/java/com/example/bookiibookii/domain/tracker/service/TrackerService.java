@@ -62,7 +62,7 @@ public class TrackerService {
             if (history.getSenderMatchedMemberId() != null) {
                 // (주의) matchedGroupRepository가 아니라 matchedMemberRepository를 사용해야 할 것 같습니다.
                 senderUserId = matchedMemberRepository.findById(history.getSenderMatchedMemberId())
-                        .map(mm -> mm.getUserId().getId())
+                        .map(mm -> mm.getUser().getId())
                         .orElse(null);
             }
 
@@ -70,7 +70,7 @@ public class TrackerService {
             Long receiverUserId = null;
             if (history.getReceiverMatchedMemberId() != null) {
                 receiverUserId = matchedMemberRepository.findById(history.getReceiverMatchedMemberId())
-                        .map(mm -> mm.getUserId().getId())
+                        .map(mm -> mm.getUser().getId())
                         .orElse(null);
             }
 
@@ -99,8 +99,8 @@ public class TrackerService {
 
     private String findTargetNickname(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()
-                .filter(mm -> !mm.getUserId().getId().equals(userId)) // 내가 아닌 멤버 필터링
-                .map(mm -> mm.getUserId().getName()) // 유저의 이름(닉네임) 추출
+                .filter(mm -> !mm.getUser().getId().equals(userId)) // 내가 아닌 멤버 필터링
+                .map(mm -> mm.getUser().getName()) // 유저의 이름(닉네임) 추출
                 .findFirst()
                 .orElse("상대방 없음"); // 만약 멤버가 혼자라면 기본값 반환
     }

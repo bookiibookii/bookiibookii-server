@@ -14,9 +14,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     // N+1 문제 해결: 신청서 + 신청자(User) + 유저의 태그들까지
     @Query("SELECT a FROM Application a " +
             "JOIN FETCH a.guest g " +
-            //"LEFT JOIN FETCH g.userTags ut " +
-            //"LEFT JOIN FETCH ut.tag " +
-            "WHERE a.group.id = :groupId AND a.applicationStatus = 'PENDING'")
+            "LEFT JOIN FETCH g.userTags ut " +
+            "LEFT JOIN FETCH ut.tag " +
+            "WHERE a.group.groupId = :groupId AND a.applicationStatus = 'PENDING'")
     List<Application> findAllWithGuestAndTagsByGroupId(@Param("groupId") Long groupId);
 
     // 특정 그룹의 현재 수락된 인원수를 세기 위한 메서드

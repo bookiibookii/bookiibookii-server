@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Group API", description = "그룹 생성 및 조회 관련 API")
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor

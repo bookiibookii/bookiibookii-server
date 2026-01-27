@@ -33,8 +33,7 @@ public class ApplicationResponseDTO {
         private Long userId;
         private String name;
         //private String profileImageUrl; //유저 프로필 이미지
-        //@Builder.Default
-        //private List<String> tags = new ArrayList<>(); // "#메모환영", "#인사이트" 등?
+        private List<String> tags; // "#메모환영", "#인사이트" 등?
         private String createdAt;
         private String applyMsg;
     }

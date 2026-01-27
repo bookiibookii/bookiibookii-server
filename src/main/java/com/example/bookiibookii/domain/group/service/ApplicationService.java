@@ -14,6 +14,7 @@ import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -227,9 +230,16 @@ public class ApplicationService {
         User guest = application.getGuest();
 
         // 태그 이름만 String 리스트로 추출
-        //List<String> tagNames = guest.getUserTags().stream()
-                //.map(ut -> ut.getTag().getName())
-                //.collect(Collectors.toList());
+        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그의 코드를 추출
+        List<String> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
+                guest.getUserTags().stream()
+                        // 1. 점수(score) 높은 순서대로 정렬
+                        .sorted(Comparator.comparingInt(UserTag::getScore).reversed())
+                        // 2. 상위 3개만 자르기
+                        .limit(3)
+                        // 3. 태그의 이름(또는 코드) 꺼내기
+                        .map(ut -> ut.getTag().getCode())
+                        .toList();
 
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
@@ -237,7 +247,7 @@ public class ApplicationService {
                 .name(guest.getName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                //.tags(tagNames) //grouptag
+                .tags(top3Tags)
                 .applyMsg(application.getApplyMsg())
                 .build();
     }

@@ -10,6 +10,7 @@ import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 

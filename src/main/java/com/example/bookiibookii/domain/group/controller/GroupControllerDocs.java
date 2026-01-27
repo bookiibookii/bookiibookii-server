@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -52,5 +53,16 @@ public interface GroupControllerDocs {
     ApiResponse<GroupResponseDTO.DeleteResultDTO> deleteGroup(
             @PathVariable(name = "groupId")Long groupId,
             @AuthenticationPrincipal User host
+    );
+
+    @Operation(summary = "그룹 상세 조회 API", description = "특정 그룹의 상세 정보(도서, 참여 멤버, 신청 상태 등)를 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_1", description = "존재하지 않는 그룹입니다.")
+    })
+    @GetMapping("/{groupId}")
+    ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
+            @PathVariable(name = "groupId") Long groupId,
+            @AuthenticationPrincipal User user
     );
 }

@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Group API", description = "그룹 생성 및 조회 관련 API")
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
@@ -50,6 +49,15 @@ public class GroupController implements GroupControllerDocs{
 
         // 실제 데이터를 지우지 않고 groupStatus를 DELETED로 변경합니다.
         GroupResponseDTO.DeleteResultDTO result = groupService.deleteGroup(groupId, host);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    //그룹 조회 API
+    @GetMapping("/{groupId}")
+    public ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
+            @PathVariable(name = "groupId") Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user) {
+        GroupResponseDTO.GroupDetailDTO result = groupService.getGroupDetail(groupId, user.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 }

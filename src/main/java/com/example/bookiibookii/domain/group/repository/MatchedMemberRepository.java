@@ -24,8 +24,11 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
         "WHERE g.groupId = :groupId AND mm.readingOrder = :readingOrder")
 Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("readingOrder") int readingOrder);
 
+    //현재까지의 참여맴버 수
     long countByGroup(Groups groups);
 
+    //참여맴버 리스트(읽는 순서대로 정렬)
+    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(Groups group);
     //참여 취소를 위한 조회 메서드
     Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
 

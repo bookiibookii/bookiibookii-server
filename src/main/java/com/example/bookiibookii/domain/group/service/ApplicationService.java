@@ -102,7 +102,7 @@ public class ApplicationService {
                 // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
                 MatchedMember newMember = MatchedMember.builder()
                         .group(group)
-                        .user(application.getGuest()) // 엔티티 필드명 user에 게스트 저장
+                        .user(application.getGuest())
                         .role(RoleStatus.GUEST)
                         .readingOrder((int) currentTotalCount + 1) // 현재 인원 + 1 순서 부여
                         .build();
@@ -186,6 +186,46 @@ public class ApplicationService {
                 .build();
     }
 
+    //참여 취소하기
+    @Transactional(readOnly = false)
+    public ApplicationResponseDTO.CancelResultDTO cancelApplication (Long groupId, Long userId){
+
+        // 그룹에 비관적 락을 먼저 걸고 조회
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        // 참여 정보 확인
+        MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.MEMBER_NOT_FOUND));
+
+        //권한 체크 (Host)는 취소 불가
+        if(member.getRole() == RoleStatus.HOST){
+            throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
+        }
+
+
+        //그룹이 모집중(RECRUITING) 일때만 취소가능
+        if(group.getGroupStatus() != GroupStatus.RECRUITING){
+            throw new GroupException(GroupErrorCode.APPLY_CANT_CANCEL);
+        }
+
+        //참여신청 목록에서 제외, 참여 내역 삭제
+        applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
+                        .ifPresent(applicationRepository::delete);
+        matchedMemberRepository.delete(member);
+
+        //취소 후 그룹 정원 다시 계산
+        long currentCount = matchedMemberRepository.countByGroup(group);
+        if (currentCount < group.getMaxCapacity()) {
+            group.updateStatus(GroupStatus.RECRUITING);
+        }
+
+        return ApplicationResponseDTO.CancelResultDTO.builder()
+                .groupId(groupId)
+                .canceledAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .build();
+    }
+
     private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
         User guest = application.getGuest();
 
@@ -211,4 +251,6 @@ public class ApplicationService {
                 .applyMsg(application.getApplyMsg())
                 .build();
     }
+
+
 }

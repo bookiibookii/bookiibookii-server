@@ -13,11 +13,11 @@ import java.util.Optional;
 
 public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Long> {
 
-    @Query("SELECT mm FROM MatchedMember mm " +
-            "JOIN FETCH mm.group g " +
-            "JOIN FETCH g.tracker t " +  // g.getTracker()를 탐색하는 방식
-            "WHERE mm.user.id = :userId")
-    List<MatchedMember> findAllByUserIdWithTracker(@Param("userId") Long userId);
+//    @Query("SELECT mm FROM MatchedMember mm " +
+//            "JOIN FETCH mm.group g " +
+//            "JOIN FETCH g.tracker t " +  // g.getTracker()를 탐색하는 방식
+//            "WHERE mm.user.id = :userId")
+//    List<MatchedMember> findAllByUserIdWithTracker(@Param("userId") Long userId);
 
 @Query("SELECT mm FROM MatchedMember mm " +
         "JOIN FETCH mm.group g " +

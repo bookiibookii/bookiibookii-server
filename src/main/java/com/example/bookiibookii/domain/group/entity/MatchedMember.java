@@ -26,7 +26,7 @@ public class MatchedMember extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User userId;
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role")

@@ -88,7 +88,7 @@ public class GroupService {
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
                 .group(savedGroup)           // 엔티티의 private Groups group;
-                .userId(host)                // 엔티티의 private User userId;
+                .user(host)                // 엔티티의 private User userId;
                 .role(RoleStatus.HOST)       // 엔티티의 RoleStatus 타입 사용
                 .readingOrder(1)             // 엔티티의 private Integer readingOrder;
                 .build();
@@ -285,10 +285,10 @@ public class GroupService {
 
         for (MatchedMember mm : matchedMembers) {
             slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
-                    .nickname(mm.getUserId().getName())
+                    .nickname(mm.getUser().getName())
                     //.profileImage(mm.getUserId().getImageUrl())
                     .role(mm.getRole().name())
-                    .isMe(mm.getUserId().getId().equals(userId))
+                    .isMe(mm.getUser().getId().equals(userId))
                     .build());
         }
 
@@ -310,7 +310,7 @@ public class GroupService {
 
         // 2. 이미 참여 확정된 게스트인지 확인
         boolean isMatched = matchedMembers.stream()
-                .anyMatch(mm -> mm.getUserId().getId().equals(userId));
+                .anyMatch(mm -> mm.getUser().getId().equals(userId));
         if (isMatched) {
             return "TRACKER";
         }

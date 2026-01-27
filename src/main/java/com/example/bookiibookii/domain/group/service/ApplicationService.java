@@ -102,7 +102,7 @@ public class ApplicationService {
                 // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
                 MatchedMember newMember = MatchedMember.builder()
                         .group(group)
-                        .userId(application.getGuest()) // 엔티티 필드명 userId에 게스트 저장
+                        .user(application.getGuest()) // 엔티티 필드명 user에 게스트 저장
                         .role(RoleStatus.GUEST)
                         .readingOrder((int) currentTotalCount + 1) // 현재 인원 + 1 순서 부여
                         .build();
@@ -203,7 +203,7 @@ public class ApplicationService {
 
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
-                .userId(guest.getId())
+                .user(guest.getId())
                 .name(guest.getName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))

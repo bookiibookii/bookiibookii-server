@@ -38,10 +38,7 @@ public interface UserKeywordRepository extends JpaRepository<UserKeyword, Long> 
     // 키워드 등록
     Optional<UserKeyword> findByUserAndKeyword_Id(User user, Long keywordId);
 
-    Optional<UserKeyword> findByUserAndKeyword_Content(User user, String content);
-
-    boolean existsByUserAndKeyword(User user, Keyword keyword);
-
+    boolean existsByUserAndKeyword_Content(User user, String content);
 
     // 키워드 알림 발송 관련
     @Query("""

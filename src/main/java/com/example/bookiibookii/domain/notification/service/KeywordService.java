@@ -50,8 +50,7 @@ public class KeywordService {
     public KeywordResDTO.KeywordItem saveKeyword(User user, KeywordReqDTO.SaveKeyword req) {
         String content = req.content();
 
-        Optional<UserKeyword> existing = userKeywordRepository.findByUserAndKeyword_Content(user, content);
-        if (existing.isPresent()) {
+        if (userKeywordRepository.existsByUserAndKeyword_Content(user, content)) {
             throw new KeywordException(KeywordErrorCode.DUPLICATE_USER_KEYWORD);
         }
 
@@ -65,14 +64,25 @@ public class KeywordService {
                     try {
                         return keywordRepository.save(Keyword.builder().content(content).build());
                     } catch (DataIntegrityViolationException e) {
-                        return keywordRepository.findByContent(content).orElseThrow(() -> e);
+                        if (isConstraint(e, "uk_keyword_content")) {
+                            // 동시성으로 이미 insert 된 경우 재조회
+                            return keywordRepository.findByContent(content).orElseThrow(() -> e);
+                        }
+                        throw e;
                     }
                 });
 
-        userKeywordRepository.save(UserKeyword.builder()
-                .user(user)
-                .keyword(keyword)
-                .build());
+        try {
+            userKeywordRepository.save(UserKeyword.builder()
+                    .user(user)
+                    .keyword(keyword)
+                    .build());
+        } catch (DataIntegrityViolationException e) {
+            if (isConstraint(e, "uk_user_keyword")) {
+                throw new KeywordException(KeywordErrorCode.DUPLICATE_USER_KEYWORD);
+            }
+            throw e;
+        }
 
         return KeywordResDTO.KeywordItem.builder()
                 .keywordId(keyword.getId())
@@ -86,5 +96,12 @@ public class KeywordService {
                 .orElseThrow(() -> new KeywordException(KeywordErrorCode.USER_KEYWORD_NOT_FOUND));
 
         userKeywordRepository.delete(link);
+    }
+
+    private boolean isConstraint(DataIntegrityViolationException e, String constraintName) {
+        Throwable t = e;
+        while (t.getCause() != null) t = t.getCause();
+        String msg = t.getMessage();
+        return msg != null && msg.contains(constraintName);
     }
 }

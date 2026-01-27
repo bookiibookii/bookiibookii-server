@@ -1,72 +1,80 @@
 package com.example.bookiibookii.domain.aladin.service;
 
 import com.example.bookiibookii.domain.aladin.config.AladinClient;
-import com.example.bookiibookii.domain.aladin.dto.AladinSearchResponseDto;
-import com.example.bookiibookii.domain.book.dto.BookDto;
+import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
+import com.example.bookiibookii.domain.book.dto.BookResDTO;
+import com.example.bookiibookii.domain.book.exception.BookException;
+import com.example.bookiibookii.domain.book.exception.code.BookErrorCode;
+import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.example.bookiibookii.domain.book.enums.CustomCategory;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class AladinService {
 
     private final AladinClient aladinClient;
-    public AladinSearchResponseDto search(String keyword, int page, int size) {
-        AladinClient.AladinSearchRawResponse raw = aladinClient.searchBooksJson(keyword, page, size);
+    private final BookCategoryMapper bookCategoryMapper;
+
+    public AladinSearchBooksResDTO searchBooks(String keyword, int page, int size) {
+        AladinClient.AladinItemSearchResponse raw = aladinClient.searchBooksByKeyword(keyword, page, size);
 
         int totalResults = raw.totalResults();
 
-        List<BookDto> books = raw.item() == null ? List.of()
+        List<BookResDTO> books = raw.item() == null ? List.of()
                 : raw.item().stream()
-                .map(this::convertItemToBookDto)
+                .flatMap(item -> {
+                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryName());
+                    if (cc.isEmpty()) return Stream.empty(); // 차단이면 제거
+
+                    return Stream.of(
+                            BookResDTO.builder()
+                                    .title(nvl(item.title()))
+                                    .author(nvl(item.author()))
+                                    .image(nvl(item.cover()))
+                                    .publisher(nvl(item.publisher()))
+                                    .isbn13(nvl(item.isbn13()))
+                                    .category(cc.get())
+                                    .categoryLabel(cc.get().label())
+                                    .build()
+                    );
+                })
                 .toList();
 
         int totalPage = (int) Math.ceil(totalResults / (double) size);
 
-        return AladinSearchResponseDto.builder()
+        return AladinSearchBooksResDTO.builder()
                 .books(books)
                 .totalResults(totalResults)
                 .totalPage(totalPage)
                 .build();
     }
 
-    private BookDto convertItemToBookDto(AladinClient.AladinBookItem item) {
-        return BookDto.builder()
-                .title(nvl(item.title()))
-                .author(nvl(item.author()))
-                // .price(item.priceStandard() == null ? 0L : item.priceStandard())
-                .image(nvl(item.cover()))
-                .publisher(nvl(item.publisher()))
-                // .publishDate(parseDate(item.pubDate()))
-                .isbn(nvl(item.isbn13()))
-                .category(convertCategoryToCategoryKey(item.categoryName()))
-                // .stock(-1L)
-                // .description(nvl(item.description()))
+    public BookResDTO searchBookByISBN(String isbn13){
+        AladinClient.AladinBookItem bookItem = aladinClient.lookupBookByIsbn13(isbn13);
+
+        Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(bookItem.categoryName());
+        if (cc.isEmpty()) {
+            throw new BookException(BookErrorCode.BLOCKED_CATEGORY);
+        }
+
+        return BookResDTO.builder()
+                .title(nvl(bookItem.title()))
+                .author(nvl(bookItem.author()))
+                .image(nvl(bookItem.cover()))
+                .publisher(nvl(bookItem.publisher()))
+                .isbn13(nvl(bookItem.isbn13()))
+                .category(cc.get())
+                .categoryLabel(cc.get().label())
                 .build();
     }
 
     private String nvl(String s) {
         return (s == null) ? "" : s;
-    }
-
-    private LocalDate parseDate(String date) {
-        if (date == null || date.isBlank()) return null;
-        try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            return LocalDate.parse(date, formatter);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private String convertCategoryToCategoryKey(String categoryName) {
-        if (categoryName == null || categoryName.isBlank()) return "ETC";
-        String[] split = categoryName.split(">");
-        if (split.length < 2) return "ETC";
-        return split[1].trim();
     }
 }

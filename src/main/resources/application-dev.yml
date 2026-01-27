@@ -1,7 +1,7 @@
 spring:
-  config:
-    activate:
-      on-profile: dev
+#  config:
+#    activate:
+#      on-profile: dev
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -35,3 +35,11 @@ oauth:
 
 aladin:
   ttbkey: ${ALADIN_TTB_KEY}
+
+aws:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME}
+    region: ${AWS_REGION}
+
+server:
+  forward-headers-strategy: framework

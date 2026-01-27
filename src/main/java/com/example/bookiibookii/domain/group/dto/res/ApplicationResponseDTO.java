@@ -59,4 +59,14 @@ public class ApplicationResponseDTO {
         private String status;       // 신청 상태 (PENDING 등)
         private String createdAt;    // 신청 일자
     }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CancelResultDTO{
+        private Long groupId;
+        private String canceledAt; //취소한 시간
+    }
+
 }

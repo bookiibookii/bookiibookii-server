@@ -10,7 +10,8 @@ import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.example.bookiibookii.domain.user.enums.Role.USER;
 import static com.example.bookiibookii.domain.user.enums.Status.ACTIVE;
@@ -35,7 +36,7 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name",nullable = false)
+    @Column(name = "name")
     private String name;
 
     @Enumerated(EnumType.STRING)
@@ -62,6 +63,17 @@ public class User extends BaseEntity {
     @Builder.Default
     private Role role = USER;
 
+    @Column(name = "region")
+    private String region;
+
+    @Column(name = "meet_place")
+    private String meetPlace;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserTag> userTags = new ArrayList<>();
+
+
     // 소셜 로그인 유저 생성
     public static User createSocialUser(
             SocialUserInfo info,
@@ -80,4 +92,5 @@ public class User extends BaseEntity {
     public void reactivate() {
         this.status = Status.ACTIVE;
     }
+    public void updateName(String name) { this.name = name; }
 }

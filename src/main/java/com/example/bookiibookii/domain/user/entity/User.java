@@ -74,6 +74,9 @@ public class User extends BaseEntity {
     @Builder.Default
     private List<UserTag> userTags = new ArrayList<>();
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private UserImage userImage;
+
 
     // 소셜 로그인 유저 생성
     public static User createSocialUser(

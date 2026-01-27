@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.bookiibookii.domain.user.entity.User;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -48,7 +49,7 @@ public class KeywordService {
 
     @Transactional
     public KeywordResDTO.KeywordItem saveKeyword(User user, KeywordReqDTO.SaveKeyword req) {
-        String content = req.content();
+        String content = normalizeKeywordContent(req.content());
 
         if (userKeywordRepository.existsByUserAndKeyword_Content(user, content)) {
             throw new KeywordException(KeywordErrorCode.DUPLICATE_USER_KEYWORD);
@@ -103,5 +104,10 @@ public class KeywordService {
         while (t.getCause() != null) t = t.getCause();
         String msg = t.getMessage();
         return msg != null && msg.contains(constraintName);
+    }
+
+    private String normalizeKeywordContent(String raw) {
+        if (raw == null) return "";
+        return raw.replaceAll("\\s+", "");
     }
 }

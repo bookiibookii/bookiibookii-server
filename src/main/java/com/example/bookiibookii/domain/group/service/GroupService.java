@@ -14,6 +14,8 @@ import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.exception.UserException;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,8 +38,15 @@ public class GroupService {
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
+
+        //로그인 여부 검증
+        if(host == null){
+            throw new UserException(UserErrorCode.NOT_FOUND);
+        }
+
         // 1. 공통 정책 검증 (도서 필수, 날짜, 기간 체크)
         validateCommonPolicy(request);
+
 
         // 2. 도서 존재 여부 확인
         Book book = bookService.getOrCreateByIsbn13(request.getIsbn13());

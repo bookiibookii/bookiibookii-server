@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     // N+1 문제 해결: 신청서 + 신청자(User) + 유저의 태그들까지
-    @Query("SELECT a FROM Application a " +
+    @Query("SELECT a DISTINCT FROM Application a " +
             "JOIN FETCH a.guest g " +
             "LEFT JOIN FETCH g.userTags ut " +
             "LEFT JOIN FETCH ut.tag " +

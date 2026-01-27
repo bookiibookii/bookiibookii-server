@@ -1,17 +1,20 @@
 package com.example.bookiibookii.domain.group.service;
 
-
 import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -23,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,6 +39,7 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final GroupsRepository groupsRepository;
     private final UserRepository userRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -68,6 +74,10 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applyId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
+        // 그룹 조회를 할 때 락을 겁어 Race Condition 해결 (이 시점에 다른 쓰레드는 대기 상태가 됨)
+        Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getGroupId())
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
         // 2. 권한 체크: 이 신청이 들어온 그룹의 방장이 요청자(userId)와 일치하는지 확인
         if (!application.getGroup().getHost().getId().equals(userId)) {
             throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
@@ -81,58 +91,52 @@ public class ApplicationService {
 
         // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
         if (status == ApplicationStatus.ACCEPTED) {
-            Groups groups = application.getGroup();
-
-            // 현재 이미 수락된 인원수 계산
-            long currentAcceptedCount = applicationRepository.countByGroupGroupIdAndApplicationStatus(groups.getGroupId(), ApplicationStatus.ACCEPTED);
-
-            // 이미 정원이 찼는데 또 수락하려는 경우 예외 발생
-            if (currentAcceptedCount >= groups.getMaxCapacity()) {
-                throw new GroupException(GroupErrorCode.GROUP_FULL);
-            }
-        }
-
-        // 4. 상태 업데이트
-        application.updateStatus(status);
-
-        // 5. 수락 시: 그룹 상태를 진행중으로 변경(MATCHED)
-        if (status == ApplicationStatus.ACCEPTED) {
-            Groups groups = application.getGroup();
-            // 현재 수락된 총 인원수 계산
-            long currentAcceptedCount = applicationRepository.countByGroupGroupIdAndApplicationStatus(groups.getGroupId(), ApplicationStatus.ACCEPTED);
-
-            // 정원이 다 찼을 경우만
-            if (currentAcceptedCount >= groups.getMaxCapacity()) {
-                groups.updateStatus(GroupStatus.MATCHED);
-
-                // 나머지 PENDING 인원들 조회 및 일괄 거절
-                List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(groups.getGroupId());
-
-                for (Application pendingApp : pendingApplications) {
-                    pendingApp.updateStatus(ApplicationStatus.REJECTED);
-
-                    //시스템 알람 발송 (알람 파트 구현 시 주석 해제)
-                    // notificationService.sendAutoRejectNotification(pendingApp.getGuest(), group);
+            // [핵심] 방장을 포함한 현재 확정 인원수 계산 (MatchedMember에서 조회)
+            long currentTotalCount = matchedMemberRepository.countByGroup(group);
+                // 정원 초과 체크 (방장 포함 maxCapacity와 비교)
+                if (currentTotalCount >= group.getMaxCapacity()) {
+                    throw new GroupException(GroupErrorCode.GROUP_FULL);
                 }
+
+                // [핵심] MatchedMember에 새 멤버 등록 및 순서 부여
+                // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
+                MatchedMember newMember = MatchedMember.builder()
+                        .group(group)
+                        .user(application.getGuest())
+                        .role(RoleStatus.GUEST)
+                        .readingOrder((int) currentTotalCount + 1) // 현재 인원 + 1 순서 부여
+                        .build();
+                // 수락 알람 발송 (추가 가능)
+                // notificationService.sendAcceptNotification(application.getGuest(), group);
+                matchedMemberRepository.save(newMember);
+
+                // 신청서 상태 업데이트
+                application.updateStatus(ApplicationStatus.ACCEPTED);
+
+                // 3. 정원이 다 찼을 경우 (RELAY는 2명, TOGETHER는 설정값) 그룹 상태 변경 및 나머지 거절
+                if (currentTotalCount + 1 >= group.getMaxCapacity()) {
+                    group.updateStatus(GroupStatus.MATCHED);
+
+                    // 나머지 대기 인원 일괄 거절
+                    List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
+                    for (Application pendingApp : pendingApplications) {
+                        pendingApp.updateStatus(ApplicationStatus.REJECTED);
+                        //  시스템 자동 거절 알람 발송
+                        // notificationService.sendAutoRejectNotification(pendingApp.getGuest(), group);
+                    }
+                }
+            } else {
+                application.updateStatus(ApplicationStatus.REJECTED);
+            // notificationService.sendRejectNotification(application.getGuest(), group);
             }
 
+            return ApplicationResponseDTO.UpdateResultDTO.builder()
+                    .applicationId(application.getApplicationId())
+                    .status(application.getApplicationStatus())
+                    .groupStatus(group.getGroupStatus())
+                    .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                    .build();
         }
-
-        // 6. 거절 시: 알람 발송
-        //if (status == ApplicationStatus.REJECTED) {
-        //    notificationService.sendRejectNotification(application.getGuest(), application.getGroup());
-        //}
-
-        //  결과 DTO 반환
-        return ApplicationResponseDTO.UpdateResultDTO.builder()
-                .applicationId(application.getApplicationId())
-                .status(application.getApplicationStatus())
-                .groupStatus(application.getGroup().getGroupStatus())
-                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
-                .build();
-
-
-    }
 
     //참가신청 service
     @Transactional(readOnly = false)
@@ -182,22 +186,71 @@ public class ApplicationService {
                 .build();
     }
 
+    //참여 취소하기
+    @Transactional(readOnly = false)
+    public ApplicationResponseDTO.CancelResultDTO cancelApplication (Long groupId, Long userId){
+
+        // 그룹에 비관적 락을 먼저 걸고 조회
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        // 참여 정보 확인
+        MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.MEMBER_NOT_FOUND));
+
+        //권한 체크 (Host)는 취소 불가
+        if(member.getRole() == RoleStatus.HOST){
+            throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
+        }
+
+
+        //그룹이 모집중(RECRUITING) 일때만 취소가능
+        if(group.getGroupStatus() != GroupStatus.RECRUITING){
+            throw new GroupException(GroupErrorCode.APPLY_CANT_CANCEL);
+        }
+
+        //참여신청 목록에서 제외, 참여 내역 삭제
+        applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
+                        .ifPresent(applicationRepository::delete);
+        matchedMemberRepository.delete(member);
+
+        //취소 후 그룹 정원 다시 계산
+        long currentCount = matchedMemberRepository.countByGroup(group);
+        if (currentCount < group.getMaxCapacity()) {
+            group.updateStatus(GroupStatus.RECRUITING);
+        }
+
+        return ApplicationResponseDTO.CancelResultDTO.builder()
+                .groupId(groupId)
+                .canceledAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .build();
+    }
+
     private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
         User guest = application.getGuest();
 
         // 태그 이름만 String 리스트로 추출
-        //List<String> tagNames = guest.getUserTags().stream()
-                //.map(ut -> ut.getTag().getName())
-                //.collect(Collectors.toList());
+        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그의 코드를 추출
+        List<String> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
+                guest.getUserTags().stream()
+                        // 1. 점수(score) 높은 순서대로 정렬
+                        .sorted(Comparator.comparingInt(UserTag::getScore).reversed())
+                        // 2. 상위 3개만 자르기
+                        .limit(3)
+                        // 3. 태그의 이름(또는 코드) 꺼내기
+                        .map(ut -> ut.getTag().getCode())
+                        .toList();
 
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
-                .userId(guest.getId())
+                .user(guest.getId())
                 .name(guest.getName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                //.tags(tagNames) //grouptag
+                .tags(top3Tags)
                 .applyMsg(application.getApplyMsg())
                 .build();
     }
+
+
 }

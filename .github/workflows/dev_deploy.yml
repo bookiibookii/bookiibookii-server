@@ -48,51 +48,47 @@ jobs:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
-
-          SPRING_PROFILES_ACTIVE: dev
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          ALADIN_TTB_KEY: ${{ secrets.ALADIN_TTB_KEY }}
         run: |
           set -e
-
+          
           printf '%s\n' "$EC2_SSH_KEY" > private_key.pem
           sed -i 's/\r$//' private_key.pem
           chmod 600 private_key.pem
-
+          
           jar_file=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
           if [ -z "$jar_file" ]; then
             echo "No jar file found in build/libs"
             exit 1
           fi
-
+          
           scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" \
             "${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/dev/bookiiDev.jar"
-
+          
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
-            "${EC2_USERNAME}@${EC2_HOST}" bash -se <<EOF
+            "${EC2_USERNAME}@${EC2_HOST}" bash -se <<'EOF'
           set -e
-
-          mkdir -p "/home/${EC2_USERNAME}/logs/dev"
-
-          pgrep java | xargs -r kill -15 || true
+          
+          APP_JAR="/home/${USER}/dev/bookiiDev.jar"
+          LOG_DIR="/home/${USER}/logs/dev"
+          ENV_FILE="/home/${USER}/dev/.env.dev"
+          
+          mkdir -p "$LOG_DIR"
+          
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "ENV file not found: $ENV_FILE"
+            exit 1
+          fi
+          
+          pgrep -f "$APP_JAR" | xargs -r kill -15 || true
           sleep 10
-
-          nohup env \
-            SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE}" \
-            DB_URL="${DB_URL}" \
-            DB_USERNAME="${DB_USERNAME}" \
-            DB_PASSWORD="${DB_PASSWORD}" \
-            JWT_SECRET_KEY="${JWT_SECRET_KEY}" \
-            GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
-            ALADIN_TTB_KEY="${ALADIN_TTB_KEY}" \
-            java -jar "/home/${EC2_USERNAME}/dev/bookiiDev.jar" \
-            > "/home/${EC2_USERNAME}/logs/dev/app.log" 2>&1 &
-
+          
+          set -a
+          . "$ENV_FILE"
+          set +a
+          
+          nohup java -jar "$APP_JAR" > "$LOG_DIR/app.log" 2>&1 &
+          
           echo "DEPLOY DONE"
           EOF
-
+          
           rm -f private_key.pem

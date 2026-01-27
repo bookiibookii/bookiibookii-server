@@ -6,7 +6,6 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-
 @Entity
 @Table(name = "matchedmember")
 @Getter
@@ -26,7 +25,7 @@ public class MatchedMember extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User userId;
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role")

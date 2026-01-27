@@ -30,11 +30,10 @@ public class ApplicationResponseDTO {
     @AllArgsConstructor
     public static class ApplicationDetailDTO {
         private Long applicationId;
-        private Long userId;
+        private Long user;
         private String name;
         //private String profileImageUrl; //유저 프로필 이미지
-        //@Builder.Default
-        //private List<String> tags = new ArrayList<>(); // "#메모환영", "#인사이트" 등?
+        private List<String> tags; // "#메모환영", "#인사이트" 등?
         private String createdAt;
         private String applyMsg;
     }
@@ -59,4 +58,14 @@ public class ApplicationResponseDTO {
         private String status;       // 신청 상태 (PENDING 등)
         private String createdAt;    // 신청 일자
     }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CancelResultDTO{
+        private Long groupId;
+        private String canceledAt; //취소한 시간
+    }
+
 }

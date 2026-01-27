@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.repository;
 
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,14 +18,24 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 
     @Query("select t from Tracker t " +
             "join fetch t.currentMember m " +
-            "join fetch m.userId " +
-            "where t.groupId = :groupId")
+            "join fetch m.user " +
+            "where t.group.groupId = :groupId")
     Optional<Tracker> findByGroupId(@Param("groupId") Long groupId);
+
+
 
 //    @Query("SELECT t FROM Tracker t " +
 //            "JOIN FETCH t.groupId g " +
 //            "WHERE g IN (SELECT mm.group FROM MatchedMember mm WHERE mm.userId.id = :userId)")
 //    List<Tracker> findAllByUserIdWithGroup(@Param("userId") Long userId);
+
+
+    @Query("SELECT DISTINCT t FROM Tracker t " +
+            "JOIN FETCH t.group g " +
+            "LEFT JOIN FETCH t.histories " +
+            "WHERE g.groupId IN (SELECT mm.group.groupId FROM MatchedMember mm WHERE mm.user.id = :userId) " +
+            "ORDER BY t.createdAt DESC")
+    List<Tracker> findAllByUserIdWithDetails(@Param("userId") Long userId);
 
 
 }

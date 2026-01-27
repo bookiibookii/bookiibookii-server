@@ -45,14 +45,14 @@ public class Notification extends BaseEntity {
     private String payload; // JSON string
 
     @Column(name = "is_read", nullable = false)
-    boolean isRead;
+    private boolean read;
 
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
     public void markAsRead() {
-        if (!this.isRead) {
-            this.isRead = true;
+        if (!this.read) {
+            this.read = true;
             this.readAt = LocalDateTime.now();
         }
     }

@@ -28,7 +28,7 @@ public class NotificationFactory {
                 .title(title)
                 .message(message)
                 .payload(payload)
-                .isRead(false)
+                .read(false)
                 .build();
     }
 

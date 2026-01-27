@@ -123,6 +123,10 @@ public class Tracker extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
+        // 기간 연장 횟수, 일수 초기화.
+        this.extensionDays = 0;
+        this.extensionCount = 0;
+
     }
 
 

@@ -5,8 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class CardImageResponseDTO {
-    private Long cardImageId;
+public class PresignedUrlResponseDTO {
     private String s3Key;
-    private String imageUrl; // presigned GET URL
+    private String presignedUrl;
 }

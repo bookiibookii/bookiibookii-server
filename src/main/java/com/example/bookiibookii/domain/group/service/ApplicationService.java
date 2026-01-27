@@ -243,7 +243,7 @@ public class ApplicationService {
 
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
-                .userId(guest.getId())
+                .user(guest.getId())
                 .name(guest.getName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))

@@ -30,7 +30,7 @@ public class ApplicationResponseDTO {
     @AllArgsConstructor
     public static class ApplicationDetailDTO {
         private Long applicationId;
-        private Long userId;
+        private Long user;
         private String name;
         //private String profileImageUrl; //유저 프로필 이미지
         private List<String> tags; // "#메모환영", "#인사이트" 등?

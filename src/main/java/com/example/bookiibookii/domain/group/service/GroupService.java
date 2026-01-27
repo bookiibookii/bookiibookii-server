@@ -286,10 +286,10 @@ public class GroupService {
 
         for (MatchedMember mm : matchedMembers) {
             slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
-                    .nickname(mm.getUserId().getName())
+                    .nickname(mm.getUser().getName())
                     //.profileImage(mm.getUserId().getImageUrl())
                     .role(mm.getRole().name())
-                    .isMe(mm.getUserId().getId().equals(userId))
+                    .isMe(mm.getUser().getId().equals(userId))
                     .build());
         }
 
@@ -311,7 +311,7 @@ public class GroupService {
 
         // 2. 이미 참여 확정된 게스트인지 확인
         boolean isMatched = matchedMembers.stream()
-                .anyMatch(mm -> mm.getUserId().getId().equals(userId));
+                .anyMatch(mm -> mm.getUser().getId().equals(userId));
         if (isMatched) {
             return "TRACKER";
         }

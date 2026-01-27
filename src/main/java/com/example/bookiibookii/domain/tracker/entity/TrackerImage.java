@@ -35,9 +35,4 @@ public class TrackerImage extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tracker_history_id", nullable = false)
     private TrackerHistory trackerHistory;
-
-    // S3 Key 업데이트 메서드
-    public void updateS3Key(String newS3Key) {
-        this.s3Key = newS3Key;
-    }
 }

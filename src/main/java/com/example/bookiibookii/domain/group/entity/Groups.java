@@ -61,7 +61,11 @@ public class Groups extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "trade_type")
     private TradeType tradeType;//DIRECT, DELIVERY
-    
+
+    // 직접 교환일 경우에만 데이터가 존재함
+    @OneToOne(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Meeting meeting;
+
     //@Builder.Default
     //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     //private List<GroupTag> groupTags = new ArrayList<>()

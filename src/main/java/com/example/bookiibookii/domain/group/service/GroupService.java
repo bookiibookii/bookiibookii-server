@@ -7,12 +7,14 @@ import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -34,7 +36,9 @@ public class GroupService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final ApplicationRepository applicationRepository;
+    private final MeetingRepository meetingRepository;
     private final BookService bookService;
+
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -85,6 +89,19 @@ public class GroupService {
 
         Groups savedGroup = groupsRepository.save(group);
 
+        // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
+        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
+
+            // host.getMeetPlace()를 통해 유저가 미리 입력한 주소를 초기 장소로 저장
+            Meeting initialMeeting = Meeting.builder()
+                    .group(savedGroup)
+                    .meetingPlace(host.getMeetPlace()) //host가 마이페이지에서 입력한 meetPlace
+                    .meetingTime(null) // 시간은 초기 생성 시에는 결정되지 않음
+                    .build();
+
+            meetingRepository.save(initialMeeting);
+        }
+
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
                 .group(savedGroup)           // 엔티티의 private Groups group;
@@ -94,6 +111,7 @@ public class GroupService {
                 .build();
 
         matchedMemberRepository.save(hostMember);
+
         return GroupResponseDTO.CreateResultDTO.builder()
                 .groupId(savedGroup.getGroupId()) //
                 .groupStatus(savedGroup.getGroupStatus()) //

@@ -66,9 +66,6 @@ public class Groups extends BaseEntity {
     //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     //private List<GroupTag> groupTags = new ArrayList<>()
 
-    @OneToOne(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Tracker tracker;
-
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();

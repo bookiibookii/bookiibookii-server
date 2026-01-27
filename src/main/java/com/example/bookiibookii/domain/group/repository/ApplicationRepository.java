@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
@@ -35,4 +36,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             Long guestId,
             ApplicationStatus status
     );
+    //특정 그룹 ID와 게스트(유저) ID로 신청서 엔티티 조회 (참가 목록에서 취소한 사람 제외용도)
+    Optional<Application> findByGroupGroupIdAndGuestId(Long groupId, Long guestId);
+
 }

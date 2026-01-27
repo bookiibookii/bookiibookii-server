@@ -88,7 +88,7 @@ public class GroupService {
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
                 .group(savedGroup)           // 엔티티의 private Groups group;
-                .userId(host)                // 엔티티의 private User userId;
+                .user(host)                // 엔티티의 private User user;
                 .role(RoleStatus.HOST)       // 엔티티의 RoleStatus 타입 사용
                 .readingOrder(1)             // 엔티티의 private Integer readingOrder;
                 .build();
@@ -142,7 +142,8 @@ public class GroupService {
                 // "마이페이지에서 배송지를 먼저 등록해주세요." 에러 발생
                 throw new GroupException(GroupErrorCode.ADDRESS_NOT_FOUND);
             }*/
-        }
+
+    }
 
 
 

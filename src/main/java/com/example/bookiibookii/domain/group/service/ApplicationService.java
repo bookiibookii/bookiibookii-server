@@ -14,6 +14,7 @@ import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -99,7 +102,7 @@ public class ApplicationService {
                 // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
                 MatchedMember newMember = MatchedMember.builder()
                         .group(group)
-                        .userId(application.getGuest()) // 엔티티 필드명 userId에 게스트 저장
+                        .user(application.getGuest())
                         .role(RoleStatus.GUEST)
                         .readingOrder((int) currentTotalCount + 1) // 현재 인원 + 1 순서 부여
                         .build();
@@ -183,22 +186,71 @@ public class ApplicationService {
                 .build();
     }
 
+    //참여 취소하기
+    @Transactional(readOnly = false)
+    public ApplicationResponseDTO.CancelResultDTO cancelApplication (Long groupId, Long userId){
+
+        // 그룹에 비관적 락을 먼저 걸고 조회
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        // 참여 정보 확인
+        MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.MEMBER_NOT_FOUND));
+
+        //권한 체크 (Host)는 취소 불가
+        if(member.getRole() == RoleStatus.HOST){
+            throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
+        }
+
+
+        //그룹이 모집중(RECRUITING) 일때만 취소가능
+        if(group.getGroupStatus() != GroupStatus.RECRUITING){
+            throw new GroupException(GroupErrorCode.APPLY_CANT_CANCEL);
+        }
+
+        //참여신청 목록에서 제외, 참여 내역 삭제
+        applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
+                        .ifPresent(applicationRepository::delete);
+        matchedMemberRepository.delete(member);
+
+        //취소 후 그룹 정원 다시 계산
+        long currentCount = matchedMemberRepository.countByGroup(group);
+        if (currentCount < group.getMaxCapacity()) {
+            group.updateStatus(GroupStatus.RECRUITING);
+        }
+
+        return ApplicationResponseDTO.CancelResultDTO.builder()
+                .groupId(groupId)
+                .canceledAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .build();
+    }
+
     private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
         User guest = application.getGuest();
 
         // 태그 이름만 String 리스트로 추출
-        //List<String> tagNames = guest.getUserTags().stream()
-                //.map(ut -> ut.getTag().getName())
-                //.collect(Collectors.toList());
+        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그의 코드를 추출
+        List<String> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
+                guest.getUserTags().stream()
+                        // 1. 점수(score) 높은 순서대로 정렬
+                        .sorted(Comparator.comparingInt(UserTag::getScore).reversed())
+                        // 2. 상위 3개만 자르기
+                        .limit(3)
+                        // 3. 태그의 이름(또는 코드) 꺼내기
+                        .map(ut -> ut.getTag().getCode())
+                        .toList();
 
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
-                .userId(guest.getId())
+                .user(guest.getId())
                 .name(guest.getName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                //.tags(tagNames) //grouptag
+                .tags(top3Tags)
                 .applyMsg(application.getApplyMsg())
                 .build();
     }
+
+
 }

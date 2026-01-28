@@ -62,4 +62,22 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             @Param("status") GroupStatus status,
             @Param("limit") int limit
     );
+  
+    //그룹 상세 조회
+    @Query("SELECT g FROM Groups g " +
+            "JOIN FETCH g.book " +          // 도서 정보 한 번에 조회
+            "JOIN FETCH g.host " +          // 방장 정보 한 번에 조회
+            //"LEFT JOIN FETCH g.groupTags gt " + // 태그 정보
+            //"LEFT JOIN FETCH gt.tag " +
+            "WHERE g.groupId = :groupId AND g.groupStatus != 'DELETED'")
+    Optional<Groups> findDetailById(@Param("groupId") Long groupId);
+
+    // fetch join 적용된 기본 그룹 조회
+    @Query("""
+    select g from Groups g
+    join fetch g.book
+    join fetch g.host
+    where g.groupId = :id
+    """)
+    Optional<Groups> findByIdWithBookAndHost(Long id);
 }

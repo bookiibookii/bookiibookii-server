@@ -64,9 +64,6 @@ public class Groups extends BaseEntity {
     @Column(name = "trade_type")
     private TradeType tradeType;//DIRECT, DELIVERY
 
-    @OneToOne(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Tracker tracker;
-
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();

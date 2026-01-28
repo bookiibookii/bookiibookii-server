@@ -17,10 +17,15 @@ public class CardImage extends BaseEntity {
     @Column(name = "card_image_id")
     private Long id;
 
-    @Column(name = "s3_key", length = 255, unique = true,  nullable = false)
+    @Column(name = "s3_key", length = 255, unique = true, nullable = false)
     private String s3Key;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "card_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "card_id", nullable = false, unique = true)
     private Card card;
+
+    // S3 Key 업데이트 메서드
+    public void updateS3Key(String newS3Key) {
+        this.s3Key = newS3Key;
+    }
 }

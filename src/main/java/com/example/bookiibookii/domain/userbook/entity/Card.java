@@ -4,9 +4,6 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
 @Table(name = "card")
 @Getter
@@ -30,7 +27,6 @@ public class Card extends BaseEntity {
     @Column(name = "memo", length = 255)
     private String memo;
 
-    @OneToMany(mappedBy = "card", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<CardImage> cardImages = new ArrayList<>();
+    @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)
+    private CardImage cardImage;
 }

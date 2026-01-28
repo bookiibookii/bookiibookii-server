@@ -22,9 +22,11 @@ public interface CardImageControllerDocs {
             description = """
             S3에 이미지를 업로드하기 위한 presigned URL을 발급합니다.
             
-            - 카드당 이미지는 하나만 저장됩니다.
+            - UUID 기반 s3Key를 생성하여 presigned URL을 발급합니다.
+            - 카드 생성 전/후 모두 사용 가능합니다.
             - 발급된 presigned URL을 사용하여 클라이언트에서 직접 S3에 이미지를 업로드할 수 있습니다.
             - URL은 10분간 유효합니다.
+            - s3Key 형식: image/cards/{uuid}
             """
     )
     @ApiResponses({
@@ -50,7 +52,7 @@ public interface CardImageControllerDocs {
             
             - 카드에 이미 이미지가 있으면 업데이트됩니다.
             - s3Key는 presigned URL 발급 시 받은 값을 사용해야 합니다.
-            - s3Key 형식 검증 및 cardId 일치 확인이 수행됩니다.
+            - s3Key 형식 검증 및 S3에 이미지 존재 여부 확인이 수행됩니다.
             """
     )
     @ApiResponses({

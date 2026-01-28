@@ -2,10 +2,12 @@ package com.example.bookiibookii.domain.userbook.service;
 
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
+import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
+import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +22,70 @@ public class CardService {
     private final CardRepository cardRepository;
     private final CardImageRepository cardImageRepository;
     private final CardImageValidationService cardImageValidationService;
+    private final CardImageS3Service cardImageS3Service;
+    private final UserBookRepository userBookRepository;
 
     // Card의 이미지 업데이트 결과
     public record CardImageUpdateResult(Card card, CardImage cardImage, boolean isCreated) {}
+
+    /**
+     * 독서카드를 생성합니다.
+     * Card는 항상 CardImage를 가져야 하므로, Card와 CardImage를 함께 생성합니다.
+     * 
+     * @param userBookId 사용자 책 ID
+     * @param page 페이지 정보
+     * @param memo 메모 (선택)
+     * @param s3Key S3 키 (이미 업로드된 이미지)
+     * @return 생성된 Card
+     */
+    @Transactional
+    public Card createCard(Long userBookId, Integer page, String memo, String s3Key) {
+        // s3Key 형식 검증
+        if (!cardImageValidationService.isValidS3Key(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+
+        // S3에 이미지가 실제로 존재하는지 확인 (HEAD 요청)
+        if (!cardImageS3Service.doesImageExist(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
+        }
+
+        // UserBook 존재 확인
+        UserBook userBook = userBookRepository.findById(userBookId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+
+        // s3Key 중복 체크 (DB)
+        if (cardImageRepository.existsByS3Key(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+        }
+
+        // Card 생성
+        Card card = Card.builder()
+                .userBook(userBook)
+                .page(page)
+                .memo(memo)
+                .build();
+
+        Card savedCard = cardRepository.save(card);
+
+        // CardImage 생성
+        CardImage cardImage = CardImage.builder()
+                .card(savedCard)
+                .s3Key(s3Key)
+                .build();
+
+        try {
+            cardImageRepository.saveAndFlush(cardImage);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // s3_key unique constraint 위반 처리
+            if (cardImageRepository.existsByS3Key(s3Key)) {
+                throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+            }
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+        }
+
+        return savedCard;
+    }
 
     /**
      * Card의 이미지를 업데이트합니다.
@@ -34,9 +97,14 @@ public class CardService {
      */
     @Transactional
     public CardImageUpdateResult updateCardImage(Long cardId, String s3Key) {
-        // s3Key 검증: 형식 및 cardId 일치 확인
-        if (!cardImageValidationService.isValidS3Key(s3Key, cardId)) {
+        // s3Key 형식 검증
+        if (!cardImageValidationService.isValidS3Key(s3Key)) {
             throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+
+        // S3에 이미지가 실제로 존재하는지 확인 (HEAD 요청)
+        if (!cardImageS3Service.doesImageExist(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
         }
 
         // Card 조회

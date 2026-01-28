@@ -1,11 +1,13 @@
 package com.example.bookiibookii.domain.notification.service;
 
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
-import com.example.bookiibookii.domain.notification.event.KeywordGroupMatchedEvent;
+import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.notification.repository.UserKeywordRepository;
+import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -20,8 +22,10 @@ public class KeywordNotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationFactory notificationFactory;
 
-    @Transactional
-    public void send(KeywordGroupMatchedEvent event) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void send(KeywordGroupCreatedEvent event) {
+        if (event.keywordIds() == null || event.keywordIds().isEmpty()) return;
+
         List<Long> receiverIds =
                 userKeywordRepository.findDistinctUserIdsByKeywordIds(event.keywordIds());
         if (receiverIds.isEmpty()) return;

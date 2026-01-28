@@ -2,7 +2,7 @@ package com.example.bookiibookii.domain.notification.listener;
 
 import com.example.bookiibookii.domain.comment.event.CommentEvent;
 import com.example.bookiibookii.domain.comment.service.CommentNotificationService;
-import com.example.bookiibookii.domain.notification.event.KeywordGroupMatchedEvent;
+import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.service.KeywordNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,7 +17,7 @@ public class NotificationEventListener {
     private final CommentNotificationService commentNotificationService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleKeyword(KeywordGroupMatchedEvent event) {
+    public void handleKeyword(KeywordGroupCreatedEvent event) {
         keywordNotificationService.send(event);
     }
 

@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.comment.dto.res.CommentTreeResDTO;
 import com.example.bookiibookii.domain.comment.dto.req.CommentCreateReqDTO;
 import com.example.bookiibookii.domain.comment.entity.Comment;
 import com.example.bookiibookii.domain.comment.enums.WriterRole;
+import com.example.bookiibookii.domain.comment.event.CommentEvent;
 import com.example.bookiibookii.domain.comment.exception.code.CommentErrorCode;
 import com.example.bookiibookii.domain.comment.exception.CommentException;
 import com.example.bookiibookii.domain.comment.repository.CommentRepository;
@@ -16,6 +17,7 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,10 +36,11 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final GroupsRepository groupRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public CommentCreateResDTO create(Long groupId, User user, CommentCreateReqDTO req) {
-        Groups group = groupRepository.findById(groupId)
+        Groups group = groupRepository.findByIdWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 댓글 작성자의 그룹 내 역할
@@ -71,6 +74,8 @@ public class CommentService {
                 .parent(parent)
                 .build();
         Comment saved = commentRepository.save(comment);
+
+        eventPublisher.publish(new CommentEvent(user.getName(), group.getBook().getTitle(), group.getHost().getId(), group.getGroupId()));
 
         return toCreateResDTO(saved, writerRole);
     }
@@ -111,7 +116,6 @@ public class CommentService {
 
         return roots;
     }
-
 
     private static WriterRole toWriterRole(RoleStatus roleStatus) {
         if (roleStatus == null) return WriterRole.NONE;

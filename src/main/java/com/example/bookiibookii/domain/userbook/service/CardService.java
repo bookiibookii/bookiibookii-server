@@ -33,13 +33,14 @@ public class CardService {
      * Card는 항상 CardImage를 가져야 하므로, Card와 CardImage를 함께 생성합니다.
      * 
      * @param userBookId 사용자 책 ID
+     * @param userId 인증된 사용자 ID (소유권 검증용)
      * @param page 페이지 정보
      * @param memo 메모 (선택)
      * @param s3Key S3 키 (이미 업로드된 이미지)
      * @return 생성된 Card
      */
     @Transactional
-    public Card createCard(Long userBookId, Integer page, String memo, String s3Key) {
+    public Card createCard(Long userBookId, Long userId, Integer page, String memo, String s3Key) {
         // s3Key 형식 검증
         if (!cardImageValidationService.isValidS3Key(s3Key)) {
             throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
@@ -50,8 +51,8 @@ public class CardService {
             throw new CardImageException(CardImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
         }
 
-        // UserBook 존재 확인
-        UserBook userBook = userBookRepository.findById(userBookId)
+        // UserBook 존재 및 소유권 확인
+        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
 
         // s3Key 중복 체크 (DB)

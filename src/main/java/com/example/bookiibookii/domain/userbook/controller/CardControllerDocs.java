@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
+import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,6 +42,7 @@ public interface CardControllerDocs {
     })
     @PostMapping("/{userBookId}/presigned-url")
     ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForNewCard(
+            @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId
     );
@@ -67,11 +70,12 @@ public interface CardControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "사용자 책을 찾을 수 없음"
+                    description = "사용자 책을 찾을 수 없음 (존재하지 않거나 소유권이 없음)"
             )
     })
     @PostMapping("/{userBookId}")
     ApiResponse<CardCreateResponseDTO> createCard(
+            @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId,
             @Valid @RequestBody CardCreateRequestDTO request

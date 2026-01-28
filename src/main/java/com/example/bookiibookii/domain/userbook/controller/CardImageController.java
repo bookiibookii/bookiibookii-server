@@ -32,7 +32,9 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
             @PathVariable Long cardId
     ) {
-        // cardId는 사용하지 않지만 API 호환성을 위해 유지
+        // 카드 존재 확인 (카드 생성 후에만 사용 가능한 엔드포인트이므로)
+        cardService.getCard(cardId);
+
         PresignedUrlResponseDTO responseDTO = 
                 cardImageS3Service.generatePresignedPutUrl(PRESIGNED_URL_EXPIRATION_MINUTES);
 

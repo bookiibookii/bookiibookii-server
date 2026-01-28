@@ -79,9 +79,6 @@ public class CardService {
             cardImageRepository.saveAndFlush(cardImage);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             // s3_key unique constraint 위반 처리
-            if (cardImageRepository.existsByS3Key(s3Key)) {
-                throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
-            }
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 

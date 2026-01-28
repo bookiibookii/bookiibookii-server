@@ -1,11 +1,13 @@
 package com.example.bookiibookii.domain.group.dto.req;
 
+import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class GroupRequestDTO {
 
@@ -29,4 +31,17 @@ public class GroupRequestDTO {
             private String groupComment;
             //태그리스트
     }
+
+    public record FilterDTO(
+            List<GroupType> groupTypes,
+            List<TradeType> tradeTypes,
+            List<String> regions,
+            List<CustomCategory> categories,
+            String sort, // LATEST, POPULAR, RECOMMEND
+            int page,
+            int size
+    ) {}
+
 }
+
+

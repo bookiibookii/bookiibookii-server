@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
-public class GroupController implements GroupControllerDocs{
+public class GroupController implements GroupControllerDocs {
 
     private final GroupService groupService;
 
@@ -27,7 +27,7 @@ public class GroupController implements GroupControllerDocs{
             @RequestBody @Valid GroupRequestDTO.CreateDTO request) {
 
         GroupResponseDTO.CreateResultDTO result = groupService.createGroup(host, request);
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK,result);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 
     @PatchMapping("/{groupId}")
@@ -59,5 +59,17 @@ public class GroupController implements GroupControllerDocs{
             @AuthenticationPrincipal(expression = "user") User user) {
         GroupResponseDTO.GroupDetailDTO result = groupService.getGroupDetail(groupId, user.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    //그룹 리스트 API
+    @GetMapping
+    public ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
+            @AuthenticationPrincipal(expression = "user") User user, // 로그인 상태면 유저 정보
+            @ModelAttribute @Valid GroupRequestDTO.FilterDTO filter) {
+
+        // 서비스에서 QueryDSL을 사용하여 필터링 및 추천 가중치가 적용된 목록
+        GroupResponseDTO.GroupSliceResponseDTO result = groupService.getGroupList(user, filter);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+
     }
 }

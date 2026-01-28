@@ -97,4 +97,27 @@ public class GroupResponseDTO {
         private String role;           // HOST, GUEST, EMPTY(빈자리)
         private Boolean isMe;          // 본인 여부
     }
+
+    @Builder
+    public record GroupSummaryDTO(
+            Long groupId,
+            String title,
+            String bookImage,
+            String hostNickname,
+            List<String> tags,
+            String groupStatus,
+            int currentCount,
+            int maxCapacity,
+            int waitingCount,
+            boolean isHot,
+            String groupType,
+            String tradeType,
+            String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
+    ) {}
+
+    public record GroupSliceResponseDTO(
+            List<GroupSummaryDTO> groupList,
+            int currentPage,
+            boolean hasNext
+    ) {}
 }

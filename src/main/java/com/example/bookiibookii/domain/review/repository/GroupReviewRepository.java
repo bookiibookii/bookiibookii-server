@@ -17,8 +17,6 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
      * 특정 Group에서 특정 유저가 reviewer인 리뷰가 이미 존재하는지 확인
      * 리뷰 생성 시 중복 방지용
      * 
-     * 같은 Group 내에서 reviewer 유저가 속한 MatchedMember에 대한 리뷰가 이미 있는지 확인
-     * 
      * @param groupId Group ID
      * @param reviewerUserId 리뷰를 작성하는 유저 ID (현재 로그인한 유저)
      * @return 리뷰 존재 여부
@@ -26,7 +24,7 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
     @Query("""
         SELECT CASE WHEN COUNT(gr) > 0 THEN true ELSE false END
         FROM GroupReview gr
-        JOIN gr.matchedMember mm
+        JOIN gr.reviewer mm
         WHERE mm.group.groupId = :groupId
           AND mm.user.id = :reviewerUserId
     """)
@@ -36,31 +34,22 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
     /**
      * 특정 유저가 reviewed인 리뷰들을 조회 (마이페이지용)
      * 
-     * 같은 Group 내에서 reviewed 유저가 속한 MatchedMember가 아닌 다른 MatchedMember에 대해 작성된 리뷰들
-     * 즉, 다른 사람이 나에게 남긴 리뷰들을 조회
-     * 
      * @param reviewedUserId 리뷰를 받은 유저 ID (현재 로그인한 유저)
      * @return 리뷰 목록
      */
     @Query("""
         SELECT gr
         FROM GroupReview gr
-        JOIN gr.matchedMember reviewerMm
-        WHERE EXISTS (
-            SELECT mm
-            FROM MatchedMember mm
-            WHERE mm.group.groupId = reviewerMm.group.groupId
-              AND mm.user.id = :reviewedUserId
-        )
-          AND reviewerMm.user.id != :reviewedUserId
+        JOIN gr.reviewed mm
+        WHERE mm.user.id = :reviewedUserId
     """)
     List<GroupReview> findByReviewedUserId(@Param("reviewedUserId") Long reviewedUserId);
 
     /**
-     * 특정 MatchedMember에 대한 리뷰 조회
+     * 특정 reviewer MatchedMember에 대한 리뷰 조회
      * 
-     * @param matchedMember MatchedMember 엔티티
+     * @param reviewerMatchedMember reviewer의 MatchedMember 엔티티
      * @return 리뷰 (존재하지 않으면 Optional.empty())
      */
-    Optional<GroupReview> findByMatchedMember(MatchedMember matchedMember);
+    Optional<GroupReview> findByReviewer(MatchedMember reviewerMatchedMember);
 }

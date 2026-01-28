@@ -6,7 +6,19 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "group_review")
+@Table(
+        name = "group_review",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_group_review_reviewer_matchedmember",
+                        columnNames = {"reviewer_matchedmember_id"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_group_review_reviewed_matchedmember",
+                        columnNames = {"reviewed_matchedmember_id"}
+                )
+        }
+)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -19,8 +31,12 @@ public class GroupReview extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "matchedmember_id", nullable = false)
-    private MatchedMember matchedMember;
+    @JoinColumn(name = "reviewer_matchedmember_id", nullable = false)
+    private MatchedMember reviewer; // 리뷰 작성자
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_matchedmember_id", nullable = false)
+    private MatchedMember reviewed; // 리뷰 수신자
 
     @Column(name = "rating")
     private Double rating;

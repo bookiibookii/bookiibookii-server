@@ -15,6 +15,10 @@ import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
+import com.example.bookiibookii.domain.notification.entity.Keyword;
+import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -38,6 +42,9 @@ public class GroupService {
     private final ApplicationRepository applicationRepository;
     private final MeetingRepository meetingRepository;
     private final BookService bookService;
+
+    private final KeywordMatchService keywordMatchService;
+    private final DomainEventPublisher publisher;
 
 
     //그룹생성 service
@@ -112,13 +119,18 @@ public class GroupService {
 
         matchedMemberRepository.save(hostMember);
 
+        List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
+
+        List<Long> ids = matched.stream().map(Keyword::getId).toList();
+        List<String> texts = matched.stream().map(Keyword::getContent).toList();
+
+        publisher.publish(new KeywordGroupCreatedEvent(group.getGroupId(), texts, ids));
+
         return GroupResponseDTO.CreateResultDTO.builder()
                 .groupId(savedGroup.getGroupId()) //
                 .groupStatus(savedGroup.getGroupStatus()) //
                 .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
-
-
     }
 
     private void validateCommonPolicy(GroupRequestDTO.CreateDTO request) {

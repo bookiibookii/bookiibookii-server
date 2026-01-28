@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.notification.exception.KeywordException;
 import com.example.bookiibookii.domain.notification.exception.code.KeywordErrorCode;
 import com.example.bookiibookii.domain.notification.repository.KeywordRepository;
 import com.example.bookiibookii.domain.notification.repository.UserKeywordRepository;
+import com.example.bookiibookii.domain.notification.util.KeywordNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -16,8 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.bookiibookii.domain.user.entity.User;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -49,9 +48,15 @@ public class KeywordService {
 
     @Transactional
     public KeywordResDTO.KeywordItem saveKeyword(User user, KeywordReqDTO.SaveKeyword req) {
-        String content = normalizeKeywordContent(req.content());
+        String display = KeywordNormalizer.display(req.content());
+        String normalized = KeywordNormalizer.normalize(req.content());
+        String prefix2 = KeywordNormalizer.prefix2(normalized);
 
-        if (userKeywordRepository.existsByUserAndKeyword_Content(user, content)) {
+        if (prefix2 == null || prefix2.isBlank()) {
+            throw new KeywordException(KeywordErrorCode.INVALID_KEYWORD);
+        }
+
+        if (userKeywordRepository.existsByUserAndKeyword_NormalizedContent(user, normalized)) {
             throw new KeywordException(KeywordErrorCode.DUPLICATE_USER_KEYWORD);
         }
 
@@ -60,16 +65,20 @@ public class KeywordService {
             throw new KeywordException(KeywordErrorCode.KEYWORD_LIMIT_EXCEEDED);
         }
 
-        Keyword keyword = keywordRepository.findByContent(content)
+        Keyword keyword = keywordRepository.findByNormalizedContent(normalized)
                 .orElseGet(() -> {
                     try {
-                        return keywordRepository.save(Keyword.builder().content(content).build());
+                        return keywordRepository.save(
+                                Keyword.builder()
+                                        .content(display)
+                                        .normalizedContent(normalized)
+                                        .prefix2(prefix2)
+                                        .build()
+                        );
                     } catch (DataIntegrityViolationException e) {
-                        if (isConstraint(e, "uk_keyword_content")) {
-                            // 동시성으로 이미 insert 된 경우 재조회
-                            return keywordRepository.findByContent(content).orElseThrow(() -> e);
-                        }
-                        throw e;
+                        // 동시성으로 이미 insert된 경우 재조회
+                        return keywordRepository.findByNormalizedContent(normalized)
+                                .orElseThrow(() -> e);
                     }
                 });
 
@@ -79,10 +88,7 @@ public class KeywordService {
                     .keyword(keyword)
                     .build());
         } catch (DataIntegrityViolationException e) {
-            if (isConstraint(e, "uk_user_keyword")) {
-                throw new KeywordException(KeywordErrorCode.DUPLICATE_USER_KEYWORD);
-            }
-            throw e;
+            throw new KeywordException(KeywordErrorCode.DUPLICATE_USER_KEYWORD);
         }
 
         return KeywordResDTO.KeywordItem.builder()
@@ -97,17 +103,5 @@ public class KeywordService {
                 .orElseThrow(() -> new KeywordException(KeywordErrorCode.USER_KEYWORD_NOT_FOUND));
 
         userKeywordRepository.delete(link);
-    }
-
-    private boolean isConstraint(DataIntegrityViolationException e, String constraintName) {
-        Throwable t = e;
-        while (t.getCause() != null) t = t.getCause();
-        String msg = t.getMessage();
-        return msg != null && msg.contains(constraintName);
-    }
-
-    private String normalizeKeywordContent(String raw) {
-        if (raw == null) return "";
-        return raw.replaceAll("\\s+", "");
     }
 }

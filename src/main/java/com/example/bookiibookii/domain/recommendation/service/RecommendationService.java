@@ -56,7 +56,7 @@ public class RecommendationService {
                 .map(user -> RecommendationResponseDTO.BookmateDto.builder()
                         .userId(user.getId())
                         .nickname(user.getName())
-                        // TODO: 프로필 이미지
+                        .userImage(user.getUserImage())
                         .matchedTags(displayTags)
                         .recentBookTitle(userBookService.findRecentBookTitleByUserId(user.getId()))
                         .build())

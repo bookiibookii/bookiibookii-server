@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.recommendation.dto.res;
 
+import com.example.bookiibookii.domain.user.entity.UserImage;
 import lombok.Builder;
 
 import java.util.List;
@@ -7,7 +8,7 @@ import java.util.List;
 public class RecommendationResponseDTO {
     @Builder
     public record BookmateDto  (
-            // TODO : 프로필 이미지 추가
+            UserImage userImage,
             Long userId,
             String nickname,
             List<String> matchedTags,

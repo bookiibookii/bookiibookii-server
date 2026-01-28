@@ -43,4 +43,13 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             //"LEFT JOIN FETCH gt.tag " +
             "WHERE g.groupId = :groupId AND g.groupStatus != 'DELETED'")
     Optional<Groups> findDetailById(@Param("groupId") Long groupId);
+
+    // fetch join 적용된 기본 그룹 조회
+    @Query("""
+    select g from Groups g
+    join fetch g.book
+    join fetch g.host
+    where g.groupId = :id
+    """)
+    Optional<Groups> findByIdWithBookAndHost(Long id);
 }

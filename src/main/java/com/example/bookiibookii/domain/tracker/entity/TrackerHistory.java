@@ -7,6 +7,8 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -39,6 +41,10 @@ public class TrackerHistory extends BaseEntity {
     private String deliveryCompany;
     private String trackingNumber;
     private String imageUrl;
+
+    @OneToMany(mappedBy = "trackerHistory", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<TrackerImage> trackerImages = new ArrayList<>();
 
     public static TrackerHistory createHistory(Tracker tracker, Long senderId, Long receiverId,
                                                TrackerStatus status, LocalDateTime startDate, LocalDateTime endDate,

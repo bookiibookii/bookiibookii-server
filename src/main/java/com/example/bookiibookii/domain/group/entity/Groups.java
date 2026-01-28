@@ -4,10 +4,12 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -31,7 +33,7 @@ public class Groups extends BaseEntity {
     private Long groupId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id")
+    @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -62,14 +64,6 @@ public class Groups extends BaseEntity {
     @Column(name = "trade_type")
     private TradeType tradeType;//DIRECT, DELIVERY
 
-    // 직접 교환일 경우에만 데이터가 존재함
-    @OneToOne(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Meeting meeting;
-
-    //@Builder.Default
-    //@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    //private List<GroupTag> groupTags = new ArrayList<>()
-
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();
@@ -78,9 +72,24 @@ public class Groups extends BaseEntity {
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedMember> matchedMember = new ArrayList<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GroupTag> groupTags = new ArrayList<>();
+
     public void updateStatus(GroupStatus status) {
         this.groupStatus = status;
     }
 
     public void markAsDELETED(){ this.groupStatus = GroupStatus.DELETED; }
+
+    // 태그 추가
+    public void addGroupTag(Tag tag) {
+        GroupTag groupTag = GroupTag.create(this, tag);
+        this.groupTags.add(groupTag);
+    }
+
+    // 태그 전체 삭제
+    public void clearGroupTags() {
+        this.groupTags.clear();
+    }
 }

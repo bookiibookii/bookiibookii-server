@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,5 +34,15 @@ public class RecommendationController implements RecommendationControllerDocs{
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 
-    // TODO : 그룹 추천 API => UserTag = GroupTag (GENRE > METHOD > VIBE > SPEED)
+    // 사용자 태그 기반 그룹 추천 API
+    @GetMapping("/groups")
+    public ApiResponse<List<RecommendationResponseDTO.RecommendedGroupDto>> recommendGroups(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @RequestParam(value = "refresh", defaultValue = "false") boolean isRefresh
+    ) {
+        List<RecommendationResponseDTO.RecommendedGroupDto> result =
+                recommendationService.findRecommendGroups(user.getId(), isRefresh);
+
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
 }

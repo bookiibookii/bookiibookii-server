@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.recommendation.dto.res;
 
+import com.example.bookiibookii.domain.user.entity.UserImage;
 import lombok.Builder;
 
 import java.util.List;
@@ -7,12 +8,17 @@ import java.util.List;
 public class RecommendationResponseDTO {
     @Builder
     public record BookmateDto  (
-            // TODO : 프로필 이미지 추가
+            UserImage userImage,
             Long userId,
             String nickname,
             List<String> matchedTags,
             String recentBookTitle
     ){}
 
-    // TODO: 추천그룹DTO(groupID, 도서표지 이미지, BookTitle-해당 그룹의 책 제목)
+    @Builder
+    public record RecommendedGroupDto  (
+            // TODO : 도서표지 이미지 추가
+            Long groupId,
+            String bookTitle
+    ){}
 }

@@ -4,16 +4,12 @@ import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
 
 @Entity
 @Builder
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Filter(name = "activeUserFilter", condition = "status = 'ACTIVE'")
-@FilterDef(name = "activeUserFilter", defaultCondition = "status = 'ACTIVE'")
 public class GroupTag extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,6 +20,13 @@ public class GroupTag extends BaseEntity {
     private Groups group;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id")
+    @JoinColumn(name = "tag_id", nullable = false)
     private Tag tag;
+
+    public static GroupTag create(Groups group, Tag tag) {
+        return GroupTag.builder()
+                .group(group)
+                .tag(tag)
+                .build();
+    }
 }

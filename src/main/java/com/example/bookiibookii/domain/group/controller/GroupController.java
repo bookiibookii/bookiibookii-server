@@ -6,6 +6,9 @@ import com.example.bookiibookii.domain.group.service.GroupService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
+import com.example.bookiibookii.global.auth.CustomUserDetails;
+import com.example.bookiibookii.global.auth.exception.AuthException;
+import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,10 +26,10 @@ public class GroupController implements GroupControllerDocs {
     @Operation(summary = "그룹 생성 API", description = "새로운 독서 그룹(이어읽기/함께읽기)을 생성합니다.")
     @PostMapping
     public ApiResponse<GroupResponseDTO.CreateResultDTO> createGroup(
-            @AuthenticationPrincipal(expression = "user") User host, // 로그인한 유저 정보
+            @AuthenticationPrincipal(expression = "user") User user, // 로그인한 유저 정보
             @RequestBody @Valid GroupRequestDTO.CreateDTO request) {
 
-        GroupResponseDTO.CreateResultDTO result = groupService.createGroup(host, request);
+        GroupResponseDTO.CreateResultDTO result = groupService.createGroup(user, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 
@@ -72,4 +75,6 @@ public class GroupController implements GroupControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
 
     }
+
+
 }

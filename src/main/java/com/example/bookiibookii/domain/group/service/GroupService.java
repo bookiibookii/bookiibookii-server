@@ -398,25 +398,15 @@ public class GroupService {
         PageRequest pageable = PageRequest.of(filter.page(), filter.size());
 
         // 1. 온보딩 시 설정한 UserTag에서 좋아하는 카테고리 리스트 추출 (추천)
-        List<CustomCategory> interests = null;
+        List<Long> userTagIds = new ArrayList<>();
         if (user != null) {
-            // user.getUserTags() 대신 레포지토리에서 직접 조회
-            interests = userTagRepository.findAllByUser(user).stream()
-                    .map(ut -> {
-                        String code = ut.getTag().getCode();
-                        try {
-                            return CustomCategory.valueOf(code);
-                        } catch (IllegalArgumentException e) {
-                            return null;
-                        }
-                    })
-                    .filter(java.util.Objects::nonNull)
+            userTagIds = userTagRepository.findAllByUser(user).stream()
+                    .map(ut -> ut.getTag().getId()) // Tag의 고유 ID(Long)를 수집
                     .toList();
         }
 
-
         // 2. QueryDSL 레포지토리 호출하여 필터링된 데이터 가져오기
-        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, interests, pageable);
+        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTagIds, pageable);
 
         // 3. 엔티티 리스트를 Record DTO로 변환 (기획서 UI 배지 로직 적용)
         List<GroupResponseDTO.GroupSummaryDTO> dtoList = groupsSlice.stream()

@@ -33,15 +33,14 @@ public class GroupQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, List<CustomCategory> userInterests, Pageable pageable) {
+    public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, List<Long> userTagIds, Pageable pageable) {
 
         List<Groups> content = queryFactory
                 .selectFrom(groups)
                 // N+1 방지를 위해 fetchJoin 적용
                 .join(groups.book, book).fetchJoin()
                 .join(groups.host, user).fetchJoin()
-                //.leftJoin(groups.groupTags, groupTag).fetchJoin()
-                //.leftJoin(groupTag.tag, tag).fetchJoin()
+                .leftJoin(groups.groupTags, groupTag)
                 .where(
                         inGroupTypes(filter.groupTypes()),
                         inTradeTypes(filter.tradeTypes()),
@@ -49,9 +48,10 @@ public class GroupQueryRepository {
                         inCategories(filter.categories()),
                         groups.groupStatus.ne(GroupStatus.DELETED) // 삭제된 그룹 제외
                 )
-                .orderBy(getSortOrder(filter.sort(), userInterests))
+                .groupBy(groups.groupId)
+                .orderBy(getSortOrder(filter.sort(), userTagIds))
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize() + 1) // Slice를 위해 +1 조회
+                .limit(pageable.getPageSize() + 1)
                 .fetch();
 
         boolean hasNext = false;
@@ -64,18 +64,18 @@ public class GroupQueryRepository {
     }
 
     // 정렬 조건 생성 (추천순/인기순/최신순)
-    private OrderSpecifier<?>[] getSortOrder(String sort, List<CustomCategory> userInterests) {
+    private OrderSpecifier<?>[] getSortOrder(String sort, List<Long> userTagIds) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
         // 추천순(usertag 기반 누적 추천?) 고도화 필요(현재 책 카테고리만 적용)
-        if ("RECOMMEND".equals(sort) && userInterests != null && !userInterests.isEmpty()) {
-            // 유저의 온보딩 태그 카테고리와 책의 카테고리가 같으면 1점, 아니면 0점
-            NumberExpression<Integer> recommendationScore = new CaseBuilder()
-                    .when(book.category.in(userInterests)).then(1)
-                    .otherwise(0);
+        if ("RECOMMEND".equals(sort) && userTagIds != null && !userTagIds.isEmpty()) {
+            // 💡 석진님이 보여주신 JPA Repo의 COUNT(gt) 로직을 QueryDSL로 구현한 부분입니다.
+            NumberExpression<Long> matchCount = new CaseBuilder()
+                    .when(groupTag.tag.id.in(userTagIds)).then(1L)
+                    .otherwise(0L)
+                    .sum(); // 일치할 때마다 1점씩 더해서 총점을 계산
 
-            // 점수 높은 순(DESC)으로 정렬하여 유저 취향 책을 상단으로!
-            orders.add(new OrderSpecifier<>(Order.DESC, recommendationScore));
+            orders.add(new OrderSpecifier<>(Order.DESC, matchCount));
         }
 
         // 2순위: 인기순(신청자 수)

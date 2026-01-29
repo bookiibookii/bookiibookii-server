@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.dto.res;
 
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -97,4 +98,16 @@ public class GroupResponseDTO {
         private String role;           // HOST, GUEST, EMPTY(빈자리)
         private Boolean isMe;          // 본인 여부
     }
+
+    @Builder
+    public record MypageGroupDto  (
+            Long groupId,
+            String bookTitle,
+            String auth,
+            @JsonProperty("GENRE")
+            String genre,
+            @JsonProperty("group_status")
+            GroupStatus groupStatus,
+            List<String> groupTags
+    ){}
 }

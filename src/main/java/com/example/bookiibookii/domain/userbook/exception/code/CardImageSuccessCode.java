@@ -12,7 +12,8 @@ public enum CardImageSuccessCode implements BaseCode {
     CARD_IMAGE_SAVED(HttpStatus.CREATED, "CARDIMG201_1", "카드 이미지를 저장했습니다."),
     CARD_IMAGE_UPDATED(HttpStatus.OK, "CARDIMG200_3", "카드 이미지를 업데이트했습니다."),
     CARD_IMAGE_FOUND(HttpStatus.OK, "CARDIMG200_2", "카드 이미지를 조회했습니다."),
-    CARD_CREATED(HttpStatus.CREATED, "CARDIMG201_2", "독서카드를 생성했습니다.");
+    CARD_CREATED(HttpStatus.CREATED, "CARDIMG201_2", "독서카드를 생성했습니다."),
+    CARDS_FOUND(HttpStatus.OK, "CARDIMG200_4", "독서카드 목록을 조회했습니다.");
 
     private final HttpStatus status;
     private final String code;

@@ -1,5 +1,9 @@
 package com.example.bookiibookii.domain.userbook.service;
 
+import com.example.bookiibookii.domain.book.entity.Book;
+import com.example.bookiibookii.domain.book.repository.BookRepository;
+import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
@@ -12,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -24,9 +29,13 @@ public class CardService {
     private final CardImageValidationService cardImageValidationService;
     private final CardImageS3Service cardImageS3Service;
     private final UserBookRepository userBookRepository;
+    private final BookRepository bookRepository;
 
     // Card의 이미지 업데이트 결과
     public record CardImageUpdateResult(Card card, CardImage cardImage, boolean isCreated) {}
+
+    // UserBook 책 제목 + 카드 목록 조회 결과
+    public record CardsWithTitleResult(String title, List<CardCreateResponseDTO> cards) {}
 
     /**
      * 독서카드를 생성합니다.
@@ -223,5 +232,49 @@ public class CardService {
     public CardImage getCardImage(Long cardId) {
         return cardImageRepository.findByCard_Id(cardId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND));
+    }
+
+    /**
+     * UserBook에 속한 Card 목록과 해당 UserBook의 책 제목을 조회합니다.
+     * UserBook 존재 및 소유권 검증 후, 책 제목과 카드 목록을 생성일 기준 오름차순으로 반환합니다.
+     */
+    public CardsWithTitleResult getCardsByUserBookId(Long userBookId, Long userId, int presignedGetUrlExpirationMinutes) {
+        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+        
+        // Book 제목 조회
+        String title = bookRepository.findById(userBook.getBookId())
+                .map(Book::getTitle)
+                .orElse("");
+        
+        List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
+        
+        // Card 엔티티를 DTO로 변환 (트랜잭션 내에서 처리)
+        List<CardCreateResponseDTO> cardDTOs = cards.stream()
+                .map(card -> {
+                    CardImage cardImage = card.getCardImage();
+                    if (cardImage == null) {
+                        throw new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND);
+                    }
+                    
+                    CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
+                            .cardImageId(cardImage.getId())
+                            .s3Key(cardImage.getS3Key())
+                            .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                                    cardImage.getS3Key(),
+                                    presignedGetUrlExpirationMinutes))
+                            .build();
+                    
+                    return CardCreateResponseDTO.builder()
+                            .cardId(card.getId())
+                            .page(card.getPage())
+                            .memo(card.getMemo())
+                            .cardImage(cardImageResponseDTO)
+                            .createdAt(card.getCreatedAt())
+                            .build();
+                })
+                .toList();
+        
+        return new CardsWithTitleResult(title, cardDTOs);
     }
 }

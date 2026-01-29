@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
@@ -81,8 +82,29 @@ public class CardController implements CardControllerDocs {
                 .page(card.getPage())
                 .memo(card.getMemo())
                 .cardImage(cardImageResponseDTO)
+                .createdAt(card.getCreatedAt())
                 .build();
 
         return ApiResponse.onSuccess(CardImageSuccessCode.CARD_CREATED, responseDTO);
+    }
+
+    @Override
+    @GetMapping("/{userBookId}")
+    public ApiResponse<CardListResponseDTO> getCards(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long userBookId
+    ) {
+        CardService.CardsWithTitleResult result = cardService.getCardsByUserBookId(
+                userBookId, 
+                user.getId(),
+                PRESIGNED_GET_URL_EXPIRATION_MINUTES
+        );
+
+        CardListResponseDTO responseDTO = CardListResponseDTO.builder()
+                .title(result.title())
+                .cards(result.cards())
+                .build();
+
+        return ApiResponse.onSuccess(CardImageSuccessCode.CARDS_FOUND, responseDTO);
     }
 }

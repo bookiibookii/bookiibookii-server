@@ -77,7 +77,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     select g from Groups g
     join fetch g.book
     join fetch g.host
-    where g.groupId = :id
+    where g.groupId = :groupId
     """)
-    Optional<Groups> findByIdWithBookAndHost(Long id);
+    Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);
 }

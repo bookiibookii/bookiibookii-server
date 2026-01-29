@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum KeywordErrorCode implements BaseCode {
 
     KEYWORD_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "KEYWORD400_1", "키워드는 최대 10개까지 등록할 수 있습니다."),
+    INVALID_KEYWORD(HttpStatus.BAD_REQUEST, "KEYWORD400_2", "키워드 형식이 올바르지 않습니다."),
 
     KEYWORD_NOT_FOUND(HttpStatus.NOT_FOUND, "KEYWORD404_1", "키워드를 찾을 수 없습니다."),
     USER_KEYWORD_NOT_FOUND(HttpStatus.NOT_FOUND, "KEYWORD404_2", "사용자가 등록한 키워드가 아닙니다."),

@@ -12,6 +12,8 @@ public enum GroupErrorCode implements BaseCode {
     GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_1", "그룹을 찾을 수 없습니다."),
     APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_2", "신청 내역을 찾을 수 없습니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_3", "해당 그룹에 신청한 내역이 없습니다."),
+    PARTNER_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_4", "해당 그룹에 신청한 내역이 없습니다."),
+    MATCHED_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_5", "해당 그룹의 멤버를 찾을 수 없습니다."),
 
     // 400 Bad Request
     ALREADY_PROCESSED_APPLICATION(HttpStatus.BAD_REQUEST, "GROUP400_1", "이미 처리된 신청 내역입니다."),

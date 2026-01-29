@@ -55,4 +55,6 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
         RoleStatus getRoleStatus();
     }
 
+    // 그룹 내 파트너 matchedMember의 userId 반환
+    Optional<Long> findTop1User_IdByGroup_GroupIdAndUser_IdNot(Long groupId, Long userId);
 }

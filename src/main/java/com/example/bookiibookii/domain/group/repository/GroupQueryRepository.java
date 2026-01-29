@@ -94,7 +94,16 @@ public class GroupQueryRepository {
         if (regions == null || regions.isEmpty()) return null;
 
         return regions.stream()
-                .map(user.region::contains)
+                .map(region -> {
+                    // "서울시 전체" 버튼 대응 로직
+                    if (region.contains("전체")) {
+                        // "서울시 전체" -> "서울", "경기도 전체" -> "경기"
+                        String cleanRegion = region.replace("전체", "").trim();
+                        return cleanRegion.length() >= 2 ? cleanRegion.substring(0, 2) : cleanRegion;
+                    }
+                    return region;
+                })
+                .map(user.region::contains) // 정제된 키워드("서울")가 포함된 모든 주소 검색
                 .reduce(BooleanExpression::or)
                 .orElse(null);
     }

@@ -34,8 +34,6 @@ public class TrackerService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final TrackerConverter trackerConverter;
 
-
-
     //트래커 상세 조회
     public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
@@ -219,6 +217,7 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         tracker.completeReading();
+
 
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,

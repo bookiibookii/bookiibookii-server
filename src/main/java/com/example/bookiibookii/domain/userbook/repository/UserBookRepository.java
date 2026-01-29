@@ -24,4 +24,5 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
         ORDER BY ub.updatedAt DESC
     """)
     List<String> findRecentBookTitle(@Param("userId") Long userId, Pageable pageable);
+
 }

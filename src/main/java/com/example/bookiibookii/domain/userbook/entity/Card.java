@@ -24,7 +24,7 @@ public class Card extends BaseEntity {
     @Column(name = "page")
     private Integer page;
 
-    @Column(name = "memo", length = 255)
+    @Column(name = "memo", length = 500)
     private String memo;
 
     @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)

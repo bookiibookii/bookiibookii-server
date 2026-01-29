@@ -32,8 +32,11 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
             @PathVariable Long cardId
     ) {
+        // 카드 존재 확인 (카드 생성 후에만 사용 가능한 엔드포인트이므로)
+        cardService.getCard(cardId);
+
         PresignedUrlResponseDTO responseDTO = 
-                cardImageS3Service.generatePresignedPutUrl(cardId, PRESIGNED_URL_EXPIRATION_MINUTES);
+                cardImageS3Service.generatePresignedPutUrl(PRESIGNED_URL_EXPIRATION_MINUTES);
 
         return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
     }

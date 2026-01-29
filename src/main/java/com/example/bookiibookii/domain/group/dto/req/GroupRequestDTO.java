@@ -3,6 +3,10 @@ package com.example.bookiibookii.domain.group.dto.req;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.tag.enums.TagType;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -21,7 +25,7 @@ public class GroupRequestDTO {
         private String groupComment;
         private GroupType groupType;   // RELAY, TOGETHER
         private TradeType tradeType;   // DELIVERY, DIRECT
-        // 독서 태그 리스트 (예: ["#메모환영", "#깔끔"]) 추가 필요
+        private List<GroupRequestDTO.TagSettingDTO> tags;
     }
 
     @Getter
@@ -29,7 +33,8 @@ public class GroupRequestDTO {
             private LocalDate startDate;
             private Integer readingPeriod;
             private String groupComment;
-            //태그리스트
+            @Valid
+            private List<GroupRequestDTO.TagSettingDTO> tags;
     }
 
     public record FilterDTO(
@@ -42,6 +47,13 @@ public class GroupRequestDTO {
             int size
     ) {}
 
+    public record TagSettingDTO (
+            @NotNull
+            TagType type,
+
+            @NotEmpty
+            List<String> value
+    ){}
 }
 
 

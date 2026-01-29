@@ -2,7 +2,6 @@ package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
-import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
@@ -13,11 +12,20 @@ import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.*;
+import com.example.bookiibookii.domain.tag.entity.Tag;
+import com.example.bookiibookii.domain.tag.enums.TagType;
+import com.example.bookiibookii.domain.tag.exception.TagException;
+import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
+import com.example.bookiibookii.domain.tag.repository.TagRepository;
+import com.example.bookiibookii.domain.notification.entity.Keyword;
+import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
-import com.example.bookiibookii.domain.user.repository.UserTagRepository;
+import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -29,7 +37,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -43,6 +51,10 @@ public class GroupService {
     private final BookService bookService;
     private final GroupQueryRepository groupQueryRepository;
     private final UserTagRepository userTagRepository;
+    private final TagRepository tagRepository;
+    private final KeywordMatchService keywordMatchService;
+    private final DomainEventPublisher publisher;
+
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -89,7 +101,18 @@ public class GroupService {
                 .build();
 
         // 5. 독서 태그 저장 로직
-        //TODO
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            for (GroupRequestDTO.TagSettingDTO tagDto : request.getTags()) {
+                TagType type = tagDto.type();
+                List<String> codes = tagDto.value();
+                List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
+
+                if (tags.size() != codes.size()) {
+                    throw new TagException(TagErrorCode.INVALID_TAG_CODE);
+                }
+                tags.forEach(group::addGroupTag);
+            }
+        }
 
         Groups savedGroup = groupsRepository.save(group);
 
@@ -116,13 +139,18 @@ public class GroupService {
 
         matchedMemberRepository.save(hostMember);
 
+        List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
+
+        List<Long> ids = matched.stream().map(Keyword::getId).toList();
+        List<String> texts = matched.stream().map(Keyword::getContent).toList();
+
+        publisher.publish(new KeywordGroupCreatedEvent(group.getGroupId(), texts, ids));
+
         return GroupResponseDTO.CreateResultDTO.builder()
                 .groupId(savedGroup.getGroupId()) //
                 .groupStatus(savedGroup.getGroupStatus()) //
                 .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
-
-
     }
 
     private void validateCommonPolicy(GroupRequestDTO.CreateDTO request) {
@@ -219,7 +247,20 @@ public class GroupService {
         }
 
         //독서 태그 수정
-        //TO DO
+        if (request.getTags() != null) {
+            group.clearGroupTags();
+            for (GroupRequestDTO.TagSettingDTO tagDto : request.getTags()) {
+                TagType type = tagDto.type();
+                List<String> codes = tagDto.value();
+
+                List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
+
+                if (tags.size() != codes.size()) {
+                    throw new TagException(TagErrorCode.INVALID_TAG_CODE);
+                }
+                tags.forEach(group::addGroupTag);
+            }
+        }
 
         return GroupResponseDTO.UpdateResultDTO.builder()
                 .groupId(group.getGroupId())
@@ -359,7 +400,7 @@ public class GroupService {
         // 1. 온보딩 시 설정한 UserTag에서 좋아하는 카테고리 리스트 추출 (추천)
         List<CustomCategory> interests = null;
         if (user != null) {
-            // ✅ [수정] user.getUserTags() 대신 레포지토리에서 직접 조회
+            // user.getUserTags() 대신 레포지토리에서 직접 조회
             interests = userTagRepository.findAllByUser(user).stream()
                     .map(ut -> {
                         String code = ut.getTag().getCode();

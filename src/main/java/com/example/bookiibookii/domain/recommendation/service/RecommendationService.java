@@ -1,6 +1,8 @@
 package com.example.bookiibookii.domain.recommendation.service;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.recommendation.dto.res.RecommendationResponseDTO;
 import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tag.enums.TagType;
@@ -11,6 +13,7 @@ import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.user.service.UserTagService;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,7 @@ public class RecommendationService {
     private final UserRepository userRepository;
     private final UserTagRepository userTagRepository;
     private final UserBookService userBookService;
+    private final GroupsRepository groupsRepository;
 
     public List<RecommendationResponseDTO.BookmateDto> findRecommendBookmates(Long userId) {
         List<TagType> targetTypes = List.of(TagType.METHOD, TagType.VIBE);
@@ -52,7 +56,7 @@ public class RecommendationService {
                 .map(user -> RecommendationResponseDTO.BookmateDto.builder()
                         .userId(user.getId())
                         .nickname(user.getName())
-                        // TODO: 프로필 이미지
+                        .userImage(user.getUserImage())
                         .matchedTags(displayTags)
                         .recentBookTitle(userBookService.findRecentBookTitleByUserId(user.getId()))
                         .build())
@@ -121,5 +125,66 @@ public class RecommendationService {
 
         Collections.shuffle(result);
         return result.stream().limit(5).toList();
+    }
+
+
+    public List<RecommendationResponseDTO.RecommendedGroupDto> findRecommendGroups(Long userId, boolean isRefresh) {
+        List<TagType> targetTypes = List.of(TagType.GENRE, TagType.METHOD, TagType.VIBE, TagType.SPEED);
+        List<UserTag> userTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
+        List<Long> userTagIds = userTags.stream()
+                .map(ut -> ut.getTag().getId())
+                .toList();
+
+        List<Groups> candidateGroups = new ArrayList<>();
+        // 태그 일치 그룹 조회 (최대 6개)
+        if (!userTagIds.isEmpty()) {
+            List<Groups> matchedGroups = groupsRepository.findGroupsByTagMatching(
+                    userTagIds,
+                    GroupStatus.RECRUITING,
+                    PageRequest.of(0, 6)
+            );
+            candidateGroups.addAll(matchedGroups);
+        }
+
+        // 6개를 충족하지 못한 경우, 부족한 수량 랜덤 채우기
+        int candidateGroupsCount = 6 - candidateGroups.size();
+
+        if (candidateGroupsCount > 0) {
+            // 제외할 ID 리스트 추출
+            List<Long> excludedIds = candidateGroups.stream()
+                    .map(Groups::getGroupId)
+                    .collect(Collectors.toList());
+
+            // 빈 리스트일 경우 SQL 에러 방지를 위해 더미 값 추가 (-1)
+            if (excludedIds.isEmpty()) {
+                excludedIds.add(-1L);
+            }
+
+            List<Groups> randomGroups = groupsRepository.findRandomGroupsExcluding(
+                    excludedIds,
+                    GroupStatus.RECRUITING,
+                    candidateGroupsCount
+            );
+            candidateGroups.addAll(randomGroups);
+        }
+
+        // 반환 로직 분기 : 처음 조회할 땐 가장 일치도가 높은 것 추출, 새로 고침 시엔 6개 중 랜덤 3개
+        // TODO : Redis 적용하여 candidateGroups를 매번 계산하지 않도록 최적화할 예정
+        if (isRefresh) {
+            Collections.shuffle(candidateGroups); // 6개 풀 안에서 랜덤 섞기
+        }
+
+        // 앞에서 3개 잘라서 DTO 변환 및 반환
+        return candidateGroups.stream()
+                .limit(3)
+                .map(this::toSuggestGroupDto)
+                .collect(Collectors.toList());
+    }
+
+    private RecommendationResponseDTO.RecommendedGroupDto toSuggestGroupDto(Groups group) {
+        return RecommendationResponseDTO.RecommendedGroupDto.builder()
+                .groupId(group.getGroupId())
+                .bookTitle(group.getBook().getTitle())
+                .build();
     }
 }

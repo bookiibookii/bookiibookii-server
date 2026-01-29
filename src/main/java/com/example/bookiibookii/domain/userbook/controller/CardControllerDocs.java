@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
+import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
-import com.example.bookiibookii.global.auth.CustomUserDetails;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
@@ -38,17 +38,13 @@ public interface CardControllerDocs {
                     description = "URL 발급 성공"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400",
-                    description = "인증 실패 (AccessToken 없음 또는 불일치)"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "사용자 책을 찾을 수 없음"
             )
     })
     @PostMapping("/{userBookId}/presigned-url")
     ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForNewCard(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId
     );
@@ -72,7 +68,7 @@ public interface CardControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "잘못된 요청 (인증 실패, 필수값 누락, 메모 길이 초과, 중복된 S3 키, S3에 이미지 없음)"
+                    description = "잘못된 요청 (필수값 누락, 메모 길이 초과, 중복된 S3 키, S3에 이미지 없음)"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
@@ -81,7 +77,7 @@ public interface CardControllerDocs {
     })
     @PostMapping("/{userBookId}")
     ApiResponse<CardCreateResponseDTO> createCard(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId,
             @Valid @RequestBody CardCreateRequestDTO request
@@ -104,17 +100,13 @@ public interface CardControllerDocs {
                     description = "독서카드 목록 조회 성공"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400",
-                    description = "인증 실패 (AccessToken 없음 또는 불일치)"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "사용자 책을 찾을 수 없음 (존재하지 않거나 소유권이 없음)"
             )
     })
     @GetMapping("/{userBookId}")
     ApiResponse<CardListResponseDTO> getCards(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId
     );

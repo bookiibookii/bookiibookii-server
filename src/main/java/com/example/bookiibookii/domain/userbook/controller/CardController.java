@@ -2,9 +2,6 @@ package com.example.bookiibookii.domain.userbook.controller;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
-import com.example.bookiibookii.global.auth.CustomUserDetails;
-import com.example.bookiibookii.global.auth.exception.AuthException;
-import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
@@ -39,10 +36,9 @@ public class CardController implements CardControllerDocs {
     @Override
     @PostMapping("/{userBookId}/presigned-url")
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForNewCard(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable Long userBookId
     ) {
-        User user = requireUser(userDetails);
         // UserBook 존재 및 소유권 확인
         userBookRepository.findByIdAndUser_Id(userBookId, user.getId())
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
@@ -56,11 +52,10 @@ public class CardController implements CardControllerDocs {
     @Override
     @PostMapping("/{userBookId}")
     public ApiResponse<CardCreateResponseDTO> createCard(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable Long userBookId,
             @Valid @RequestBody CardCreateRequestDTO request
     ) {
-        User user = requireUser(userDetails);
         // Card 생성 (소유권 검증 포함)
         Card card = cardService.createCard(
                 userBookId,
@@ -96,10 +91,9 @@ public class CardController implements CardControllerDocs {
     @Override
     @GetMapping("/{userBookId}")
     public ApiResponse<CardListResponseDTO> getCards(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable Long userBookId
     ) {
-        User user = requireUser(userDetails);
         CardService.CardsWithTitleResult result = cardService.getCardsByUserBookId(
                 userBookId, 
                 user.getId(),
@@ -112,12 +106,5 @@ public class CardController implements CardControllerDocs {
                 .build();
 
         return ApiResponse.onSuccess(CardImageSuccessCode.CARDS_FOUND, responseDTO);
-    }
-
-    private User requireUser(CustomUserDetails userDetails) {
-        if (userDetails == null) {
-            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
-        }
-        return userDetails.getUser();
     }
 }

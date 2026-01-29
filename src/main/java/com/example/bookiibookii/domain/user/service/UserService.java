@@ -110,10 +110,10 @@ public class UserService {
         // TODO : 배지 조회
 
         // 완독 수 (로직에 따라 조건 추가 가능)
-        Long completeBookCount = userBookRepository.countByUserId(userId);
+        Long completeBookCount = userBookRepository.countByUser_Id(userId);
         // 참여한 그룹 수 (타입별)
-        Long relayCount = matchedMemberRepository.countByUserIdAndGroupGroupType(userId, GroupType.RELAY);
-        Long togetherCount = matchedMemberRepository.countByUserIdAndGroupGroupType(userId, GroupType.TOGETHER);
+        Long relayCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.RELAY);
+        Long togetherCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.TOGETHER);
 
         // 그룹 조회 (모집중, 진행중)
         List<Groups> myGroups = matchedMemberRepository.findMyActiveGroups(

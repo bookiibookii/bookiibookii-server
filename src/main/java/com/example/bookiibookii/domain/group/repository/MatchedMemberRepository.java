@@ -71,6 +71,6 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
     );
 
     // 참여했던 전체 그룹 중 특정 타입(RELAY, TOGETHER) 개수 조회
-    Long countByUserIdAndGroupGroupType(Long userId, GroupType groupType);
+    Long countByUser_IdAndGroup_GroupType(Long userId, GroupType groupType);
 
 }

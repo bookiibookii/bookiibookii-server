@@ -15,7 +15,7 @@ public enum UserSuccessCode implements BaseCode {
             "USER200_2",
             "온보딩 설정이 완료되었습니다."),
     MYPAGE_SUCCESS(HttpStatus.OK,
-            "USER200_2",
+            "USER200_3",
             "마이페이지 조회에 성공했습니다."),
     ;
     private final HttpStatus status;

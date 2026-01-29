@@ -25,7 +25,7 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<String> findRecentBookTitle(@Param("userId") Long userId, Pageable pageable);
 
     // 완독한 책 개수
-    Long countByUserId(Long userId);
+    Long countByUser_Id(Long userId);
 
     // 최근 읽은 책과 평점 조회
     @Query("""

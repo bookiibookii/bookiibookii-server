@@ -102,6 +102,7 @@ public class GroupQueryRepository {
                     }
                     return region;
                 })
+                .filter(keyword -> keyword != null && !keyword.isBlank())
                 .map(user.region::contains) // 정제된 키워드("서울")가 포함된 모든 주소 검색
                 .reduce(BooleanExpression::or)
                 .orElse(null);

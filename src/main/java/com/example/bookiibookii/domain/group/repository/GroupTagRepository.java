@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface GroupTagRepository extends JpaRepository<GroupTag, Long> {
-    //
     @Query("SELECT gt FROM GroupTag gt JOIN FETCH gt.tag WHERE gt.group.groupId IN :groupIds")
     List<GroupTag> findAllByGroupIdIn(@Param("groupIds") List<Long> groupIds);
     }

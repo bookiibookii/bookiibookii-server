@@ -39,4 +39,11 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     //특정 그룹 ID와 게스트(유저) ID로 신청서 엔티티 조회 (참가 목록에서 취소한 사람 제외용도)
     Optional<Application> findByGroupGroupIdAndGuestId(Long groupId, Long guestId);
 
+    // N+1 문제 해결을 위한 배치 쿼리
+    // 1번의 쿼리로 여러 그룹의 대기 인원수를 그룹화해서 조회
+    @Query("SELECT a.group.groupId, COUNT(a) FROM Application a " +
+            "WHERE a.group.groupId IN :groupIds AND a.applicationStatus = 'PENDING' " +
+            "GROUP BY a.group.groupId")
+    List<Object[]> countPendingByGroupIds(@Param("groupIds") List<Long> groupIds);
 }
+

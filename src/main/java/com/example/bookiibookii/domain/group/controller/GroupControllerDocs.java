@@ -5,12 +5,16 @@ import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
+import com.example.bookiibookii.global.auth.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -64,5 +68,16 @@ public interface GroupControllerDocs {
     ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
             @PathVariable(name = "groupId") Long groupId,
             @AuthenticationPrincipal User user
+    );
+
+    @Operation(summary = "그룹 목록 조회 API (필터/검색/추천)",
+            description = "홈 화면 및 검색 페이지에서 사용하는 그룹 목록 조회 API입니다. 무한 스크롤(Slice) 방식으로 작동합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
+    })
+    @GetMapping
+    ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
+            @AuthenticationPrincipal User user,
+            @ModelAttribute GroupRequestDTO.FilterDTO filter
     );
 }

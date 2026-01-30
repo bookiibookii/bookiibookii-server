@@ -1,32 +1,35 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
+import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
+import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
-import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
-import com.example.bookiibookii.domain.group.repository.GroupsRepository;
-import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.group.repository.*;
 import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.domain.tag.exception.TagException;
 import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
 import com.example.bookiibookii.domain.tag.repository.TagRepository;
-import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +38,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -46,10 +52,12 @@ public class GroupService {
     private final ApplicationRepository applicationRepository;
     private final MeetingRepository meetingRepository;
     private final BookService bookService;
+    private final GroupQueryRepository groupQueryRepository;
+    private final UserTagRepository userTagRepository;
     private final TagRepository tagRepository;
-
     private final KeywordMatchService keywordMatchService;
     private final DomainEventPublisher publisher;
+    private final GroupTagRepository groupTagRepository;
 
 
     //그룹생성 service
@@ -388,6 +396,78 @@ public class GroupService {
         return "APPLY";
     }
 
+    // 그룹 목록 조회 (필터링 + 추천순)
+    @Transactional(readOnly = true)
+    public GroupResponseDTO.GroupSliceResponseDTO getGroupList(User user, GroupRequestDTO.FilterDTO filter) {
+        PageRequest pageable = PageRequest.of(filter.page(), filter.size());
+
+        // 1. 추천 로직용 태그 ID 수집
+        List<Long> userTagIds = (user != null) ?
+                userTagRepository.findAllByUser(user).stream().map(ut -> ut.getTag().getId()).toList() : new ArrayList<>();
+
+        // 2. 메인 그룹 리스트 조회 (1번 쿼리)
+        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTagIds, pageable);
+        List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getGroupId).toList();
+
+        if (groupIds.isEmpty()) {
+            return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), 0, false);
+        }
+
+        // 3. [N+1 해결 1] 대기자 수 배치 조회 (2번 쿼리)
+        Map<Long, Integer> waitingCountMap = applicationRepository.countPendingByGroupIds(groupIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Long) row[1]).intValue()));
+
+        // 4. [N+1 해결 2] 그룹별 태그 목록 배치 조회 (3번 쿼리)
+        // yml을 못 만지므로 직접 In 절 쿼리로 태그를 땡겨옵니다.
+        List<GroupTag> allGroupTags = groupTagRepository.findAllByGroupIdIn(groupIds);
+        Map<Long, List<String>> tagListMap = allGroupTags.stream()
+                .collect(Collectors.groupingBy(
+                        gt -> gt.getGroup().getGroupId(),
+                        Collectors.mapping(gt -> gt.getTag().getCode(), Collectors.toList())
+                ));
+
+        // 5. DTO 변환 (메모리상의 Map에서 데이터를 매핑)
+        List<GroupResponseDTO.GroupSummaryDTO> dtoList = groupsSlice.stream()
+                .map(group -> {
+                    int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
+                    List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
+                    boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
+
+                    return GroupResponseDTO.GroupSummaryDTO.builder()
+                            .groupId(group.getGroupId())
+                            .title(group.getBook().getTitle())
+                            .bookImage(group.getBook().getImage())
+                            .hostNickname(group.getHost().getName())
+                            .groupStatus(group.getGroupStatus().name())
+                            .currentCount(group.getMatchedMember().size()) // matchedMember는 메인 쿼리에서 fetchJoin 권장
+                            .maxCapacity(group.getMaxCapacity())
+                            .waitingCount(waitingCount)
+                            .isHot(isHot)
+                            .groupType(group.getGroupType().name())
+                            .tradeType(group.getTradeType().name())
+                            .pictureBadge(determinePictureBadge(group))
+                            .tags(tags) // 미리 수집한 태그 리스트 주입
+                            .build();
+                }).toList();
+
+        return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, groupsSlice.getNumber(), groupsSlice.hasNext());
+    }
+
+    // 배지 텍스트 결정 로직
+    private String determinePictureBadge(Groups group) {
+        // '함께읽기' 타입이면 그대로 배지 노출
+        if (group.getGroupType() == GroupType.TOGETHER) return "함께읽기";
+
+        // '이어읽기' 중 '택배'면 택배 노출
+        if (group.getTradeType() == TradeType.DELIVERY) return "택배";
+
+        // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
+        String region = group.getHost().getRegion();
+        if (region == null || region.isBlank()) return "지역미정";
+
+        String[] parts = region.split(" ");
+        return parts[parts.length - 1]; // 마지막 단어(구 단위)만 추출
+    }
 
     }
 

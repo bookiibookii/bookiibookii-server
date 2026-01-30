@@ -6,6 +6,9 @@ import com.example.bookiibookii.domain.group.service.GroupService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
+import com.example.bookiibookii.global.auth.CustomUserDetails;
+import com.example.bookiibookii.global.auth.exception.AuthException;
+import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -16,18 +19,18 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
-public class GroupController implements GroupControllerDocs{
+public class GroupController implements GroupControllerDocs {
 
     private final GroupService groupService;
 
     @Operation(summary = "그룹 생성 API", description = "새로운 독서 그룹(이어읽기/함께읽기)을 생성합니다.")
     @PostMapping
     public ApiResponse<GroupResponseDTO.CreateResultDTO> createGroup(
-            @AuthenticationPrincipal(expression = "user") User host, // 로그인한 유저 정보
+            @AuthenticationPrincipal(expression = "user") User user, // 로그인한 유저 정보
             @RequestBody @Valid GroupRequestDTO.CreateDTO request) {
 
-        GroupResponseDTO.CreateResultDTO result = groupService.createGroup(host, request);
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK,result);
+        GroupResponseDTO.CreateResultDTO result = groupService.createGroup(user, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 
     @PatchMapping("/{groupId}")
@@ -60,4 +63,18 @@ public class GroupController implements GroupControllerDocs{
         GroupResponseDTO.GroupDetailDTO result = groupService.getGroupDetail(groupId, user.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
+
+    //그룹 리스트 API
+    @GetMapping
+    public ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
+            @AuthenticationPrincipal(expression = "user") User user, // 로그인 상태면 유저 정보
+            @ModelAttribute @Valid GroupRequestDTO.FilterDTO filter) {
+
+        // 서비스에서 QueryDSL을 사용하여 필터링 및 추천 가중치가 적용된 목록
+        GroupResponseDTO.GroupSliceResponseDTO result = groupService.getGroupList(user, filter);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+
+    }
+
+
 }

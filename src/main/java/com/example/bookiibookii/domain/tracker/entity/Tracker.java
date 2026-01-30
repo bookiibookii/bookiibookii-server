@@ -110,6 +110,11 @@ public class Tracker extends BaseEntity {
             this.trackerStatus = TrackerStatus.SHIPPING;
         }
 
+        // 배송 등록 시점 기록
+        this.startDate = LocalDateTime.now();
+        // 배송 도착 시점 최대로 저장
+        this.endDate = LocalDateTime.MAX;
+
         // 공통 업데이트: 현재 관리 주자를 다음 사람으로 변경
         this.currentMember = nextMember;
     }
@@ -122,6 +127,9 @@ public class Tracker extends BaseEntity {
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
+
+        // 수령 시점 기록
+        this.endDate = LocalDateTime.now();
 
         // 기간 연장 횟수, 일수 초기화.
         this.extensionDays = 0;
@@ -155,6 +163,9 @@ public class Tracker extends BaseEntity {
         }  else{
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
+
+        // 실제 독서 종료 시점 기록
+        this.endDate = LocalDateTime.now();
     }
 
     public void extensionDays(int days) {

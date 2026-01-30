@@ -36,7 +36,7 @@ public class ReportController implements ReportControllerDocs {
     public ApiResponse<List<ReportResponseDTO.ReportListDTO>> getReportList(
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        List<ReportResponseDTO.ReportListDTO> result = reportService.GetReportList(user.getId());
+        List<ReportResponseDTO.ReportListDTO> result = reportService.getReportList(user.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.FOUND, result);
     }
 }

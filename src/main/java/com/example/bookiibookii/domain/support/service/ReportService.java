@@ -45,7 +45,7 @@ public class ReportService {
         reportRepository.save(newReport);
     }
 
-    public List<ReportResponseDTO.ReportListDTO> GetReportList(Long userId) {
+    public List<ReportResponseDTO.ReportListDTO> getReportList(Long userId) {
         List<Report> reports = reportRepository.findAllByUserId(userId);
 
         return reports.stream()

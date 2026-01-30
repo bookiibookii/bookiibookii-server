@@ -16,7 +16,7 @@ public class ReportRequestDTO {
             ReportType reportType,
 
             @NotBlank(message = "구체적인 상황을 설명해주세요.")
-            @Size(max = 50, message = "내용은 1000자 이내로 입력해주세요.")
+            @Size(max = 1000, message = "내용은 1000자 이내로 입력해주세요.")
             String content
     ) {}
 }

@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
+import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
@@ -37,7 +38,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -54,6 +57,7 @@ public class GroupService {
     private final TagRepository tagRepository;
     private final KeywordMatchService keywordMatchService;
     private final DomainEventPublisher publisher;
+    private final GroupTagRepository groupTagRepository;
 
 
     //그룹생성 service
@@ -397,29 +401,37 @@ public class GroupService {
     public GroupResponseDTO.GroupSliceResponseDTO getGroupList(User user, GroupRequestDTO.FilterDTO filter) {
         PageRequest pageable = PageRequest.of(filter.page(), filter.size());
 
-        // 1. 온보딩 시 설정한 UserTag에서 좋아하는 카테고리 리스트 추출 (추천)
-        List<Long> userTagIds = new ArrayList<>();
-        if (user != null) {
-            userTagIds = userTagRepository.findAllByUser(user).stream()
-                    .map(ut -> ut.getTag().getId()) // Tag의 고유 ID(Long)를 수집
-                    .toList();
+        // 1. 추천 로직용 태그 ID 수집
+        List<Long> userTagIds = (user != null) ?
+                userTagRepository.findAllByUser(user).stream().map(ut -> ut.getTag().getId()).toList() : new ArrayList<>();
+
+        // 2. 메인 그룹 리스트 조회 (1번 쿼리)
+        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTagIds, pageable);
+        List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getGroupId).toList();
+
+        if (groupIds.isEmpty()) {
+            return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), 0, false);
         }
 
-        // 2. QueryDSL 레포지토리 호출하여 필터링된 데이터 가져오기
-        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTagIds, pageable);
+        // 3. [N+1 해결 1] 대기자 수 배치 조회 (2번 쿼리)
+        Map<Long, Integer> waitingCountMap = applicationRepository.countPendingByGroupIds(groupIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Long) row[1]).intValue()));
 
-        // 3. 엔티티 리스트를 Record DTO로 변환 (기획서 UI 배지 로직 적용)
+        // 4. [N+1 해결 2] 그룹별 태그 목록 배치 조회 (3번 쿼리)
+        // yml을 못 만지므로 직접 In 절 쿼리로 태그를 땡겨옵니다.
+        List<GroupTag> allGroupTags = groupTagRepository.findAllByGroupIdIn(groupIds);
+        Map<Long, List<String>> tagListMap = allGroupTags.stream()
+                .collect(Collectors.groupingBy(
+                        gt -> gt.getGroup().getGroupId(),
+                        Collectors.mapping(gt -> gt.getTag().getCode(), Collectors.toList())
+                ));
+
+        // 5. DTO 변환 (메모리상의 Map에서 데이터를 매핑)
         List<GroupResponseDTO.GroupSummaryDTO> dtoList = groupsSlice.stream()
                 .map(group -> {
-                    // HOT 배지 판단 (대기자 3배수 이상)
-                    int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(
-                            group.getGroupId(), ApplicationStatus.PENDING);
+                    int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
+                    List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
                     boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
-
-                    //그룹태그 리스트 변환
-//                    List<String> tagList = group.getGroupTags().stream()
-//                            .map(gt -> gt.getTag().getCode())
-//                            .toList();
 
                     return GroupResponseDTO.GroupSummaryDTO.builder()
                             .groupId(group.getGroupId())
@@ -427,22 +439,18 @@ public class GroupService {
                             .bookImage(group.getBook().getImage())
                             .hostNickname(group.getHost().getName())
                             .groupStatus(group.getGroupStatus().name())
-                            .currentCount(group.getMatchedMember().size())
+                            .currentCount(group.getMatchedMember().size()) // matchedMember는 메인 쿼리에서 fetchJoin 권장
                             .maxCapacity(group.getMaxCapacity())
                             .waitingCount(waitingCount)
                             .isHot(isHot)
                             .groupType(group.getGroupType().name())
                             .tradeType(group.getTradeType().name())
                             .pictureBadge(determinePictureBadge(group))
-                            //.tags(tagList)
+                            .tags(tags) // 미리 수집한 태그 리스트 주입
                             .build();
                 }).toList();
 
-        return new GroupResponseDTO.GroupSliceResponseDTO(
-                dtoList,
-                groupsSlice.getNumber(),
-                groupsSlice.hasNext()
-        );
+        return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, groupsSlice.getNumber(), groupsSlice.hasNext());
     }
 
     // 배지 텍스트 결정 로직

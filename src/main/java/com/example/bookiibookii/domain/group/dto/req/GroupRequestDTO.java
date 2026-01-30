@@ -5,8 +5,10 @@ import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.enums.TagType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -43,9 +45,9 @@ public class GroupRequestDTO {
             List<String> regions,
             List<CustomCategory> categories,
             String sort, // LATEST, POPULAR, RECOMMEND
-            int page,
-            int size
-    ) {}
+            @Min(0) int page,
+            @Positive int size
+            ) {}
 
     public record TagSettingDTO (
             @NotNull

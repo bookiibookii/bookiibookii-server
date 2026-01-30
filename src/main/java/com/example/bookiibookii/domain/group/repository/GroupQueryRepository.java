@@ -37,16 +37,15 @@ public class GroupQueryRepository {
 
         List<Groups> content = queryFactory
                 .selectFrom(groups)
-                // N+1 방지를 위해 fetchJoin 적용
-                .join(groups.book, book).fetchJoin()
-                .join(groups.host, user).fetchJoin()
-                .leftJoin(groups.groupTags, groupTag)
+                .join(groups.book, book).fetchJoin() // 도서 정보 페치 조인
+                .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
+                .leftJoin(groups.groupTags, groupTag) // 추천 점수 계산을 위해 조인 (fetchJoin 아님)
                 .where(
                         inGroupTypes(filter.groupTypes()),
                         inTradeTypes(filter.tradeTypes()),
                         containsRegions(filter.regions()),
                         inCategories(filter.categories()),
-                        groups.groupStatus.ne(GroupStatus.DELETED) // 삭제된 그룹 제외
+                        groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
                 .groupBy(groups.groupId)
                 .orderBy(getSortOrder(filter.sort(), userTagIds))
@@ -83,7 +82,7 @@ public class GroupQueryRepository {
             orders.add(new OrderSpecifier<>(Order.DESC, groups.applications.size()));
         }
 
-        // 공통/기본: 최신순
+        //최신순
         orders.add(new OrderSpecifier<>(Order.DESC, groups.createdAt));
 
         return orders.toArray(new OrderSpecifier[0]);

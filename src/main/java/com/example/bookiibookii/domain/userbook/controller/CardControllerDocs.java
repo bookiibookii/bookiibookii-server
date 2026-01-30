@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.userbook.controller;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -79,5 +81,33 @@ public interface CardControllerDocs {
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId,
             @Valid @RequestBody CardCreateRequestDTO request
+    );
+
+    @Operation(
+            summary = "독서카드 목록 조회",
+            description = """
+            사용자 책(userBook)에 속한 독서카드 목록을 조회합니다.
+            
+            - 인증된 사용자가 소유한 userBook만 조회 가능합니다.
+            - 생성일 기준 오름차순으로 정렬된 카드 목록을 반환합니다.
+            - 각 카드에는 카드 이미지 presigned GET URL, 카드 생성일(createdAt)이 포함됩니다.
+            - 응답에 userbook에 해당하는 책 제목(title)이 포함됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "독서카드 목록 조회 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "사용자 책을 찾을 수 없음 (존재하지 않거나 소유권이 없음)"
+            )
+    })
+    @GetMapping("/{userBookId}")
+    ApiResponse<CardListResponseDTO> getCards(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "사용자 책 식별자(ID)", example = "1")
+            @PathVariable Long userBookId
     );
 }

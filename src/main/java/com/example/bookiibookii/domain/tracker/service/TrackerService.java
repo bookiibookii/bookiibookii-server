@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
@@ -10,10 +11,12 @@ import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.domain.tracker.repository.TrackerHistoryRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
+import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.*;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -33,6 +38,7 @@ public class TrackerService {
     private final TrackerHistoryRepository trackerHistoryRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final TrackerConverter trackerConverter;
+    private final DomainEventPublisher publisher;
 
     //트래커 상세 조회
     public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId) {
@@ -132,7 +138,7 @@ public class TrackerService {
 
     // 배송 등록
     @Transactional
-    public void registerShipping(Long groupId, TrackerShippingRequest request) {
+    public void registerShipping(Long groupId, TrackerShippingRequest request, User user) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
@@ -165,12 +171,14 @@ public class TrackerService {
         );
         trackerHistoryRepository.save(shippingHistory);
 
+        // 알림 publish
+        publisher.publish(new TrackerNotificationEvent(SHIPPING_REGISTERED, user.getId(), groupId, null) );
     }
 
 
     //수령 완료
     @Transactional
-    public void registerReceive(Long groupId) {
+    public void registerReceive(Long groupId, User user) {
         // 1. 트래커 조회
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
@@ -186,12 +194,15 @@ public class TrackerService {
                 null, null, null
         );
         trackerHistoryRepository.save(receiveHistory);
+
+        // 알림 publish
+        publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, user.getId(), groupId, null) );
     }
 
 
     // 독서 시작
     @Transactional
-    public void registerReading(Long groupId) {
+    public void registerReading(Long groupId, User user) {
         // 1. 트래커 조회
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
@@ -208,16 +219,18 @@ public class TrackerService {
                 null, null, null
         );
         trackerHistoryRepository.save(readingHistory);
+
+        // 알림 publish
+        publisher.publish(new TrackerNotificationEvent(READING_STARTED, user.getId(), groupId, null) );
     }
 
     // 독서 완료
     @Transactional
-    public void registerReadingDone(Long groupId) {
+    public void registerReadingDone(Long groupId, User user) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         tracker.completeReading();
-
 
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,
@@ -225,11 +238,14 @@ public class TrackerService {
                 null, null, null
         );
         trackerHistoryRepository.save(doneHistory);
+
+        // 알림 publish
+        publisher.publish(new TrackerNotificationEvent(READING_FINISHED, user.getId(), groupId, null) );
     }
 
     // 기간 연장
     @Transactional
-    public void registerExtensionDays(Long groupId, int days) {
+    public void registerExtensionDays(Long groupId, int days, User user) {
         // 1. 트래커 조회
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
@@ -244,7 +260,8 @@ public class TrackerService {
                 null, null, null
         );
         trackerHistoryRepository.save(extensionHistory);
+
+        // 알림 publish
+        publisher.publish(new TrackerNotificationEvent(EXTEND_REQUESTED, user.getId(), groupId, tracker.getEndDate()) );
     }
-
-
 }

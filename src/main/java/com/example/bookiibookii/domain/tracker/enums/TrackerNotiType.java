@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.tracker.enums;
 
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 public enum TrackerNotiType {
 
@@ -50,8 +51,8 @@ public enum TrackerNotiType {
         this.bodyTemplate = bodyTemplate;
     }
 
-    public String renderBody(java.util.Map<String, String> vars) {
-        if (bodyTemplate == null) return null; // 또는 "" 원하는 정책
+    public String renderBody(Map<String, String> vars) {
+        if (bodyTemplate == null) return null;
         String result = bodyTemplate;
         for (var entry : vars.entrySet()) {
             result = result.replace("{" + entry.getKey() + "}", safe(entry.getValue()));

@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.tracker.enums;
 
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 public enum TrackerNotiType {
@@ -39,9 +38,6 @@ public enum TrackerNotiType {
             "교환독서가 모두 끝났어요",
             "{bookTitle}과 함께 한 시간, 어땠었나요? 잊어버리기 전 후기를 남겨주세요!"
     );
-
-    private static final DateTimeFormatter DUE_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
 
     public final String title;
     public final String bodyTemplate;

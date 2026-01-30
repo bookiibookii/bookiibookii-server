@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TrackerNotificationService {
 
     private static final java.time.format.DateTimeFormatter DUE_FORMAT =
-            java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
+            java.time.format.DateTimeFormatter.ofPattern("yy.MM.dd");
 
     private final NotificationRepository notificationRepository;
     private final NotificationFactory notificationFactory;
@@ -50,7 +50,7 @@ public class TrackerNotificationService {
         Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        String due = (event.returnDueAt() == null) ? "" : event.returnDueAt().format(DUE_FORMAT);
+        String due = (event.returnDueAt() == null) ? "" : event.returnDueAt().toLocalDate().format(DUE_FORMAT);
 
         var vars = java.util.Map.of(
                 "nickname", nickname,

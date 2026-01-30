@@ -63,7 +63,6 @@ public interface GroupControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_1", description = "존재하지 않는 그룹입니다.")
     })
-    @GetMapping("/{groupId}")
     ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
             @PathVariable(name = "groupId") Long groupId,
             @AuthenticationPrincipal User user
@@ -74,7 +73,6 @@ public interface GroupControllerDocs {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
     })
-    @GetMapping
     ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
             @AuthenticationPrincipal User user,
             @ModelAttribute GroupRequestDTO.FilterDTO filter
@@ -85,7 +83,6 @@ public interface GroupControllerDocs {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
     })
-    @GetMapping
     ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
             @AuthenticationPrincipal User user
     );
@@ -96,7 +93,6 @@ public interface GroupControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_4", description = "해당 그룹의 멤버가 아닙니다.")
     })
-    @GetMapping
     ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
             @AuthenticationPrincipal User user, @PathVariable(name = "groupId") Long groupId
     );

@@ -28,6 +28,7 @@ public enum GroupErrorCode implements BaseCode {
     GROUP_CANT_DELETE(HttpStatus.BAD_REQUEST, "GROUP400_10", "그룹을 삭제할 수 없습니다."),
     COMMENT_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_11", "그룹 소개글을 입력해야 합니다."),
     APPLY_CANT_CANCEL(HttpStatus.BAD_REQUEST, "GROUP400_12", "그룹신청을 취소할 수 없습니다."),
+    RECEIVER_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_13", "단일 알림은 수신자(receiverId)가 필요합니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),

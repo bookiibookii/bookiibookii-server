@@ -113,7 +113,7 @@ public class Tracker extends BaseEntity {
         // 배송 등록 시점 기록
         this.startDate = LocalDateTime.now();
         // 배송 도착 시점 최대로 저장
-        this.endDate = LocalDateTime.MAX;
+        this.endDate = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
 
         // 공통 업데이트: 현재 관리 주자를 다음 사람으로 변경
         this.currentMember = nextMember;

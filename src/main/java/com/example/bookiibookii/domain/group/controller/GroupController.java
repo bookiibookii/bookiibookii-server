@@ -75,6 +75,13 @@ public class GroupController implements GroupControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
 
     }
+    @GetMapping("/search")
+    public ApiResponse<GroupResponseDTO.SearchResultDTO> searchGroups(
+            @Valid @ModelAttribute GroupRequestDTO.SearchDTO request) {
 
+        // 서비스에서 Page 객체를 사용하여 totalCount가 포함된 결과를 가져옵니다.
+        GroupResponseDTO.SearchResultDTO result = groupService.searchGroups(request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
 
 }

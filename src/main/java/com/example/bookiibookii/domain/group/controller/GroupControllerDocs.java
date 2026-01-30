@@ -80,4 +80,12 @@ public interface GroupControllerDocs {
             @AuthenticationPrincipal User user,
             @ModelAttribute GroupRequestDTO.FilterDTO filter
     );
+
+    @Operation(summary = "그룹 통합 검색 API", description = "제목, 저자, 태그를 기반으로 그룹을 통합 검색합니다. 결과 총 건수를 반환합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "OK, 성공")
+    })
+    ApiResponse<GroupResponseDTO.SearchResultDTO> searchGroups(
+            @Valid @ModelAttribute GroupRequestDTO.SearchDTO request
+    );
 }

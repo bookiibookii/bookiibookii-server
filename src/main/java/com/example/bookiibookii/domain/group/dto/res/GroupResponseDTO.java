@@ -120,4 +120,11 @@ public class GroupResponseDTO {
             int currentPage,
             boolean hasNext
     ) {}
+
+    public record SearchResultDTO(
+            List<GroupSummaryDTO> groupList,
+            Long totalCount,
+            int currentPage,
+            boolean hasNext
+    ) {}
 }

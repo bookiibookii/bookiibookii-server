@@ -75,15 +75,6 @@ public interface GroupControllerDocs {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
     })
-    @Parameters({
-            @Parameter(name = "groupTypes", description = "그룹 타입 필터 (TOGETHER, RELAY)"),
-            @Parameter(name = "tradeTypes", description = "교환 방식 필터 (DIRECT, DELIVERY)"),
-            @Parameter(name = "regions", description = "지역 필터 리스트 (예: 서울, 마포구)"),
-            @Parameter(name = "categories", description = "도서 카테고리 필터 리스트 (Enum 명칭)"),
-            @Parameter(name = "sort", description = "정렬 기준 (RECOMMEND: 추천순, POPULAR: 인기순, LATEST: 최신순)"),
-            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)"),
-            @Parameter(name = "size", description = "한 페이지당 조회 개수")
-    })
     @GetMapping
     ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
             @AuthenticationPrincipal User user,

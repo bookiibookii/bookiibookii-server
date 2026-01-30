@@ -44,8 +44,7 @@ public class TrackerNotificationService {
 
         TrackerNotiType type = resolveNotiType(event.action(), myRole);
 
-        String nickname = userRepository.findNameById(event.actorId())
-                .orElse("");
+        String nickname = userRepository.findNameById(event.actorId());
 
         Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));

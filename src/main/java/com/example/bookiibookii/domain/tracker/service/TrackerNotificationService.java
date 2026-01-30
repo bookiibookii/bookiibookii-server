@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
+import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerAction;
 import com.example.bookiibookii.domain.tracker.enums.TrackerNotiType;
@@ -27,6 +28,8 @@ public class TrackerNotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationFactory notificationFactory;
+    private final NotiTemplateRenderer templateRenderer;
+
     private final MatchedMemberRepository matchedMemberRepository;
     private final UserRepository userRepository;
     private final GroupsRepository groupsRepository;
@@ -44,18 +47,21 @@ public class TrackerNotificationService {
 
         TrackerNotiType type = resolveNotiType(event.action(), myRole);
 
+        // 알림 필드
         String nickname = userRepository.findNameById(event.actorId());
 
         Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        String bookTitle = group.getBook().getTitle();
 
         String due = (event.returnDueAt() == null) ? "" : event.returnDueAt().toLocalDate().format(DUE_FORMAT);
 
         var vars = java.util.Map.of(
                 "nickname", nickname,
-                "bookTitle", safe(group.getBook().getTitle()),
+                "bookTitle", bookTitle,
                 "returnDueAt", due
         );
+        String bodyMessage = templateRenderer.render(type.getBodyTemplate(), vars);
 
         String payload = notificationFactory.toJson(java.util.Map.of("groupId", event.groupId()));
 
@@ -64,7 +70,7 @@ public class TrackerNotificationService {
                         receiverId,
                         NotificationType.SYSTEM,
                         type.title,
-                        type.renderBody(vars),
+                        bodyMessage,
                         payload
                 )
         );
@@ -84,9 +90,5 @@ public class TrackerNotificationService {
             case READING_FINISHED -> TrackerNotiType.READING_FINISHED;
             case EXTEND_REQUESTED -> TrackerNotiType.EXTEND_REQUESTED;
         };
-    }
-
-    private static String safe(String v) {
-        return v == null ? "" : v;
     }
 }

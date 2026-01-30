@@ -150,6 +150,11 @@ public class TrackerService {
 
         MatchedMember currentMember = tracker.getCurrentMember(); // 현재 책을 가지고 있는 사람
 
+        // 권한 검증
+        if(!currentMember.getUser().getId().equals(user.getId())){
+            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
+        }
+
         int totalCapacity = tracker.getGroup().getMaxCapacity();
         // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
         int nextOrder = (currentMember.getReadingOrder() % totalCapacity) + 1;
@@ -183,6 +188,13 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
+        MatchedMember currentMember = tracker.getCurrentMember();
+        // 권한 검증
+        if(!currentMember.getUser().getId().equals(user.getId())){
+            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
+        }
+
+
         // 2. [상태 변경] 엔티티 상태 업데이트 (SHIPPING -> RECEIVED/RETURNED)
         tracker.updateReceiveStatus();
 
@@ -190,7 +202,7 @@ public class TrackerService {
         // 수령 완료는 배송이 아니므로 senderId는 null, receiverId는 현재 주자로 기록합니다.
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
-                tracker.getCurrentMember().getMatchedMember(),
+                currentMember.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(receiveHistory);
@@ -207,6 +219,13 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
+        MatchedMember currentMember = tracker.getCurrentMember();
+        // 권한 검증
+        if(!currentMember.getUser().getId().equals(user.getId())){
+            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
+        }
+
+
         // 2. [상태 변경] 엔티티 상태 업데이트 (RECEIVED -> GUEST_READING 등)
         // 성진님이 짜놓으신 엔티티 내 startReading() 호출
         tracker.startReading();
@@ -215,7 +234,7 @@ public class TrackerService {
         // 독서 중에는 보내는 사람이 없으므로 senderId는 null, receiverId는 현재 읽는 사람(나)
         TrackerHistory readingHistory = tracker.createHistorySnapshot(
                 null,
-                tracker.getCurrentMember().getMatchedMember(),
+                currentMember.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(readingHistory);
@@ -230,11 +249,17 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
+        MatchedMember currentMember = tracker.getCurrentMember();
+        // 권한 검증
+        if(!currentMember.getUser().getId().equals(user.getId())){
+            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
+        }
+
         tracker.completeReading();
 
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,
-                tracker.getCurrentMember().getMatchedMember(),
+                currentMember.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(doneHistory);
@@ -249,6 +274,11 @@ public class TrackerService {
         // 1. 트래커 조회
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+        MatchedMember currentMember = tracker.getCurrentMember();
+        // 권한 검증
+        if(!currentMember.getUser().getId().equals(user.getId())){
+            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
+        }
 
         // 2. [상태/데이터 변경] 엔티티의 연장 로직 호출
         tracker.extensionDays(days);
@@ -256,7 +286,7 @@ public class TrackerService {
         // 3. [새로운 단계 기록] 연장된 정보가 반영된 새로운 히스토리 생성
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(
                 null,
-                tracker.getCurrentMember().getMatchedMember(),
+                currentMember.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(extensionHistory);

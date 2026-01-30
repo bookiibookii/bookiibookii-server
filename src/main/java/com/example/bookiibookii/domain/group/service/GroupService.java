@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
+import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.*;
@@ -38,6 +39,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DELETED;
 
 @Service
 @Transactional
@@ -289,6 +292,9 @@ public class GroupService {
 
         //soft delete 실행
         group.markAsDELETED();
+
+        // 알림 publish
+        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), null, group.getGroupId()));
 
         return GroupResponseDTO.DeleteResultDTO.builder()
                 .groupId(groupId)

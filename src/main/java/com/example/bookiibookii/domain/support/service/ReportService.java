@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.support.dto.req.ReportRequestDTO;
+import com.example.bookiibookii.domain.support.dto.res.ReportResponseDTO;
 import com.example.bookiibookii.domain.support.entity.Report;
 import com.example.bookiibookii.domain.support.repository.ReportRepository;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -14,6 +15,8 @@ import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -40,5 +43,23 @@ public class ReportService {
                 .build();
 
         reportRepository.save(newReport);
+    }
+
+    public List<ReportResponseDTO.ReportListDTO> GetReportList(Long userId) {
+        List<Report> reports = reportRepository.findAllByUserId(userId);
+
+        return reports.stream()
+                .map(report -> new ReportResponseDTO.ReportListDTO(
+                        report.getId(),
+                        report.getUser().getName(),
+                        report.getGroup().getBook().getTitle(),
+                        report.getCreatedAt(),
+                        report.getReportType(),
+                        report.getContent(),
+                        report.getReportStatus(),
+                        report.getAdminReply(),
+                        report.getResolvedAt()
+                ))
+                .toList();
     }
 }

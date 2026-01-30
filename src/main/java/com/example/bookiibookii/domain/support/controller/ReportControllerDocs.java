@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.support.controller;
 
 import com.example.bookiibookii.domain.support.dto.req.ReportRequestDTO;
+import com.example.bookiibookii.domain.support.dto.res.ReportResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,8 +10,9 @@ import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.util.List;
+
 public interface ReportControllerDocs {
-    // /api/report
     @Operation(
             summary = "신고하기 API",
             description = """
@@ -32,5 +34,14 @@ public interface ReportControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @RequestBody @Valid ReportRequestDTO.CreateReportDTO request
     );
+
+    @Operation(
+            summary = "신고내역 조회 API",
+            description = "유저의 신고내역과 관리자의 답변을 조회하는 API입니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "신고내역 조회 성공")
+    })
+    ApiResponse<List<ReportResponseDTO.ReportListDTO>> getReportList(@AuthenticationPrincipal(expression = "user") User user);
 
 }

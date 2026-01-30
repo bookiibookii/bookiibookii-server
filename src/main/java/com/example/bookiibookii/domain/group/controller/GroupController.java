@@ -6,15 +6,13 @@ import com.example.bookiibookii.domain.group.service.GroupService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
-import com.example.bookiibookii.global.auth.CustomUserDetails;
-import com.example.bookiibookii.global.auth.exception.AuthException;
-import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/groups")
@@ -76,5 +74,21 @@ public class GroupController implements GroupControllerDocs {
 
     }
 
+    // 신고할 그룹 조회 API
+    @GetMapping("/my")
+    public ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        List<GroupResponseDTO.GroupSummaryResponse> result = groupService.getGroupSummary(user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    // 신고할 그룹멤버 조회 API
+    @GetMapping("/{groupId}/members")
+    public ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable(name = "groupId") Long groupId) {
+        List<GroupResponseDTO.GroupMemberResponse> result = groupService.getGroupMembers(groupId, user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
 
 }

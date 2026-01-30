@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
-import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
@@ -23,7 +22,6 @@ import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEve
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
@@ -39,7 +37,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,7 +55,7 @@ public class GroupService {
     private final KeywordMatchService keywordMatchService;
     private final DomainEventPublisher publisher;
     private final GroupTagRepository groupTagRepository;
-
+    private final MatchedMemberQueryRepository matchedMemberQueryRepository;
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -469,7 +466,24 @@ public class GroupService {
         return parts[parts.length - 1]; // 마지막 단어(구 단위)만 추출
     }
 
+    // 신고할 그룹 조회
+    @Transactional(readOnly = true)
+    public List<GroupResponseDTO.GroupSummaryResponse> getGroupSummary(Long userId) {
+        return matchedMemberQueryRepository.findGroupDtosByStatus(userId, GroupStatus.MATCHED);
     }
+
+    // 신고할 그룹 멤버 조회
+    @Transactional(readOnly = true)
+    public List<GroupResponseDTO.GroupMemberResponse> getGroupMembers(Long groupId, Long userId) {
+        // 현재 유저가 해당 그룹에 속해있는지 검증
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
+        }
+
+        // 현재 user를 제외한 나머지 멤버 조회
+        return matchedMemberQueryRepository.findMemberDtosByGroupId(groupId, userId);
+    }
+}
 
 
 

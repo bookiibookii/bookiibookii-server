@@ -7,6 +7,7 @@ import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -75,6 +76,10 @@ public class Groups extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupTag> groupTags = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
+    private List<UserBook> userBooks = new ArrayList<>();
 
     public void updateStatus(GroupStatus status) {
         this.groupStatus = status;

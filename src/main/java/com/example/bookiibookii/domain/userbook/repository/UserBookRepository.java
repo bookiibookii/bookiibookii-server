@@ -17,9 +17,9 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     Optional<UserBook> findByIdAndUser_Id(Long id, Long userId);
 
     @Query("""
-        SELECT b.title
+        SELECT g.book.title
         FROM UserBook ub
-        JOIN Book b ON b.id = ub.bookId
+        JOIN ub.group g
         WHERE ub.user.id = :userId
         ORDER BY ub.updatedAt DESC
     """)

@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.userbook.entity;
 
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -19,16 +19,13 @@ public class UserBook extends BaseEntity {
     @Column(name = "user_book_id")
     private Long id;
 
-    @Column(name = "book_id", nullable = false)
-    private Long bookId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tracker_id", nullable = false)
-    private Tracker tracker;
+    @JoinColumn(name = "group_id", nullable = false)
+    private Groups group;
 
     @Column(name = "rating")
     private Double rating;

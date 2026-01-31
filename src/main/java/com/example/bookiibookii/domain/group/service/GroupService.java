@@ -351,7 +351,7 @@ public class GroupService {
                 .hostNickname(group.getHost().getName())
                 .hostProfileImage(group.getHost().getImageUrl())
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
-                //.tags(new ArrayList<>())
+                .groupTags(group.getGroupTags())
                 .customTag(group.getCustomTag())
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)

@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.dto.res;
 
+import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -67,10 +68,7 @@ public class GroupResponseDTO {
         // 4. 호스트 정보 및 태그
         private String hostNickname;
         private String hostProfileImage;
-
-        // TODO: 그룹 태그 리스트 (현재 GroupTag 엔티티와 매핑 필요)
-        // Groups 엔티티의 List<GroupTag>를 순회하며 Tag의 name들을 추출해 담아야 합니다.
-        //private List<String> tags;
+        private List<GroupTag> groupTags;
         private String customTag;
 
         // 5. 그룹 소개 및 참여 멤버 슬롯

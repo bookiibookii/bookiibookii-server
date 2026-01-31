@@ -1,13 +1,7 @@
 package com.example.bookiibookii.domain.group.service;
 
-import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupNotiType;
-import com.example.bookiibookii.domain.group.exception.GroupException;
-import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
-import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
-import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
@@ -31,8 +25,6 @@ public class GroupNotificationService {
     private final NotificationFactory notificationFactory;
     private final NotiTemplateRenderer templateRenderer;
 
-    private final MatchedMemberRepository matchedMemberRepository;
-    private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final GroupsRepository groupsRepository;
 
@@ -44,9 +36,7 @@ public class GroupNotificationService {
         String actorNickname = userRepository.findNameById(event.actorId())
                 .orElseThrow(()-> new UserException(UserErrorCode.NOT_FOUND));
 
-        Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())
-                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-        String bookTitle = group.getBook().getTitle();
+        String bookTitle = event.bookTitle();
 
         var vars = java.util.Map.of(
                 "nickname", actorNickname,
@@ -56,10 +46,14 @@ public class GroupNotificationService {
 
         String payload = notificationFactory.toJson(java.util.Map.of("groupId", event.groupId()));
 
-        // 단일/다수 수신자 결정
-        List<Long> receiverIds = resolveReceivers(event, group);
+        // 단일 || 다수 수신자
+        List<Long> receivers = (event.receiverIds() != null && !event.receiverIds().isEmpty())
+                ? event.receiverIds()
+                : (event.receiverId() != null ? List.of(event.receiverId()) : List.of());
 
-        for (Long receiverId : receiverIds) {
+        if (receivers.isEmpty()) return;
+
+        for (Long receiverId : receivers) {
             notificationRepository.save(
                     notificationFactory.create(
                             receiverId,
@@ -70,34 +64,5 @@ public class GroupNotificationService {
                     )
             );
         }
-    }
-
-    private List<Long> resolveReceivers(GroupNotificationEvent event, Groups group) {
-        // 단일 수신자 - 그대로 반환
-        if (event.receiverId() != null) {
-            return List.of(event.receiverId());
-        }
-
-        // receiverId == null 인 경우는 다수 수신자인 경우만 허용
-        Long groupId = event.groupId();
-        Long hostId = group.getHost().getId();
-
-        if (event.type() == GroupNotiType.MATCH_AUTO_REJECTED) {
-            List<Long> applicantIds = applicationRepository.findApplicantUserIdsByGroupIdAndStatus(groupId, ApplicationStatus.PENDING);
-            List<Long> matchedIds = matchedMemberRepository.findMemberUserIdsByGroupId(groupId);
-
-            return applicantIds.stream()
-                    .filter(id -> !id.equals(hostId))
-                    .filter(id -> !matchedIds.contains(id))
-                    .toList();
-        }
-
-        if (event.type() == GroupNotiType.GROUP_DELETED) {
-            return matchedMemberRepository.findMemberUserIdsByGroupId(groupId).stream()
-                    .filter(id -> !id.equals(hostId))
-                    .toList();
-        }
-
-        throw new GroupException(GroupErrorCode.RECEIVER_REQUIRED);
     }
 }

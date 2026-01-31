@@ -7,7 +7,6 @@ import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -294,11 +293,16 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.GROUP_CANT_DELETE);
         }
 
-        //soft delete 실행
-        group.markAsDELETED();
+        List<Long> receiverIds = applicationRepository.findApplicantUserIdsByGroupId(groupId).stream()
+                .filter(id -> !id.equals(host.getId()))
+                .distinct()
+                .toList();
 
         // 알림 publish
-        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), null, group.getGroupId()));
+        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), group.getBook().getTitle(), null, receiverIds, group.getGroupId()));
+
+        //soft delete 실행
+        group.markAsDELETED();
 
         return GroupResponseDTO.DeleteResultDTO.builder()
                 .groupId(groupId)

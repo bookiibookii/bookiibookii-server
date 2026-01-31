@@ -94,6 +94,10 @@ public class ApplicationService {
             throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
+        // 알림 이벤트를 위한 book fetch join group 조회 추가
+        Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getGroupId())
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
         // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
         if (status == ApplicationStatus.ACCEPTED) {
             // [핵심] 방장을 포함한 현재 확정 인원수 계산 (MatchedMember에서 조회)
@@ -117,7 +121,7 @@ public class ApplicationService {
             application.updateStatus(ApplicationStatus.ACCEPTED);
 
             // 알림 publish
-            publisher.publish(new GroupNotificationEvent(MATCH_SUCCEEDED, userId, newMember.getUser().getId(), group.getGroupId()));
+            publisher.publish(new GroupNotificationEvent(MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(), newMember.getUser().getId(), null, group.getGroupId()));
 
             // 정원이 다 찼을 경우 그룹 상태 변경 + 나머지 거절
             if (currentTotalCount + 1 >= group.getMaxCapacity()) {
@@ -126,18 +130,24 @@ public class ApplicationService {
                 List<Application> pendingApplications =
                         applicationRepository.findAllPendingByGroupId(group.getGroupId());
 
+                List<Long> autoRejectedReceiverIds = pendingApplications.stream()
+                        .map(app -> app.getGuest().getId())
+                        .filter(id -> !id.equals(userId))   // host 제외
+                        .distinct()
+                        .toList();
+
                 for (Application pendingApp : pendingApplications) {
                     pendingApp.updateStatus(ApplicationStatus.REJECTED);
                 }
                 // 알림 publish
-                publisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, userId, null, group.getGroupId()));
+                publisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(), null, autoRejectedReceiverIds, group.getGroupId()));
             }
 
         } else {
             application.updateStatus(ApplicationStatus.REJECTED);
 
             // 알림 publish
-            publisher.publish(new GroupNotificationEvent(MATCH_REJECTED, userId, application.getGuest().getId(), group.getGroupId()));
+            publisher.publish(new GroupNotificationEvent(MATCH_REJECTED, userId, thisGroup.getBook().getTitle(), application.getGuest().getId(), null, group.getGroupId()));
         }
 
         return ApplicationResponseDTO.UpdateResultDTO.builder()
@@ -152,7 +162,7 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
         //그룹 존재여부 확인
-        Groups group = groupsRepository.findById(groupId)
+        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         //그룹 상태 확인(RECRUTING)
@@ -190,7 +200,7 @@ public class ApplicationService {
         }
 
         // 알림 publish
-        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getHost().getId(), groupId) );
+        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getBook().getTitle(), group.getHost().getId(), null, groupId) );
 
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())

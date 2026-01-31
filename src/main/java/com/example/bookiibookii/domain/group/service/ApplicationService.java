@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
@@ -20,6 +21,7 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,7 @@ public class ApplicationService {
     private final GroupsRepository groupsRepository;
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -116,6 +119,14 @@ public class ApplicationService {
                 // 3. 정원이 다 찼을 경우 (RELAY는 2명, TOGETHER는 설정값) 그룹 상태 변경 및 나머지 거절
                 if (currentTotalCount + 1 >= group.getMaxCapacity()) {
                     group.updateStatus(GroupStatus.MATCHED);
+
+                    //매칭 이벤트 발행
+                    eventPublisher.publishEvent(new GroupMatchedEvent(
+                            group.getGroupId(),
+                            group.getHost().getId(),
+                            group.getStartDate(),
+                            group.getMaxCapacity()
+                    ));
 
                     // 나머지 대기 인원 일괄 거절
                     List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
@@ -194,27 +205,28 @@ public class ApplicationService {
         Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 참여 정보 확인
-        MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
-                .orElseThrow(() -> new GroupException(GroupErrorCode.MEMBER_NOT_FOUND));
-
-        //권한 체크 (Host)는 취소 불가
-        if(member.getRole() == RoleStatus.HOST){
-            throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
-        }
-
-
-        //그룹이 모집중(RECRUITING) 일때만 취소가능
-        if(group.getGroupStatus() != GroupStatus.RECRUITING){
+        // 2. 이미 모집 완료(MATCHED)된 경우 취소 불가 (GROUP400_12)
+        if (group.getGroupStatus() == GroupStatus.MATCHED) {
             throw new GroupException(GroupErrorCode.APPLY_CANT_CANCEL);
         }
 
-        //참여신청 목록에서 제외, 참여 내역 삭제
-        applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
-                        .ifPresent(applicationRepository::delete);
-        matchedMemberRepository.delete(member);
+        // 3. Application을 조회
+        Application application = applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
-        //취소 후 그룹 정원 다시 계산
+        // 4. 만약 이미 승인까지 난 멤버라면 MatchedMember에서도 데이터 삭제
+        matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .ifPresent(member -> {
+                    if (member.getRole() == RoleStatus.HOST) {
+                        throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
+                    }
+                    matchedMemberRepository.delete(member);
+                });
+
+        // 5. 신청 내역(Application) 삭제
+        applicationRepository.delete(application);
+
+        // 6. 인원 재계산 및 필요 시 모집 중(RECRUITING)으로 상태 복구
         long currentCount = matchedMemberRepository.countByGroup(group);
         if (currentCount < group.getMaxCapacity()) {
             group.updateStatus(GroupStatus.RECRUITING);

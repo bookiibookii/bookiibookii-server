@@ -48,7 +48,7 @@ public class GroupController implements GroupControllerDocs {
     @DeleteMapping("/{groupId}")
     public ApiResponse<GroupResponseDTO.DeleteResultDTO> deleteGroup(
             @PathVariable(name = "groupId") Long groupId,
-            @AuthenticationPrincipal User host) {
+            @AuthenticationPrincipal (expression = "user") User host) {
 
         // 실제 데이터를 지우지 않고 groupStatus를 DELETED로 변경합니다.
         GroupResponseDTO.DeleteResultDTO result = groupService.deleteGroup(groupId, host);

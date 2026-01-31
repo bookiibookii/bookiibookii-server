@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.support.entity;
 
-import com.example.bookiibookii.domain.support.enums.ReportStatus;
+import com.example.bookiibookii.domain.support.enums.SupportStatus;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -33,7 +33,7 @@ public class Inquiry extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private ReportStatus reportStatus = ReportStatus.PENDING;
+    private SupportStatus SupportStatus = SupportStatus.PENDING;
 
     @Column(name = "admin_reply", length = 255)
     private String adminReply;

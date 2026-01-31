@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.support.dto.res;
 
-import com.example.bookiibookii.domain.support.enums.ReportStatus;
+import com.example.bookiibookii.domain.support.enums.SupportStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
@@ -13,7 +13,7 @@ public class InquiryResponseDTO {
             LocalDateTime createdAt,
             String title,
             String content,
-            ReportStatus reportStatus,
+            SupportStatus SupportStatus,
             String adminReply,
             @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDateTime resolvedAt

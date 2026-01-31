@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.support.entity;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.support.enums.ReportStatus;
+import com.example.bookiibookii.domain.support.enums.SupportStatus;
 import com.example.bookiibookii.domain.support.enums.ReportType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -43,7 +43,7 @@ public class Report extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private ReportStatus reportStatus = ReportStatus.PENDING;
+    private SupportStatus SupportStatus = SupportStatus.PENDING;
 
     @Column(name = "admin_reply", length = 1000)
     private String adminReply;

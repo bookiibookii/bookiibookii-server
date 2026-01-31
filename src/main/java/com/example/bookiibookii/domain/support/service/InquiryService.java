@@ -39,7 +39,7 @@ public class InquiryService {
                         inquiry.getCreatedAt(),
                         inquiry.getTitle(),
                         inquiry.getContent(),
-                        inquiry.getReportStatus(),
+                        inquiry.getSupportStatus(),
                         inquiry.getAdminReply(),
                         inquiry.getResolvedAt()
                 ))

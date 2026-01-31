@@ -319,6 +319,9 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
+          if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
+                 throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);}
+
         TrackerStatus currentStatus = tracker.getTrackerStatus();
 
         // 2. 현재 단계에 등록된 약속이 있는지 확인

@@ -9,7 +9,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 
-@Table(name = "meeting")
+@Table(
+        name = "meeting",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_group_status",
+                        columnNames = {"group_id", "tracker_status"}
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

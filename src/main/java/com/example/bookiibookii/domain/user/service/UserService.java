@@ -130,6 +130,7 @@ public class UserService {
         );
 
         return UserResponseDTO.MypageDTO.builder()
+                // TODO : 프로필 이미지 조회
                 .userId(userId)
                 .nickname(user.getName())
                 .manner(user.getManner())

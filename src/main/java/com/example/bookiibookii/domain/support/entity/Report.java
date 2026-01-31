@@ -42,7 +42,8 @@ public class Report extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SupportStatus SupportStatus = com.example.bookiibookii.domain.support.enums.SupportStatus.PENDING;
+    @Builder.Default
+    private SupportStatus supportStatus = SupportStatus.PENDING;
 
     @Column(name = "admin_reply", length = 1000)
     private String adminReply;

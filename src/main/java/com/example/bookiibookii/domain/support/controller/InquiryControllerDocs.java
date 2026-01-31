@@ -18,7 +18,7 @@ public interface InquiryControllerDocs {
             description = "문의를 등록하는 API입니다."
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "문의 등록 성공")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "문의 등록 성공")
     })
     ApiResponse<Void> createInquiry(
             @AuthenticationPrincipal(expression = "user") User user,

@@ -16,7 +16,7 @@ public class ReportResponseDTO {
             LocalDateTime createdAt, // 신고 날짜
             ReportType reportType,
             String content,
-            SupportStatus SupportStatus,
+            SupportStatus supportStatus,
             String adminReply,
             @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDateTime resolvedAt

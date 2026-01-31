@@ -13,7 +13,7 @@ public class InquiryResponseDTO {
             LocalDateTime createdAt,
             String title,
             String content,
-            SupportStatus SupportStatus,
+            SupportStatus supportStatus,
             String adminReply,
             @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDateTime resolvedAt

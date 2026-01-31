@@ -20,9 +20,9 @@ public interface UserControllerDocs {
     @Operation(
             summary = "사용자 이미지 업로드용 Presigned URL 발급",
             description = """
-            온보딩 또는 프로필 이미지 업로드를 위한 Presigned PUT URL을 발급합니다.
+            온보딩 또는 프로필 이미지 업로드를 위한 Presigned URL을 발급합니다.
             - s3Key 형식: image/users/{userId}/{uuid}
-            - 발급된 URL로 PUT 요청 후, 온보딩 API 등에서 s3Key를 전달해 저장합니다.
+            - 발급된 presignedPutUrl로 PUT 요청 후, 온보딩 API 등에서 s3Key를 전달해 저장합니다.
             """
     )
     @ApiResponses({

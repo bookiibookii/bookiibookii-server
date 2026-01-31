@@ -206,7 +206,9 @@ public class ApplicationService {
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 2. 이미 모집 완료(MATCHED)된 경우 취소 불가 (GROUP400_12)
-        if (group.getGroupStatus() == GroupStatus.MATCHED) {
+        if (group.getGroupStatus() == GroupStatus.MATCHED ||
+                group.getGroupStatus() == GroupStatus.COMPLETED ||
+                group.getGroupStatus() == GroupStatus.DELETED) {
             throw new GroupException(GroupErrorCode.APPLY_CANT_CANCEL);
         }
 

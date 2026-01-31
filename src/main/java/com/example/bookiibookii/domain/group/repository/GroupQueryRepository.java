@@ -143,6 +143,7 @@ public class GroupQueryRepository {
         Long totalCount = queryFactory
                 .select(groups.countDistinct())
                 .from(groups)
+                .join(groups.book, book)
                 .leftJoin(groups.groupTags, groupTag)
                 .leftJoin(groupTag.tag, tag)
                 .where(searchwordContains(searchword), groups.groupStatus.eq(GroupStatus.RECRUITING))
@@ -162,9 +163,13 @@ public class GroupQueryRepository {
     private OrderSpecifier<?> getSearchSortOrder(GroupSortType sort) {
         GroupSortType sortType = (sort != null) ? sort : GroupSortType.LATEST;
 
-        if (GroupSortType.POPULAR == sortType) {
-            return groups.applications.size().desc(); // 인기순: 신청자 많은 순
-        }
-        return groups.createdAt.desc(); // 기본값: 최신순
+        return switch (sortType) {
+            case POPULAR -> groups.applications.size().desc(); // 인기순
+
+            // RECOMMEND가 들어와도 의도적으로 LATEST(최신순)를 반환(검색결과에는 추천순 필터 없음)
+            case LATEST, RECOMMEND -> groups.createdAt.desc();
+
+            default -> groups.createdAt.desc();
+        };
     }
 }

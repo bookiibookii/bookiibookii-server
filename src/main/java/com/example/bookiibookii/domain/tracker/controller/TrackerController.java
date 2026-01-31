@@ -56,6 +56,7 @@ import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
 import com.example.bookiibookii.domain.tracker.service.TrackerService;
 import com.example.bookiibookii.domain.user.entity.User;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -156,7 +157,8 @@ public class TrackerController implements TrackerApi {
     @Override
     @GetMapping("/{groupId}/tracker/meeting")
     public ResponseEntity<TrackerMeetingResponse> getMeetingDetail(
-            @PathVariable Long groupId
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
     ) {
         return ResponseEntity.ok(trackerService.getMeetingDetailByGroupId(groupId));
     }

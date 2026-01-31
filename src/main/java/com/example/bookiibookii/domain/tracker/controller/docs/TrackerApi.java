@@ -141,7 +141,8 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "404", description = "약속 정보가 존재하지 않음", content = @Content)
     })
     ResponseEntity<TrackerMeetingResponse> getMeetingDetail(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
     @Operation(
             summary = "직접 교환 약속 등록/수정",

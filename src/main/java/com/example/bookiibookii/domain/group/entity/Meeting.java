@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.entity;
 
+import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,7 +21,7 @@ public class Meeting extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long meetingId;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
 
@@ -29,6 +30,10 @@ public class Meeting extends BaseEntity {
 
     @Column(name = "meeting_place", nullable = false)
     private String meetingPlace;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tracker_status", nullable = false)
+    private TrackerStatus trackerStatus;
 
     // 트래커 도메인에서 약속을 확정할 때 사용할 업데이트 메서드
     public void setMeetingDetails(String place, LocalDateTime time) {

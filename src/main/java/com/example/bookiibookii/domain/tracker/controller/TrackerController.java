@@ -48,10 +48,12 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.controller.docs.TrackerApi;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
 import com.example.bookiibookii.domain.tracker.service.TrackerService;
 import com.example.bookiibookii.domain.user.entity.User;
 import jakarta.validation.Valid;
@@ -150,4 +152,28 @@ public class TrackerController implements TrackerApi {
         // 독서 완료 후에는 상태값만 내려주거나 상세 정보를 내려주어도 무방함
         return ResponseEntity.ok(trackerService.getTrackerDetailByGroupId(groupId));
     }
+
+    @Override
+    @GetMapping("/{groupId}/tracker/meeting")
+    public ResponseEntity<TrackerMeetingResponse> getMeetingDetail(
+            @PathVariable Long groupId
+    ) {
+        return ResponseEntity.ok(trackerService.getMeetingDetailByGroupId(groupId));
+    }
+
+    @Override
+    @PatchMapping("/{groupId}/tracker/makeMeeting")
+    public ResponseEntity<TrackerDetailResponse> updateMeeting(
+            @PathVariable Long groupId,
+            @RequestBody @Valid TrackerMeetingRequest request,
+            @AuthenticationPrincipal User user // 로그인 유저
+    ) {
+        trackerService.updateMeeting(groupId, request, user);
+        return ResponseEntity.ok(trackerService.getTrackerDetailByGroupId(groupId));
+    }
+
+
+
+
+
 }

@@ -1,13 +1,18 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
@@ -37,6 +42,7 @@ public class TrackerService {
     private final TrackerRepository trackerRepository;
     private final TrackerHistoryRepository trackerHistoryRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final MeetingRepository meetingRepository;
     private final TrackerConverter trackerConverter;
     private final DomainEventPublisher publisher;
 
@@ -293,5 +299,52 @@ public class TrackerService {
 
         // 알림 publish
         publisher.publish(new TrackerNotificationEvent(EXTEND_REQUESTED, user.getId(), groupId, tracker.getEndDate()) );
+    }
+
+    // 약속 상세 조회 (현재 트래커 상태에 맞는 약속 조회)
+    public TrackerMeetingResponse getMeetingDetailByGroupId(Long groupId) {
+        // 1. 현재 트래커 조회 (상태 확인을 위함)
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        // 2. 현재 트래커 상태에 매칭되는 약속 정보를 리포지토리에서 조회
+        // 데이터가 없으면 모든 필드가 null인 DTO 반환
+        return meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, tracker.getTrackerStatus())
+                .map(meeting -> new TrackerMeetingResponse(
+                        meeting.getMeetingTime(),
+                        meeting.getMeetingPlace()
+                ))
+                .orElseGet(() -> new TrackerMeetingResponse(null, null));
+    }
+
+    @Transactional
+    public void updateMeeting(Long groupId, TrackerMeetingRequest request, User user) {
+
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        MatchedMember bookOwner = tracker.getBookOwner();
+        if (!bookOwner.getUser().getId().equals(user.getId())) {
+            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
+        }
+
+        // 2. 전달 방식 검증 (직접 교환만 가능)
+        if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
+        }
+
+        // 3. 현재 트래커 상태를 키로 사용하여 Meeting 조회 또는 생성
+        TrackerStatus currentStatus = tracker.getTrackerStatus();
+
+        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, currentStatus)
+                .orElseGet(() -> Meeting.builder()
+                        .group(tracker.getGroup())
+                        .trackerStatus(currentStatus)
+                        .meetingPlace("") // @NotBlank 대응용 기본값
+                        .build());
+
+        // 4. 데이터 업데이트 및 저장
+        meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
+        meetingRepository.save(meeting);
     }
 }

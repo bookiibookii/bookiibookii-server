@@ -40,7 +40,7 @@ public class Tracker extends BaseEntity {
 
     @Column(nullable = false)
     private LocalDateTime startDate;
-
+    @Column(nullable = false)
     private LocalDateTime endDate;
 
     @Column(nullable = false)
@@ -51,7 +51,7 @@ public class Tracker extends BaseEntity {
     // 현재 주자를 지목하는 1:1 관계
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "matchedmember_id", nullable = false)
-    private MatchedMember bookOwner;
+    private MatchedMember currentMember;
 
     // 히스토리와의 1:N 관계
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
@@ -87,7 +87,7 @@ public class Tracker extends BaseEntity {
                 .build();
     }
 
-    public void updateShippingStatus(MatchedMember bookOwner, MatchedMember nextOwner) {
+    public void updateShippingStatus(MatchedMember currentMember, MatchedMember nextMember) {
 
         if (this.trackerStatus != TrackerStatus.HOST_DONE &&
                 this.trackerStatus != TrackerStatus.GUEST_DONE &&
@@ -96,13 +96,13 @@ public class Tracker extends BaseEntity {
         }
 
         // 1. 방장이 게스트에게 보내는 경우 (HOST -> GUEST)
-        if (bookOwner.getRole() == RoleStatus.HOST) {
+        if (currentMember.getRole() == RoleStatus.HOST) {
             this.trackerStatus = TrackerStatus.SHIPPING_TO_GUEST;
             //알람
         }
         // 2. 마지막 게스트가 호스트에게 보내는 경우 (GUEST -> HOST)
         // 다음 주자의 역할이 HOST라면 마지막 게스트가 보낸 것으로 판단
-        else if (nextOwner.getRole() == RoleStatus.HOST) {
+        else if (nextMember.getRole() == RoleStatus.HOST) {
             this.trackerStatus = TrackerStatus.SHIPPING_TO_HOST;
         }
         // 3. 게스트가 게스트에게 보내는 경우 (GUEST -> GUEST)
@@ -110,13 +110,8 @@ public class Tracker extends BaseEntity {
             this.trackerStatus = TrackerStatus.SHIPPING;
         }
 
-        // 배송 등록 시점 기록
-        this.startDate = LocalDateTime.now();
-
-        this.endDate = null;
-
         // 공통 업데이트: 현재 관리 주자를 다음 사람으로 변경
-        this.bookOwner = nextOwner;
+        this.currentMember = nextMember;
     }
 
     public void updateReceiveStatus() {
@@ -127,9 +122,6 @@ public class Tracker extends BaseEntity {
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
-        // 수령 시점 기록
-        this.endDate = LocalDateTime.now();
 
         // 기간 연장 횟수, 일수 초기화.
         this.extensionDays = 0;
@@ -163,9 +155,6 @@ public class Tracker extends BaseEntity {
         }  else{
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
-        // 실제 독서 종료 시점 기록
-        this.endDate = LocalDateTime.now();
     }
 
     public void extensionDays(int days) {

@@ -50,8 +50,6 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
 """)
     List<WriterRow> findWriterRowsByGroupId(@Param("groupId") Long groupId);
 
-    boolean existsByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
-
     interface WriterRow {
         Long getUserId();
         RoleStatus getRoleStatus();

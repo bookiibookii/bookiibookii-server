@@ -13,6 +13,8 @@ import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerAction;
 import com.example.bookiibookii.domain.tracker.enums.TrackerNotiType;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,7 +50,8 @@ public class TrackerNotificationService {
         TrackerNotiType type = resolveNotiType(event.action(), myRole);
 
         // 알림 필드
-        String nickname = userRepository.findNameById(event.actorId());
+        String nickname = userRepository.findNameById(event.actorId())
+                .orElseThrow(()->new UserException(UserErrorCode.NOT_FOUND));
 
         Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));

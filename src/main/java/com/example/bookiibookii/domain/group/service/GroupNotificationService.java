@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupNotiType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
@@ -12,6 +13,8 @@ import com.example.bookiibookii.domain.notification.repository.NotificationRepos
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
+import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,7 +41,8 @@ public class GroupNotificationService {
         GroupNotiType type = event.type();
 
         // 알림 필드 공통 조회 : actor 닉네임, 그룹(책 포함)
-        String actorNickname = userRepository.findNameById(event.actorId());
+        String actorNickname = userRepository.findNameById(event.actorId())
+                .orElseThrow(()-> new UserException(UserErrorCode.NOT_FOUND));
 
         Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
@@ -79,7 +83,7 @@ public class GroupNotificationService {
         Long hostId = group.getHost().getId();
 
         if (event.type() == GroupNotiType.MATCH_AUTO_REJECTED) {
-            List<Long> applicantIds = applicationRepository.findApplicantUserIdsByGroupId(groupId);
+            List<Long> applicantIds = applicationRepository.findApplicantUserIdsByGroupIdAndStatus(groupId, ApplicationStatus.PENDING);
             List<Long> matchedIds = matchedMemberRepository.findMemberUserIdsByGroupId(groupId);
 
             return applicantIds.stream()

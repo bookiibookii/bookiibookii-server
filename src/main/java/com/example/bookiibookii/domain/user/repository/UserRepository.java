@@ -91,5 +91,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findOneRandomHost(@Param("userId") Long userId, @Param("status") String status);
 
     @Query("select u.name from User u where u.id = :userId")
-    String findNameById(@Param("userId") Long userId);
+    Optional<String> findNameById(@Param("userId") Long userId);
 }

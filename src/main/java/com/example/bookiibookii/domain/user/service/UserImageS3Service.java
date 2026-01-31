@@ -49,7 +49,7 @@ public class UserImageS3Service {
 
         return PresignedUrlResponseDTO.builder()
                 .s3Key(s3Key)
-                .presignedUrl(presignedRequest.url().toString())
+                .presignedPutUrl(presignedRequest.url().toString())
                 .build();
     }
 

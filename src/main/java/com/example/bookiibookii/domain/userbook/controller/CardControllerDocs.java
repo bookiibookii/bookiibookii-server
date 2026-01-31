@@ -26,7 +26,7 @@ public interface CardControllerDocs {
             카드 생성 전에 이미지를 업로드하기 위한 presigned URL을 발급합니다.
             
             - UUID 기반 s3Key를 생성하여 presigned URL을 발급합니다.
-            - 발급된 presigned URL을 사용하여 클라이언트에서 직접 S3에 이미지를 업로드할 수 있습니다.
+            - 발급된 presignedPutUrl로 PUT 요청 시 클라이언트에서 직접 S3에 이미지를 업로드할 수 있습니다.
             - URL은 10분간 유효합니다.
             - 업로드 완료 후 받은 s3Key를 카드 생성 API에 전달해야 합니다.
             - s3Key 형식: image/cards/{uuid}
@@ -90,7 +90,7 @@ public interface CardControllerDocs {
             
             - 인증된 사용자가 소유한 userBook만 조회 가능합니다.
             - 생성일 기준 오름차순으로 정렬된 카드 목록을 반환합니다.
-            - 각 카드에는 카드 이미지 presigned GET URL, 카드 생성일(createdAt)이 포함됩니다.
+            - 각 카드에는 카드 이미지(cardImageId, s3Key, presignedGetUrl), 카드 생성일(createdAt)이 포함됩니다.
             - 응답에 userbook에 해당하는 책 제목(title)이 포함됩니다.
             """
     )

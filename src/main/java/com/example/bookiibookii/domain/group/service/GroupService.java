@@ -25,6 +25,7 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -56,6 +57,9 @@ public class GroupService {
     private final DomainEventPublisher publisher;
     private final GroupTagRepository groupTagRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
+    private final UserImageS3Service userImageS3Service;
+
+    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -337,7 +341,7 @@ public class GroupService {
                 .waitingCount(waitingCount)
                 .isHot(isHot)
                 .hostNickname(group.getHost().getName())
-                .hostProfileImage(group.getHost().getImageUrl())
+                .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 //.tags(new ArrayList<>())
                 .participantSlots(participantSlots)
@@ -351,7 +355,7 @@ public class GroupService {
         for (MatchedMember mm : matchedMembers) {
             slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
                     .nickname(mm.getUser().getName())
-                    //.profileImage(mm.getUserId().getImageUrl())
+                    .profileImage(userProfileImageUrl(mm.getUser()))
                     .role(mm.getRole().name())
                     .isMe(mm.getUser().getId().equals(userId))
                     .build());
@@ -365,6 +369,13 @@ public class GroupService {
                     .build());
         }
         return slots;
+    }
+
+    private String userProfileImageUrl(User user) {
+        if (user == null || user.getUserImage() == null) {
+            return null;
+        }
+        return userImageS3Service.generatePresignedGetUrl(user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
     }
 
     private String determineButtonStatus(Groups group, Long userId, List<MatchedMember> matchedMembers) {

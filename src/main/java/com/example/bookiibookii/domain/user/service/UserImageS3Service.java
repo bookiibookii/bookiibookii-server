@@ -71,6 +71,9 @@ public class UserImageS3Service {
         } catch (NoSuchKeyException e) {
             return false;
         } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
             log.error("S3 접근 오류 (s3Key: {}): statusCode={}, errorCode={}", s3Key, e.statusCode(), e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "N/A", e);
             throw new UserImageException(UserImageErrorCode.S3_ACCESS_ERROR);
         } catch (SdkClientException e) {

@@ -97,6 +97,16 @@ public class UserService {
         if (!userImageValidationService.isValidS3Key(s3Key)) {
             throw new UserImageException(UserImageErrorCode.INVALID_S3_KEY_FORMAT);
         }
+        // s3Key 형식: image/users/{userId}/{uuid} — 소유자 검증
+        long keyUserId;
+        try {
+            keyUserId = Long.parseLong(s3Key.split("/")[2]);
+        } catch (NumberFormatException e) {
+            throw new UserImageException(UserImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+        if (keyUserId != user.getId()) {
+            throw new UserImageException(UserImageErrorCode.S3_KEY_USER_MISMATCH);
+        }
         if (!userImageS3Service.doesImageExist(s3Key)) {
             throw new UserImageException(UserImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
         }

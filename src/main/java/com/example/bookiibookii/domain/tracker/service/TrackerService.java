@@ -148,28 +148,28 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
-        MatchedMember currentMember = tracker.getCurrentMember(); // 현재 책을 가지고 있는 사람
+        MatchedMember bookOwner = tracker.getBookOwner(); // 현재 책을 가지고 있는 사람
 
         // 권한 검증
-        if(!currentMember.getUser().getId().equals(user.getId())){
+        if(!bookOwner.getUser().getId().equals(user.getId())){
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
         int totalCapacity = tracker.getGroup().getMaxCapacity();
         // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
-        int nextOrder = (currentMember.getReadingOrder() % totalCapacity) + 1;
+        int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
 
         // 다음 주자(receiver) 조회
-        MatchedMember nextMember = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
+        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
 
         // 엔티티에 판단 위임 (위에 작성한 메서드 호출)
-        tracker.updateShippingStatus(currentMember, nextMember);
+        tracker.updateShippingStatus(bookOwner, nextOwner);
 
         // 트래커 히스토리에 write.
         TrackerHistory shippingHistory = tracker.createHistorySnapshot(
-                currentMember.getMatchedMember(),      // 보내는 사람
-                nextMember.getMatchedMember(),       // 받는 사람
+                bookOwner.getMatchedMember(),      // 보내는 사람
+                nextOwner.getMatchedMember(),       // 받는 사람
                 request.deliveryCompany(),
                 request.trackingNumber(),
                 request.authenticationImageUrl()
@@ -188,9 +188,9 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        MatchedMember currentMember = tracker.getCurrentMember();
+        MatchedMember bookOwner = tracker.getBookOwner();
         // 권한 검증
-        if(!currentMember.getUser().getId().equals(user.getId())){
+        if(!bookOwner.getUser().getId().equals(user.getId())){
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
@@ -202,7 +202,7 @@ public class TrackerService {
         // 수령 완료는 배송이 아니므로 senderId는 null, receiverId는 현재 주자로 기록합니다.
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
-                currentMember.getMatchedMember(),
+                bookOwner.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(receiveHistory);
@@ -219,9 +219,9 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        MatchedMember currentMember = tracker.getCurrentMember();
+        MatchedMember bookOwner = tracker.getBookOwner();
         // 권한 검증
-        if(!currentMember.getUser().getId().equals(user.getId())){
+        if(!bookOwner.getUser().getId().equals(user.getId())){
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
@@ -234,7 +234,7 @@ public class TrackerService {
         // 독서 중에는 보내는 사람이 없으므로 senderId는 null, receiverId는 현재 읽는 사람(나)
         TrackerHistory readingHistory = tracker.createHistorySnapshot(
                 null,
-                currentMember.getMatchedMember(),
+                bookOwner.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(readingHistory);
@@ -249,9 +249,9 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        MatchedMember currentMember = tracker.getCurrentMember();
+        MatchedMember bookOwner = tracker.getBookOwner();
         // 권한 검증
-        if(!currentMember.getUser().getId().equals(user.getId())){
+        if(!bookOwner.getUser().getId().equals(user.getId())){
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
@@ -259,7 +259,7 @@ public class TrackerService {
 
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,
-                currentMember.getMatchedMember(),
+                bookOwner.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(doneHistory);
@@ -274,9 +274,9 @@ public class TrackerService {
         // 1. 트래커 조회
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-        MatchedMember currentMember = tracker.getCurrentMember();
+        MatchedMember bookOwner = tracker.getBookOwner();
         // 권한 검증
-        if(!currentMember.getUser().getId().equals(user.getId())){
+        if(!bookOwner.getUser().getId().equals(user.getId())){
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
@@ -286,7 +286,7 @@ public class TrackerService {
         // 3. [새로운 단계 기록] 연장된 정보가 반영된 새로운 히스토리 생성
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(
                 null,
-                currentMember.getMatchedMember(),
+                bookOwner.getMatchedMember(),
                 null, null, null
         );
         trackerHistoryRepository.save(extensionHistory);

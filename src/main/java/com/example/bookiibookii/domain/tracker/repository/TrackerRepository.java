@@ -16,7 +16,7 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
     // Optional<Tracker> findByMatchedGroupId(Long matchedGroupId);
 
     @Query("select t from Tracker t " +
-            "join fetch t.currentMember m " +
+            "join fetch t.bookOwner m " +
             "join fetch m.user " +
             "where t.group.groupId = :groupId")
     Optional<Tracker> findByGroupId(@Param("groupId") Long groupId);

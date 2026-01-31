@@ -307,15 +307,22 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        // 2. 현재 트래커 상태에 매칭되는 약속 정보를 리포지토리에서 조회
-        // 데이터가 없으면 모든 필드가 null인 DTO 반환
-        return meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, tracker.getTrackerStatus())
+        TrackerStatus currentStatus = tracker.getTrackerStatus();
+
+        // 2. 현재 단계에 등록된 약속이 있는지 확인
+        return meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, currentStatus)
                 .map(meeting -> new TrackerMeetingResponse(
                         meeting.getMeetingTime(),
                         meeting.getMeetingPlace()
                 ))
-                .orElseGet(() -> new TrackerMeetingResponse(null, null));
+                // 3. 약속이 없다면(orElseGet), 게스트의 선호 장소를 기본값으로 제공
+                .orElseGet(() -> {
+                    String defaultPlace = tracker.getGroup().getHost().getMeetPlace();
+                    return new TrackerMeetingResponse(null, defaultPlace);
+                });
     }
+
+
 
     @Transactional
     public void updateMeeting(Long groupId, TrackerMeetingRequest request, User user) {
@@ -336,11 +343,12 @@ public class TrackerService {
         // 3. 현재 트래커 상태를 키로 사용하여 Meeting 조회 또는 생성
         TrackerStatus currentStatus = tracker.getTrackerStatus();
 
+
         Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, currentStatus)
                 .orElseGet(() -> Meeting.builder()
                         .group(tracker.getGroup())
                         .trackerStatus(currentStatus)
-                        .meetingPlace("") // @NotBlank 대응용 기본값
+                        .meetingPlace(tracker.getGroup().getHost().getMeetPlace())
                         .build());
 
         // 4. 데이터 업데이트 및 저장

@@ -46,8 +46,16 @@ public class TrackerService {
     private final TrackerConverter trackerConverter;
     private final DomainEventPublisher publisher;
 
+
+    private void validateGroupMember(Long groupId, Long userId) {
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER); // 403 Forbidden
+        }
+    }
+
     //트래커 상세 조회
-    public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId) {
+    public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId, User user) {
+        validateGroupMember(groupId, user.getId());
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
@@ -57,7 +65,9 @@ public class TrackerService {
 
     // 트래커 히스토리 조회
     @Transactional(readOnly = true)
-    public List<TrackerHistoryResponse> getTrackerHistoriesByGroupId(Long groupId) {
+    public List<TrackerHistoryResponse> getTrackerHistoriesByGroupId(Long groupId, User user) {
+        validateGroupMember(groupId, user.getId());
+
         // 1. 해당 그룹의 모든 히스토리 조회
         List<TrackerHistory> histories = trackerHistoryRepository.findAllByGroupId(groupId);
 
@@ -302,7 +312,9 @@ public class TrackerService {
     }
 
     // 약속 상세 조회 (현재 트래커 상태에 맞는 약속 조회)
-    public TrackerMeetingResponse getMeetingDetailByGroupId(Long groupId) {
+    public TrackerMeetingResponse getMeetingDetailByGroupId(Long groupId, User user) {
+        validateGroupMember(groupId, user.getId());
+
         // 1. 현재 트래커 조회 (상태 확인을 위함)
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));

@@ -154,6 +154,6 @@ public interface TrackerApi {
     ResponseEntity<TrackerDetailResponse> updateMeeting(
             @PathVariable Long groupId,
             @RequestBody @Valid TrackerMeetingRequest request,
-            @AuthenticationPrincipal User user // 로그인 유저
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 }

@@ -71,6 +71,7 @@ public class GroupResponseDTO {
         // TODO: 그룹 태그 리스트 (현재 GroupTag 엔티티와 매핑 필요)
         // Groups 엔티티의 List<GroupTag>를 순회하며 Tag의 name들을 추출해 담아야 합니다.
         //private List<String> tags;
+        private String customTag;
 
         // 5. 그룹 소개 및 참여 멤버 슬롯
         private String groupComment;   // 그룹 소개글

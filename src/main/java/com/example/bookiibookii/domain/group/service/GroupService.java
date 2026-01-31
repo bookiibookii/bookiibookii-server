@@ -99,6 +99,7 @@ public class GroupService {
                 .startDate(request.getStartDate())
                 .readingPeriod(request.getReadingPeriod())
                 .groupComment(request.getGroupComment())
+                .customTag(request.getCustomTag())
                 .groupType(request.getGroupType())
                 .tradeType(finalTradeType)
                 .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
@@ -250,6 +251,11 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
+        // 커스텀 태그 수정
+        if(request.getCustomTag() != null){
+            group.setCustomTag(request.getCustomTag());
+        }
+
         //독서 태그 수정
         if (request.getTags() != null) {
             group.clearGroupTags();
@@ -346,6 +352,7 @@ public class GroupService {
                 .hostProfileImage(group.getHost().getImageUrl())
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 //.tags(new ArrayList<>())
+                .customTag(group.getCustomTag())
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
                 .build();

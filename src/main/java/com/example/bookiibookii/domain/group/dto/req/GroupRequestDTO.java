@@ -26,6 +26,7 @@ public class GroupRequestDTO {
         private LocalDate startDate;
         private Integer readingPeriod;
         private String groupComment;
+        private String customTag;
         private GroupType groupType;   // RELAY, TOGETHER
         private TradeType tradeType;   // DELIVERY, DIRECT
         private List<GroupRequestDTO.TagSettingDTO> tags;
@@ -36,6 +37,7 @@ public class GroupRequestDTO {
             private LocalDate startDate;
             private Integer readingPeriod;
             private String groupComment;
+            private String customTag;
             @Valid
             private List<GroupRequestDTO.TagSettingDTO> tags;
     }

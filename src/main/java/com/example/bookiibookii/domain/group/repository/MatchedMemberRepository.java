@@ -27,8 +27,13 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
     //현재까지의 참여맴버 수
     long countByGroup(Groups groups);
 
-    //참여맴버 리스트(읽는 순서대로 정렬)
-    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(Groups group);
+    //참여맴버 리스트(읽는 순서대로 정렬) - User, UserImage fetch join으로 N+1 방지
+    @Query("SELECT mm FROM MatchedMember mm " +
+            "JOIN FETCH mm.user u " +
+            "LEFT JOIN FETCH u.userImage " +
+            "WHERE mm.group = :group " +
+            "ORDER BY mm.readingOrder ASC")
+    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(@Param("group") Groups group);
     //참여 취소를 위한 조회 메서드
     Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
 

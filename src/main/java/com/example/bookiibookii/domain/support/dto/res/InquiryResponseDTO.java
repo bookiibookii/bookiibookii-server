@@ -1,24 +1,21 @@
 package com.example.bookiibookii.domain.support.dto.res;
 
 import com.example.bookiibookii.domain.support.enums.SupportStatus;
-import com.example.bookiibookii.domain.support.enums.ReportType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
 
-public class ReportResponseDTO {
-    // 신고 내역 조회 DTO
-    public record ReportListDTO(
-            Long reportId,
-            String reporterNickname,
-            String groupName,
+public class InquiryResponseDTO {
+    public record InquiryListDTO(
+            Long inquiryId,
+            String nickname,
             @JsonFormat(pattern = "yyyy.MM.dd")
-            LocalDateTime createdAt, // 신고 날짜
-            ReportType reportType,
+            LocalDateTime createdAt,
+            String title,
             String content,
             SupportStatus supportStatus,
             String adminReply,
             @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDateTime resolvedAt
-    ) {}
+    ){}
 }

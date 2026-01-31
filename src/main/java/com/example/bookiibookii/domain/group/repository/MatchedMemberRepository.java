@@ -61,4 +61,11 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
 
     // 유저가 그룹의 멤버인지 검증
     boolean existsByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
+
+    @Query("""
+        select mm.user.id
+        from MatchedMember mm
+        where mm.group.groupId = :groupId
+    """)
+    List<Long> findMemberUserIdsByGroupId(@Param("groupId") Long groupId);
 }

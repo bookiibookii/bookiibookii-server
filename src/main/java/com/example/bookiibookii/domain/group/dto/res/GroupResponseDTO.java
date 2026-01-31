@@ -120,4 +120,20 @@ public class GroupResponseDTO {
             int currentPage,
             boolean hasNext
     ) {}
+
+    // 드롭다운용 그룹 데이터 (신고하기 API의 신고그룹 조회)
+    @Builder
+    public record GroupSummaryResponse(
+            Long groupId,
+            String groupName,
+            String groupHostNickname,
+            boolean isHost
+    ) {}
+
+    // 드롭다운용 그룹멤버 데이터 (신고하기 API의 신고 멤버 조회)
+    @Builder
+    public record GroupMemberResponse(
+            Long userId,
+            String nickname
+    ) {}
 }

@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.dto.req;
 
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
+import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.enums.TagType;
@@ -44,7 +45,7 @@ public class GroupRequestDTO {
             List<TradeType> tradeTypes,
             List<String> regions,
             List<CustomCategory> categories,
-            String sort, // LATEST, POPULAR, RECOMMEND
+            GroupSortType sort, // LATEST, POPULAR, RECOMMEND
             @Min(0) int page,
             @Positive int size
             ) {}

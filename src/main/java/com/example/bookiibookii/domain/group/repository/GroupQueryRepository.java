@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.group.repository;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
@@ -63,22 +64,22 @@ public class GroupQueryRepository {
     }
 
     // 정렬 조건 생성 (추천순/인기순/최신순)
-    private OrderSpecifier<?>[] getSortOrder(String sort, List<Long> userTagIds) {
+    private OrderSpecifier<?>[] getSortOrder(GroupSortType sort, List<Long> userTagIds) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
+        GroupSortType sortType = (sort != null) ? sort : GroupSortType.LATEST;
+
         // 추천순(usertag 기반 누적 추천?) 고도화 필요(현재 책 카테고리만 적용)
-        if ("RECOMMEND".equals(sort) && userTagIds != null && !userTagIds.isEmpty()) {
-            // 💡 석진님이 보여주신 JPA Repo의 COUNT(gt) 로직을 QueryDSL로 구현한 부분입니다.
+        if (GroupSortType.RECOMMEND == sortType && userTagIds != null && !userTagIds.isEmpty()) {
             NumberExpression<Long> matchCount = new CaseBuilder()
                     .when(groupTag.tag.id.in(userTagIds)).then(1L)
                     .otherwise(0L)
-                    .sum(); // 일치할 때마다 1점씩 더해서 총점을 계산
-
+                    .sum();
             orders.add(new OrderSpecifier<>(Order.DESC, matchCount));
         }
 
         // 2순위: 인기순(신청자 수)
-        if ("POPULAR".equals(sort)) {
+        if (GroupSortType.POPULAR == sortType) {
             orders.add(new OrderSpecifier<>(Order.DESC, groups.applications.size()));
         }
 

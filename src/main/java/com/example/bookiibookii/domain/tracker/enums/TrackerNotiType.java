@@ -1,7 +1,10 @@
 package com.example.bookiibookii.domain.tracker.enums;
 
-import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
+@Getter
+@AllArgsConstructor
 public enum TrackerNotiType {
 
     READING_STARTED(
@@ -41,22 +44,4 @@ public enum TrackerNotiType {
 
     public final String title;
     public final String bodyTemplate;
-
-    TrackerNotiType(String title, String bodyTemplate) {
-        this.title = title;
-        this.bodyTemplate = bodyTemplate;
-    }
-
-    public String renderBody(Map<String, String> vars) {
-        if (bodyTemplate == null) return null;
-        String result = bodyTemplate;
-        for (var entry : vars.entrySet()) {
-            result = result.replace("{" + entry.getKey() + "}", safe(entry.getValue()));
-        }
-        return result;
-    }
-
-    private static String safe(String v) {
-        return v == null ? "" : v;
-    }
 }

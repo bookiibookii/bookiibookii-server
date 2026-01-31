@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
+import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.*;
@@ -26,6 +27,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
+import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -39,6 +41,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DELETED;
 
 @Service
 @Transactional
@@ -122,17 +126,17 @@ public class GroupService {
         Groups savedGroup = groupsRepository.save(group);
 
         // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
-        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
-
-            // host.getMeetPlace()를 통해 유저가 미리 입력한 주소를 초기 장소로 저장
-            Meeting initialMeeting = Meeting.builder()
-                    .group(savedGroup)
-                    .meetingPlace(host.getMeetPlace()) //host가 마이페이지에서 입력한 meetPlace
-                    .meetingTime(null) // 시간은 초기 생성 시에는 결정되지 않음
-                    .build();
-
-            meetingRepository.save(initialMeeting);
-        }
+//        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
+//
+//            // host.getMeetPlace()를 통해 유저가 미리 입력한 주소를 초기 장소로 저장
+//            Meeting initialMeeting = Meeting.builder()
+//                    .group(savedGroup)
+//                    .meetingPlace(host.getMeetPlace()) //host가 마이페이지에서 입력한 meetPlace
+//                    .meetingTime(null) // 시간은 초기 생성 시에는 결정되지 않음
+//                    .build();
+//
+//            meetingRepository.save(initialMeeting);
+//        }
 
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
@@ -293,6 +297,9 @@ public class GroupService {
 
         //soft delete 실행
         group.markAsDELETED();
+
+        // 알림 publish
+        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), null, group.getGroupId()));
 
         return GroupResponseDTO.DeleteResultDTO.builder()
                 .groupId(groupId)

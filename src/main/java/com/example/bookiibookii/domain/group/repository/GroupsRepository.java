@@ -78,6 +78,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     join fetch g.book
     join fetch g.host
     where g.groupId = :groupId
+    and g.groupStatus != 'DELETED'
     """)
     Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);
 }

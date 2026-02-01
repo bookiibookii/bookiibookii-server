@@ -13,4 +13,6 @@ import java.util.List;
 public interface UserTagRepository extends JpaRepository<UserTag, Long> {
     void deleteAllByUser(User user);
     List<UserTag> findByUserIdAndTagTypeIn(Long userId, List<TagType> targetTypes);
+
+    List<UserTag> findAllByUser(User user);
 }

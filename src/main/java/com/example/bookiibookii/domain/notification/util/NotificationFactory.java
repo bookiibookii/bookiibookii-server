@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.notification.service;
+package com.example.bookiibookii.domain.notification.util;
 
 import com.example.bookiibookii.domain.notification.entity.Notification;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;

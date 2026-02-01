@@ -8,5 +8,5 @@ import lombok.Getter;
 public class CardImageResponseDTO {
     private Long cardImageId;
     private String s3Key;
-    private String imageUrl; // presigned GET URL
+    private String presignedGetUrl;
 }

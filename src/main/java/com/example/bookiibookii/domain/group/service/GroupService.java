@@ -4,25 +4,32 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
+import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
+import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
-import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
-import com.example.bookiibookii.domain.group.repository.GroupsRepository;
-import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.group.repository.*;
 import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.domain.tag.exception.TagException;
 import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
 import com.example.bookiibookii.domain.tag.repository.TagRepository;
-import com.example.bookiibookii.domain.group.repository.MeetingRepository;
+import com.example.bookiibookii.domain.notification.entity.Keyword;
+import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +38,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DELETED;
 
 @Service
 @Transactional
@@ -42,8 +53,16 @@ public class GroupService {
     private final ApplicationRepository applicationRepository;
     private final MeetingRepository meetingRepository;
     private final BookService bookService;
+    private final GroupQueryRepository groupQueryRepository;
+    private final UserTagRepository userTagRepository;
     private final TagRepository tagRepository;
+    private final KeywordMatchService keywordMatchService;
+    private final DomainEventPublisher publisher;
+    private final GroupTagRepository groupTagRepository;
+    private final MatchedMemberQueryRepository matchedMemberQueryRepository;
+    private final UserImageS3Service userImageS3Service;
 
+    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -106,17 +125,17 @@ public class GroupService {
         Groups savedGroup = groupsRepository.save(group);
 
         // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
-        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
-
-            // host.getMeetPlace()를 통해 유저가 미리 입력한 주소를 초기 장소로 저장
-            Meeting initialMeeting = Meeting.builder()
-                    .group(savedGroup)
-                    .meetingPlace(host.getMeetPlace()) //host가 마이페이지에서 입력한 meetPlace
-                    .meetingTime(null) // 시간은 초기 생성 시에는 결정되지 않음
-                    .build();
-
-            meetingRepository.save(initialMeeting);
-        }
+//        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
+//
+//            // host.getMeetPlace()를 통해 유저가 미리 입력한 주소를 초기 장소로 저장
+//            Meeting initialMeeting = Meeting.builder()
+//                    .group(savedGroup)
+//                    .meetingPlace(host.getMeetPlace()) //host가 마이페이지에서 입력한 meetPlace
+//                    .meetingTime(null) // 시간은 초기 생성 시에는 결정되지 않음
+//                    .build();
+//
+//            meetingRepository.save(initialMeeting);
+//        }
 
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
@@ -128,13 +147,18 @@ public class GroupService {
 
         matchedMemberRepository.save(hostMember);
 
+        List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
+
+        List<Long> ids = matched.stream().map(Keyword::getId).toList();
+        List<String> texts = matched.stream().map(Keyword::getContent).toList();
+
+        publisher.publish(new KeywordGroupCreatedEvent(group.getGroupId(), texts, ids));
+
         return GroupResponseDTO.CreateResultDTO.builder()
                 .groupId(savedGroup.getGroupId()) //
                 .groupStatus(savedGroup.getGroupStatus()) //
                 .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
-
-
     }
 
     private void validateCommonPolicy(GroupRequestDTO.CreateDTO request) {
@@ -273,6 +297,9 @@ public class GroupService {
         //soft delete 실행
         group.markAsDELETED();
 
+        // 알림 publish
+        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), null, group.getGroupId()));
+
         return GroupResponseDTO.DeleteResultDTO.builder()
                 .groupId(groupId)
                 .deletedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
@@ -320,7 +347,7 @@ public class GroupService {
                 .waitingCount(waitingCount)
                 .isHot(isHot)
                 .hostNickname(group.getHost().getName())
-                .hostProfileImage(group.getHost().getImageUrl())
+                .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 //.tags(new ArrayList<>())
                 .participantSlots(participantSlots)
@@ -334,7 +361,7 @@ public class GroupService {
         for (MatchedMember mm : matchedMembers) {
             slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
                     .nickname(mm.getUser().getName())
-                    //.profileImage(mm.getUserId().getImageUrl())
+                    .profileImage(userProfileImageUrl(mm.getUser()))
                     .role(mm.getRole().name())
                     .isMe(mm.getUser().getId().equals(userId))
                     .build());
@@ -348,6 +375,13 @@ public class GroupService {
                     .build());
         }
         return slots;
+    }
+
+    private String userProfileImageUrl(User user) {
+        if (user == null || user.getUserImage() == null) {
+            return null;
+        }
+        return userImageS3Service.generatePresignedGetUrl(user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
     }
 
     private String determineButtonStatus(Groups group, Long userId, List<MatchedMember> matchedMembers) {
@@ -376,8 +410,97 @@ public class GroupService {
         return "APPLY";
     }
 
+    // 그룹 목록 조회 (필터링 + 추천순)
+    @Transactional(readOnly = true)
+    public GroupResponseDTO.GroupSliceResponseDTO getGroupList(User user, GroupRequestDTO.FilterDTO filter) {
+        PageRequest pageable = PageRequest.of(filter.page(), filter.size());
 
+        // 1. 추천 로직용 태그 ID 수집
+        List<Long> userTagIds = (user != null) ?
+                userTagRepository.findAllByUser(user).stream().map(ut -> ut.getTag().getId()).toList() : new ArrayList<>();
+
+        // 2. 메인 그룹 리스트 조회 (1번 쿼리)
+        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTagIds, pageable);
+        List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getGroupId).toList();
+
+        if (groupIds.isEmpty()) {
+            return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), 0, false);
+        }
+
+        // 3. [N+1 해결 1] 대기자 수 배치 조회 (2번 쿼리)
+        Map<Long, Integer> waitingCountMap = applicationRepository.countPendingByGroupIds(groupIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Long) row[1]).intValue()));
+
+        // 4. [N+1 해결 2] 그룹별 태그 목록 배치 조회 (3번 쿼리)
+        // yml을 못 만지므로 직접 In 절 쿼리로 태그를 땡겨옵니다.
+        List<GroupTag> allGroupTags = groupTagRepository.findAllByGroupIdIn(groupIds);
+        Map<Long, List<String>> tagListMap = allGroupTags.stream()
+                .collect(Collectors.groupingBy(
+                        gt -> gt.getGroup().getGroupId(),
+                        Collectors.mapping(gt -> gt.getTag().getCode(), Collectors.toList())
+                ));
+
+        // 5. DTO 변환 (메모리상의 Map에서 데이터를 매핑)
+        List<GroupResponseDTO.GroupSummaryDTO> dtoList = groupsSlice.stream()
+                .map(group -> {
+                    int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
+                    List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
+                    boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
+
+                    return GroupResponseDTO.GroupSummaryDTO.builder()
+                            .groupId(group.getGroupId())
+                            .title(group.getBook().getTitle())
+                            .bookImage(group.getBook().getImage())
+                            .hostNickname(group.getHost().getName())
+                            .groupStatus(group.getGroupStatus().name())
+                            .currentCount(group.getMatchedMember().size()) // matchedMember는 메인 쿼리에서 fetchJoin 권장
+                            .maxCapacity(group.getMaxCapacity())
+                            .waitingCount(waitingCount)
+                            .isHot(isHot)
+                            .groupType(group.getGroupType().name())
+                            .tradeType(group.getTradeType().name())
+                            .pictureBadge(determinePictureBadge(group))
+                            .tags(tags) // 미리 수집한 태그 리스트 주입
+                            .build();
+                }).toList();
+
+        return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, groupsSlice.getNumber(), groupsSlice.hasNext());
     }
+
+    // 배지 텍스트 결정 로직
+    private String determinePictureBadge(Groups group) {
+        // '함께읽기' 타입이면 그대로 배지 노출
+        if (group.getGroupType() == GroupType.TOGETHER) return "함께읽기";
+
+        // '이어읽기' 중 '택배'면 택배 노출
+        if (group.getTradeType() == TradeType.DELIVERY) return "택배";
+
+        // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
+        String region = group.getHost().getRegion();
+        if (region == null || region.isBlank()) return "지역미정";
+
+        String[] parts = region.split(" ");
+        return parts[parts.length - 1]; // 마지막 단어(구 단위)만 추출
+    }
+
+    // 신고할 그룹 조회
+    @Transactional(readOnly = true)
+    public List<GroupResponseDTO.GroupSummaryResponse> getGroupSummary(Long userId) {
+        return matchedMemberQueryRepository.findGroupDtosByStatus(userId, GroupStatus.MATCHED);
+    }
+
+    // 신고할 그룹 멤버 조회
+    @Transactional(readOnly = true)
+    public List<GroupResponseDTO.GroupMemberResponse> getGroupMembers(Long groupId, Long userId) {
+        // 현재 유저가 해당 그룹에 속해있는지 검증
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
+        }
+
+        // 현재 user를 제외한 나머지 멤버 조회
+        return matchedMemberQueryRepository.findMemberDtosByGroupId(groupId, userId);
+    }
+}
 
 
 

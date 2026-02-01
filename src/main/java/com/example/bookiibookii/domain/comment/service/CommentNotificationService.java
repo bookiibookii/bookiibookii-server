@@ -3,7 +3,7 @@ package com.example.bookiibookii.domain.comment.service;
 import com.example.bookiibookii.domain.comment.event.CommentEvent;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
-import com.example.bookiibookii.domain.notification.service.NotificationFactory;
+import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;

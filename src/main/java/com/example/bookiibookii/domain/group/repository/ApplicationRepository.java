@@ -24,7 +24,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     long countByGroupGroupIdAndApplicationStatus(Long groupId, ApplicationStatus status);
 
     //특정 그룹의 '대기 중'인 신청서들만 조회 (Fetch Join으로 Guest 정보까지 한 번에)
-    @Query("SELECT a FROM Application a JOIN FETCH a.guest WHERE a.group.id = :groupId AND a.applicationStatus = 'PENDING'")
+    @Query("SELECT a FROM Application a JOIN FETCH a.guest WHERE a.group.groupId = :groupId AND a.applicationStatus = 'PENDING'")
     List<Application> findAllPendingByGroupId(@Param("groupId") Long groupId);
 
     // 중복 신청 확인: 특정 그룹에 특정 유저가 이미 신청했는지 여부
@@ -39,4 +39,22 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     //특정 그룹 ID와 게스트(유저) ID로 신청서 엔티티 조회 (참가 목록에서 취소한 사람 제외용도)
     Optional<Application> findByGroupGroupIdAndGuestId(Long groupId, Long guestId);
 
+    // N+1 문제 해결을 위한 배치 쿼리
+    // 1번의 쿼리로 여러 그룹의 대기 인원수를 그룹화해서 조회
+    @Query("SELECT a.group.groupId, COUNT(a) FROM Application a " +
+            "WHERE a.group.groupId IN :groupIds AND a.applicationStatus = 'PENDING' " +
+            "GROUP BY a.group.groupId")
+    List<Object[]> countPendingByGroupIds(@Param("groupIds") List<Long> groupIds);
+
+    @Query("""
+    select distinct a.guest.id
+    from Application a
+    where a.group.groupId = :groupId
+      and a.applicationStatus = :status
+    """)
+    List<Long> findApplicantUserIdsByGroupIdAndStatus(
+            @Param("groupId") Long groupId,
+            @Param("status") ApplicationStatus status
+    );
 }
+

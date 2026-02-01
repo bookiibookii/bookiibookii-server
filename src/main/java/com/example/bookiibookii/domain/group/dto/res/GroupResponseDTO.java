@@ -100,6 +100,45 @@ public class GroupResponseDTO {
     }
 
     @Builder
+    public record GroupSummaryDTO(
+            Long groupId,
+            String title,
+            String bookImage,
+            String hostNickname,
+            List<String> tags,
+            String groupStatus,
+            int currentCount,
+            int maxCapacity,
+            int waitingCount,
+            boolean isHot,
+            String groupType,
+            String tradeType,
+            String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
+    ) {}
+
+    public record GroupSliceResponseDTO(
+            List<GroupSummaryDTO> groupList,
+            int currentPage,
+            boolean hasNext
+    ) {}
+
+    // 드롭다운용 그룹 데이터 (신고하기 API의 신고그룹 조회)
+    @Builder
+    public record GroupSummaryResponse(
+            Long groupId,
+            String groupName,
+            String groupHostNickname,
+            boolean isHost
+    ) {}
+
+    // 드롭다운용 그룹멤버 데이터 (신고하기 API의 신고 멤버 조회)
+    @Builder
+    public record GroupMemberResponse(
+            Long userId,
+            String nickname
+    ) {}
+
+    @Builder
     public record MypageGroupDto  (
             Long groupId,
             String bookTitle,

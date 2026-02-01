@@ -32,8 +32,11 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
             @PathVariable Long cardId
     ) {
+        // 카드 존재 확인 (카드 생성 후에만 사용 가능한 엔드포인트이므로)
+        cardService.getCard(cardId);
+
         PresignedUrlResponseDTO responseDTO = 
-                cardImageS3Service.generatePresignedPutUrl(cardId, PRESIGNED_URL_EXPIRATION_MINUTES);
+                cardImageS3Service.generatePresignedPutUrl(PRESIGNED_URL_EXPIRATION_MINUTES);
 
         return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
     }
@@ -51,7 +54,7 @@ public class CardImageController implements CardImageControllerDocs {
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
                 .cardImageId(result.cardImage().getId())
                 .s3Key(result.cardImage().getS3Key())
-                .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
                         result.cardImage().getS3Key(), 
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();
@@ -74,7 +77,7 @@ public class CardImageController implements CardImageControllerDocs {
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())
                 .s3Key(cardImage.getS3Key())
-                .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
                         cardImage.getS3Key(), 
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();

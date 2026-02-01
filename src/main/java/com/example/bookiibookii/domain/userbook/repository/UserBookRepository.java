@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     Optional<UserBook> findById(Long id);
 
+    Optional<UserBook> findByIdAndUser_Id(Long id, Long userId);
+
     @Query("""
         SELECT b.title
         FROM UserBook ub

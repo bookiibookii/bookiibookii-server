@@ -34,9 +34,10 @@ public class OAuthTestController {
     @Value("${oauth.kakao.client-id}")
     private String KAKAO_REST_API_KEY;
 
-    private static final String KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
-    private static final String KAKAO_REDIRECT_URI = "http://localhost:8080/kakao/callback";
+    @Value("${oauth.kakao.redirect-uri}")
+    private String KAKAO_REDIRECT_URI;
 
+    private static final String KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 
     @GetMapping("/kakao/callback")
     public ApiResponse<AuthResponseDTO.TokenResponse> kakaoCallback(@RequestParam String code) {

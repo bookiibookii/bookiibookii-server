@@ -17,7 +17,7 @@ public class MatchedMember extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "matchedmember_id")
-    private Long matchedMember;
+    private Long MatchedMember;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")

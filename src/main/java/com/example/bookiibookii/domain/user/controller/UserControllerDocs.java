@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.user.controller;
 
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
+import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,12 +10,30 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 
 public interface UserControllerDocs {
+
+    @Operation(
+            summary = "사용자 이미지 업로드용 Presigned URL 발급",
+            description = """
+            온보딩 또는 프로필 이미지 업로드를 위한 Presigned URL을 발급합니다.
+            - s3Key 형식: image/users/{userId}/{uuid}
+            - 발급된 presignedPutUrl로 PUT 요청 후, 온보딩 API 등에서 s3Key를 전달해 저장합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Presigned URL 발급 성공")
+    })
+    @PostMapping("/api/users/me/image/presigned-url")
+    ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForUserImage(
+            @AuthenticationPrincipal(expression = "user") User user
+    );
+
     // api/users/name-validation
     @Operation(
             summary = "닉네임 중복 검증 API",
@@ -35,7 +54,9 @@ public interface UserControllerDocs {
     @Operation(
             summary = "온보딩 기능 API",
             description = """
-            유저의 닉네임과 초기 태그를 저장하는 API입니다.
+            유저의 닉네임, 초기 태그, 프로필 이미지를 저장합니다.
+            - 이미지는 선택: /api/users/me/image/presigned-url 로 Presigned URL 발급 후 업로드하고, 받은 s3Key를 본 API의 s3Key에 넣어 호출합니다.
+            - s3Key를 넣지 않으면 프로필 이미지는 null로 둡니다.
             """
     )
     @ApiResponses({

@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.notification.repository;
 
-import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.entity.UserKeyword;
 import com.example.bookiibookii.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -48,4 +47,5 @@ public interface UserKeywordRepository extends JpaRepository<UserKeyword, Long> 
     """)
     List<Long> findDistinctUserIdsByKeywordIds(@Param("keywordIds") List<Long> keywordIds);
 
+    boolean existsByUserAndKeyword_NormalizedContent(User user, String normalizedContent);
 }

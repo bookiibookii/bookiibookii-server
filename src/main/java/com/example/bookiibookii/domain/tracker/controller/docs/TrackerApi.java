@@ -1,9 +1,12 @@
 package com.example.bookiibookii.domain.tracker.controller.docs;
 
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
+import com.example.bookiibookii.domain.user.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,7 +32,8 @@ public interface TrackerApi {
                     content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class)))
     })
     ResponseEntity<TrackerDetailResponse> registerReadingDone(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(
@@ -43,7 +48,8 @@ public interface TrackerApi {
     })
     ResponseEntity<TrackerDetailResponse> registerShipping(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody @Valid TrackerShippingRequest request
+            @RequestBody @Valid TrackerShippingRequest request,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(
@@ -56,7 +62,8 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "404", description = "트래커를 찾을 수 없음", content = @Content)
     })
     ResponseEntity<TrackerDetailResponse> registerReceive(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(
@@ -69,7 +76,8 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "400", description = "이미 독서 중이거나 잘못된 상태", content = @Content)
     })
     ResponseEntity<TrackerDetailResponse> registerReading(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(
@@ -83,7 +91,8 @@ public interface TrackerApi {
     })
     ResponseEntity<TrackerDetailResponse> registerExtension(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(description = "연장할 일수", example = "3") @RequestParam(defaultValue = "3") int days
+            @Parameter(description = "연장할 일수", example = "3") @RequestParam(defaultValue = "3") int days,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(
@@ -94,7 +103,9 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음", content = @Content)
     })
-    ResponseEntity<List<TrackerListResponse>> getTrackerList();
+    ResponseEntity<List<TrackerListResponse>> getTrackerList(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
 
     @Operation(
             summary = "트래킹 상세 현황 조회",
@@ -105,7 +116,8 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "404", description = "트래커를 찾을 수 없음", content = @Content)
     })
     ResponseEntity<TrackerDetailResponse> getTrackerDetail(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(
@@ -117,6 +129,31 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "404", description = "이력을 찾을 수 없음", content = @Content)
     })
     ResponseEntity<List<TrackerHistoryResponse>> getTrackerHistories(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+    @Operation(
+            summary = "직접 교환 약속 상세 조회",
+            description = "특정 그룹의 직접 교환 약속 장소와 시간을 조회합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "약속 정보가 존재하지 않음", content = @Content)
+    })
+    ResponseEntity<TrackerMeetingResponse> getMeetingDetail(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+    @Operation(
+            summary = "직접 교환 약속 등록/수정",
+            description = "직접 교환 방식일 때 만날 장소와 시간을 등록하거나 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "직접 교환 등록/수정 성공"),
+            @ApiResponse(responseCode = "404", description = "직접교환 실패", content = @Content)
+    })
+    ResponseEntity<TrackerDetailResponse> updateMeeting(
+            @PathVariable Long groupId,
+            @RequestBody @Valid TrackerMeetingRequest request,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 }

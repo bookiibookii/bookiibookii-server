@@ -1,15 +1,22 @@
 package com.example.bookiibookii.domain.userbook.service;
 
+import com.example.bookiibookii.domain.book.entity.Book;
+import com.example.bookiibookii.domain.book.repository.BookRepository;
+import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
+import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
+import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -20,9 +27,72 @@ public class CardService {
     private final CardRepository cardRepository;
     private final CardImageRepository cardImageRepository;
     private final CardImageValidationService cardImageValidationService;
+    private final CardImageS3Service cardImageS3Service;
+    private final UserBookRepository userBookRepository;
+    private final BookRepository bookRepository;
 
     // Card의 이미지 업데이트 결과
     public record CardImageUpdateResult(Card card, CardImage cardImage, boolean isCreated) {}
+
+    // UserBook 책 제목 + 카드 목록 조회 결과
+    public record CardsWithTitleResult(String title, List<CardCreateResponseDTO> cards) {}
+
+    /**
+     * 독서카드를 생성합니다.
+     * Card는 항상 CardImage를 가져야 하므로, Card와 CardImage를 함께 생성합니다.
+     * 
+     * @param userBookId 사용자 책 ID
+     * @param userId 인증된 사용자 ID (소유권 검증용)
+     * @param page 페이지 정보
+     * @param memo 메모 (선택)
+     * @param s3Key S3 키 (이미 업로드된 이미지)
+     * @return 생성된 Card
+     */
+    @Transactional
+    public Card createCard(Long userBookId, Long userId, Integer page, String memo, String s3Key) {
+        // s3Key 형식 검증
+        if (!cardImageValidationService.isValidS3Key(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+
+        // S3에 이미지가 실제로 존재하는지 확인 (HEAD 요청)
+        if (!cardImageS3Service.doesImageExist(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
+        }
+
+        // UserBook 존재 및 소유권 확인
+        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+
+        // s3Key 중복 체크 (DB)
+        if (cardImageRepository.existsByS3Key(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+        }
+
+        // Card 생성
+        Card card = Card.builder()
+                .userBook(userBook)
+                .page(page)
+                .memo(memo)
+                .build();
+
+        Card savedCard = cardRepository.save(card);
+
+        // CardImage 생성
+        CardImage cardImage = CardImage.builder()
+                .card(savedCard)
+                .s3Key(s3Key)
+                .build();
+
+        try {
+            cardImageRepository.saveAndFlush(cardImage);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // s3_key unique constraint 위반 처리
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+        }
+
+        return savedCard;
+    }
 
     /**
      * Card의 이미지를 업데이트합니다.
@@ -34,9 +104,14 @@ public class CardService {
      */
     @Transactional
     public CardImageUpdateResult updateCardImage(Long cardId, String s3Key) {
-        // s3Key 검증: 형식 및 cardId 일치 확인
-        if (!cardImageValidationService.isValidS3Key(s3Key, cardId)) {
+        // s3Key 형식 검증
+        if (!cardImageValidationService.isValidS3Key(s3Key)) {
             throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+
+        // S3에 이미지가 실제로 존재하는지 확인 (HEAD 요청)
+        if (!cardImageS3Service.doesImageExist(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
         }
 
         // Card 조회
@@ -157,5 +232,49 @@ public class CardService {
     public CardImage getCardImage(Long cardId) {
         return cardImageRepository.findByCard_Id(cardId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND));
+    }
+
+    /**
+     * UserBook에 속한 Card 목록과 해당 UserBook의 책 제목을 조회합니다.
+     * UserBook 존재 및 소유권 검증 후, 책 제목과 카드 목록을 생성일 기준 오름차순으로 반환합니다.
+     */
+    public CardsWithTitleResult getCardsByUserBookId(Long userBookId, Long userId, int presignedGetUrlExpirationMinutes) {
+        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+        
+        // Book 제목 조회
+        String title = bookRepository.findById(userBook.getBookId())
+                .map(Book::getTitle)
+                .orElse("");
+        
+        List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
+        
+        // Card 엔티티를 DTO로 변환 (트랜잭션 내에서 처리)
+        List<CardCreateResponseDTO> cardDTOs = cards.stream()
+                .map(card -> {
+                    CardImage cardImage = card.getCardImage();
+                    if (cardImage == null) {
+                        throw new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND);
+                    }
+                    
+                    CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
+                            .cardImageId(cardImage.getId())
+                            .s3Key(cardImage.getS3Key())
+                            .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
+                                    cardImage.getS3Key(),
+                                    presignedGetUrlExpirationMinutes))
+                            .build();
+                    
+                    return CardCreateResponseDTO.builder()
+                            .cardId(card.getId())
+                            .page(card.getPage())
+                            .memo(card.getMemo())
+                            .cardImage(cardImageResponseDTO)
+                            .createdAt(card.getCreatedAt())
+                            .build();
+                })
+                .toList();
+        
+        return new CardsWithTitleResult(title, cardDTOs);
     }
 }

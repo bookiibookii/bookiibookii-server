@@ -222,12 +222,12 @@ public class UserService {
     }
 
     // 마이페이지 설정
-    // 온보딩 세팅
     @Transactional
     public void updateMypage(Long userId, UserRequestDTO.MypageReqDTO request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
+        if (isNicknameAvailable(request.nickname())) user.updateName(request.nickname());
         user.updateName(request.nickname());
         //TODO : 프로필 이미지 처리
         Address address = addressRepository.findByUserId(userId).orElse(null);

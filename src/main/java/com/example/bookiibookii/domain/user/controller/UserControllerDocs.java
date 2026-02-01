@@ -74,8 +74,7 @@ public interface UserControllerDocs {
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "마이페이지 조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 조회 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "전화번호 형식이 올바르지 않습니다.")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 조회 실패")
     })
     ApiResponse<UserResponseDTO.MypageDTO> getMypage(@AuthenticationPrincipal User user);
 
@@ -88,7 +87,8 @@ public interface UserControllerDocs {
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "마이페이지 설정 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 설정 실패")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 설정 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "전화번호 형식이 올바르지 않습니다.")
     })
     ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
 

@@ -18,7 +18,7 @@ public enum UserSuccessCode implements BaseCode {
             "USER200_3",
             "마이페이지 조회에 성공했습니다."),
     UPDATE_MYPAGE_SUCCESS(HttpStatus.OK,
-            "USER200_3",
+            "USER200_4",
             "마이페이지 수정에 성공했습니다."),
     ;
     private final HttpStatus status;

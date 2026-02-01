@@ -20,6 +20,7 @@ import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
+import com.example.bookiibookii.domain.userbook.service.UserBookService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,6 +45,7 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher publisher;
+    private final UserBookService userBookService;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -112,6 +114,9 @@ public class ApplicationService {
                     .readingOrder((int) currentTotalCount + 1)
                     .build();
             matchedMemberRepository.save(newMember);
+
+            // 서재(UserBook)에 추가
+            userBookService.createForParticipation(application.getGuest(), group);
 
             // 신청서 상태 업데이트
             application.updateStatus(ApplicationStatus.ACCEPTED);

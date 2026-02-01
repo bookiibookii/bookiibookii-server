@@ -10,7 +10,7 @@ public class LibraryBookResponseDTO {
     private Long bookId;
     private String title;
     private String author;
-    private String image;
+    private String image;   //책 이미지
     private Long hostId;
     private String hostProfileImageUrl;  // presigned GET URL
     private Integer duration;            // group.readingPeriod (독서 기간, 일)

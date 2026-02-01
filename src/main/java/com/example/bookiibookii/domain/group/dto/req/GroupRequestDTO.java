@@ -6,10 +6,7 @@ import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.enums.TagType;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -26,6 +23,7 @@ public class GroupRequestDTO {
         private LocalDate startDate;
         private Integer readingPeriod;
         private String groupComment;
+        @Size(max = 8)
         private String customTag;
         private GroupType groupType;   // RELAY, TOGETHER
         private TradeType tradeType;   // DELIVERY, DIRECT
@@ -37,6 +35,7 @@ public class GroupRequestDTO {
             private LocalDate startDate;
             private Integer readingPeriod;
             private String groupComment;
+            @Size(max = 8)
             private String customTag;
             @Valid
             private List<GroupRequestDTO.TagSettingDTO> tags;

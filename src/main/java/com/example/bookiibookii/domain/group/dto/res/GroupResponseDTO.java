@@ -69,7 +69,7 @@ public class GroupResponseDTO {
         // 4. 호스트 정보 및 태그
         private String hostNickname;
         private String hostProfileImage;
-        private List<GroupTag> groupTags;
+        private List<String> groupTags;
         private String customTag;
 
         // 5. 그룹 소개 및 참여 멤버 슬롯

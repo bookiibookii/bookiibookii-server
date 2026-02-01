@@ -22,7 +22,9 @@ import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
+import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
@@ -336,6 +338,9 @@ public class GroupService {
         // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
         String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
 
+        List<String> groupTag = group.getGroupTags().stream().map(ut -> ut.getTag().getCode()).toList();
+
+
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
                 .groupId(group.getGroupId())
@@ -355,7 +360,7 @@ public class GroupService {
                 .hostNickname(group.getHost().getName())
                 .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
-                .groupTags(group.getGroupTags())
+                .groupTags(groupTag)
                 .customTag(group.getCustomTag())
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)

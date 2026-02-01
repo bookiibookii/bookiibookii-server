@@ -5,11 +5,13 @@ import com.example.bookiibookii.domain.userbook.dto.res.LibraryBookResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LibraryService {
@@ -36,9 +38,15 @@ public class LibraryService {
         var book = group.getBook();
         var host = group.getHost();
 
-        String hostProfileImageUrl = host.getUserImage() != null
-                ? userImageS3Service.generatePresignedGetUrl(host.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES)
-                : null;
+        String hostProfileImageUrl = null;
+        if (host.getUserImage() != null) {
+            try {
+                hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                        host.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+            } catch (Exception e) {
+                log.warn("호스트 프로필 이미지 Presigned URL 생성 실패 (hostId={})", host.getId(), e);
+            }
+        }
 
         return LibraryBookResponseDTO.builder()
                 .userBookId(ub.getId())

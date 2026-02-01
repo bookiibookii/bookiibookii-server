@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.user.controller;
 
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
+import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.code.UserImageSuccessCode;
@@ -56,6 +57,16 @@ public class UserController implements UserControllerDocs{
     ) {
         userService.createUserOnboarding(user.getId(), request);
         return ApiResponse.onSuccess(UserSuccessCode.ONBOARDING_SUCCESS, null);
+    }
+
+    // MyPage 조회
+    @Override
+    @GetMapping("/api/mypage")
+    public ApiResponse<UserResponseDTO.MypageDTO> getMypage(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        UserResponseDTO.MypageDTO result = userService.getMypageInfo(user.getId());
+        return ApiResponse.onSuccess(UserSuccessCode.MYPAGE_SUCCESS, result);
     }
 
 }

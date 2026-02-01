@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.dto.res;
 
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -83,6 +84,8 @@ public class GroupResponseDTO {
         // APPLY(신청하기), CANCEL(취소하기), MANAGE(요청관리), TRACKER(트래커보기), FULL(인원마감)
         private String buttonStatus;
 
+        // 댓글 리스트
+        // private List<CommentResponseDTO> comments;
     }
 
     @Builder
@@ -134,4 +137,16 @@ public class GroupResponseDTO {
             Long userId,
             String nickname
     ) {}
+
+    @Builder
+    public record MypageGroupDto  (
+            Long groupId,
+            String bookTitle,
+            String auth,
+            @JsonProperty("GENRE")
+            String genre,
+            @JsonProperty("group_status")
+            GroupStatus groupStatus,
+            List<String> groupTags
+    ){}
 }

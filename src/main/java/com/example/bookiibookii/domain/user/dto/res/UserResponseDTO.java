@@ -11,6 +11,7 @@ public class UserResponseDTO {
     @Builder
     public record UserProfileResDTO  (
             Long userId,
+            Boolean isMe,
             UserImage userImage,
             String nickname,
             Double manner,

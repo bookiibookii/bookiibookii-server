@@ -153,7 +153,7 @@ public class UserService {
 
     // 마이페이지 조회
     @Transactional
-    public UserResponseDTO.MypageDTO getMypageInfo(Long userId) {
+    public UserResponseDTO.UserProfileResDTO getMypageInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
@@ -186,7 +186,7 @@ public class UserService {
                 PageRequest.of(0, 3)
         );
 
-        return UserResponseDTO.MypageDTO.builder()
+        return UserResponseDTO.UserProfileResDTO.builder()
                 // TODO : 프로필 이미지 조회
                 .userId(userId)
                 .nickname(user.getName())

@@ -62,10 +62,10 @@ public class UserController implements UserControllerDocs{
     // MyPage 조회
     @Override
     @GetMapping("/api/mypage")
-    public ApiResponse<UserResponseDTO.MypageDTO> getMypage(
+    public ApiResponse<UserResponseDTO.UserProfileResDTO> getMypage(
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        UserResponseDTO.MypageDTO result = userService.getMypageInfo(user.getId());
+        UserResponseDTO.UserProfileResDTO result = userService.getMypageInfo(user.getId());
         return ApiResponse.onSuccess(UserSuccessCode.MYPAGE_SUCCESS, result);
     }
 

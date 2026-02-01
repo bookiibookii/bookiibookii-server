@@ -76,5 +76,5 @@ public interface UserControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "마이페이지 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 조회 실패")
     })
-    ApiResponse<UserResponseDTO.MypageDTO> getMypage(@AuthenticationPrincipal User user);
+    ApiResponse<UserResponseDTO.UserProfileResDTO> getMypage(@AuthenticationPrincipal User user);
 }

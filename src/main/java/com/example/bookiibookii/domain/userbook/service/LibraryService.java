@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -34,9 +35,9 @@ public class LibraryService {
     }
 
     private LibraryBookResponseDTO toLibraryBookResponseDTO(UserBook ub) {
-        var group = ub.getGroup();
-        var book = group.getBook();
-        var host = group.getHost();
+        var group = Objects.requireNonNull(ub.getGroup(), "UserBook.group is null");
+        var book = Objects.requireNonNull(group.getBook(), "Group.book is null");
+        var host = Objects.requireNonNull(group.getHost(), "Group.host is null");
 
         String hostProfileImageUrl = null;
         if (host.getUserImage() != null) {

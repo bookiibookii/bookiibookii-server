@@ -20,7 +20,7 @@ public interface LibraryControllerDocs {
             현재 사용자의 라이브러리(UserBook 목록)를 조회합니다.
             
             - user_id = 현재 로그인 사용자 인 UserBook 목록을 반환합니다.
-            - 각 항목: 그룹의 책(bookId, title, author, image), 그룹 호스트(hostId, hostProfileImageUrl), 독서 기간(duration), UserBook의 rating, comment를 포함합니다.
+            - 각 항목: 그룹의 책(bookId, title, author, image), 그룹 호스트(hostId, hostProfileImageUrl), 그룹의 startDate·duration, UserBook의 rating, comment를 포함합니다.
             - hostProfileImageUrl은 presigned GET URL이며, 프로필이 없으면 null입니다.
             """
     )

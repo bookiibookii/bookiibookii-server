@@ -48,6 +48,7 @@ public class LibraryService {
                 .image(book.getImage())
                 .hostId(host.getId())
                 .hostProfileImageUrl(hostProfileImageUrl)
+                .startDate(group.getStartDate())
                 .duration(group.getReadingPeriod())
                 .rating(ub.getRating())
                 .comment(ub.getComment())

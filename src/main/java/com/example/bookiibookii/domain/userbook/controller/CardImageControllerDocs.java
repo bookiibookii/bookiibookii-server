@@ -18,14 +18,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface CardImageControllerDocs {
 
     @Operation(
-            summary = "Presigned PUT URL 발급 (카드 이미지 업데이트용)",
+            summary = "Presigned URL 발급 (카드 이미지 업데이트용)",
             description = """
             기존 카드의 이미지를 업데이트하기 위한 presigned URL을 발급합니다.
             
             - UUID 기반 s3Key를 생성하여 presigned URL을 발급합니다.
             - **카드 생성 후에만 사용 가능합니다.** (카드가 이미 존재해야 함)
             - 카드 생성 전 이미지 업로드를 위해서는 `/api/card/{userBookId}/presigned-url` 엔드포인트를 사용하세요.
-            - 발급된 presigned URL을 사용하여 클라이언트에서 직접 S3에 이미지를 업로드할 수 있습니다.
+            - 발급된 presignedPutUrl로 PUT 요청 시 클라이언트에서 직접 S3에 이미지를 업로드할 수 있습니다.
             - URL은 10분간 유효합니다.
             - s3Key 형식: image/cards/{uuid}
             """
@@ -82,7 +82,7 @@ public interface CardImageControllerDocs {
             description = """
             특정 카드에 속한 이미지를 조회합니다.
             
-            - presigned GET URL이 포함되어 있습니다.
+            - cardImageId, s3Key, presignedGetUrl을 반환합니다.
             - 카드는 항상 이미지를 가져야 하므로, 이미지가 없으면 404 에러가 발생합니다.
             """
     )

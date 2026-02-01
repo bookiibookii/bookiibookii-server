@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 import static com.example.bookiibookii.domain.group.entity.QGroups.groups;
-import static com.example.bookiibookii.domain.group.entity.QMatchedMember.matchedMember1;
+import static com.example.bookiibookii.domain.group.entity.QMatchedMember.matchedMember;
 import static com.example.bookiibookii.domain.user.entity.QUser.user;
 
 @Repository
@@ -30,11 +30,11 @@ public class MatchedMemberQueryRepository {
                                 .when(groups.host.id.eq(userId)).then(true)
                                 .otherwise(false)
                 ))
-                .from(matchedMember1)
-                .join(matchedMember1.group, groups)
+                .from(matchedMember)
+                .join(matchedMember.group, groups)
                 .join(groups.host, user)
                 .where(
-                        matchedMember1.user.id.eq(userId),
+                        matchedMember.user.id.eq(userId),
                         groups.groupStatus.eq(status)
                 )
                 .fetch();
@@ -48,10 +48,10 @@ public class MatchedMemberQueryRepository {
                         user.id,
                         user.name
                 ))
-                .from(matchedMember1)
-                .join(matchedMember1.user, user) // 멤버 정보 가져오기 위해 Join
+                .from(matchedMember)
+                .join(matchedMember.user, user) // 멤버 정보 가져오기 위해 Join
                 .where(
-                        matchedMember1.group.groupId.eq(groupId),
+                        matchedMember.group.groupId.eq(groupId),
                         user.id.ne(userId) // User 본인의 id는 제외
                 )
                 .fetch();

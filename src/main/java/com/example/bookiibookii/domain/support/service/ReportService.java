@@ -56,7 +56,7 @@ public class ReportService {
                         report.getCreatedAt(),
                         report.getReportType(),
                         report.getContent(),
-                        report.getReportStatus(),
+                        report.getSupportStatus(),
                         report.getAdminReply(),
                         report.getResolvedAt()
                 ))

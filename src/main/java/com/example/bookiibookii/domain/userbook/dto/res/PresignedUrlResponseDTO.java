@@ -7,5 +7,5 @@ import lombok.Getter;
 @Builder
 public class PresignedUrlResponseDTO {
     private String s3Key;
-    private String presignedUrl;
+    private String presignedPutUrl;
 }

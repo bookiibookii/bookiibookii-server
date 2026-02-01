@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum ReportStatus {
+public enum SupportStatus {
     PENDING("대기 중"),
     RESOLVED("해결 완료");
 

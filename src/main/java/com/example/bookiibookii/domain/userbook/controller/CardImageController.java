@@ -54,7 +54,7 @@ public class CardImageController implements CardImageControllerDocs {
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
                 .cardImageId(result.cardImage().getId())
                 .s3Key(result.cardImage().getS3Key())
-                .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
                         result.cardImage().getS3Key(), 
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();
@@ -77,7 +77,7 @@ public class CardImageController implements CardImageControllerDocs {
         CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())
                 .s3Key(cardImage.getS3Key())
-                .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
                         cardImage.getS3Key(), 
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();

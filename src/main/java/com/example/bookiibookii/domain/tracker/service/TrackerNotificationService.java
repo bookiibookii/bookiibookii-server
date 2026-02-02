@@ -44,8 +44,8 @@ public class TrackerNotificationService {
         RoleStatus myRole = matchedMemberRepository.findRoleByGroupIdAndUserId(event.groupId(), event.actorId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
-        MatchedMember receiver = matchedMemberRepository
-                .findTop1User_IdByGroup_GroupIdAndUser_IdNot(event.groupId(), event.actorId())
+        Long receiverId = matchedMemberRepository
+                .findPartnerUserId(event.groupId(), event.actorId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.PARTNER_NOT_FOUND));
 
         TrackerNotiType type = resolveNotiType(event.action(), myRole);
@@ -71,7 +71,7 @@ public class TrackerNotificationService {
 
         notificationRepository.save(
                 notificationFactory.create(
-                        receiver.getId(),
+                        receiverId,
                         NotificationType.SYSTEM,
                         type.title,
                         bodyMessage,

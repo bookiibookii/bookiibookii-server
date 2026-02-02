@@ -65,6 +65,15 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
     // 그룹 내 파트너 matchedMember의 userId 반환 - 1:1 경우에서만 사용가능
     Optional<MatchedMember> findTop1User_IdByGroup_GroupIdAndUser_IdNot(Long groupId, Long userId);
 
+    @Query("""
+    select m.user.id
+    from MatchedMember m
+    where m.group.groupId = :groupId
+      and m.user.id <> :actorId
+""")
+    Optional<Long> findPartnerUserId(@Param("groupId") Long groupId,
+                                     @Param("actorId") Long actorId);
+
     // 유저가 그룹의 멤버인지 검증
     boolean existsByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
 

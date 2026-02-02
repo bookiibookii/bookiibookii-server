@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.global.auth.CustomUserDetails;
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
+import com.example.bookiibookii.global.util.RedisUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -29,6 +30,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtTokenResolver tokenResolver; // JWT 토큰 추출
     private final JwtProvider jwtProvider; // JWT 검증
     private final UserRepository userRepository;
+    private final RedisUtil redisUtil;
 
     @Override
     protected void doFilterInternal(
@@ -41,6 +43,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
+                // 블랙리스트 확인
+                if (redisUtil.hasKey("BL:" + token)) {
+                    // 로그아웃된 토큰이므로 예외 발생 -> catch 블록으로 이동
+                    throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+                }
+
                 Claims claims = jwtProvider.parseClaims(token);
 
                 Long userId = Long.valueOf(claims.getSubject());
@@ -49,6 +57,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 if(!"access".equals(type))
                     throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
 
+                // 블랙리스트 통과 후에만 DB 조회 (성능 최적화)
                 User user = userRepository.findByIdIncludingWithdrawn(userId)
                         .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
@@ -59,7 +68,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 // Authentication 생성
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        userDetails, // 인증 전용 객체
+                        userDetails,
                         null,
                         userDetails.getAuthorities()
                 );

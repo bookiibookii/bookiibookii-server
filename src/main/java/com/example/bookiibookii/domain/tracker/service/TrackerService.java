@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
@@ -143,21 +144,38 @@ public class TrackerService {
 
 
     // 트래커 리스트 조회
+    // 1. 전체 조회
     @Transactional(readOnly = true)
     public List<TrackerListResponse> getTrackerList(Long userId) {
-        // 한 번의 쿼리로 그룹, 트래커, 히스토리 정보를 모두 가져옴
         List<Tracker> trackers = trackerRepository.findAllByUserIdWithDetails(userId);
+        return convertToResponseList(trackers, userId);
+    }
 
+    // 2. 내가 호스트인 리스트 조회
+    @Transactional(readOnly = true)
+    public List<TrackerListResponse> getHostTrackerList(Long userId) {
+        List<Tracker> trackers = trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.HOST);
+        return convertToResponseList(trackers, userId);
+    }
+
+    // 3.  내가 게스트인 리스트 조회
+    @Transactional(readOnly = true)
+    public List<TrackerListResponse> getGuestTrackerList(Long userId) {
+        List<Tracker> trackers = trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.GUEST);
+        return convertToResponseList(trackers, userId);
+    }
+
+    // 공통 변환 로직
+    private List<TrackerListResponse> convertToResponseList(List<Tracker> trackers, Long userId) {
         return trackers.stream()
                 .map(tracker -> {
-
                     List<String> stepDates = buildStepDates(tracker);
                     String targetNickname = findTargetNickname(tracker, userId);
-
                     return trackerConverter.toListResponse(tracker, targetNickname, stepDates);
                 })
                 .collect(Collectors.toList());
     }
+
 
     private String findTargetNickname(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()

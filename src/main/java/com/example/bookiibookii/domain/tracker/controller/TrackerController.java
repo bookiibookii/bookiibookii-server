@@ -78,6 +78,19 @@ public class TrackerController implements TrackerApi {
             @AuthenticationPrincipal(expression = "user") User user) {
         return ResponseEntity.ok(trackerService.getTrackerList(user.getId()));
     }
+    // 내가 호스트인 트래커 리스트
+    @GetMapping("/me/trackers/host")
+    public ResponseEntity<List<TrackerListResponse>> getHostTrackers(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        return ResponseEntity.ok(trackerService.getHostTrackerList(user.getId()));
+    }
+
+    // 내가 게스트인 트래커 리스트
+    @GetMapping("/me/trackers/guest")
+    public ResponseEntity<List<TrackerListResponse>> getGuestTrackers(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        return ResponseEntity.ok(trackerService.getGuestTrackerList(user.getId()));
+    }
 
     @Override
     @GetMapping("/{groupId}/tracker")

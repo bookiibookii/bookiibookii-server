@@ -46,6 +46,6 @@ public class UserRequestDTO {
             @NotBlank
             String addressDetail,
             @NotBlank
-            String region
+            String meetPlace
     ){}
 }

@@ -61,11 +61,11 @@ public class User extends BaseEntity {
     @Builder.Default
     private Role role = USER;
 
-    @Column(name = "region")
-    private String region;
-
     @Column(name = "meet_place")
     private String meetPlace;
+
+    @Column(name = "Region")
+    private String region;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -94,4 +94,5 @@ public class User extends BaseEntity {
         this.status = Status.ACTIVE;
     }
     public void updateName(String name) { this.name = name; }
+    public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
 }

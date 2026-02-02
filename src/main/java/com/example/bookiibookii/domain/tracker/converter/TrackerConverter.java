@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.tracker.converter;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
@@ -54,16 +55,24 @@ public class TrackerConverter {
         TrackerListResponse.TrackerListResponseBuilder builder = TrackerListResponse.builder()
                 .groupId(group.getGroupId())
                 .groupType(groupType)
-                .bookTitle(book.getTitle())
-                .image(book.getImage())
-                .author(book.getAuthor())
-                .category(book.getCategory().toString());
+                .bookTitle(book != null ? book.getTitle() : null)
+                .image(book != null ? book.getImage() : null)
+                .author(book != null ? book.getAuthor() : null)
+                .category(book != null && book.getCategory() != null ? book.getCategory().toString() : null);
 
         // 4. 타입별 상세 데이터 매핑
         if ("RELAY".equals(groupType)) {
+            // 게스트 프로필 이미지 리스트 추출 (호스트 제외)
+            List<String> guestImages = group.getMatchedMember().stream()
+                    .map(matched -> matched.getUser()) // MatchedMember에서 User 추출
+                    .filter(user -> !user.getRole().equals(RoleStatus.HOST)) // 호스트는 제외
+                    .map(user -> user.getUserImage() != null ? user.getUserImage().getS3Key() : null) // 이미지 경로 추출
+                    .toList();
+
             builder.relayDetail(TrackerListResponse.RelayDetail.builder()
-                    .hostNickname(group.getHost().getName())
-                     .hostProfileImage(group.getHost().getUserImage() != null ? group.getHost().getUserImage().getS3Key() : null)
+                    .partnerNickname(targetNickname) // 서비스에서 조회한 현재 나의 파트너 닉네임
+                    .hostProfileImage(group.getHost().getUserImage() != null ? group.getHost().getUserImage().getS3Key() : null)
+                    .guestProfileImages(guestImages) // 위에서 추출한 게스트 이미지 리스트
                     .stepDates(stepDates)
                     .build());
         }

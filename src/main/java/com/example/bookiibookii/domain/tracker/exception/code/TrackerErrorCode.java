@@ -14,7 +14,8 @@ public enum TrackerErrorCode implements BaseCode {
     INVALID_DELIVERY_INFO(HttpStatus.BAD_REQUEST, "TRACKER400_2", "유효하지 않은 배송 정보(운송장 번호 등)입니다."),
     EXTENSION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "TRACKER400_3" , "최대 연장 횟수를 초과했습니다." ),
     INVALID_TRACKER_DAYS(HttpStatus.BAD_REQUEST, "TRACKER400_4","0 이하의 날짜를 입력했습니다." ),
-    INVALID_TRADE_TYPE(HttpStatus.BAD_REQUEST, "Tracekr400_5", "직접 교환 그룹이 아닙니다." ),
+    INVALID_TRADE_TYPE(HttpStatus.BAD_REQUEST, "TRACKER400_5", "직접 교환 그룹이 아닙니다." ),
+    TRACKER_NOT_CREATED(HttpStatus.BAD_REQUEST, "TRACKER400_6", "트래커 생성 중 에러 발생했습니다" ),
 
     // --- 403 FORBIDDEN ---
     NOT_YOUR_TURN(HttpStatus.FORBIDDEN, "TRACKER403_1", "현재 독서 주자가 아닙니다."),

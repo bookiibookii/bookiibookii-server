@@ -30,6 +30,7 @@ import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -64,6 +66,8 @@ public class TrackerService {
     // 트래커 생성
     @Transactional
     public void createTracker(GroupMatchedEvent event) {
+        log.info("[TrackerService] createTracker 시작 - groupId: {}, hostId: {}", event.groupId(), event.hostId());
+
         // 1. 이미 해당 그룹의 트래커가 있는지 검증 (boolean 체크)
         if (trackerRepository.existsByGroup_GroupId(event.groupId())) {
             throw new TrackerException(TrackerErrorCode.TRACKER_ALREADY_EXISTS);
@@ -89,6 +93,7 @@ public class TrackerService {
                 .build();
 
         trackerRepository.save(tracker);
+        log.info("[TrackerService] 트래커 엔티티 저장 완료 - trackerId: {}", tracker.getId());
 
         // 5. 첫 히스토리 기록
         TrackerHistory initialHistory = tracker.createHistorySnapshot(
@@ -97,6 +102,8 @@ public class TrackerService {
                 null, null, null
         );
         trackerHistoryRepository.save(initialHistory);
+
+        log.info("[TrackerService] 초기 히스토리 저장 완료 - historyId: {}", initialHistory.getId());
     }
 
     //트래커 상세 조회

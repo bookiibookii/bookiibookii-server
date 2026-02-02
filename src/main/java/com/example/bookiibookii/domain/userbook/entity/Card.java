@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.entity;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,6 +21,10 @@ public class Card extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_book_id", nullable = false)
     private UserBook userBook;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Groups group;
 
     @Column(name = "page")
     private Integer page;

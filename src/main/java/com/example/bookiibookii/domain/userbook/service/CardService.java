@@ -66,9 +66,10 @@ public class CardService {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 
-        // Card 생성
+        // Card 생성 (그룹 멤버들이 함께 볼 수 있도록 group 매핑)
         Card card = Card.builder()
                 .userBook(userBook)
+                .group(userBook.getGroup())
                 .page(page)
                 .memo(memo)
                 .build();

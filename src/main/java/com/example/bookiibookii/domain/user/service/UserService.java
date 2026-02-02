@@ -32,6 +32,7 @@ import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -44,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -86,14 +88,14 @@ public class UserService {
         // 1. 비속어 가용성 체크 (!사용)
         boolean isNotBad = !containsBadWord(nickname);
         if (!isNotBad) {
-            System.out.println("⚠️ [검증 실패] 비속어 포함: " + nickname);
+            log.warn("[검증 실패] 비속어 포함: {}", nickname);
             return false;
         }
 
         // 2. 중복 가용성 체크 (제이스님이 원하신 !userRepository.existsByName 형식)
         boolean isNotDuplicate = !userRepository.existsByName(nickname);
         if (!isNotDuplicate) {
-            System.out.println("⚠️ [검증 실패] 중복 닉네임: " + nickname);
+            log.warn("[검증 실패] 중복 닉네임: {}", nickname);
             return false;
         }
 

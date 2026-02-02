@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.group.repository;
 import com.example.bookiibookii.domain.group.entity.Application;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,6 +47,11 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             "GROUP BY a.group.groupId")
     List<Object[]> countPendingByGroupIds(@Param("groupIds") List<Long> groupIds);
 
+    //특정 그룹의 모든 대기 중인 신청서를 일괄 거절 상태로 변경
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Application a SET a.applicationStatus = :status " +
+            "WHERE a.group.groupId = :groupId AND a.applicationStatus = 'PENDING'")
+    void updatePendingToRejectedByGroupId(@Param("groupId") Long groupId, @Param("status") ApplicationStatus status);
     @Query("""
     select distinct a.guest.id
     from Application a
@@ -56,5 +62,12 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("groupId") Long groupId,
             @Param("status") ApplicationStatus status
     );
+
+    @Query("""
+    select distinct a.guest.id
+    from Application a
+    where a.group.groupId = :groupId
+""")
+    List<Long> findApplicantUserIdsByGroupId(@Param("groupId") Long groupId);
 }
 

@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -23,6 +24,7 @@ import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +46,7 @@ public class ApplicationService {
     private final GroupsRepository groupsRepository;
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final DomainEventPublisher publisher;
     private final UserBookService userBookService;
 
@@ -96,17 +99,19 @@ public class ApplicationService {
             throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
+        // 알림 이벤트를 위한 book fetch join group 조회 추가
+        Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getGroupId())
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
         // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
         if (status == ApplicationStatus.ACCEPTED) {
-            // [핵심] 방장을 포함한 현재 확정 인원수 계산 (MatchedMember에서 조회)
-            long currentTotalCount = matchedMemberRepository.countByGroup(group);
-                // 정원 초과 체크 (방장 포함 maxCapacity와 비교)
-                if (currentTotalCount >= group.getMaxCapacity()) {
-                    throw new GroupException(GroupErrorCode.GROUP_FULL);
-                }
 
-            // [핵심] MatchedMember에 새 멤버 등록 및 순서 부여
-            // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
+            long currentTotalCount = matchedMemberRepository.countByGroup(group);
+
+            if (currentTotalCount >= group.getMaxCapacity()) {
+                throw new GroupException(GroupErrorCode.GROUP_FULL);
+            }
+
             MatchedMember newMember = MatchedMember.builder()
                     .group(group)
                     .user(application.getGuest())
@@ -121,28 +126,40 @@ public class ApplicationService {
             // 신청서 상태 업데이트
             application.updateStatus(ApplicationStatus.ACCEPTED);
 
-            // 알림 publish
-            publisher.publish(new GroupNotificationEvent(MATCH_SUCCEEDED, userId, newMember.getUser().getId(), group.getGroupId()));
+            publisher.publish(new GroupNotificationEvent(
+                    MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(),
+                    newMember.getUser().getId(), null, group.getGroupId()
+            ));
 
-            // 정원이 다 찼을 경우 그룹 상태 변경 + 나머지 거절
             if (currentTotalCount + 1 >= group.getMaxCapacity()) {
                 group.updateStatus(GroupStatus.MATCHED);
 
                 List<Application> pendingApplications =
                         applicationRepository.findAllPendingByGroupId(group.getGroupId());
 
+                List<Long> autoRejectedReceiverIds = pendingApplications.stream()
+                        .map(app -> app.getGuest().getId())
+                        .filter(id -> !id.equals(userId))   // host 제외
+                        .distinct()
+                        .toList();
+
                 for (Application pendingApp : pendingApplications) {
                     pendingApp.updateStatus(ApplicationStatus.REJECTED);
                 }
-                // 알림 publish
-                publisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, userId, null, group.getGroupId()));
+
+                publisher.publish(new GroupNotificationEvent(
+                        MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
+                        null, autoRejectedReceiverIds, group.getGroupId()
+                ));
             }
 
         } else {
             application.updateStatus(ApplicationStatus.REJECTED);
 
-            // 알림 publish
-            publisher.publish(new GroupNotificationEvent(MATCH_REJECTED, userId, application.getGuest().getId(), group.getGroupId()));
+            publisher.publish(new GroupNotificationEvent(
+                    MATCH_REJECTED, userId, thisGroup.getBook().getTitle(),
+                    application.getGuest().getId(), null, group.getGroupId()
+            ));
         }
 
         return ApplicationResponseDTO.UpdateResultDTO.builder()
@@ -157,7 +174,7 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
         //그룹 존재여부 확인
-        Groups group = groupsRepository.findById(groupId)
+        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         //그룹 상태 확인(RECRUTING)
@@ -195,7 +212,7 @@ public class ApplicationService {
         }
 
         // 알림 publish
-        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getHost().getId(), groupId) );
+        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getBook().getTitle(), group.getHost().getId(), null, groupId) );
 
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())
@@ -212,27 +229,30 @@ public class ApplicationService {
         Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 참여 정보 확인
-        MatchedMember member = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
-                .orElseThrow(() -> new GroupException(GroupErrorCode.MEMBER_NOT_FOUND));
-
-        //권한 체크 (Host)는 취소 불가
-        if(member.getRole() == RoleStatus.HOST){
-            throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
-        }
-
-
-        //그룹이 모집중(RECRUITING) 일때만 취소가능
-        if(group.getGroupStatus() != GroupStatus.RECRUITING){
+        // 2. 이미 모집 완료(MATCHED)된 경우 취소 불가 (GROUP400_12)
+        if (group.getGroupStatus() == GroupStatus.MATCHED ||
+                group.getGroupStatus() == GroupStatus.COMPLETED ||
+                group.getGroupStatus() == GroupStatus.DELETED) {
             throw new GroupException(GroupErrorCode.APPLY_CANT_CANCEL);
         }
 
-        //참여신청 목록에서 제외, 참여 내역 삭제
-        applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
-                        .ifPresent(applicationRepository::delete);
-        matchedMemberRepository.delete(member);
+        // 3. Application을 조회
+        Application application = applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
-        //취소 후 그룹 정원 다시 계산
+        // 4. 만약 이미 승인까지 난 멤버라면 MatchedMember에서도 데이터 삭제
+        matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .ifPresent(member -> {
+                    if (member.getRole() == RoleStatus.HOST) {
+                        throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
+                    }
+                    matchedMemberRepository.delete(member);
+                });
+
+        // 5. 신청 내역(Application) 삭제
+        applicationRepository.delete(application);
+
+        // 6. 인원 재계산 및 필요 시 모집 중(RECRUITING)으로 상태 복구
         long currentCount = matchedMemberRepository.countByGroup(group);
         if (currentCount < group.getMaxCapacity()) {
             group.updateStatus(GroupStatus.RECRUITING);

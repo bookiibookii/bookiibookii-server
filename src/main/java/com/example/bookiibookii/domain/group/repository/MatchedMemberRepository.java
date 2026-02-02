@@ -2,6 +2,8 @@ package com.example.bookiibookii.domain.group.repository;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -72,5 +74,22 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
         from MatchedMember mm
         where mm.group.groupId = :groupId
     """)
+    
     List<Long> findMemberUserIdsByGroupId(@Param("groupId") Long groupId);
+    // 참여한 그룹 중 상태가 RECRUITING, MATCHED 인 것 조회
+    @Query("SELECT DISTINCT g FROM MatchedMember mm " +
+            "JOIN mm.group g " +
+            "JOIN FETCH g.book " +          // 책 정보 필요
+            "LEFT JOIN FETCH g.groupTags gt " + // 태그 정보 필요
+            "LEFT JOIN FETCH gt.tag " +
+            "WHERE mm.user.id = :userId " +
+            "AND g.groupStatus IN :statuses")
+    List<Groups> findMyActiveGroups(
+            @Param("userId") Long userId,
+            @Param("statuses") List<GroupStatus> statuses
+    );
+
+    // 참여했던 전체 그룹 중 특정 타입(RELAY, TOGETHER) 개수 조회
+    Long countByUser_IdAndGroup_GroupType(Long userId, GroupType groupType);
+
 }

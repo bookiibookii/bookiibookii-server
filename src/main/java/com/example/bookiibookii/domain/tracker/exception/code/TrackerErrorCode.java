@@ -20,11 +20,13 @@ public enum TrackerErrorCode implements BaseCode {
     NOT_YOUR_TURN(HttpStatus.FORBIDDEN, "TRACKER403_1", "현재 독서 주자가 아닙니다."),
     NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "TRACKER403_2", "해당 그룹의 멤버만 트래킹 정보를 조회할 수 있습니다."),
     NOT_TRACKER_OWNER(HttpStatus.FORBIDDEN, "TRACKER403_3", "해당 트래커를 조작할 권한이 없습니다. 현재 도서 소유자만 가능합니다."),
+    TRACKER_ALREADY_EXISTS(HttpStatus.FORBIDDEN, "TRACKER403_4" , "이미 트래커가 존재하는 그룹입니다." ),
 
     // --- 404 NOT_FOUND ---
     TRACKER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_1", "해당 트래커를 찾을 수 없습니다."),
     HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_2", "트래킹 히스토리 기록이 존재하지 않습니다."),
-    NEXT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_3" , "다음 순번 주자를 찾을 수 없습니다." );
+    NEXT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_3" , "다음 순번 주자를 찾을 수 없습니다." ),
+    FIRST_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_4", "첫 번째 주자를 찾을 수 없습니다." );
 
 
     private final HttpStatus status;

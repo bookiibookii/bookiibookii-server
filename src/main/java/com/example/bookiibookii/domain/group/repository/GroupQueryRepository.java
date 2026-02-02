@@ -14,9 +14,7 @@ import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -119,5 +117,58 @@ public class GroupQueryRepository {
 
     private BooleanExpression inCategories(List<CustomCategory> categories) {
         return (categories == null || categories.isEmpty()) ? null : book.category.in(categories);
+    }
+
+    //검색
+    public Page<Groups> searchGroupsByKeyword(String searchword, GroupSortType sort, Pageable pageable) {
+        // 1. 데이터 조회 (JOIN FETCH로 N+1 방지)
+        List<Groups> content = queryFactory
+                .selectFrom(groups)
+                .join(groups.book, book).fetchJoin()
+                .join(groups.host, user).fetchJoin()
+                .leftJoin(groups.groupTags, groupTag)
+                .leftJoin(groupTag.tag, tag)
+                .where(
+                        searchwordContains(searchword),
+                        groups.groupStatus.eq(GroupStatus.RECRUITING)
+                )
+                .groupBy(groups.groupId) // 태그 조인으로 인한 중복 제거
+                .orderBy(getSearchSortOrder(sort))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        // 2. 검색 결과 총 개수 (SearchResultDTO 전용)
+        Long totalCount = queryFactory
+                .select(groups.countDistinct())
+                .from(groups)
+                .join(groups.book, book)
+                .leftJoin(groups.groupTags, groupTag)
+                .leftJoin(groupTag.tag, tag)
+                .where(searchwordContains(searchword), groups.groupStatus.eq(GroupStatus.RECRUITING))
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, totalCount != null ? totalCount : 0L);
+    }
+
+    private BooleanExpression searchwordContains(String searchword) {
+        if (searchword == null || searchword.isBlank()) return null;
+
+        return book.title.containsIgnoreCase(searchword)
+                .or(book.author.containsIgnoreCase(searchword))
+                .or(tag.code.containsIgnoreCase(searchword));
+    }
+
+    private OrderSpecifier<?> getSearchSortOrder(GroupSortType sort) {
+        GroupSortType sortType = (sort != null) ? sort : GroupSortType.LATEST;
+
+        return switch (sortType) {
+            case POPULAR -> groups.applications.size().desc(); // 인기순
+
+            // RECOMMEND가 들어와도 의도적으로 LATEST(최신순)를 반환(검색결과에는 추천순 필터 없음)
+            case LATEST, RECOMMEND -> groups.createdAt.desc();
+
+            default -> groups.createdAt.desc();
+        };
     }
 }

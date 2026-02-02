@@ -25,7 +25,8 @@ public enum TrackerErrorCode implements BaseCode {
     // --- 404 NOT_FOUND ---
     TRACKER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_1", "해당 트래커를 찾을 수 없습니다."),
     HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_2", "트래킹 히스토리 기록이 존재하지 않습니다."),
-    NEXT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_3" , "다음 순번 주자를 찾을 수 없습니다." );
+    NEXT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_3" , "다음 순번 주자를 찾을 수 없습니다." ),
+    FIRST_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_4", "첫번 째 주자를 찾을 수 없습니다." );
 
 
     private final HttpStatus status;

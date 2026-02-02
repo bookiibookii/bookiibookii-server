@@ -113,7 +113,9 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음", content = @Content)
     })
-    ResponseEntity<List<TrackerListResponse>> getHostTrackers(User user);
+    ResponseEntity<List<TrackerListResponse>> getHostTrackers(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
 
     @Operation(summary = "내가 게스트인 트래커 리스트 조회",
             description = "내가 빌려 읽는 사람(게스트)으로 참여 중인 트래커 리스트만 조회합니다.")
@@ -121,7 +123,9 @@ public interface TrackerApi {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음", content = @Content)
     })
-    ResponseEntity<List<TrackerListResponse>> getGuestTrackers(User user);
+    ResponseEntity<List<TrackerListResponse>> getGuestTrackers(
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
 
     @Operation(
             summary = "트래킹 상세 현황 조회",

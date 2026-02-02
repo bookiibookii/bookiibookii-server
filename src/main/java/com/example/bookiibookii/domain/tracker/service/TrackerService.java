@@ -6,6 +6,8 @@ import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
@@ -69,11 +71,11 @@ public class TrackerService {
 
         // 2. 그룹 엔티티 조회
         Groups group = groupsRepository.findById(event.groupId())
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 3. 첫 번째 주자(호스트, 순서 1번)의 MatchedMember 조회
         MatchedMember firstOwner = matchedMemberRepository.findByGroupAndOrder(event.groupId(), 1)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.FIRST_MEMBER_NOT_FOUND));
 
         // 4. 트래커 초기 빌드
         Tracker tracker = Tracker.builder()

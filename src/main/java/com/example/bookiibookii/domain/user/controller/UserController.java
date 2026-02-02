@@ -66,7 +66,18 @@ public class UserController implements UserControllerDocs{
             @AuthenticationPrincipal(expression = "user") User user
     ) {
         UserResponseDTO.MypageDTO result = userService.getMypageInfo(user.getId());
-        return ApiResponse.onSuccess(UserSuccessCode.MYPAGE_SUCCESS, result);
+        return ApiResponse.onSuccess(UserSuccessCode.GET_MYPAGE_SUCCESS, result);
+    }
+
+    // MyPage 정보 수정
+    @Override
+    @PatchMapping("/api/mypage")
+    public ApiResponse<Void> updateMypage(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.MypageReqDTO request
+    ) {
+        userService.updateMypage(user.getId(), request);
+        return ApiResponse.onSuccess(UserSuccessCode.UPDATE_MYPAGE_SUCCESS, null);
     }
 
 }

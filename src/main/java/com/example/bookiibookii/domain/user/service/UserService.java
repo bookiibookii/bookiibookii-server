@@ -12,6 +12,7 @@ import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
 import com.example.bookiibookii.domain.tag.repository.TagRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
+import com.example.bookiibookii.domain.user.entity.Address;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserImage;
 import com.example.bookiibookii.domain.user.entity.UserTag;
@@ -21,6 +22,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
+import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserImageRepository;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository;
@@ -52,6 +54,7 @@ public class UserService {
     private final UserTagService userTagService;
     private final UserBookRepository userBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final AddressRepository addressRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -216,5 +219,39 @@ public class UserService {
                 .groupStatus(group.getGroupStatus())
                 .groupTags(displayTags)
                 .build();
+    }
+
+    // 마이페이지 설정
+    @Transactional
+    public void updateMypage(Long userId, UserRequestDTO.MypageReqDTO request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        if (isNicknameAvailable(request.nickname())) user.updateName(request.nickname());
+
+        //TODO : 프로필 이미지 처리
+        Address address = addressRepository.findByUserId(userId).orElse(null);
+
+        if (address == null) {
+            address = Address.builder()
+                    .user(user)
+                    .receiverName(request.receiverName())
+                    .phone(request.phone())
+                    .zipCode(request.zipCode())
+                    .address(request.address())
+                    .addressDetail(request.addressDetail())
+                    .region(request.region())
+                    .build();
+            addressRepository.save(address);
+        } else {
+            address.updateAddressInfo(
+                    request.receiverName(),
+                    request.phone(),
+                    request.zipCode(),
+                    request.address(),
+                    request.addressDetail(),
+                    request.region()
+            );
+        }
     }
 }

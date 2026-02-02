@@ -132,7 +132,6 @@ public class ApplicationService {
                             group.getStartDate(),
                             group.getMaxCapacity()
                     ));
-
                     // 나머지 대기 인원 일괄 거절
                     List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
                     for (Application pendingApp : pendingApplications) {

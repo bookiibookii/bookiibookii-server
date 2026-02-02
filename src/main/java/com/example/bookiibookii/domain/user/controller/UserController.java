@@ -1,6 +1,8 @@
 package com.example.bookiibookii.domain.user.controller;
 
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
+import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.code.UserImageSuccessCode;
@@ -16,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Validated
@@ -58,4 +61,38 @@ public class UserController implements UserControllerDocs{
         return ApiResponse.onSuccess(UserSuccessCode.ONBOARDING_SUCCESS, null);
     }
 
+    // MyPage 조회
+    @Override
+    @GetMapping("/api/mypage")
+    public ApiResponse<UserResponseDTO.UserProfileResDTO> getMypage(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        List<GroupStatus> statuses = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
+        UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(user.getId(), statuses);
+        return ApiResponse.onSuccess(UserSuccessCode.GET_MYPAGE_SUCCESS, result);
+    }
+
+    // MyPage 정보 수정
+    @Override
+    @PatchMapping("/api/mypage")
+    public ApiResponse<Void> updateMypage(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.MypageReqDTO request
+    ) {
+        userService.updateMypage(user.getId(), request);
+        return ApiResponse.onSuccess(UserSuccessCode.UPDATE_MYPAGE_SUCCESS, null);
+    }
+
+    // 타 유저 프로필 조회
+    @Override
+    @GetMapping("/api/profiles/{nickname}")
+    public ApiResponse<UserResponseDTO.UserProfileResDTO> getOtherProfile(
+            @PathVariable("nickname") String nickname
+    ) {
+        Long targetUserId = userService.findUserIdByNickname(nickname);
+        List<GroupStatus> statuses = List.of(GroupStatus.RECRUITING);
+        UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(targetUserId, statuses);
+
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
 }

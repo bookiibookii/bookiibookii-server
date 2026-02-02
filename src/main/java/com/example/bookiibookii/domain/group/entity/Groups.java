@@ -56,6 +56,9 @@ public class Groups extends BaseEntity {
     @Column(name = "group_comment", length = 200)
     private String groupComment;
 
+    @Column(name = "custom_tag", length = 8)
+    private String customTag;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "group_type")
     private GroupType groupType; //RELAY, TOGETHER

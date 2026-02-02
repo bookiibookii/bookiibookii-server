@@ -17,10 +17,8 @@ public class TrackerEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onGroupMatched(GroupMatchedEvent event) {
-        try {
+
             trackerService.createTracker(event);
-        } catch (Exception e) {
-            throw new TrackerException(TrackerErrorCode.TRACKER_NOT_CREATED);
-        }
+
     }
 }

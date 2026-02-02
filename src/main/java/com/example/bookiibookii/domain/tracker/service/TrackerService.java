@@ -32,6 +32,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
@@ -64,7 +65,7 @@ public class TrackerService {
 
 
     // 트래커 생성
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createTracker(GroupMatchedEvent event) {
         log.info("[TrackerService] createTracker 시작 - groupId: {}, hostId: {}", event.groupId(), event.hostId());
 

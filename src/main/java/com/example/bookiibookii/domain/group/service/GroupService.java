@@ -22,7 +22,9 @@ import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
+import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
@@ -105,6 +107,7 @@ public class GroupService {
                 .startDate(request.getStartDate())
                 .readingPeriod(request.getReadingPeriod())
                 .groupComment(request.getGroupComment())
+                .customTag(request.getCustomTag())
                 .groupType(request.getGroupType())
                 .tradeType(finalTradeType)
                 .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
@@ -255,6 +258,11 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
+        // 커스텀 태그 수정
+        if(request.getCustomTag() != null){
+            group.setCustomTag(request.getCustomTag());
+        }
+
         //독서 태그 수정
         if (request.getTags() != null) {
             group.clearGroupTags();
@@ -331,6 +339,9 @@ public class GroupService {
         // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
         String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
 
+        List<String> groupTag = group.getGroupTags().stream().map(ut -> ut.getTag().getCode()).toList();
+
+
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
                 .groupId(group.getGroupId())
@@ -350,7 +361,8 @@ public class GroupService {
                 .hostNickname(group.getHost().getName())
                 .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
-                //.tags(new ArrayList<>())
+                .groupTags(groupTag)
+                .customTag(group.getCustomTag())
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
                 .build();

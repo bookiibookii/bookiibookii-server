@@ -103,15 +103,13 @@ public class ApplicationService {
 
         // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
         if (status == ApplicationStatus.ACCEPTED) {
-            // [핵심] 방장을 포함한 현재 확정 인원수 계산 (MatchedMember에서 조회)
-            long currentTotalCount = matchedMemberRepository.countByGroup(group);
-                // 정원 초과 체크 (방장 포함 maxCapacity와 비교)
-                if (currentTotalCount >= group.getMaxCapacity()) {
-                    throw new GroupException(GroupErrorCode.GROUP_FULL);
-                }
 
-            // [핵심] MatchedMember에 새 멤버 등록 및 순서 부여
-            // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
+            long currentTotalCount = matchedMemberRepository.countByGroup(group);
+
+            if (currentTotalCount >= group.getMaxCapacity()) {
+                throw new GroupException(GroupErrorCode.GROUP_FULL);
+            }
+
             MatchedMember newMember = MatchedMember.builder()
                     .group(group)
                     .user(application.getGuest())
@@ -120,13 +118,13 @@ public class ApplicationService {
                     .build();
             matchedMemberRepository.save(newMember);
 
-            // 신청서 상태 업데이트
             application.updateStatus(ApplicationStatus.ACCEPTED);
 
-            // 알림 publish
-            publisher.publish(new GroupNotificationEvent(MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(), newMember.getUser().getId(), null, group.getGroupId()));
+            publisher.publish(new GroupNotificationEvent(
+                    MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(),
+                    newMember.getUser().getId(), null, group.getGroupId()
+            ));
 
-            // 정원이 다 찼을 경우 그룹 상태 변경 + 나머지 거절
             if (currentTotalCount + 1 >= group.getMaxCapacity()) {
                 group.updateStatus(GroupStatus.MATCHED);
 
@@ -141,17 +139,21 @@ public class ApplicationService {
 
                 for (Application pendingApp : pendingApplications) {
                     pendingApp.updateStatus(ApplicationStatus.REJECTED);
-                
                 }
-                // 알림 publish
-                publisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(), null, autoRejectedReceiverIds, group.getGroupId()));
+
+                publisher.publish(new GroupNotificationEvent(
+                        MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
+                        null, autoRejectedReceiverIds, group.getGroupId()
+                ));
             }
 
-         else {
+        } else {
             application.updateStatus(ApplicationStatus.REJECTED);
 
-            // 알림 publish
-            publisher.publish(new GroupNotificationEvent(MATCH_REJECTED, userId, thisGroup.getBook().getTitle(), application.getGuest().getId(), null, group.getGroupId()));
+            publisher.publish(new GroupNotificationEvent(
+                    MATCH_REJECTED, userId, thisGroup.getBook().getTitle(),
+                    application.getGuest().getId(), null, group.getGroupId()
+            ));
         }
 
         return ApplicationResponseDTO.UpdateResultDTO.builder()

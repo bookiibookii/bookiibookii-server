@@ -17,11 +17,13 @@ import com.example.bookiibookii.global.util.RedisUtil;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -127,25 +129,37 @@ public class AuthService {
             return;
         }
 
+        // 토큰 유효성 검증 (JWT 관련 예외 처리)
+        // validateToken 내부에서 이미 예외를 잡아서 false를 반환하도록 되어 있다면 try-catch 불필요
+        // 하지만 getUserId나 getRemainingTime에서 발생할 수 있는 JwtException을 대비
         try {
-            // 토큰 유효성 검사 + 유효한 토큰만 블랙리스트에 넣음
-            if (jwtProvider.validateToken(accessToken)) {
-                Long userId = jwtProvider.getUserId(accessToken);
-
-                // Refresh Token 삭제
-                redisUtil.delete("RT:" + userId);
-
-                // Access Token 남은 시간 계산
-                long remainingTime = jwtProvider.getRemainingTime(accessToken);
-
-                // Redis에 Blacklist 등록
-                // Key: "BL:{accessToken}", Value: "logout", Duration: 남은 시간
-                if (remainingTime > 0) {
-                    redisUtil.setBlackList("BL:" + accessToken, "logout", remainingTime);
-                }
+            if (!jwtProvider.validateToken(accessToken)) {
+                log.debug("로그아웃 요청이 왔으나 유효하지 않은 토큰임: {}", accessToken);
+                return; // 유효하지 않으면 블랙리스트 등록도 필요 없음
             }
+        } catch (JwtException e) {
+            // 파싱 불가능하거나 만료된 토큰은 무시 (또는 Debug 로그)
+            log.debug("로그아웃 토큰 검증 실패: {}", e.getMessage());
+            return;
+        }
+
+        // Redis 처리 (시스템/인프라 관련 예외 처리)
+        try {
+            Long userId = jwtProvider.getUserId(accessToken);
+
+            // Refresh Token 삭제
+            redisUtil.delete("RT:" + userId);
+
+            // Access Token 남은 시간 계산
+            long remainingTime = jwtProvider.getRemainingTime(accessToken);
+
+            // Redis에 Blacklist 등록
+            if (remainingTime > 0) {
+                redisUtil.setBlackList("BL:" + accessToken, "logout", remainingTime);
+            }
+
         } catch (Exception e) {
-            return; // 이미 만료된 토큰이거나 에러 발생 시 로그아웃 처리만 진행
+            log.error("로그아웃 중 Redis 처리 에러 발생. user access token: {}", accessToken, e);
         }
     }
 

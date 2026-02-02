@@ -18,7 +18,7 @@ public class TrackerConverter {
                 .trackerId(tracker.getId())
                 .trackerStatus(tracker.getTrackerStatus())
                 .currentMatchedMemberId(tracker.getBookOwner() != null ?
-                        tracker.getBookOwner().getMatchedMember() : null)
+                        tracker.getBookOwner().getId() : null)
                 .endDate(tracker.getEndDate())
                 .extension_count(tracker.getExtensionCount())
                 .extension_days(tracker.getExtensionDays())

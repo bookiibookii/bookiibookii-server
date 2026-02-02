@@ -44,8 +44,9 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<CardCreateResponseDTO> getCardDetail(
             @PathVariable Long cardId
     ) {
-        Card card = cardService.getCardWithCardImage(cardId);
+        Card card = cardService.getCardWithCardImageAndBook(cardId);
         CardImage cardImage = card.getCardImage();
+        String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
 
         CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())
@@ -61,6 +62,7 @@ public class CardImageController implements CardImageControllerDocs {
                 .memo(card.getMemo())
                 .cardImage(cardImageResponseDTO)
                 .createdAt(card.getCreatedAt())
+                .bookTitle(bookTitle)
                 .build();
 
         return ApiResponse.onSuccess(CardImageSuccessCode.CARD_FOUND, responseDTO);

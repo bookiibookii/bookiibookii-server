@@ -13,4 +13,6 @@ public class CardCreateResponseDTO {
     private String memo;
     private CardImageResponseDTO cardImage;
     private LocalDateTime createdAt;
+    /** 책 제목 (카드 상세 조회 시에만 설정, 그 외에는 null) */
+    private String bookTitle;
 }

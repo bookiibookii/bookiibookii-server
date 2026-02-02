@@ -280,6 +280,15 @@ public class CardService {
     }
 
     /**
+     * 카드 상세 조회용으로 Card를 CardImage, UserBook, Group, Book과 함께 조회합니다.
+     * 책 제목 등 상세 응답에 필요한 연관 데이터를 한 번에 로드합니다.
+     */
+    public Card getCardWithCardImageAndBook(Long cardId) {
+        return cardRepository.findByIdWithCardImageAndUserBookAndBook(cardId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
+    }
+
+    /**
      * UserBook에 속한 Card 목록과 해당 UserBook의 책 제목을 조회합니다.
      * UserBook 소유자이거나 같은 그룹 멤버인 경우에만 조회 가능합니다.
      * 책 제목, groupId, 카드 목록을 생성일 기준 오름차순으로 반환합니다.

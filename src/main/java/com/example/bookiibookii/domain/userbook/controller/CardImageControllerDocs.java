@@ -47,7 +47,7 @@ public interface CardImageControllerDocs {
             description = """
             특정 독서카드 한 건의 상세 정보를 조회합니다.
             
-            - cardId, page, memo, cardImage(이미지 정보), createdAt을 반환합니다.
+            - cardId, page, memo, cardImage(이미지 정보), createdAt, bookTitle(책 제목)을 반환합니다.
             - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
             """
     )

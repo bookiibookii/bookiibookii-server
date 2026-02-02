@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "user_badge")
+@Table(name = "user_badge", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "badge_code"}))
 @Builder
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

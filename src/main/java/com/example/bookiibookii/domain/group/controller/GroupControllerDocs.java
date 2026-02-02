@@ -83,13 +83,14 @@ public interface GroupControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "OK, 성공")
     })
     ApiResponse<GroupResponseDTO.SearchResultDTO> searchGroups(
-            @Valid @ModelAttribute GroupRequestDTO.SearchDTO request
+            @Valid @ModelAttribute GroupRequestDTO.SearchDTO request);
+
     @Operation(summary = "신고할 그룹 조회 API (드롭다운 데이터)",
             description = "신고하기 페이지에서 유저가 속해있는 현재 진행중(MATCHED) 상태의 그룹 데이터를 조회하는 API입니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
     })
-    ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
+            ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
             @AuthenticationPrincipal User user
     );
 
@@ -102,4 +103,5 @@ public interface GroupControllerDocs {
     ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
             @AuthenticationPrincipal User user, @PathVariable(name = "groupId") Long groupId
     );
+
 }

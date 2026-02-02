@@ -145,7 +145,7 @@ public class ApplicationService {
                 publisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, userId, null, group.getGroupId()));
             }
 
-        } else {
+         else {
             application.updateStatus(ApplicationStatus.REJECTED);
 
             // 알림 publish

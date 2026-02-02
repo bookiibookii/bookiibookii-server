@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.userbook.dto.req.LibraryBookRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.LibraryBookResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.util.List;
 
@@ -32,4 +34,19 @@ public interface LibraryControllerDocs {
     ApiResponse<List<LibraryBookResponseDTO>> getLibraryBooks(
             @AuthenticationPrincipal(expression = "user") User user
     );
+
+    @Operation(
+            summary = "내 서재 검색 API",
+            description = "내 서재에 저장된 책을 제목, 저자, 한줄평 키워드로 검색합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "검색 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/search")
+    ApiResponse<List<LibraryBookResponseDTO>> searchLibraryBooks(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @ModelAttribute LibraryBookRequestDTO.SearchDTO request
+    );
+
 }

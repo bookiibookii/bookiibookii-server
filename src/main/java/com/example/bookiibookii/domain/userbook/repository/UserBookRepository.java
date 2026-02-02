@@ -54,4 +54,19 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
             @Param("userId") Long userId,
             Pageable pageable
     );
+
+    //검색로직
+    @Query("""
+    SELECT DISTINCT ub FROM UserBook ub
+    JOIN FETCH ub.group g
+    JOIN FETCH g.book b
+    JOIN FETCH g.host h
+    LEFT JOIN FETCH h.userImage
+    WHERE ub.user.id = :userId
+    AND (b.title LIKE %:keyword% 
+         OR b.author LIKE %:keyword% 
+         OR ub.comment LIKE %:keyword%)
+    ORDER BY ub.updatedAt DESC
+    """)
+    List<UserBook> searchMyLibrary(@Param("userId") Long userId, @Param("keyword") String keyword);
 }

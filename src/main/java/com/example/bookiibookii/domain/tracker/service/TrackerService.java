@@ -99,7 +99,7 @@ public class TrackerService {
         // 5. 첫 히스토리 기록
         TrackerHistory initialHistory = tracker.createHistorySnapshot(
                 null,
-                firstOwner.getMatchedMember(),
+                firstOwner.getId(),
                 null, null, null
         );
         trackerHistoryRepository.save(initialHistory);
@@ -255,8 +255,8 @@ public class TrackerService {
 
         // 트래커 히스토리에 write.
         TrackerHistory shippingHistory = tracker.createHistorySnapshot(
-                bookOwner.getMatchedMember(),      // 보내는 사람
-                nextOwner.getMatchedMember(),       // 받는 사람
+                bookOwner.getId(),      // 보내는 사람
+                nextOwner.getId(),       // 받는 사람
                 request.deliveryCompany(),
                 request.trackingNumber(),
                 request.authenticationImageUrl()
@@ -289,7 +289,7 @@ public class TrackerService {
         // 수령 완료는 배송이 아니므로 senderId는 null, receiverId는 현재 주자로 기록합니다.
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
-                bookOwner.getMatchedMember(),
+                bookOwner.getId(),
                 null, null, null
         );
         trackerHistoryRepository.save(receiveHistory);
@@ -321,7 +321,7 @@ public class TrackerService {
         // 독서 중에는 보내는 사람이 없으므로 senderId는 null, receiverId는 현재 읽는 사람(나)
         TrackerHistory readingHistory = tracker.createHistorySnapshot(
                 null,
-                bookOwner.getMatchedMember(),
+                bookOwner.getId(),
                 null, null, null
         );
         trackerHistoryRepository.save(readingHistory);
@@ -346,7 +346,7 @@ public class TrackerService {
 
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,
-                bookOwner.getMatchedMember(),
+                bookOwner.getId(),
                 null, null, null
         );
         trackerHistoryRepository.save(doneHistory);
@@ -373,7 +373,7 @@ public class TrackerService {
         // 3. [새로운 단계 기록] 연장된 정보가 반영된 새로운 히스토리 생성
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(
                 null,
-                bookOwner.getMatchedMember(),
+                bookOwner.getId(),
                 null, null, null
         );
         trackerHistoryRepository.save(extensionHistory);

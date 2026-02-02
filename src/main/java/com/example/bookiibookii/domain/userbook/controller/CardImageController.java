@@ -1,10 +1,6 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
-import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
-import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
-import com.example.bookiibookii.domain.userbook.entity.Card;
-import com.example.bookiibookii.domain.userbook.entity.CardImage;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageSuccessCode;
 import com.example.bookiibookii.domain.userbook.service.CardImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.CardService;
@@ -23,7 +19,6 @@ public class CardImageController implements CardImageControllerDocs {
     private final CardImageS3Service cardImageS3Service;
     private final CardService cardService;
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 10;
-    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     @Override
     @PostMapping("/{cardId}/images/presigned-url")
@@ -37,34 +32,5 @@ public class CardImageController implements CardImageControllerDocs {
                 cardImageS3Service.generatePresignedPutUrl(PRESIGNED_URL_EXPIRATION_MINUTES);
 
         return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
-    }
-
-    @Override
-    @GetMapping("/{cardId}")
-    public ApiResponse<CardCreateResponseDTO> getCardDetail(
-            @PathVariable Long cardId
-    ) {
-        Card card = cardService.getCardWithCardImageAndBook(cardId);
-        CardImage cardImage = card.getCardImage();
-        String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
-
-        CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
-                .cardImageId(cardImage.getId())
-                .s3Key(cardImage.getS3Key())
-                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
-                        cardImage.getS3Key(),
-                        PRESIGNED_GET_URL_EXPIRATION_MINUTES))
-                .build();
-
-        CardCreateResponseDTO responseDTO = CardCreateResponseDTO.builder()
-                .cardId(card.getId())
-                .page(card.getPage())
-                .memo(card.getMemo())
-                .cardImage(cardImageResponseDTO)
-                .createdAt(card.getCreatedAt())
-                .bookTitle(bookTitle)
-                .build();
-
-        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_FOUND, responseDTO);
     }
 }

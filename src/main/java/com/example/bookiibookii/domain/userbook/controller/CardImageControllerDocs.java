@@ -1,17 +1,15 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
-import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-@Tag(name = "CardImage", description = "카드 이미지 관련 API (Presigned URL 발급, 카드 상세 조회)")
+@Tag(name = "CardImage", description = "카드 이미지 관련 API (카드 수정 시 Presigned URL 발급)")
 public interface CardImageControllerDocs {
 
     @Operation(
@@ -38,31 +36,6 @@ public interface CardImageControllerDocs {
     })
     @PostMapping("/{cardId}/images/presigned-url")
     ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
-            @Parameter(description = "카드 식별자(ID)", example = "1")
-            @PathVariable Long cardId
-    );
-
-    @Operation(
-            summary = "카드 상세 조회",
-            description = """
-            특정 독서카드 한 건의 상세 정보를 조회합니다.
-            
-            - cardId, page, memo, cardImage(이미지 정보), createdAt, bookTitle(책 제목)을 반환합니다.
-            - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
-            """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
-                    description = "조회 성공"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404",
-                    description = "카드를 찾을 수 없음"
-            )
-    })
-    @GetMapping("/{cardId}")
-    ApiResponse<CardCreateResponseDTO> getCardDetail(
             @Parameter(description = "카드 식별자(ID)", example = "1")
             @PathVariable Long cardId
     );

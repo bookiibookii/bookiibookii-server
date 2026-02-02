@@ -111,6 +111,35 @@ public class CardController implements CardControllerDocs {
     }
 
     @Override
+    @GetMapping("/detail/{cardId}")
+    public ApiResponse<CardCreateResponseDTO> getCardDetail(
+            @PathVariable Long cardId
+    ) {
+        Card card = cardService.getCardWithCardImageAndBook(cardId);
+        CardImage cardImage = card.getCardImage();
+        String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
+
+        CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
+                .cardImageId(cardImage.getId())
+                .s3Key(cardImage.getS3Key())
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
+                        cardImage.getS3Key(),
+                        PRESIGNED_GET_URL_EXPIRATION_MINUTES))
+                .build();
+
+        CardCreateResponseDTO responseDTO = CardCreateResponseDTO.builder()
+                .cardId(card.getId())
+                .page(card.getPage())
+                .memo(card.getMemo())
+                .cardImage(cardImageResponseDTO)
+                .createdAt(card.getCreatedAt())
+                .bookTitle(bookTitle)
+                .build();
+
+        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_FOUND, responseDTO);
+    }
+
+    @Override
     @PatchMapping("/{cardId}")
     public ApiResponse<CardCreateResponseDTO> updateCard(
             @AuthenticationPrincipal(expression = "user") User user,

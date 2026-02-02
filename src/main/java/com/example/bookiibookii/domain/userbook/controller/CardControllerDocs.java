@@ -114,6 +114,31 @@ public interface CardControllerDocs {
     );
 
     @Operation(
+            summary = "독서카드 상세 조회",
+            description = """
+            특정 독서카드 한 건의 상세 정보를 조회합니다.
+            
+            - cardId, page, memo, cardImage(이미지 정보), createdAt, bookTitle(책 제목)을 반환합니다.
+            - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "카드를 찾을 수 없음"
+            )
+    })
+    @GetMapping("/detail/{cardId}")
+    ApiResponse<CardCreateResponseDTO> getCardDetail(
+            @Parameter(description = "카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId
+    );
+
+    @Operation(
             summary = "독서카드 수정",
             description = """
             독서카드를 수정합니다. 전달한 필드만 변경됩니다 (부분 수정).

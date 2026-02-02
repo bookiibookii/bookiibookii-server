@@ -29,6 +29,7 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
+import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -63,6 +64,7 @@ public class GroupService {
     private final GroupTagRepository groupTagRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
+    private final UserBookService userBookService;
     private final AddressRepository addressRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
@@ -150,6 +152,9 @@ public class GroupService {
                 .build();
 
         matchedMemberRepository.save(hostMember);
+
+        // 방장 서재(UserBook)에 추가
+        userBookService.createForParticipation(host, savedGroup);
 
         List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
 

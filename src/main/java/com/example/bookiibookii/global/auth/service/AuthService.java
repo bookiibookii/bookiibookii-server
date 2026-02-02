@@ -85,9 +85,7 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.NOT_FOUND_REFRESH_TOKEN);
         }
 
-        try{
-            jwtProvider.validateToken(requestRefreshToken);
-        } catch(JwtException | IllegalArgumentException e) {
+        if (!jwtProvider.validateToken(requestRefreshToken)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
@@ -110,7 +108,7 @@ public class AuthService {
         String newRefreshToken = jwtProvider.createRefreshToken(userId);
 
         // Redis 업데이트 (덮어쓰기)
-        int rtExpirationMinutes = (int) (jwtProvider.getRefreshTokenExpireTime() / 1000 / 60);
+        int rtExpirationMinutes = (int) Math.ceil(jwtProvider.getRefreshTokenExpireTime() / 1000.0 / 60);
         redisUtil.set("RT:" + userId, newRefreshToken, rtExpirationMinutes);
 
         return AuthResponseDTO.TokenResponse.builder()

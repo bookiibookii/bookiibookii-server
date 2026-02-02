@@ -63,6 +63,7 @@ public class RedisUtil {
             redisTemplate.opsForValue().set(key, jsonValue, milliSeconds, TimeUnit.MILLISECONDS);
         } catch (JsonProcessingException e) {
             log.error("Redis 저장 에러: {}", e.getMessage());
+            throw new RuntimeException("Redis Parsing Error", e);
         }
     }
 }

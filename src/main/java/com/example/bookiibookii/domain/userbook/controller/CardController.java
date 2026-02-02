@@ -102,6 +102,7 @@ public class CardController implements CardControllerDocs {
 
         CardListResponseDTO responseDTO = CardListResponseDTO.builder()
                 .title(result.title())
+                .groupId(result.groupId())
                 .cards(result.cards())
                 .build();
 

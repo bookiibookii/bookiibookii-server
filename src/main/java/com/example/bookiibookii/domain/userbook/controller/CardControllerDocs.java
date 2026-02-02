@@ -88,10 +88,10 @@ public interface CardControllerDocs {
             description = """
             사용자 책(userBook)에 속한 독서카드 목록을 조회합니다.
             
-            - 인증된 사용자가 소유한 userBook만 조회 가능합니다.
+            - UserBook 소유자이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
             - 생성일 기준 오름차순으로 정렬된 카드 목록을 반환합니다.
             - 각 카드에는 카드 이미지(cardImageId, s3Key, presignedGetUrl), 카드 생성일(createdAt)이 포함됩니다.
-            - 응답에 userbook에 해당하는 책 제목(title)이 포함됩니다.
+            - 응답에 책 제목(title), 그룹 ID(groupId)가 포함됩니다.
             """
     )
     @ApiResponses({
@@ -101,7 +101,7 @@ public interface CardControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "사용자 책을 찾을 수 없음 (존재하지 않거나 소유권이 없음)"
+                    description = "사용자 책을 찾을 수 없음 (존재하지 않거나 접근 권한 없음)"
             )
     })
     @GetMapping("/{userBookId}")

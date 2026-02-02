@@ -7,6 +7,7 @@ import com.example.bookiibookii.domain.userbook.entity.CardImage;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
@@ -27,12 +28,13 @@ public class CardService {
     private final CardImageValidationService cardImageValidationService;
     private final CardImageS3Service cardImageS3Service;
     private final UserBookRepository userBookRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
 
     // Card의 이미지 업데이트 결과
     public record CardImageUpdateResult(Card card, CardImage cardImage, boolean isCreated) {}
 
-    // UserBook 책 제목 + 카드 목록 조회 결과
-    public record CardsWithTitleResult(String title, List<CardCreateResponseDTO> cards) {}
+    // UserBook 책 제목 + 그룹 ID + 카드 목록 조회 결과
+    public record CardsWithTitleResult(String title, Long groupId, List<CardCreateResponseDTO> cards) {}
 
     /**
      * 독서카드를 생성합니다.
@@ -234,12 +236,20 @@ public class CardService {
 
     /**
      * UserBook에 속한 Card 목록과 해당 UserBook의 책 제목을 조회합니다.
-     * UserBook 존재 및 소유권 검증 후, 책 제목과 카드 목록을 생성일 기준 오름차순으로 반환합니다.
+     * UserBook 소유자이거나 같은 그룹 멤버인 경우에만 조회 가능합니다.
+     * 책 제목, groupId, 카드 목록을 생성일 기준 오름차순으로 반환합니다.
      */
     public CardsWithTitleResult getCardsByUserBookId(Long userBookId, Long userId, int presignedGetUrlExpirationMinutes) {
-        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+        UserBook userBook = userBookRepository.findByIdWithGroupAndUser(userBookId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
-        
+
+        Long groupId = userBook.getGroup().getGroupId();
+        boolean isOwner = userBook.getUser().getId().equals(userId);
+        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+        if (!isOwner && !isGroupMember) {
+            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
+        }
+
         // Book 제목 조회 (Group → Book)
         String title = userBook.getGroup().getBook().getTitle();
         
@@ -271,6 +281,6 @@ public class CardService {
                 })
                 .toList();
         
-        return new CardsWithTitleResult(title, cardDTOs);
+        return new CardsWithTitleResult(title, groupId, cardDTOs);
     }
 }

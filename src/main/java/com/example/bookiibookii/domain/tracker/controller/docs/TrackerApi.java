@@ -96,7 +96,7 @@ public interface TrackerApi {
     );
 
     @Operation(
-            summary = "내 트래커 리스트 조회",
+            summary = "나의 트래커 전체 리스트 조회",
             description = "로그인한 사용자가 참여 중인 모든 그룹의 트래킹 현황과 4단계 타임라인 날짜를 조회합니다."
     )
     @ApiResponses(value = {
@@ -106,6 +106,22 @@ public interface TrackerApi {
     ResponseEntity<List<TrackerListResponse>> getTrackerList(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
+
+    @Operation(summary = "내가 호스트인 트래커 리스트 조회",
+            description = "내가 책 주인(호스트)으로 참여 중인 트래커 리스트만 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음", content = @Content)
+    })
+    ResponseEntity<List<TrackerListResponse>> getHostTrackers(User user);
+
+    @Operation(summary = "내가 게스트인 트래커 리스트 조회",
+            description = "내가 빌려 읽는 사람(게스트)으로 참여 중인 트래커 리스트만 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음", content = @Content)
+    })
+    ResponseEntity<List<TrackerListResponse>> getGuestTrackers(User user);
 
     @Operation(
             summary = "트래킹 상세 현황 조회",

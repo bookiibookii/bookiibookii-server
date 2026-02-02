@@ -79,6 +79,7 @@ public class TrackerController implements TrackerApi {
         return ResponseEntity.ok(trackerService.getTrackerList(user.getId()));
     }
     // 내가 호스트인 트래커 리스트
+    @Override
     @GetMapping("/me/trackers/host")
     public ResponseEntity<List<TrackerListResponse>> getHostTrackers(
             @AuthenticationPrincipal(expression = "user") User user) {
@@ -86,6 +87,7 @@ public class TrackerController implements TrackerApi {
     }
 
     // 내가 게스트인 트래커 리스트
+    @Override
     @GetMapping("/me/trackers/guest")
     public ResponseEntity<List<TrackerListResponse>> getGuestTrackers(
             @AuthenticationPrincipal(expression = "user") User user) {

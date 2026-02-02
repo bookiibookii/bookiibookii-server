@@ -9,12 +9,33 @@ import java.util.List;
 @Getter
 @Builder
 public class TrackerListResponse {
+    // 공통 필드
     private Long groupId;
+    private String groupType; // RELAY, TOGETHER
     private String bookTitle;
+    private String image;
     private String author;
-    private String targetNickname;
+    private String category;
 
-    // 핵심: 앞에서부터 순서대로 들어있는 날짜 리스트
-    // 예: ["12. 16.", "12. 20."] -> 1, 2단계만 날짜 표시 및 활성화
-    private List<String> stepDates;
+    // 타입별 상세 데이터
+    private RelayDetail relayDetail;
+    private TogetherDetail togetherDetail;
+
+    @Getter
+    @Builder
+    public static class RelayDetail {
+        private String partnerNickname;         // 파트너 닉네임
+        private String hostProfileImage;        // 호스트 프로필 이미지
+        private List<String> guestProfileImages; // 게스트들의 프로필 URL 리스트
+        private List<String> stepDates; // [4] 단계별 날짜 (예: ["12.01", null, null, null])
+    }
+
+    @Getter
+    @Builder
+    public static class TogetherDetail {
+        private String hostNickname;
+        private int participantCount; // 참여 인원 수
+        private int myReadingRate;    // 나의 독서율 (0~100)
+        private int groupReadingRate; // 그룹 전체 평균 독서율
+    }
 }

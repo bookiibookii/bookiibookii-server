@@ -59,7 +59,9 @@ dependencies {
 	annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
 	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
-}
+
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
 // QueryDsl QClass 생성 경로 설정
 def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile

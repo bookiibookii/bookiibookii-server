@@ -1,31 +1,27 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
-import com.example.bookiibookii.domain.userbook.dto.req.CardImageRequestDTO;
-import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
-@Tag(name = "CardImage", description = "카드 이미지 관련 API (S3 업로드 및 조회)")
+@Tag(name = "CardImage", description = "카드 이미지 관련 API (Presigned URL 발급, 카드 상세 조회)")
 public interface CardImageControllerDocs {
 
     @Operation(
-            summary = "Presigned URL 발급 (카드 이미지 업데이트용)",
+            summary = "Presigned URL 발급 (카드 이미지 수정용)",
             description = """
-            기존 카드의 이미지를 업데이트하기 위한 presigned URL을 발급합니다.
+            기존 카드의 이미지를 수정하기 위한 presigned URL을 발급합니다.
             
             - UUID 기반 s3Key를 생성하여 presigned URL을 발급합니다.
-            - **카드 생성 후에만 사용 가능합니다.** (카드가 이미 존재해야 함)
-            - 카드 생성 전 이미지 업로드를 위해서는 `/api/card/{userBookId}/presigned-url` 엔드포인트를 사용하세요.
-            - 발급된 presignedPutUrl로 PUT 요청 시 클라이언트에서 직접 S3에 이미지를 업로드할 수 있습니다.
+            - **카드 수정 시 이미지 변경에 사용합니다.** 카드 생성 전 이미지 업로드는 `/api/card/{userBookId}/presigned-url`을 사용하세요.
+            - 발급된 presignedPutUrl로 PUT 요청 후, 받은 s3Key를 **독서카드 수정 API** (`PATCH /api/card/{cardId}`)의 request body에 넣어 호출하세요.
             - URL은 10분간 유효합니다.
             - s3Key 형식: image/cards/{uuid}
             """
@@ -47,43 +43,12 @@ public interface CardImageControllerDocs {
     );
 
     @Operation(
-            summary = "카드 이미지 DB 저장 또는 업데이트",
+            summary = "카드 상세 조회",
             description = """
-            S3 업로드가 완료된 이미지를 DB에 저장합니다.
+            특정 독서카드 한 건의 상세 정보를 조회합니다.
             
-            - 카드에 이미 이미지가 있으면 업데이트됩니다.
-            - s3Key는 presigned URL 발급 시 받은 값을 사용해야 합니다.
-            - s3Key 형식 검증 및 S3에 이미지 존재 여부 확인이 수행됩니다.
-            """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "201",
-                    description = "이미지 저장/업데이트 성공"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400",
-                    description = "잘못된 요청 (유효하지 않은 S3 키 형식 또는 중복된 S3 키)"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404",
-                    description = "카드를 찾을 수 없음"
-            )
-    })
-    @PostMapping("/{cardId}/images")
-    ApiResponse<CardImageResponseDTO> saveCardImage(
-            @Parameter(description = "카드 식별자(ID)", example = "1")
-            @PathVariable Long cardId,
-            @Valid @RequestBody CardImageRequestDTO request
-    );
-
-    @Operation(
-            summary = "카드 이미지 조회",
-            description = """
-            특정 카드에 속한 이미지를 조회합니다.
-            
-            - cardImageId, s3Key, presignedGetUrl을 반환합니다.
-            - 카드는 항상 이미지를 가져야 하므로, 이미지가 없으면 404 에러가 발생합니다.
+            - cardId, page, memo, cardImage(이미지 정보), createdAt을 반환합니다.
+            - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
             """
     )
     @ApiResponses({
@@ -93,11 +58,11 @@ public interface CardImageControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "카드 또는 카드 이미지를 찾을 수 없음"
+                    description = "카드를 찾을 수 없음"
             )
     })
-    @GetMapping("/{cardId}/images")
-    ApiResponse<CardImageResponseDTO> getCardImage(
+    @GetMapping("/{cardId}")
+    ApiResponse<CardCreateResponseDTO> getCardDetail(
             @Parameter(description = "카드 식별자(ID)", example = "1")
             @PathVariable Long cardId
     );

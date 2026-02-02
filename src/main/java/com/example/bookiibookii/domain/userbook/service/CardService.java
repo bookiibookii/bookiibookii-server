@@ -95,6 +95,43 @@ public class CardService {
     }
 
     /**
+     * 독서카드를 수정합니다.
+     * page, memo, s3Key 중 전달된 필드만 변경됩니다.
+     * 카드 소유자(UserBook 소유자)만 수정 가능합니다.
+     *
+     * @param cardId 카드 ID
+     * @param userId 인증된 사용자 ID (권한 검증용)
+     * @param page   변경할 페이지 (null이면 미변경)
+     * @param memo   변경할 메모 (null이면 미변경)
+     * @param s3Key  변경할 카드 이미지 S3 키 (null이면 미변경)
+     * @return 수정된 Card (cardImage fetch)
+     */
+    @Transactional
+    public Card updateCard(Long cardId, Long userId, Integer page, String memo, String s3Key) {
+        Card card = cardRepository.findByIdWithUserBookAndGroup(cardId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
+
+        boolean isOwner = card.getUserBook().getUser().getId().equals(userId);
+        if (!isOwner) {
+            throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
+        }
+
+        if (page != null) {
+            card.updatePage(page);
+        }
+        if (memo != null) {
+            card.updateMemo(memo);
+        }
+        if (s3Key != null && !s3Key.isBlank()) {
+            updateCardImage(cardId, s3Key);
+        }
+
+        cardRepository.flush();
+        return cardRepository.findByIdWithCardImage(cardId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
+    }
+
+    /**
      * Card의 이미지를 업데이트합니다.
      * Card는 항상 CardImage를 가져야 하므로, Card와 함께 관리됩니다.
      * 
@@ -232,6 +269,14 @@ public class CardService {
     public CardImage getCardImage(Long cardId) {
         return cardImageRepository.findByCard_Id(cardId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND));
+    }
+
+    /**
+     * 카드 상세 조회용으로 Card를 CardImage와 함께 조회합니다.
+     */
+    public Card getCardWithCardImage(Long cardId) {
+        return cardRepository.findByIdWithCardImage(cardId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
     }
 
     /**

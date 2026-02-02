@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.userbook.controller;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
+import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -109,5 +111,39 @@ public interface CardControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId
+    );
+
+    @Operation(
+            summary = "독서카드 수정",
+            description = """
+            독서카드를 수정합니다. 전달한 필드만 변경됩니다 (부분 수정).
+            
+            - page, memo, s3Key 모두 선택값입니다. 보내지 않은 필드는 변경되지 않습니다.
+            - 카드 소유자(UserBook 소유자)만 수정 가능합니다.
+            - 이미지(s3Key) 변경 시: `/api/cards/{cardId}/images/presigned-url`로 Presigned URL 발급 후 S3 업로드하고, 여기서 s3Key를 전달하세요.
+            - s3Key 형식 검증 및 S3 존재 여부 확인이 수행됩니다.
+            - 응답은 수정된 카드 정보(CardCreateResponseDTO)와 동일한 형태입니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "독서카드 수정 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (메모 길이 초과, 유효하지 않은 S3 키, 중복 S3 키 등)"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "카드를 찾을 수 없음 (존재하지 않거나 수정 권한 없음)"
+            )
+    })
+    @PatchMapping("/{cardId}")
+    ApiResponse<CardCreateResponseDTO> updateCard(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId,
+            @Valid @RequestBody CardUpdateRequestDTO request
     );
 }

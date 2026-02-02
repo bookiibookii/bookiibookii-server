@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.userbook.controller;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
+import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
@@ -107,5 +108,43 @@ public class CardController implements CardControllerDocs {
                 .build();
 
         return ApiResponse.onSuccess(CardImageSuccessCode.CARDS_FOUND, responseDTO);
+    }
+
+    @Override
+    @PatchMapping("/{cardId}")
+    public ApiResponse<CardCreateResponseDTO> updateCard(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId,
+            @Valid @RequestBody CardUpdateRequestDTO request
+    ) {
+        Card card = cardService.updateCard(
+                cardId,
+                user.getId(),
+                request.getPage(),
+                request.getMemo(),
+                request.getS3Key()
+        );
+
+        CardImage cardImage = card.getCardImage();
+        if (cardImage == null) {
+            cardImage = cardService.getCardImage(cardId);
+        }
+        CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
+                .cardImageId(cardImage.getId())
+                .s3Key(cardImage.getS3Key())
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
+                        cardImage.getS3Key(),
+                        PRESIGNED_GET_URL_EXPIRATION_MINUTES))
+                .build();
+
+        CardCreateResponseDTO responseDTO = CardCreateResponseDTO.builder()
+                .cardId(card.getId())
+                .page(card.getPage())
+                .memo(card.getMemo())
+                .cardImage(cardImageResponseDTO)
+                .createdAt(card.getCreatedAt())
+                .build();
+
+        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_UPDATED, responseDTO);
     }
 }

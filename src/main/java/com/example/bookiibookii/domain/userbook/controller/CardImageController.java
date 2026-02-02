@@ -1,16 +1,14 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
-import com.example.bookiibookii.domain.userbook.dto.req.CardImageRequestDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
+import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
-import com.example.bookiibookii.domain.userbook.exception.CardImageException;
-import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageSuccessCode;
 import com.example.bookiibookii.domain.userbook.service.CardImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.CardService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +30,7 @@ public class CardImageController implements CardImageControllerDocs {
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
             @PathVariable Long cardId
     ) {
-        // 카드 존재 확인 (카드 생성 후에만 사용 가능한 엔드포인트이므로)
+        // 카드 존재 확인 (카드 수정 시 이미지 업로드에 사용)
         cardService.getCard(cardId);
 
         PresignedUrlResponseDTO responseDTO = 
@@ -42,46 +40,29 @@ public class CardImageController implements CardImageControllerDocs {
     }
 
     @Override
-    @PostMapping("/{cardId}/images")
-    public ApiResponse<CardImageResponseDTO> saveCardImage(
-            @PathVariable Long cardId,
-            @Valid @RequestBody CardImageRequestDTO request
-    ) {
-        // CardService를 통해 Card와 CardImage를 함께 관리
-        CardService.CardImageUpdateResult result = 
-                cardService.updateCardImage(cardId, request.getS3Key());
-
-        CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
-                .cardImageId(result.cardImage().getId())
-                .s3Key(result.cardImage().getS3Key())
-                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
-                        result.cardImage().getS3Key(), 
-                        PRESIGNED_GET_URL_EXPIRATION_MINUTES))
-                .build();
-
-        CardImageSuccessCode successCode = result.isCreated() 
-                ? CardImageSuccessCode.CARD_IMAGE_SAVED 
-                : CardImageSuccessCode.CARD_IMAGE_UPDATED;
-
-        return ApiResponse.onSuccess(successCode, responseDTO);
-    }
-
-    @Override
-    @GetMapping("/{cardId}/images")
-    public ApiResponse<CardImageResponseDTO> getCardImage(
+    @GetMapping("/{cardId}")
+    public ApiResponse<CardCreateResponseDTO> getCardDetail(
             @PathVariable Long cardId
     ) {
-        // CardService를 통해 Card와 함께 CardImage 조회
-        CardImage cardImage = cardService.getCardImage(cardId);
+        Card card = cardService.getCardWithCardImage(cardId);
+        CardImage cardImage = card.getCardImage();
 
-        CardImageResponseDTO responseDTO = CardImageResponseDTO.builder()
+        CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())
                 .s3Key(cardImage.getS3Key())
                 .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
-                        cardImage.getS3Key(), 
+                        cardImage.getS3Key(),
                         PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .build();
 
-        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_IMAGE_FOUND, responseDTO);
+        CardCreateResponseDTO responseDTO = CardCreateResponseDTO.builder()
+                .cardId(card.getId())
+                .page(card.getPage())
+                .memo(card.getMemo())
+                .cardImage(cardImageResponseDTO)
+                .createdAt(card.getCreatedAt())
+                .build();
+
+        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_FOUND, responseDTO);
     }
 }

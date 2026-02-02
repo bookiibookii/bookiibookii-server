@@ -34,4 +34,12 @@ public class Card extends BaseEntity {
 
     @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)
     private CardImage cardImage;
+
+    public void updatePage(Integer page) {
+        this.page = page;
+    }
+
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
 }

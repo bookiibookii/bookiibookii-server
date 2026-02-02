@@ -13,6 +13,12 @@ import java.util.Optional;
 public interface CardRepository extends JpaRepository<Card, Long> {
     Optional<Card> findById(Long id);
 
+    @Query("SELECT c FROM Card c JOIN FETCH c.userBook ub JOIN FETCH ub.user JOIN FETCH c.group WHERE c.id = :cardId")
+    Optional<Card> findByIdWithUserBookAndGroup(@Param("cardId") Long cardId);
+
+    @Query("SELECT c FROM Card c JOIN FETCH c.cardImage WHERE c.id = :cardId")
+    Optional<Card> findByIdWithCardImage(@Param("cardId") Long cardId);
+
     @Query("SELECT c FROM Card c JOIN FETCH c.cardImage WHERE c.userBook.id = :userBookId ORDER BY c.createdAt ASC")
     List<Card> findByUserBookIdWithCardImage(@Param("userBookId") Long userBookId);
 }

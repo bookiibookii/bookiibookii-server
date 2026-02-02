@@ -25,6 +25,7 @@ import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +62,7 @@ public class GroupService {
     private final GroupTagRepository groupTagRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
+    private final AddressRepository addressRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -193,14 +195,13 @@ public class GroupService {
         }
 
         // 택배 교환(DELIVERY) 시: 등록된 배송지(Address) 존재 여부 확인
-        /*if (request.getTradeType() == TradeType.DELIVERY) {
+        if (request.getTradeType() == TradeType.DELIVERY) {
             // addressRepository를 통해 해당 유저의 주소가 등록되어 있는지 확인
             boolean hasAddress = addressRepository.existsByUserId(host.getId());
             if (!hasAddress) {
-                // "마이페이지에서 배송지를 먼저 등록해주세요." 에러 발생
                 throw new GroupException(GroupErrorCode.ADDRESS_NOT_FOUND);
-            }*/
-
+            }
+        }
     }
 
 

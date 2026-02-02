@@ -85,6 +85,7 @@ public class TrackerService {
                 .startDate(group.getStartDate().atStartOfDay())
                 .endDate(group.getStartDate().atStartOfDay().plusDays(group.getReadingPeriod()))
                 .extensionCount(0)
+                .extensionDays(0)
                 .build();
 
         trackerRepository.save(tracker);

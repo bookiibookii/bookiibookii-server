@@ -43,10 +43,10 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     // 최근 읽은 책과 평점 조회
     @Query("""
         SELECT new com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO$MypageBookDto(
-            b.title, ub.rating
+            g.book.title, ub.rating
         )
         FROM UserBook ub
-        JOIN Book b ON b.id = ub.bookId
+        JOIN ub.group g
         WHERE ub.user.id = :userId
         ORDER BY ub.updatedAt DESC
     """)

@@ -67,7 +67,6 @@ public class TrackerService {
     // 트래커 생성
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createTracker(GroupMatchedEvent event) {
-        log.info("[TrackerService] createTracker 시작 - groupId: {}, hostId: {}", event.groupId(), event.hostId());
 
         // 1. 이미 해당 그룹의 트래커가 있는지 검증 (boolean 체크)
         if (trackerRepository.existsByGroup_GroupId(event.groupId())) {
@@ -94,7 +93,6 @@ public class TrackerService {
                 .build();
 
         trackerRepository.save(tracker);
-        log.info("[TrackerService] 트래커 엔티티 저장 완료 - trackerId: {}", tracker.getId());
 
         // 5. 첫 히스토리 기록
         TrackerHistory initialHistory = tracker.createHistorySnapshot(
@@ -104,7 +102,6 @@ public class TrackerService {
         );
         trackerHistoryRepository.save(initialHistory);
 
-        log.info("[TrackerService] 초기 히스토리 저장 완료 - historyId: {}", initialHistory.getId());
     }
 
     //트래커 상세 조회

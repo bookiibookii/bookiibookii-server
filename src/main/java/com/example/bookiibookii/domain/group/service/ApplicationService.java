@@ -21,6 +21,7 @@ import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
+import com.example.bookiibookii.domain.userbook.service.UserBookService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -47,6 +48,7 @@ public class ApplicationService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final DomainEventPublisher publisher;
+    private final UserBookService userBookService;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -97,58 +99,74 @@ public class ApplicationService {
             throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
+        // 알림 이벤트를 위한 book fetch join group 조회 추가
+        Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getGroupId())
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
         // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
         if (status == ApplicationStatus.ACCEPTED) {
-            // [핵심] 방장을 포함한 현재 확정 인원수 계산 (MatchedMember에서 조회)
+
             long currentTotalCount = matchedMemberRepository.countByGroup(group);
-                // 정원 초과 체크 (방장 포함 maxCapacity와 비교)
-                if (currentTotalCount >= group.getMaxCapacity()) {
-                    throw new GroupException(GroupErrorCode.GROUP_FULL);
-                }
 
-                // [핵심] MatchedMember에 새 멤버 등록 및 순서 부여
-                // 방장이 1번이므로, 첫 번째 수락자는 2번(1+1)이 됩니다.
-                MatchedMember newMember = MatchedMember.builder()
-                        .group(group)
-                        .user(application.getGuest())
-                        .role(RoleStatus.GUEST)
-                        .readingOrder((int) currentTotalCount + 1) // 현재 인원 + 1 순서 부여
-                        .build();
-                // 수락 알람 발송 (추가 가능)
-                // notificationService.sendAcceptNotification(application.getGuest(), group);
-                matchedMemberRepository.save(newMember);
-
-                // 신청서 상태 업데이트
-                application.updateStatus(ApplicationStatus.ACCEPTED);
-
-                // 3. 정원이 다 찼을 경우 (RELAY는 2명, TOGETHER는 설정값) 그룹 상태 변경 및 나머지 거절
-                if (currentTotalCount + 1 >= group.getMaxCapacity()) {
-                    group.updateStatus(GroupStatus.MATCHED);
-
-                    //매칭 이벤트 발행
-                    eventPublisher.publishEvent(new GroupMatchedEvent(
-                            group.getGroupId(),
-                            group.getHost().getId(),
-                            group.getStartDate(),
-                            group.getMaxCapacity()
-                    ));
-                    // 나머지 대기 인원 일괄 거절
-                    List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
-                    for (Application pendingApp : pendingApplications) {
-                        pendingApp.updateStatus(ApplicationStatus.REJECTED);
-                        //  시스템 자동 거절 알람 발송
-                        // notificationService.sendAutoRejectNotification(pendingApp.getGuest(), group);
-                    }
-                }
-                // 알림 publish
-                publisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, userId, null, group.getGroupId()));
+            if (currentTotalCount >= group.getMaxCapacity()) {
+                throw new GroupException(GroupErrorCode.GROUP_FULL);
             }
 
-         else {
+            MatchedMember newMember = MatchedMember.builder()
+                    .group(group)
+                    .user(application.getGuest())
+                    .role(RoleStatus.GUEST)
+                    .readingOrder((int) currentTotalCount + 1)
+                    .build();
+            matchedMemberRepository.save(newMember);
+
+            // 서재(UserBook)에 추가
+            userBookService.createForParticipation(application.getGuest(), group);
+
+            // 신청서 상태 업데이트
+            application.updateStatus(ApplicationStatus.ACCEPTED);
+
+            publisher.publish(new GroupNotificationEvent(
+                    MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(),
+                    newMember.getUser().getId(), null, group.getGroupId()
+            ));
+
+            if (currentTotalCount + 1 >= group.getMaxCapacity()) {
+                group.updateStatus(GroupStatus.MATCHED);
+
+                eventPublisher.publishEvent(new GroupMatchedEvent(
+                        group.getGroupId(),
+                        group.getHost().getId(),
+                        group.getStartDate(),
+                        group.getMaxCapacity()
+                ));
+
+                List<Application> pendingApplications =
+                        applicationRepository.findAllPendingByGroupId(group.getGroupId());
+
+                List<Long> autoRejectedReceiverIds = pendingApplications.stream()
+                        .map(app -> app.getGuest().getId())
+                        .filter(id -> !id.equals(userId))   // host 제외
+                        .distinct()
+                        .toList();
+
+                for (Application pendingApp : pendingApplications) {
+                    pendingApp.updateStatus(ApplicationStatus.REJECTED);
+                }
+
+                publisher.publish(new GroupNotificationEvent(
+                        MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
+                        null, autoRejectedReceiverIds, group.getGroupId()
+                ));
+            }
+
+        } else {
             application.updateStatus(ApplicationStatus.REJECTED);
 
-            // 알림 publish
-            publisher.publish(new GroupNotificationEvent(MATCH_REJECTED, userId, application.getGuest().getId(), group.getGroupId()));
+            publisher.publish(new GroupNotificationEvent(
+                    MATCH_REJECTED, userId, thisGroup.getBook().getTitle(),
+                    application.getGuest().getId(), null, group.getGroupId()
+            ));
         }
 
         return ApplicationResponseDTO.UpdateResultDTO.builder()
@@ -163,7 +181,7 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
         //그룹 존재여부 확인
-        Groups group = groupsRepository.findById(groupId)
+        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         //그룹 상태 확인(RECRUTING)
@@ -201,7 +219,7 @@ public class ApplicationService {
         }
 
         // 알림 publish
-        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getHost().getId(), groupId) );
+        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getBook().getTitle(), group.getHost().getId(), null, groupId) );
 
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())

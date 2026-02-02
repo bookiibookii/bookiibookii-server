@@ -7,7 +7,6 @@ import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -22,11 +21,15 @@ import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
+import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
+import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -61,6 +64,8 @@ public class GroupService {
     private final GroupTagRepository groupTagRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
+    private final UserBookService userBookService;
+    private final AddressRepository addressRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -103,6 +108,7 @@ public class GroupService {
                 .startDate(request.getStartDate())
                 .readingPeriod(request.getReadingPeriod())
                 .groupComment(request.getGroupComment())
+                .customTag(request.getCustomTag())
                 .groupType(request.getGroupType())
                 .tradeType(finalTradeType)
                 .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
@@ -146,6 +152,9 @@ public class GroupService {
                 .build();
 
         matchedMemberRepository.save(hostMember);
+
+        // 방장 서재(UserBook)에 추가
+        userBookService.createForParticipation(host, savedGroup);
 
         List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
 
@@ -193,14 +202,13 @@ public class GroupService {
         }
 
         // 택배 교환(DELIVERY) 시: 등록된 배송지(Address) 존재 여부 확인
-        /*if (request.getTradeType() == TradeType.DELIVERY) {
+        if (request.getTradeType() == TradeType.DELIVERY) {
             // addressRepository를 통해 해당 유저의 주소가 등록되어 있는지 확인
             boolean hasAddress = addressRepository.existsByUserId(host.getId());
             if (!hasAddress) {
-                // "마이페이지에서 배송지를 먼저 등록해주세요." 에러 발생
                 throw new GroupException(GroupErrorCode.ADDRESS_NOT_FOUND);
-            }*/
-
+            }
+        }
     }
 
 
@@ -254,6 +262,11 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
+        // 커스텀 태그 수정
+        if(request.getCustomTag() != null){
+            group.setCustomTag(request.getCustomTag());
+        }
+
         //독서 태그 수정
         if (request.getTags() != null) {
             group.clearGroupTags();
@@ -294,11 +307,16 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.GROUP_CANT_DELETE);
         }
 
-        //soft delete 실행
-        group.markAsDELETED();
+        List<Long> receiverIds = applicationRepository.findApplicantUserIdsByGroupId(groupId).stream()
+                .filter(id -> !id.equals(host.getId()))
+                .distinct()
+                .toList();
 
         // 알림 publish
-        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), null, group.getGroupId()));
+        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), group.getBook().getTitle(), null, receiverIds, group.getGroupId()));
+
+        //soft delete 실행
+        group.markAsDELETED();
 
         return GroupResponseDTO.DeleteResultDTO.builder()
                 .groupId(groupId)
@@ -330,6 +348,9 @@ public class GroupService {
         // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
         String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
 
+        List<String> groupTag = group.getGroupTags().stream().map(ut -> ut.getTag().getCode()).toList();
+
+
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
                 .groupId(group.getGroupId())
@@ -349,7 +370,8 @@ public class GroupService {
                 .hostNickname(group.getHost().getName())
                 .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
-                //.tags(new ArrayList<>())
+                .groupTags(groupTag)
+                .customTag(group.getCustomTag())
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
                 .build();

@@ -134,6 +134,13 @@ public class ApplicationService {
             if (currentTotalCount + 1 >= group.getMaxCapacity()) {
                 group.updateStatus(GroupStatus.MATCHED);
 
+                eventPublisher.publishEvent(new GroupMatchedEvent(
+                        group.getGroupId(),
+                        group.getHost().getId(),
+                        group.getStartDate(),
+                        group.getMaxCapacity()
+                ));
+
                 List<Application> pendingApplications =
                         applicationRepository.findAllPendingByGroupId(group.getGroupId());
 

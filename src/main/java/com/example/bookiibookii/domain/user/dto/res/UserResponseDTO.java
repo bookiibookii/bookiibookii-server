@@ -9,7 +9,7 @@ import java.util.List;
 
 public class UserResponseDTO {
     @Builder
-    public record MypageDTO  (
+    public record UserProfileResDTO  (
             Long userId,
             UserImage userImage,
             String nickname,

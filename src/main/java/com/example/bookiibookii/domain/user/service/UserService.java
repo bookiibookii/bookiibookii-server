@@ -29,6 +29,7 @@ import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
+import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -154,9 +155,9 @@ public class UserService {
         }
     }
 
-    // 마이페이지 조회
+    // 유저 프로필 조회
     @Transactional
-    public UserResponseDTO.MypageDTO getMypageInfo(Long userId) {
+    public UserResponseDTO.UserProfileResDTO getProfileInfo(Long userId, List<GroupStatus> targetGroupStatuses) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
@@ -164,8 +165,8 @@ public class UserService {
         List<TagType> targetTypes = List.of(TagType.METHOD, TagType.VIBE);
         List<UserTag> currentUserTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
         // 누적도 -> 최신 등록 -> ID 순으로 태그 정렬 후 상위태그 추출
-        List<Tag> myTopTags = userTagService.extractTopTags(currentUserTags, 3);
-        List<String> topTagCodes = myTopTags.stream().map(ut -> ut.getCode()).toList();
+        List<Tag> TopTags = userTagService.extractTopTags(currentUserTags, 3);
+        List<String> topTagCodes = TopTags.stream().map(ut -> ut.getCode()).toList();
 
         // TODO : 배지 조회
 
@@ -176,10 +177,10 @@ public class UserService {
         Long togetherCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.TOGETHER);
 
         // 그룹 조회 (모집중, 진행중)
-        List<Groups> myGroups = matchedMemberRepository.findMyActiveGroups(
-                userId, List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED)
+        List<Groups> targetGroups = matchedMemberRepository.findMyActiveGroups(
+                userId, targetGroupStatuses //List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED)
         );
-        List<GroupResponseDTO.MypageGroupDto> MyGroupList = myGroups.stream()
+        List<GroupResponseDTO.MypageGroupDto> groupList = targetGroups.stream()
                 .map(this::toMypageGroupDto)
                 .collect(Collectors.toList());
 
@@ -189,7 +190,7 @@ public class UserService {
                 PageRequest.of(0, 3)
         );
 
-        return UserResponseDTO.MypageDTO.builder()
+        return UserResponseDTO.UserProfileResDTO.builder()
                 // TODO : 프로필 이미지 조회
                 .userId(userId)
                 .nickname(user.getName())
@@ -198,7 +199,7 @@ public class UserService {
                 .completeBook(completeBookCount.intValue())
                 .relayGroup(relayCount.intValue())
                 .togetherGroup(togetherCount.intValue())
-                .groups(MyGroupList)
+                .groups(groupList)
                 .books(recentBooks)
                 .build();
     }
@@ -221,6 +222,11 @@ public class UserService {
                 .build();
     }
 
+    // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)
+    public Long findUserIdByNickname(String nickname) {
+        return userRepository.findByName(nickname)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND))
+                .getId();
     // 마이페이지 설정
     @Transactional
     public void updateMypage(Long userId, UserRequestDTO.MypageReqDTO request) {

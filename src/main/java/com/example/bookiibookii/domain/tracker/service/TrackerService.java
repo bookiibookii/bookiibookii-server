@@ -1,8 +1,11 @@
 package com.example.bookiibookii.domain.tracker.service;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
@@ -42,6 +45,7 @@ public class TrackerService {
     private final TrackerRepository trackerRepository;
     private final TrackerHistoryRepository trackerHistoryRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
     private final TrackerConverter trackerConverter;
     private final DomainEventPublisher publisher;
@@ -51,6 +55,44 @@ public class TrackerService {
         if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
             throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER); // 403 Forbidden
         }
+    }
+
+
+    // 트래커 생성
+    @Transactional
+    public void createTracker(GroupMatchedEvent event) {
+        // 1. 이미 해당 그룹의 트래커가 있는지 검증 (boolean 체크)
+        if (trackerRepository.existsByGroup_GroupId(event.groupId())) {
+            throw new TrackerException(TrackerErrorCode.TRACKER_ALREADY_EXISTS);
+        }
+
+        // 2. 그룹 엔티티 조회
+        Groups group = groupsRepository.findById(event.groupId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        // 3. 첫 번째 주자(호스트, 순서 1번)의 MatchedMember 조회
+        MatchedMember firstOwner = matchedMemberRepository.findByGroupAndOrder(event.groupId(), 1)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+
+        // 4. 트래커 초기 빌드
+        Tracker tracker = Tracker.builder()
+                .group(group)
+                .trackerStatus(TrackerStatus.READY)
+                .bookOwner(firstOwner)
+                .startDate(group.getStartDate().atStartOfDay())
+                .endDate(group.getStartDate().atStartOfDay().plusDays(group.getReadingPeriod()))
+                .extensionCount(0)
+                .build();
+
+        trackerRepository.save(tracker);
+
+        // 5. 첫 히스토리 기록
+        TrackerHistory initialHistory = tracker.createHistorySnapshot(
+                null,
+                firstOwner.getMatchedMember(),
+                null, null, null
+        );
+        trackerHistoryRepository.save(initialHistory);
     }
 
     //트래커 상세 조회

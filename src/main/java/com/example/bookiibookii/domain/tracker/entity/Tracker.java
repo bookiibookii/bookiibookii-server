@@ -141,16 +141,17 @@ public class Tracker extends BaseEntity {
     public void startReading() {
         if (this.trackerStatus == TrackerStatus.RECEIVED) {
             this.trackerStatus = TrackerStatus.GUEST_READING;
+            // 독서 시작 시점으로 타이머 리셋
+            this.startDate = LocalDateTime.now();
+            // 독서 종료 시점 = 독서 시작 시점 + 그룹 독서 기간.
+            int readingPeriod = this.group.getReadingPeriod();
+            this.endDate = this.startDate.plusDays(readingPeriod);
         } else if (this.trackerStatus == TrackerStatus.READY) {
             this.trackerStatus = TrackerStatus.HOST_READING;
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        // 독서 시작 시점으로 타이머 리셋
-        this.startDate = LocalDateTime.now();
-        // 독서 종료 시점 = 독서 시작 시점 + 그룹 독서 기간.
-        int readingPeriod = this.group.getReadingPeriod();
-        this.endDate = this.startDate.plusDays(readingPeriod);
+
     }
 
     public void completeReading() {

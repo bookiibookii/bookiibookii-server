@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.tracker.converter;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
@@ -61,7 +62,7 @@ public class TrackerConverter {
                 .category(book != null && book.getCategory() != null ? book.getCategory().toString() : null);
 
         // 4. 타입별 상세 데이터 매핑
-        if ("RELAY".equals(groupType)) {
+        if (group.getGroupType() == GroupType.RELAY) {
             // 게스트 프로필 이미지 리스트 추출 (호스트 제외)
             List<String> guestImages = group.getMatchedMember().stream()
                     .map(matched -> matched.getUser()) // MatchedMember에서 User 추출
@@ -76,7 +77,7 @@ public class TrackerConverter {
                     .stepDates(stepDates)
                     .build());
         }
-        else if ("TOGETHER".equals(groupType)) {
+        else if (group.getGroupType() == GroupType.TOGETHER) {
             builder.togetherDetail(TrackerListResponse.TogetherDetail.builder()
                     .hostNickname(group.getHost().getName())
                     .participantCount(group.getMatchedMember().size())

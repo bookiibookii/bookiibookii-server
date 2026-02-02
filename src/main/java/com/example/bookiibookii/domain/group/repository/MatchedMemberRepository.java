@@ -63,8 +63,6 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
     }
 
     // 그룹 내 파트너 matchedMember의 userId 반환 - 1:1 경우에서만 사용가능
-    Optional<MatchedMember> findTop1User_IdByGroup_GroupIdAndUser_IdNot(Long groupId, Long userId);
-
     @Query("""
     select m.user.id
     from MatchedMember m

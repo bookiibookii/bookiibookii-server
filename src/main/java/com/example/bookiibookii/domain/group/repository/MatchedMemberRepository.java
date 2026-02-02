@@ -2,6 +2,8 @@ package com.example.bookiibookii.domain.group.repository;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -27,8 +29,13 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
     //현재까지의 참여맴버 수
     long countByGroup(Groups groups);
 
-    //참여맴버 리스트(읽는 순서대로 정렬)
-    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(Groups group);
+    //참여맴버 리스트(읽는 순서대로 정렬) - User, UserImage fetch join으로 N+1 방지
+    @Query("SELECT mm FROM MatchedMember mm " +
+            "JOIN FETCH mm.user u " +
+            "LEFT JOIN FETCH u.userImage " +
+            "WHERE mm.group = :group " +
+            "ORDER BY mm.readingOrder ASC")
+    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(@Param("group") Groups group);
     //참여 취소를 위한 조회 메서드
     Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
 
@@ -57,4 +64,32 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
 
     // 그룹 내 파트너 matchedMember의 userId 반환 - 1:1 경우에서만 사용가능
     Optional<Long> findTop1User_IdByGroup_GroupIdAndUser_IdNot(Long groupId, Long userId);
+
+
+    // 유저가 그룹의 멤버인지 검증
+    boolean existsByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
+
+    @Query("""
+        select mm.user.id
+        from MatchedMember mm
+        where mm.group.groupId = :groupId
+    """)
+    
+    List<Long> findMemberUserIdsByGroupId(@Param("groupId") Long groupId);
+    // 참여한 그룹 중 상태가 RECRUITING, MATCHED 인 것 조회
+    @Query("SELECT DISTINCT g FROM MatchedMember mm " +
+            "JOIN mm.group g " +
+            "JOIN FETCH g.book " +          // 책 정보 필요
+            "LEFT JOIN FETCH g.groupTags gt " + // 태그 정보 필요
+            "LEFT JOIN FETCH gt.tag " +
+            "WHERE mm.user.id = :userId " +
+            "AND g.groupStatus IN :statuses")
+    List<Groups> findMyActiveGroups(
+            @Param("userId") Long userId,
+            @Param("statuses") List<GroupStatus> statuses
+    );
+
+    // 참여했던 전체 그룹 중 특정 타입(RELAY, TOGETHER) 개수 조회
+    Long countByUser_IdAndGroup_GroupType(Long userId, GroupType groupType);
+
 }

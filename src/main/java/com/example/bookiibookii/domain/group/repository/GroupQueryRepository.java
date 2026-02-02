@@ -72,8 +72,7 @@ public class GroupQueryRepository {
             NumberExpression<Long> matchCount = new CaseBuilder()
                     .when(groupTag.tag.id.in(userTagIds)).then(1L)
                     .otherwise(0L)
-                    .sum(); // 일치할 때마다 1점씩 더해서 총점을 계산
-
+                    .sum();
             orders.add(new OrderSpecifier<>(Order.DESC, matchCount));
         }
 

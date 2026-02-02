@@ -9,11 +9,13 @@ import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
+import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
@@ -33,6 +35,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.example.bookiibookii.domain.group.enums.GroupNotiType.*;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +46,7 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher publisher;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -69,15 +73,16 @@ public class ApplicationService {
                 .build();
     }
 
-    //참가 수락 거절 로직
+    // 참가 수락 || 거절 로직
     @Transactional(readOnly = false) // 쓰기 작업이므로 readOnly = false (기본값)로 덮어씌움
-    public ApplicationResponseDTO.UpdateResultDTO updateApplicationStatus(Long applyId, Long userId, ApplicationStatus status) {
+    public ApplicationResponseDTO.UpdateResultDTO updateApplicationStatus(Long applyId, Long userId, ApplicationStatus status)
+    {
 
         // 1. 신청 내역 존재 여부 확인
         Application application = applicationRepository.findById(applyId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
-        // 그룹 조회를 할 때 락을 겁어 Race Condition 해결 (이 시점에 다른 쓰레드는 대기 상태가 됨)
+        // 그룹 조회를 할 때 락을 걸어 Race Condition 해결 (이 시점에 다른 쓰레드는 대기 상태가 됨)
         Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getGroupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
@@ -136,18 +141,24 @@ public class ApplicationService {
                         // notificationService.sendAutoRejectNotification(pendingApp.getGuest(), group);
                     }
                 }
-            } else {
-                application.updateStatus(ApplicationStatus.REJECTED);
-            // notificationService.sendRejectNotification(application.getGuest(), group);
+                // 알림 publish
+                publisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, userId, null, group.getGroupId()));
             }
 
-            return ApplicationResponseDTO.UpdateResultDTO.builder()
-                    .applicationId(application.getApplicationId())
-                    .status(application.getApplicationStatus())
-                    .groupStatus(group.getGroupStatus())
-                    .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
-                    .build();
+        } else {
+            application.updateStatus(ApplicationStatus.REJECTED);
+
+            // 알림 publish
+            publisher.publish(new GroupNotificationEvent(MATCH_REJECTED, userId, application.getGuest().getId(), group.getGroupId()));
         }
+
+        return ApplicationResponseDTO.UpdateResultDTO.builder()
+                .applicationId(application.getApplicationId())
+                .status(application.getApplicationStatus())
+                .groupStatus(group.getGroupStatus())
+                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .build();
+    }
 
     //참가신청 service
     @Transactional(readOnly = false)
@@ -189,6 +200,9 @@ public class ApplicationService {
             // DB에서 유니크 제약조건 위반이 발생하면(중복 신청 시) 처리
             throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
+
+        // 알림 publish
+        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getHost().getId(), groupId) );
 
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())

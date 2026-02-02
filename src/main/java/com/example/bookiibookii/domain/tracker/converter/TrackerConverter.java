@@ -17,8 +17,8 @@ public class TrackerConverter {
         return TrackerDetailResponse.builder()
                 .trackerId(tracker.getId())
                 .trackerStatus(tracker.getTrackerStatus())
-                .currentMatchedMemberId(tracker.getCurrentMember() != null ?
-                        tracker.getCurrentMember().getMatchedMember() : null)
+                .currentMatchedMemberId(tracker.getBookOwner() != null ?
+                        tracker.getBookOwner().getMatchedMember() : null)
                 .endDate(tracker.getEndDate())
                 .extension_count(tracker.getExtensionCount())
                 .extension_days(tracker.getExtensionDays())

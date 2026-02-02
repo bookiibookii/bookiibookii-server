@@ -260,7 +260,7 @@ public class CardService {
                     CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
                             .cardImageId(cardImage.getId())
                             .s3Key(cardImage.getS3Key())
-                            .imageUrl(cardImageS3Service.generatePresignedGetUrl(
+                            .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
                                     cardImage.getS3Key(),
                                     presignedGetUrlExpirationMinutes))
                             .build();

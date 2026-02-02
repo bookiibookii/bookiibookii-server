@@ -14,7 +14,10 @@ public class UserRequestDTO {
 
             @NotEmpty
             @Valid
-            List<TagSettingDTO> tags
+            List<TagSettingDTO> tags,
+
+            /** 이미지 업로드 후 받은 s3Key. 없으면 null (프로필 이미지 선택 안 함) */
+            String s3Key
     ){}
 
     public record TagSettingDTO (

@@ -64,12 +64,11 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             @Param("limit") int limit
     );
   
-    //그룹 상세 조회
+    //그룹 상세 조회 (host, host.userImage fetch join으로 hostProfileImage N+1 방지)
     @Query("SELECT g FROM Groups g " +
-            "JOIN FETCH g.book " +          // 도서 정보 한 번에 조회
-            "JOIN FETCH g.host " +          // 방장 정보 한 번에 조회
-            //"LEFT JOIN FETCH g.groupTags gt " + // 태그 정보
-            //"LEFT JOIN FETCH gt.tag " +
+            "JOIN FETCH g.book " +
+            "JOIN FETCH g.host h " +
+            "LEFT JOIN FETCH h.userImage " +
             "WHERE g.groupId = :groupId AND g.groupStatus != 'DELETED'")
     Optional<Groups> findDetailById(@Param("groupId") Long groupId);
 
@@ -79,6 +78,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     join fetch g.book
     join fetch g.host
     where g.groupId = :groupId
+    and g.groupStatus != 'DELETED'
     """)
     Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);
 

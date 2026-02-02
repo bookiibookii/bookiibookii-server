@@ -19,6 +19,7 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,9 @@ public class CommentService {
     private final GroupsRepository groupRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
+    private final UserImageS3Service userImageS3Service;
+
+    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     @Transactional
     public CommentCreateResDTO create(Long groupId, User user, CommentCreateReqDTO req) {
@@ -134,7 +138,7 @@ public class CommentService {
                 .build();
     }
 
-    public static CommentTreeResDTO toTreeDTO(Comment c, WriterRole writerRole) {
+    private CommentTreeResDTO toTreeDTO(Comment c, WriterRole writerRole) {
         return CommentTreeResDTO.builder()
                 .id(c.getId())
                 .content(c.getContent())
@@ -144,11 +148,14 @@ public class CommentService {
                 .build();
     }
 
-    private static WriterDto toWriterDto(User u, WriterRole writerRole) {
+    private WriterDto toWriterDto(User u, WriterRole writerRole) {
+        String profileImageUrl = u.getUserImage() != null
+                ? userImageS3Service.generatePresignedGetUrl(u.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES)
+                : null;
         return WriterDto.builder()
                 .userId(u.getId())
                 .name(u.getName())
-                .profileImage(u.getImageUrl())
+                .profileImage(profileImageUrl)
                 .role(writerRole)
                 .build();
     }

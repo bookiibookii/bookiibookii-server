@@ -19,7 +19,7 @@ public enum TrackerNotiType {
 
     READING_FINISHED(
             "파트너가 책을 다 읽었어요",
-            null
+            ""
     ),
 
     SHIPPING_REGISTERED(

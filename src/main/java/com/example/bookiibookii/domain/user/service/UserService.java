@@ -227,6 +227,8 @@ public class UserService {
         return userRepository.findByName(nickname)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND))
                 .getId();
+    }
+
     // 마이페이지 설정
     @Transactional
     public void updateMypage(Long userId, UserRequestDTO.MypageReqDTO request) {

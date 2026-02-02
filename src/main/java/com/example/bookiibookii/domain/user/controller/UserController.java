@@ -69,7 +69,7 @@ public class UserController implements UserControllerDocs{
     ) {
         List<GroupStatus> statuses = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
         UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(user.getId(), statuses);
-        return ApiResponse.onSuccess(UserSuccessCode.MYPAGE_SUCCESS, result);
+        return ApiResponse.onSuccess(UserSuccessCode.GET_MYPAGE_SUCCESS, result);
     }
 
     // MyPage 정보 수정

@@ -131,8 +131,8 @@ public class ApplicationService {
                     newMember.getUser().getId(), null, group.getGroupId()
             ));
 
-            if (currentTotalCount + 1 >= group.getMaxCapacity()) {
-                group.updateStatus(GroupStatus.MATCHED);
+                if (currentTotalCount + 1 >= group.getMaxCapacity()) {
+                    group.updateStatus(GroupStatus.MATCHED);
 
                 List<Application> pendingApplications =
                         applicationRepository.findAllPendingByGroupId(group.getGroupId());

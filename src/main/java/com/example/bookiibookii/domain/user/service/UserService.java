@@ -228,6 +228,7 @@ public class UserService {
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         if (isNicknameAvailable(request.nickname())) user.updateName(request.nickname());
+        user.updateMeetPlace(request.meetPlace());
 
         //TODO : 프로필 이미지 처리
         Address address = addressRepository.findByUserId(userId).orElse(null);
@@ -240,7 +241,6 @@ public class UserService {
                     .zipCode(request.zipCode())
                     .address(request.address())
                     .addressDetail(request.addressDetail())
-                    .region(request.region())
                     .build();
             addressRepository.save(address);
         } else {
@@ -249,8 +249,7 @@ public class UserService {
                     request.phone(),
                     request.zipCode(),
                     request.address(),
-                    request.addressDetail(),
-                    request.region()
+                    request.addressDetail()
             );
         }
     }

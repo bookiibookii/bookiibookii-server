@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
@@ -44,7 +45,7 @@ public class TrackerNotificationService {
                 .orElseThrow(() -> new GroupException(GroupErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         Long receiverId = matchedMemberRepository
-                .findTop1User_IdByGroup_GroupIdAndUser_IdNot(event.groupId(), event.actorId())
+                .findPartnerUserId(event.groupId(), event.actorId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.PARTNER_NOT_FOUND));
 
         TrackerNotiType type = resolveNotiType(event.action(), myRole);

@@ -21,6 +21,8 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
+import com.example.bookiibookii.domain.userbook.entity.UserBook;
+import com.example.bookiibookii.domain.userbook.repository.UserBookQueryRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class UserService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final AddressRepository addressRepository;
     private final UserBadgeRepository userBadgeRepository;
+    private final UserBookQueryRepository userBookQueryRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -184,7 +187,7 @@ public class UserService {
                 .collect(Collectors.toList());
 
         // 최근 읽은 책 조회 (최대 3개)
-        List<UserBookResponseDTO.MypageBookDto> recentBooks = userBookRepository.findRecentBooksWithRating(
+        List<UserBookResponseDTO.MypageBookDto> recentBooks = userBookQueryRepository.findRecentBooksWithRating(
                 userId,
                 PageRequest.of(0, 3)
         );
@@ -236,6 +239,7 @@ public class UserService {
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         if (isNicknameAvailable(request.nickname())) user.updateName(request.nickname());
+        user.updateMeetPlace(request.meetPlace());
 
         //TODO : 프로필 이미지 처리
         Address address = addressRepository.findByUserId(userId).orElse(null);
@@ -248,7 +252,6 @@ public class UserService {
                     .zipCode(request.zipCode())
                     .address(request.address())
                     .addressDetail(request.addressDetail())
-                    .region(request.region())
                     .build();
             addressRepository.save(address);
         } else {
@@ -257,8 +260,7 @@ public class UserService {
                     request.phone(),
                     request.zipCode(),
                     request.address(),
-                    request.addressDetail(),
-                    request.region()
+                    request.addressDetail()
             );
         }
     }

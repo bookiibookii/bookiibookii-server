@@ -34,15 +34,11 @@ public class Address extends BaseEntity {
     @Column(name = "address_detail", nullable = false)
     private String addressDetail;
 
-    @Column(name = "region", nullable = false)
-    private String region;
-
-    public void updateAddressInfo(String receiverName, String phone, String zipCode, String address, String addressDetail, String region) {
+    public void updateAddressInfo(String receiverName, String phone, String zipCode, String address, String addressDetail) {
         this.receiverName = receiverName;
         this.phone = phone;
         this.zipCode = zipCode;
         this.address = address;
         this.addressDetail = addressDetail;
-        this.region = region;
     }
 }

@@ -7,7 +7,6 @@ import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -30,6 +29,7 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
+import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -64,6 +64,7 @@ public class GroupService {
     private final GroupTagRepository groupTagRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
+    private final UserBookService userBookService;
     private final AddressRepository addressRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
@@ -151,6 +152,9 @@ public class GroupService {
                 .build();
 
         matchedMemberRepository.save(hostMember);
+
+        // 방장 서재(UserBook)에 추가
+        userBookService.createForParticipation(host, savedGroup);
 
         List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
 
@@ -303,11 +307,16 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.GROUP_CANT_DELETE);
         }
 
-        //soft delete 실행
-        group.markAsDELETED();
+        List<Long> receiverIds = applicationRepository.findApplicantUserIdsByGroupId(groupId).stream()
+                .filter(id -> !id.equals(host.getId()))
+                .distinct()
+                .toList();
 
         // 알림 publish
-        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), null, group.getGroupId()));
+        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), group.getBook().getTitle(), null, receiverIds, group.getGroupId()));
+
+        //soft delete 실행
+        group.markAsDELETED();
 
         return GroupResponseDTO.DeleteResultDTO.builder()
                 .groupId(groupId)

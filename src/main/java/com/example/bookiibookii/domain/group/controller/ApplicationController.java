@@ -28,7 +28,7 @@ public class ApplicationController implements ApplicationControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, response);
     }
 
-    //수락 거절
+    // 참가 수락 || 거절
     @PatchMapping("/apply/{applyId}")
     public ApiResponse<ApplicationResponseDTO.UpdateResultDTO> updateApplicationStatus(
             @PathVariable(name = "applyId") Long applyId,

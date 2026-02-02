@@ -1,7 +1,5 @@
 package com.example.bookiibookii.domain.userbook.service;
 
-import com.example.bookiibookii.domain.book.entity.Book;
-import com.example.bookiibookii.domain.book.repository.BookRepository;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
@@ -29,7 +27,6 @@ public class CardService {
     private final CardImageValidationService cardImageValidationService;
     private final CardImageS3Service cardImageS3Service;
     private final UserBookRepository userBookRepository;
-    private final BookRepository bookRepository;
 
     // Card의 이미지 업데이트 결과
     public record CardImageUpdateResult(Card card, CardImage cardImage, boolean isCreated) {}
@@ -242,10 +239,8 @@ public class CardService {
         UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
         
-        // Book 제목 조회
-        String title = bookRepository.findById(userBook.getBookId())
-                .map(Book::getTitle)
-                .orElse("");
+        // Book 제목 조회 (Group → Book)
+        String title = userBook.getGroup().getBook().getTitle();
         
         List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
         

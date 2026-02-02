@@ -35,10 +35,6 @@ public class Tracker extends BaseEntity {
     private TrackerStatus trackerStatus;
 
     @Column(nullable = false)
-    private Boolean isIssue = false;
-    private String issueReason;
-
-    @Column(nullable = false)
     private LocalDateTime startDate;
 
     private LocalDateTime endDate;
@@ -56,21 +52,6 @@ public class Tracker extends BaseEntity {
     // 히스토리와의 1:N 관계
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
     private List<TrackerHistory> histories = new ArrayList<>();
-
-
-    // 이슈 발생 메서드
-    public void markIssue(String reason){
-        this.isIssue = true;
-        this.issueReason = reason;
-    }
-
-    // 이슈 해결 메서드
-    public void resolveIssue() {
-        this.isIssue = false;
-        this.issueReason = null;
-    }
-
-
 
     public TrackerHistory createHistorySnapshot(Long senderId, Long receiverId, String company,
                                         String number, String imageUrl) {
@@ -141,16 +122,17 @@ public class Tracker extends BaseEntity {
     public void startReading() {
         if (this.trackerStatus == TrackerStatus.RECEIVED) {
             this.trackerStatus = TrackerStatus.GUEST_READING;
+            // 독서 시작 시점으로 타이머 리셋
+            this.startDate = LocalDateTime.now();
+            // 독서 종료 시점 = 독서 시작 시점 + 그룹 독서 기간.
+            int readingPeriod = this.group.getReadingPeriod();
+            this.endDate = this.startDate.plusDays(readingPeriod);
         } else if (this.trackerStatus == TrackerStatus.READY) {
             this.trackerStatus = TrackerStatus.HOST_READING;
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        // 독서 시작 시점으로 타이머 리셋
-        this.startDate = LocalDateTime.now();
-        // 독서 종료 시점 = 독서 시작 시점 + 그룹 독서 기간.
-        int readingPeriod = this.group.getReadingPeriod();
-        this.endDate = this.startDate.plusDays(readingPeriod);
+
     }
 
     public void completeReading() {

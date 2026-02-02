@@ -63,4 +63,18 @@ public class LibraryService {
                 .comment(ub.getComment())
                 .build();
     }
+
+    //서재검색
+    @Transactional(readOnly = true)
+    public List<LibraryBookResponseDTO> searchLibraryBooks(Long userId, String keyword) {
+        // 키워드가 없으면 전체 목록 조회로 대체하거나 빈 리스트 반환
+        if (keyword == null || keyword.isBlank()) {
+            return getLibraryBooks(userId);
+        }
+
+        List<UserBook> userBooks = userBookRepository.searchMyLibrary(userId, keyword);
+        return userBooks.stream()
+                .map(this::toLibraryBookResponseDTO) // 기존에 잘 만들어두신 메서드 재사용!
+                .toList();
+    }
 }

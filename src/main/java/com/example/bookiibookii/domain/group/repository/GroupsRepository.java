@@ -7,11 +7,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -85,4 +87,8 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     // 상태가 RECRUITING이고, 시작일(startDate)이 오늘이거나 이미 지난 그룹 조회
     @Query("SELECT g FROM Groups g WHERE g.groupStatus = 'RECRUITING' AND g.startDate <= :today")
     List<Groups> findGroupsToStart(@Param("today") LocalDate today);
+
+    @Modifying
+    @Query("DELETE FROM Groups g WHERE g.groupStatus = 'DELETED' AND g.updatedAt <= :deleteBefore")
+    void deleteExpiredDeletedGroups(@Param("deleteBefore") LocalDateTime deleteBefore);
 }

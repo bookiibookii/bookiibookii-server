@@ -72,6 +72,17 @@ public class UserController implements UserControllerDocs{
         return ApiResponse.onSuccess(UserSuccessCode.MYPAGE_SUCCESS, result);
     }
 
+    // MyPage 정보 수정
+    @Override
+    @PatchMapping("/api/mypage")
+    public ApiResponse<Void> updateMypage(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.MypageReqDTO request
+    ) {
+        userService.updateMypage(user.getId(), request);
+        return ApiResponse.onSuccess(UserSuccessCode.UPDATE_MYPAGE_SUCCESS, null);
+    }
+
     // 타 유저 프로필 조회
     @Override
     @GetMapping("/api/profiles/{nickname}")

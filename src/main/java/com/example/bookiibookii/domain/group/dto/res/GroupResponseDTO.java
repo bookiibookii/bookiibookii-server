@@ -122,6 +122,12 @@ public class GroupResponseDTO {
             boolean hasNext
     ) {}
 
+    public record SearchResultDTO(
+            List<GroupSummaryDTO> groupList,
+            Long totalCount,
+            int currentPage,
+            boolean hasNext
+    ) {}
     // 드롭다운용 그룹 데이터 (신고하기 API의 신고그룹 조회)
     @Builder
     public record GroupSummaryResponse(

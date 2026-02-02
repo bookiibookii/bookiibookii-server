@@ -93,4 +93,19 @@ public interface UserControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "프로필 조회 실패")
     })
     ApiResponse<UserResponseDTO.UserProfileResDTO> getOtherProfile(@PathVariable("nickname") String nickname);
+
+    // api/mypage
+    @Operation(
+            summary = "마이페이지 정보 수정 API",
+            description = """
+            유저의 닉네임, 프로필 이미지, 주소 정보를 생성&업데이트합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "마이페이지 설정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 설정 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "전화번호 형식이 올바르지 않습니다.")
+    })
+    ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
+
 }

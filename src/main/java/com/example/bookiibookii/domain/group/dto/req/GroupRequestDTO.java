@@ -6,10 +6,7 @@ import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.enums.TagType;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -56,6 +53,14 @@ public class GroupRequestDTO {
 
             @NotEmpty
             List<String> value
+    ){}
+
+    public record SearchDTO(
+        @NotBlank(message = "검색어를 입력해주세요.")
+        String searchword,
+        GroupSortType sort,
+        @Min(0) int page,
+        @Positive int size
     ){}
 }
 

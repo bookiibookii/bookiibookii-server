@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,4 +81,8 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     and g.groupStatus != 'DELETED'
     """)
     Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);
+
+    // 상태가 RECRUITING이고, 시작일(startDate)이 오늘이거나 이미 지난 그룹 조회
+    @Query("SELECT g FROM Groups g WHERE g.groupStatus = 'RECRUITING' AND g.startDate <= :today")
+    List<Groups> findGroupsToStart(@Param("today") LocalDate today);
 }

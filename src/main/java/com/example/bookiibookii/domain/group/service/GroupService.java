@@ -25,6 +25,7 @@ import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +62,7 @@ public class GroupService {
     private final GroupTagRepository groupTagRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
+    private final AddressRepository addressRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -193,14 +195,13 @@ public class GroupService {
         }
 
         // 택배 교환(DELIVERY) 시: 등록된 배송지(Address) 존재 여부 확인
-        /*if (request.getTradeType() == TradeType.DELIVERY) {
+        if (request.getTradeType() == TradeType.DELIVERY) {
             // addressRepository를 통해 해당 유저의 주소가 등록되어 있는지 확인
             boolean hasAddress = addressRepository.existsByUserId(host.getId());
             if (!hasAddress) {
-                // "마이페이지에서 배송지를 먼저 등록해주세요." 에러 발생
                 throw new GroupException(GroupErrorCode.ADDRESS_NOT_FOUND);
-            }*/
-
+            }
+        }
     }
 
 
@@ -481,6 +482,75 @@ public class GroupService {
 
         String[] parts = region.split(" ");
         return parts[parts.length - 1]; // 마지막 단어(구 단위)만 추출
+    }
+
+    //그룹검색
+    @Transactional(readOnly = true)
+    public GroupResponseDTO.SearchResultDTO searchGroups(GroupRequestDTO.SearchDTO request) {
+        // 1. 페이징 설정 (검색은 총 개수 확인을 위해 PageRequest 사용)
+        PageRequest pageable = PageRequest.of(request.page(), request.size());
+
+        // 2. 키워드 기반 통합 검색 실행 (Repository 호출)
+        org.springframework.data.domain.Page<Groups> searchResult = groupQueryRepository.searchGroupsByKeyword(
+                request.searchword(),
+                request.sort(),
+                pageable
+        );
+
+        List<Groups> content = searchResult.getContent();
+        List<Long> groupIds = content.stream().map(Groups::getGroupId).toList();
+
+        // 검색 결과가 없는 경우 빈 결과 반환
+        if (groupIds.isEmpty()) {
+            return new GroupResponseDTO.SearchResultDTO(new ArrayList<>(), 0L, request.page(), false);
+        }
+
+        // 3. [N+1 해결 1] 검색된 그룹들의 대기자 수(waitingCount) 일괄 조회
+        Map<Long, Integer> waitingCountMap = applicationRepository.countPendingByGroupIds(groupIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> ((Long) row[1]).intValue()
+                ));
+
+        // 4. [N+1 해결 2] 검색된 그룹들의 태그 목록 일괄 조회
+        List<GroupTag> allGroupTags = groupTagRepository.findAllByGroupIdIn(groupIds);
+        Map<Long, List<String>> tagListMap = allGroupTags.stream()
+                .collect(Collectors.groupingBy(
+                        gt -> gt.getGroup().getGroupId(),
+                        Collectors.mapping(gt -> gt.getTag().getCode(), Collectors.toList())
+                ));
+
+        // 5. 엔티티 -> GroupSummaryDTO 변환 (기존 리스트 조회와 동일한 카드 포맷)
+        List<GroupResponseDTO.GroupSummaryDTO> dtoList = content.stream()
+                .map(group -> {
+                    int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
+                    List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
+                    boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
+
+                    return GroupResponseDTO.GroupSummaryDTO.builder()
+                            .groupId(group.getGroupId())
+                            .title(group.getBook().getTitle())
+                            .bookImage(group.getBook().getImage())
+                            .hostNickname(group.getHost().getName())
+                            .groupStatus(group.getGroupStatus().name())
+                            .currentCount(group.getMatchedMember().size())
+                            .maxCapacity(group.getMaxCapacity())
+                            .waitingCount(waitingCount)
+                            .isHot(isHot)
+                            .groupType(group.getGroupType().name())
+                            .tradeType(group.getTradeType().name())
+                            .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
+                            .tags(tags)
+                            .build();
+                }).toList();
+
+        // 6. 최종 검색 결과 DTO 조립 (총 건수 포함)
+        return new GroupResponseDTO.SearchResultDTO(
+                dtoList,
+                searchResult.getTotalElements(), // 전체 결과 수 (Page 사용 이유)
+                searchResult.getNumber(),        // 현재 페이지
+                searchResult.hasNext()           // 다음 페이지 여부
+        );
     }
 
     // 신고할 그룹 조회

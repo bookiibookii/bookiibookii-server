@@ -28,6 +28,7 @@ import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
+import com.example.bookiibookii.domain.userbook.repository.UserBookQueryRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
@@ -56,6 +57,7 @@ public class UserService {
     private final UserBookRepository userBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final AddressRepository addressRepository;
+    private final UserBookQueryRepository userBookQueryRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -185,7 +187,7 @@ public class UserService {
                 .collect(Collectors.toList());
 
         // 최근 읽은 책 조회 (최대 3개)
-        List<UserBookResponseDTO.MypageBookDto> recentBooks = userBookRepository.findRecentBooksWithRating(
+        List<UserBookResponseDTO.MypageBookDto> recentBooks = userBookQueryRepository.findRecentBooksWithRating(
                 userId,
                 PageRequest.of(0, 3)
         );

@@ -34,12 +34,14 @@ import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,6 +58,8 @@ public class UserService {
     private final UserBookRepository userBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final AddressRepository addressRepository;
+    private final StringRedisTemplate redisTemplate;
+    private static final String BAD_WORDS_KEY = "forbidden:words";
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -79,7 +83,31 @@ public class UserService {
     
     // 닉네임 검증
     public boolean isNicknameAvailable(String nickname) {
-        return !userRepository.existsByName(nickname); // 중복되면 False 반환
+        // 1. 비속어 가용성 체크 (!사용)
+        boolean isNotBad = !containsBadWord(nickname);
+        if (!isNotBad) {
+            System.out.println("⚠️ [검증 실패] 비속어 포함: " + nickname);
+            return false;
+        }
+
+        // 2. 중복 가용성 체크 (제이스님이 원하신 !userRepository.existsByName 형식)
+        boolean isNotDuplicate = !userRepository.existsByName(nickname);
+        if (!isNotDuplicate) {
+            System.out.println("⚠️ [검증 실패] 중복 닉네임: " + nickname);
+            return false;
+        }
+
+        // 3. 둘 다 통과(true)하면 최종 사용 가능
+        return true;
+    }
+
+    private boolean containsBadWord(String nickname) {
+        Set<String> badWords = redisTemplate.opsForSet().members(BAD_WORDS_KEY);
+        if (badWords == null || badWords.isEmpty()) return false;
+
+        // 공백 제거 후 비교해서 "시 발" 같은 우회 방지
+        String cleanNickname = nickname.replaceAll("\\s+", "");
+        return badWords.stream().anyMatch(cleanNickname::contains);
     }
 
     // 온보딩 세팅

@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -95,10 +96,25 @@ public interface TrackerApi {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "직접 교환 약속 등록/수정")
+    @Operation(summary = "직접 교환 약속 등록/수정", description = "직접 교환 시 만날 장소와 시간을 등록합니다. 등록 시 트래커 상태가 MEETING_SCHEDULED로 변경됩니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "약속 등록/수정 성공")
+    })
     ApiResponse<TrackerDetailResponse> updateMeeting(
-            @PathVariable Long groupId,
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @RequestBody @Valid TrackerMeetingRequest request,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(summary = "직접 교환 완료 확인(상호 확인)",
+            description = "직접 교환 시 책을 주고받은 후 양측이 각각 호출합니다. " +
+                    "모두 완료 시 트래커 상태는 RECEIVED(전달 시) 또는 RETURNED(반납 시)로 즉시 변경됩니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "교환 확인 처리 성공")
+    })
+    @PatchMapping("/{groupId}/tracker/meeting/complete")
+    ApiResponse<TrackerDetailResponse> completeMeeting(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 }

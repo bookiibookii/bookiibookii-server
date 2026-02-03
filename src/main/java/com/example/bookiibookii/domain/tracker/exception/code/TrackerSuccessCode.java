@@ -24,9 +24,10 @@ public enum TrackerSuccessCode implements BaseCode {
     TRACKER_EXTENSION_OK(HttpStatus.OK, "TRACKER200_8", "독서 기간 연장이 완료되었습니다."),
     TRACKER_DONE_OK(HttpStatus.OK, "TRACKER200_9", "독서 완료가 등록되었습니다. 다음 주자에게 배송을 준비해주세요."),
     TRACKER_MEETING_UPDATE_OK(HttpStatus.OK, "TRACKER200_10", "직접 교환 약속 정보가 성공적으로 수정되었습니다."),
+    TRACKER_MEETING_DONE_OK(HttpStatus.OK, "TRACKER200_11", "직접 교환이 완료되었습니다."),
 
     // --- 200 OK: 시스템 관련 ---
-    TRACKER_CREATE_OK(HttpStatus.OK, "TRACKER200_11", "새로운 트래커가 성공적으로 생성되었습니다.");
+    TRACKER_CREATE_OK(HttpStatus.OK, "TRACKER200_11", "새로운 트래커가 성공적으로 생성되었습니다."), ;
 
     private final HttpStatus status;
     private final String code;

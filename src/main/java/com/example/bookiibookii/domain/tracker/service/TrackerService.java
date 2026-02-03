@@ -31,6 +31,7 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -410,9 +411,11 @@ public class TrackerService {
     @Transactional
     public void updateMeeting(Long groupId, TrackerMeetingRequest request, User user) {
 
+        // 1. 트래커 조회 및 권한 검증
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
+        // 현재 책 소유자 확인
         MatchedMember bookOwner = tracker.getBookOwner();
         if (!bookOwner.getUser().getId().equals(user.getId())) {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
@@ -423,22 +426,93 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
 
-        // 3. 현재 트래커 상태를 키로 사용하여 Meeting 조회 또는 생성
-        TrackerStatus currentStatus = tracker.getTrackerStatus();
+        // 3. 트래커 상태 업데이트
+        tracker.updateStatus(TrackerStatus.MEETING_SCHEDULED);
 
-
-        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, currentStatus)
+        // 4. Meeting 조회 또는 생성
+        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, TrackerStatus.MEETING_SCHEDULED)
                 .orElseGet(() -> Meeting.builder()
                         .group(tracker.getGroup())
-                        .trackerStatus(currentStatus)
+                        .trackerStatus(tracker.getTrackerStatus())
                         .meetingPlace(tracker.getGroup().getHost().getMeetPlace())
                         .build());
 
-        // 4. 데이터 업데이트 및 저장
+        // 5. 데이터 업데이트 및 저장
         meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
         meetingRepository.save(meeting);
+
+        int totalCapacity = tracker.getGroup().getMaxCapacity();
+        // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
+        int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
+
+        // 다음 주자(receiver) 조회
+        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+
+        TrackerHistory meetingHistory = tracker.createHistorySnapshot(
+                bookOwner.getId(),
+                nextOwner.getId(),
+                null, null, null
+        );
+        trackerHistoryRepository.save(meetingHistory);
     }
 
+    // 약속 완료
+    @Transactional
+    public void completeMeeting(Long groupId, User user) {
 
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        RoleStatus userRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+
+        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, tracker.getTrackerStatus())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
+
+        if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
+        }
+
+        meeting.confirm(userRole);
+
+        if (meeting.isFullyConfirmed()) {
+            processStatusTransition(tracker);
+        } else {
+            // 아직 한 명만 확인한 상태일 때
+            log.info("그룹 {}의 {} 유저가 교환 확인을 눌렀습니다. 상대방 확인 대기 중.", groupId, userRole);
+        }
+    }
+
+    private void processStatusTransition(Tracker tracker) {
+        MatchedMember currentOwner = tracker.getBookOwner();
+        Long groupId = tracker.getGroup().getGroupId();
+        int totalCapacity = tracker.getGroup().getMaxCapacity();
+
+        int nextOrder = (currentOwner.getReadingOrder() % totalCapacity) + 1;
+        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+
+        // 역할에 따른 상태 전이 및 소유권 이전
+        if (currentOwner.getRole() == RoleStatus.HOST) {
+            // [호스트 -> 게스트 전달 완료]
+            tracker.updateStatus(TrackerStatus.RECEIVED);
+            tracker.transferOwner(nextOwner);
+        } else {
+            // [게스트 -> 호스트 반납 완료]
+            tracker.updateStatus(TrackerStatus.RETURNED);
+            tracker.transferOwner(nextOwner);
+        }
+
+        TrackerHistory transitionHistory = tracker.createHistorySnapshot(
+                currentOwner.getId(),
+                nextOwner.getId(),
+                null, null, null
+        );
+        trackerHistoryRepository.save(transitionHistory);
+
+        // 알림 발송
+        publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, nextOwner.getUser().getId(), groupId, null));
+    }
 
 }

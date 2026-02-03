@@ -26,8 +26,7 @@ public enum TrackerStatus {
     COMPLETED("릴레이종료"),
 
     // 직접 교환 고려
-    MEETING_SCHEDULED("약속진행중"),
-    MEETING_DONE("약속완료")
+    MEETING_SCHEDULED("약속진행중")
     ;
 
     private final String description;

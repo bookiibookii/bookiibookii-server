@@ -182,4 +182,28 @@ public class Tracker extends BaseEntity {
     }
 
 
+    public void updateStatus(TrackerStatus newStatus) {
+        if (newStatus == null) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        if (this.trackerStatus == TrackerStatus.COMPLETED) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        this.trackerStatus = newStatus;
+    }
+
+    public void transferOwner(MatchedMember nextOwner) {
+
+        if (nextOwner == null) {
+            throw new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND);
+        }
+
+        if (this.bookOwner.equals(nextOwner)) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+        this.bookOwner = nextOwner;
+    }
+
 }

@@ -196,7 +196,7 @@ public class GroupService {
     private void validateRelayPolicy(User host, GroupRequestDTO.CreateDTO request) {
         // 직접 교환 시 유저 엔티티의 지역/상세장소 정보 필수
         if (request.getTradeType() == TradeType.DIRECT) {
-            if (host.getRegion() == null || host.getMeetPlace() == null) {
+            if (host.getMeetPlace() == null) {
                 throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
             }
         }

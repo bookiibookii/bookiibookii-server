@@ -445,6 +445,7 @@ public class TrackerService {
                         .build());
 
         // 5. 데이터 업데이트 및 저장
+        tracker.updateStatus(currentStep);
         meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
         meetingRepository.save(meeting);
 

@@ -18,8 +18,14 @@ public class UserResponseDTO {
             Integer completeBook,
             Integer relayGroup,
             Integer togetherGroup,
-            // TODO : 유저 badge 리스트 추가,
+            List<UserBadgeDTO>  userBadges,
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<UserBookResponseDTO.MypageBookDto> books
+    ){}
+
+    @Builder
+    public record UserBadgeDTO  (
+            String userBadge,
+            Integer count
     ){}
 }

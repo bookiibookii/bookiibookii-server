@@ -12,25 +12,18 @@ import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
 import com.example.bookiibookii.domain.tag.repository.TagRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
-import com.example.bookiibookii.domain.user.entity.Address;
-import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserImage;
-import com.example.bookiibookii.domain.user.entity.UserTag;
+import com.example.bookiibookii.domain.user.entity.*;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
-import com.example.bookiibookii.domain.user.repository.AddressRepository;
-import com.example.bookiibookii.domain.user.repository.UserImageRepository;
-import com.example.bookiibookii.domain.user.repository.UserRepository;
-import com.example.bookiibookii.domain.user.repository.UserTagRepository;
+import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.UserBookQueryRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
-import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -57,6 +50,7 @@ public class UserService {
     private final UserBookRepository userBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final AddressRepository addressRepository;
+    private final UserBadgeRepository userBadgeRepository;
     private final UserBookQueryRepository userBookQueryRepository;
 
     // 소셜 유저 조회 or 생성
@@ -170,7 +164,13 @@ public class UserService {
         List<Tag> TopTags = userTagService.extractTopTags(currentUserTags, 3);
         List<String> topTagCodes = TopTags.stream().map(ut -> ut.getCode()).toList();
 
-        // TODO : 배지 조회
+        // 배지 조회 (count가 0보다 큰 배지만 조회)
+        List<UserBadge> userBadges = userBadgeRepository.findByUserAndCountGreaterThan(user, 0);
+        List<UserResponseDTO.UserBadgeDTO> badgeList = userBadges.stream()
+                .map(ub -> UserResponseDTO.UserBadgeDTO.builder()
+                        .userBadge(ub.getBadge().name())
+                        .count(ub.getCount())
+                        .build()).toList();
 
         // 완독 수 (로직에 따라 조건 추가 가능)
         Long completeBookCount = userBookRepository.countByUser_Id(userId);
@@ -201,6 +201,7 @@ public class UserService {
                 .completeBook(completeBookCount.intValue())
                 .relayGroup(relayCount.intValue())
                 .togetherGroup(togetherCount.intValue())
+                .userBadges(badgeList)
                 .groups(groupList)
                 .books(recentBooks)
                 .build();

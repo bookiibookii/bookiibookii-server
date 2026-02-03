@@ -12,13 +12,5 @@ public enum TagCode {
     FAST,
     NORMAL,
     SLOW,
-    UNKNOWN,
-
-    KINDNESS,
-    GOOD_HANDWRITING,
-    SWEET_COMMENT,
-    INSIGHTFUL,
-    FAST_SHIPPING,
-    FUNNY,
-    CLEAN_CONDITION
+    UNKNOWN
 }

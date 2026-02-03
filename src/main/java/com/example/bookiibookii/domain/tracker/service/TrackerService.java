@@ -406,7 +406,7 @@ public class TrackerService {
     }
 
 
-
+    //약속 정보 업데이트
     @Transactional
     public void updateMeeting(Long groupId, TrackerMeetingRequest request, User user) {
 
@@ -438,4 +438,7 @@ public class TrackerService {
         meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
         meetingRepository.save(meeting);
     }
+
+
+
 }

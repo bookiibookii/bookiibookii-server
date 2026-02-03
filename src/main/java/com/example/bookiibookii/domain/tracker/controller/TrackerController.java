@@ -133,4 +133,17 @@ public class TrackerController implements TrackerApi {
         trackerService.updateMeeting(groupId, request, user);
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_MEETING_UPDATE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
     }
+
+
+    @Override
+    @PatchMapping("/{groupId}/tracker/meeting/complete")
+    public ApiResponse<TrackerDetailResponse> completeMeeting(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        trackerService.completeMeeting(groupId, user);
+        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_MEETING_DONE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
+    }
+
+
 }

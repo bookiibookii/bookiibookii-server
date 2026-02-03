@@ -24,6 +24,9 @@ public enum TrackerStatus {
     SHIPPING_TO_HOST("회수중"),
     RETURNED("회수완료"),
     COMPLETED("릴레이종료"),
+
+    // 직접 교환 고려
+    MEETING_SCHEDULED("약속진행중")
     ;
 
     private final String description;

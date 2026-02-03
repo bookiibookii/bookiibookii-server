@@ -31,7 +31,6 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -427,10 +426,10 @@ public class TrackerService {
         }
 
         // 3. 트래커 상태 업데이트
-        tracker.updateStatus(TrackerStatus.MEETING_SCHEDULED);
+        tracker.updateStatus(TrackerStatus.MEETING);
 
         // 4. Meeting 조회 또는 생성
-        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, TrackerStatus.MEETING_SCHEDULED)
+        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, TrackerStatus.MEETING)
                 .orElseGet(() -> Meeting.builder()
                         .group(tracker.getGroup())
                         .trackerStatus(tracker.getTrackerStatus())
@@ -467,7 +466,7 @@ public class TrackerService {
         if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
-        if (tracker.getTrackerStatus() != TrackerStatus.MEETING_SCHEDULED) {
+        if (tracker.getTrackerStatus() != TrackerStatus.MEETING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 

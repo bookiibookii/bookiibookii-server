@@ -393,13 +393,13 @@ public class TrackerService {
         TrackerStatus currentStatus = tracker.getTrackerStatus();
 
         // 2. 현재 단계에 등록된 약속이 있는지 확인
-        return meetingRepository.findByGroupIdAndStatusNative(groupId, currentStatus.name())
+        return meetingRepository.findLatestByGroupIdNative(groupId)
                 .map(meeting -> new TrackerMeetingResponse(
                         meeting.getMeetingTime(),
                         meeting.getMeetingPlace()
                 ))
                 .orElseGet(() -> {
-                    // 약속이 없을 때만 기본값(게스트 선호 장소 등) 반환
+                    // 약속 테이블 자체가 비어있을 때만 호스트의 선호 장소 반환
                     String defaultPlace = tracker.getGroup().getHost().getMeetPlace();
                     return new TrackerMeetingResponse(null, defaultPlace);
                 });

@@ -13,9 +13,10 @@ import java.util.Optional;
 
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
-    // 그룹 ID와 트래커 상태를 조합하여 정확한 시점의 약속을 조회
-    @Query("SELECT m FROM Meeting m WHERE m.group.groupId = :groupId AND m.trackerStatus = :status")
-    Optional<Meeting> findByGroup_GroupIdAndTrackerStatus(Long groupId, TrackerStatus status);
+
+// 그룹 ID를 기반으로 가장 최근에 생성된(Id가 큰) 약속 1건을 조회
+    @Query(value = "SELECT * FROM meeting WHERE group_id = :groupId ORDER BY meeting_id DESC LIMIT 1", nativeQuery = true)
+    Optional<Meeting> findLatestByGroupIdNative(@Param("groupId") Long groupId);
 
     @Query(value = "SELECT * FROM meeting WHERE group_id = :groupId AND tracker_status = :status LIMIT 1", nativeQuery = true)
     Optional<Meeting> findByGroupIdAndStatusNative(@Param("groupId") Long groupId, @Param("status") String status);

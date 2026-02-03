@@ -25,8 +25,6 @@ public enum TrackerStatus {
     RETURNED("회수완료"),
     COMPLETED("릴레이종료"),
 
-    // 직접 교환 고려
-    MEETING("약속진행중")
     ;
 
     private final String description;

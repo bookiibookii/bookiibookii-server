@@ -96,7 +96,7 @@ public interface TrackerApi {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "직접 교환 약속 등록/수정", description = "직접 교환 시 만날 장소와 시간을 등록합니다. 등록 시 트래커 상태가 MEETING_SCHEDULED로 변경됩니다.")
+    @Operation(summary = "직접 교환 약속 등록/수정", description = "직접 교환 시 만날 장소와 시간을 등록합니다. 등록 시 트래커 상태가 MEETING로 변경됩니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "약속 등록/수정 성공")
     })

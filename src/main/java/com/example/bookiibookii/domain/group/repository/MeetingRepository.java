@@ -14,6 +14,7 @@ import java.util.Optional;
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     // 그룹 ID와 트래커 상태를 조합하여 정확한 시점의 약속을 조회
+    @Query("SELECT m FROM Meeting m WHERE m.group.groupId = :groupId AND m.trackerStatus = :status")
     Optional<Meeting> findByGroup_GroupIdAndTrackerStatus(Long groupId, TrackerStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

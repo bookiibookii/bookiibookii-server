@@ -464,15 +464,20 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        RoleStatus userRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
-
-        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, tracker.getTrackerStatus())
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
-
         if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
+        if (tracker.getTrackerStatus() != TrackerStatus.MEETING_SCHEDULED) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        RoleStatus userRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+
+        Meeting meeting = meetingRepository.findByGroupWithLock(groupId, tracker.getTrackerStatus())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
+
+
 
         meeting.confirm(userRole);
 

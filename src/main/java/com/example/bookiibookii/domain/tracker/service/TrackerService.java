@@ -435,23 +435,18 @@ public class TrackerService {
         TrackerStatus meetingStep = (tracker.getBookOwner().getRole() == RoleStatus.HOST)
                 ? TrackerStatus.SHIPPING_TO_GUEST : TrackerStatus.SHIPPING_TO_HOST;
 
-        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, meetingStep)
+        Meeting meeting = meetingRepository.findByGroupIdAndStatusNative(groupId, meetingStep.name())
                 .orElse(null);
 
         if (meeting == null) {
-            log.info("새로운 약속 생성 모드: {}", meetingStep);
+            log.info("==> [INSERT] 새 약속 생성 (그룹: {}, 단계: {})", groupId, meetingStep);
             meeting = Meeting.builder()
                     .group(tracker.getGroup())
                     .trackerStatus(meetingStep)
-                    .hostConfirmed(false)
-                    .guestConfirmed(false)
                     .build();
         } else {
-            log.info("기존 약속 수정 모드: {}, ID: {}", meetingStep, meeting.getMeetingId());
-            // 기존 약속이 '완료'된 상태라면 (릴레이 재순환 시) 초기화
-            if (meeting.isFullyConfirmed()) {
-                meeting.resetConfirmation();
-            }
+            log.info("==> [UPDATE] 기존 약속 수정 (그룹: {}, ID: {})", groupId, meeting.getMeetingId());
+            meeting.resetConfirmation();
         }
 
         tracker.updateStatus(meetingStep);

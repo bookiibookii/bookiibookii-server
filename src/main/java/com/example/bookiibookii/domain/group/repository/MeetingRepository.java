@@ -17,6 +17,9 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     @Query("SELECT m FROM Meeting m WHERE m.group.groupId = :groupId AND m.trackerStatus = :status")
     Optional<Meeting> findByGroup_GroupIdAndTrackerStatus(Long groupId, TrackerStatus status);
 
+    @Query(value = "SELECT * FROM meeting WHERE group_id = :groupId AND tracker_status = :status LIMIT 1", nativeQuery = true)
+    Optional<Meeting> findByGroupIdAndStatusNative(@Param("groupId") Long groupId, @Param("status") String status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Meeting m WHERE m.group.groupId = :groupId AND m.trackerStatus = :status")
     Optional<Meeting> findByGroupWithLock(@Param("groupId") Long groupId, @Param("status") TrackerStatus status);

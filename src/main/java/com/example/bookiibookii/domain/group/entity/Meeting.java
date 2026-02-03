@@ -64,4 +64,9 @@ public class Meeting extends BaseEntity {
         this.meetingTime = time;
     }
 
+    public void resetConfirmation() {
+        this.hostConfirmed = false;
+        this.guestConfirmed = false;
+        this.meetingTime = null;
+    }
 }

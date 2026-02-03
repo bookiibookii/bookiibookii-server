@@ -436,21 +436,28 @@ public class TrackerService {
                 ? TrackerStatus.SHIPPING_TO_GUEST : TrackerStatus.SHIPPING_TO_HOST;
 
         Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, meetingStep)
-                .orElseGet(() -> {
-                    log.info("새로운 약속 레코드를 생성합니다. 단계: {}", meetingStep);
-                    return Meeting.builder()
-                            .group(tracker.getGroup())
-                            .trackerStatus(meetingStep)
-                            .hostConfirmed(false)
-                            .guestConfirmed(false)
-                            .build();
-                });
+                .orElse(null);
 
+        if (meeting == null) {
+            log.info("새로운 약속 생성 모드: {}", meetingStep);
+            meeting = Meeting.builder()
+                    .group(tracker.getGroup())
+                    .trackerStatus(meetingStep)
+                    .hostConfirmed(false)
+                    .guestConfirmed(false)
+                    .build();
+        } else {
+            log.info("기존 약속 수정 모드: {}, ID: {}", meetingStep, meeting.getMeetingId());
+            // 기존 약속이 '완료'된 상태라면 (릴레이 재순환 시) 초기화
+            if (meeting.isFullyConfirmed()) {
+                meeting.resetConfirmation();
+            }
+        }
 
         tracker.updateStatus(meetingStep);
         meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
 
-        meetingRepository.save(meeting);
+        meetingRepository.saveAndFlush(meeting);
 
         int totalCapacity = tracker.getGroup().getMaxCapacity();
         // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)

@@ -420,6 +420,17 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
+        if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
+             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
+        }
+
+        TrackerStatus currentStatus = tracker.getTrackerStatus();
+        if (currentStatus != TrackerStatus.HOST_DONE &&
+                currentStatus != TrackerStatus.GUEST_DONE &&
+                currentStatus != TrackerStatus.READ_DONE) {
+                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
         // 현재 소유자가 호스트면 '전달(GUEST)' 단계, 게스트면 '반납(HOST)' 단계로 정의
         TrackerStatus currentStep = (tracker.getBookOwner().getRole() == RoleStatus.HOST)
                 ? TrackerStatus.SHIPPING_TO_GUEST : TrackerStatus.SHIPPING_TO_HOST;

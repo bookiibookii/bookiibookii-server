@@ -432,25 +432,24 @@ public class TrackerService {
         }
 
         // 현재 소유자가 호스트면 '전달(GUEST)' 단계, 게스트면 '반납(HOST)' 단계로 정의
-        TrackerStatus currentStep = (tracker.getBookOwner().getRole() == RoleStatus.HOST)
+        TrackerStatus meetingStep = (tracker.getBookOwner().getRole() == RoleStatus.HOST)
                 ? TrackerStatus.SHIPPING_TO_GUEST : TrackerStatus.SHIPPING_TO_HOST;
 
-        tracker.updateStatus(currentStep);
-
-        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, currentStep)
+        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, meetingStep)
                 .orElseGet(() -> {
-                    log.info("새로운 약속 레코드를 생성합니다. 단계: {}", currentStep);
+                    log.info("새로운 약속 레코드를 생성합니다. 단계: {}", meetingStep);
                     return Meeting.builder()
                             .group(tracker.getGroup())
-                            .trackerStatus(currentStep)
-                            .hostConfirmed(false) // 명시적 초기값
+                            .trackerStatus(meetingStep)
+                            .hostConfirmed(false)
                             .guestConfirmed(false)
                             .build();
                 });
 
-        // 5. 데이터 업데이트 및 저장
-        tracker.updateStatus(currentStep);
+
+        tracker.updateStatus(meetingStep);
         meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
+
         meetingRepository.save(meeting);
 
         int totalCapacity = tracker.getGroup().getMaxCapacity();

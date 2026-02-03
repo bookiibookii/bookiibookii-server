@@ -498,10 +498,10 @@ public class GroupService {
         if (group.getTradeType() == TradeType.DELIVERY) return "택배";
 
         // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
-        String region = group.getHost().getRegion();
-        if (region == null || region.isBlank()) return "지역미정";
+        String meetPlace = group.getHost().getMeetPlace();
+        if (meetPlace == null || meetPlace.isBlank()) return "지역미정";
 
-        String[] parts = region.split(" ");
+        String[] parts = meetPlace.split(" ");
         return parts[parts.length - 1]; // 마지막 단어(구 단위)만 추출
     }
 

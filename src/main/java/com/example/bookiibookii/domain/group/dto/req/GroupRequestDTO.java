@@ -44,7 +44,7 @@ public class GroupRequestDTO {
     public record FilterDTO(
             List<GroupType> groupTypes,
             List<TradeType> tradeTypes,
-            List<String> regions,
+            List<String> meetPlace,
             List<CustomCategory> categories,
             GroupSortType sort, // LATEST, POPULAR, RECOMMEND
             @Min(0) int page,

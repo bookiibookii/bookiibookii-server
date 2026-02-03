@@ -83,8 +83,6 @@ public class GroupResponseDTO {
         // APPLY(신청하기), CANCEL(취소하기), MANAGE(요청관리), TRACKER(트래커보기), FULL(인원마감)
         private String buttonStatus;
 
-        // 댓글 리스트
-        // private List<CommentResponseDTO> comments;
     }
 
     @Builder

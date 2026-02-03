@@ -42,7 +42,7 @@ public class GroupQueryRepository {
                 .where(
                         inGroupTypes(filter.groupTypes()),
                         inTradeTypes(filter.tradeTypes()),
-                        containsRegions(filter.regions()),
+                        containsMeetPlaces(filter.meetPlace()),
                         inCategories(filter.categories()),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
@@ -87,25 +87,23 @@ public class GroupQueryRepository {
         return orders.toArray(new OrderSpecifier[0]);
     }
 
-   //지역 필터 (List<String>을 OR 조건으로 묶어 contains 처리)
-    private BooleanExpression containsRegions(List<String> regions) {
-        if (regions == null || regions.isEmpty()) return null;
+   //지역 필터
+   private BooleanExpression containsMeetPlaces(List<String> meetPlaces) {
+       if (meetPlaces == null || meetPlaces.isEmpty()) return null;
 
-        return regions.stream()
-                .map(region -> {
-                    // "서울시 전체" 버튼 대응 로직
-                    if (region.contains("전체")) {
-                        // "서울시 전체" -> "서울", "경기도 전체" -> "경기"
-                        String cleanRegion = region.replace("전체", "").trim();
-                        return cleanRegion.length() >= 2 ? cleanRegion.substring(0, 2) : cleanRegion;
-                    }
-                    return region;
-                })
-                .filter(keyword -> keyword != null && !keyword.isBlank())
-                .map(user.region::contains) // 정제된 키워드("서울")가 포함된 모든 주소 검색
-                .reduce(BooleanExpression::or)
-                .orElse(null);
-    }
+       return meetPlaces.stream()
+               .map(place -> {
+                   if (place.contains("전체")) {
+                       String clean = place.replace("전체", "").trim();
+                       return clean.length() >= 2 ? clean.substring(0, 2) : clean;
+                   }
+                   return place;
+               })
+               .filter(keyword -> keyword != null && !keyword.isBlank())
+               .map(user.meetPlace::contains)
+               .reduce(BooleanExpression::or)
+               .orElse(null);
+   }
 
     private BooleanExpression inGroupTypes(List<GroupType> types) {
         return (types == null || types.isEmpty()) ? null : groups.groupType.in(types);

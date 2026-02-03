@@ -194,16 +194,17 @@ public class Tracker extends BaseEntity {
         this.trackerStatus = newStatus;
     }
 
-    public void transferOwner(MatchedMember nextOwner) {
+    public void completeTrade(MatchedMember nextOwner, TrackerStatus nextStatus) {
 
-        if (nextOwner == null) {
-            throw new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND);
-        }
-
-        if (this.bookOwner.equals(nextOwner)) {
+        if (nextOwner==null || nextStatus == null) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.bookOwner = nextOwner;
+        this.trackerStatus = nextStatus;
+        // 새로운 주자가 책을 받았으니 독서 기간 재설정 및 연장 횟수 초기화
+        this.startDate = LocalDateTime.now();
+        this.endDate = null;
+        this.extensionCount = 0;
+        this.extensionDays = 0;
     }
-
 }

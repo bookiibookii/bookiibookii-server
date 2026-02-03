@@ -420,19 +420,27 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
-        // 2. 전달 방식 검증 (직접 교환만 가능)
         if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
+             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
 
-        // 3. 트래커 상태 업데이트
-        tracker.updateStatus(TrackerStatus.MEETING);
+        TrackerStatus currentStatus = tracker.getTrackerStatus();
+        if (currentStatus != TrackerStatus.HOST_DONE &&
+                currentStatus != TrackerStatus.GUEST_DONE &&
+                currentStatus != TrackerStatus.READ_DONE) {
+                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
 
-        // 4. Meeting 조회 또는 생성
-        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, TrackerStatus.MEETING)
+        // 현재 소유자가 호스트면 '전달(GUEST)' 단계, 게스트면 '반납(HOST)' 단계로 정의
+        TrackerStatus currentStep = (tracker.getBookOwner().getRole() == RoleStatus.HOST)
+                ? TrackerStatus.SHIPPING_TO_GUEST : TrackerStatus.SHIPPING_TO_HOST;
+
+        tracker.updateStatus(currentStep);
+
+        Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, currentStep)
                 .orElseGet(() -> Meeting.builder()
                         .group(tracker.getGroup())
-                        .trackerStatus(tracker.getTrackerStatus())
+                        .trackerStatus(currentStep)
                         .meetingPlace(tracker.getGroup().getHost().getMeetPlace())
                         .build());
 
@@ -466,7 +474,8 @@ public class TrackerService {
         if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
-        if (tracker.getTrackerStatus() != TrackerStatus.MEETING) {
+        if (tracker.getTrackerStatus() != TrackerStatus.SHIPPING_TO_GUEST &&
+                tracker.getTrackerStatus() != TrackerStatus.SHIPPING_TO_HOST) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
@@ -475,7 +484,6 @@ public class TrackerService {
 
         Meeting meeting = meetingRepository.findByGroupWithLock(groupId, tracker.getTrackerStatus())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
-
 
 
         meeting.confirm(userRole);
@@ -497,16 +505,10 @@ public class TrackerService {
         MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
 
-        // 역할에 따른 상태 전이 및 소유권 이전
-        if (currentOwner.getRole() == RoleStatus.HOST) {
-            // [호스트 -> 게스트 전달 완료]
-            tracker.updateStatus(TrackerStatus.RECEIVED);
-            tracker.transferOwner(nextOwner);
-        } else {
-            // [게스트 -> 호스트 반납 완료]
-            tracker.updateStatus(TrackerStatus.RETURNED);
-            tracker.transferOwner(nextOwner);
-        }
+        TrackerStatus nextStatus = (currentOwner.getRole() == RoleStatus.HOST)
+                ? TrackerStatus.RECEIVED : TrackerStatus.RETURNED;
+
+        tracker.completeTrade(nextOwner, nextStatus);
 
         TrackerHistory transitionHistory = tracker.createHistorySnapshot(
                 currentOwner.getId(),

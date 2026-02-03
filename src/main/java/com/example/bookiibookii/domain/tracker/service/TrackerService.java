@@ -409,7 +409,7 @@ public class TrackerService {
     //약속 정보 업데이트
     @Transactional
     public void updateMeeting(Long groupId, TrackerMeetingRequest request, User user) {
-
+        meetingRepository.flush();
         // 1. 트래커 조회 및 권한 검증
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));

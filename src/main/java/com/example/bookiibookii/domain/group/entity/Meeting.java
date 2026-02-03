@@ -63,4 +63,5 @@ public class Meeting extends BaseEntity {
         this.meetingPlace = place;
         this.meetingTime = time;
     }
+
 }

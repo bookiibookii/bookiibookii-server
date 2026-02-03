@@ -438,11 +438,15 @@ public class TrackerService {
         tracker.updateStatus(currentStep);
 
         Meeting meeting = meetingRepository.findByGroup_GroupIdAndTrackerStatus(groupId, currentStep)
-                .orElseGet(() -> Meeting.builder()
-                        .group(tracker.getGroup())
-                        .trackerStatus(currentStep)
-                        .meetingPlace(tracker.getGroup().getHost().getMeetPlace())
-                        .build());
+                .orElseGet(() -> {
+                    log.info("새로운 약속 레코드를 생성합니다. 단계: {}", currentStep);
+                    return Meeting.builder()
+                            .group(tracker.getGroup())
+                            .trackerStatus(currentStep)
+                            .hostConfirmed(false) // 명시적 초기값
+                            .guestConfirmed(false)
+                            .build();
+                });
 
         // 5. 데이터 업데이트 및 저장
         meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());

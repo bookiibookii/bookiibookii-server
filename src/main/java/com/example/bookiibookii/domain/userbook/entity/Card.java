@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.entity;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,6 +22,10 @@ public class Card extends BaseEntity {
     @JoinColumn(name = "user_book_id", nullable = false)
     private UserBook userBook;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Groups group;
+
     @Column(name = "page")
     private Integer page;
 
@@ -29,4 +34,12 @@ public class Card extends BaseEntity {
 
     @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)
     private CardImage cardImage;
+
+    public void updatePage(Integer page) {
+        this.page = page;
+    }
+
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
 }

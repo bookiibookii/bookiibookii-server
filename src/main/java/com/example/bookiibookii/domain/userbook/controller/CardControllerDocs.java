@@ -2,8 +2,10 @@ package com.example.bookiibookii.domain.userbook.controller;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
+import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -88,10 +91,10 @@ public interface CardControllerDocs {
             description = """
             사용자 책(userBook)에 속한 독서카드 목록을 조회합니다.
             
-            - 인증된 사용자가 소유한 userBook만 조회 가능합니다.
+            - UserBook 소유자이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
             - 생성일 기준 오름차순으로 정렬된 카드 목록을 반환합니다.
-            - 각 카드에는 카드 이미지(cardImageId, s3Key, presignedGetUrl), 카드 생성일(createdAt)이 포함됩니다.
-            - 응답에 userbook에 해당하는 책 제목(title)이 포함됩니다.
+            - 각 카드(GroupCardResponseDTO)에는 cardId, page, memo, cardImage, createdAt, bookTitle이 포함됩니다.
+            - 응답에 그룹 ID(groupId), 카드 작성자 이름(creatorName)이 포함됩니다.
             """
     )
     @ApiResponses({
@@ -101,7 +104,7 @@ public interface CardControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "사용자 책을 찾을 수 없음 (존재하지 않거나 소유권이 없음)"
+                    description = "사용자 책을 찾을 수 없음 (존재하지 않거나 접근 권한 없음)"
             )
     })
     @GetMapping("/{userBookId}")
@@ -109,5 +112,66 @@ public interface CardControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "사용자 책 식별자(ID)", example = "1")
             @PathVariable Long userBookId
+    );
+
+    @Operation(
+            summary = "독서카드 상세 조회",
+            description = """
+            특정 독서카드 한 건의 상세 정보를 조회합니다.
+            
+            - 카드 소유자(UserBook 소유자)이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
+            - GroupCardResponseDTO(cardId, page, memo, cardImage, createdAt, bookTitle)를 반환합니다.
+            - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "카드를 찾을 수 없음 (존재하지 않거나 접근 권한 없음)"
+            )
+    })
+    @GetMapping("/detail/{cardId}")
+    ApiResponse<GroupCardResponseDTO> getCardDetail(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId
+    );
+
+    @Operation(
+            summary = "독서카드 수정",
+            description = """
+            독서카드를 수정합니다. 전달한 필드만 변경됩니다 (부분 수정).
+            
+            - page, memo, s3Key 모두 선택값입니다. 보내지 않은 필드는 변경되지 않습니다.
+            - 카드 소유자(UserBook 소유자)만 수정 가능합니다.
+            - 이미지(s3Key) 변경 시: `/api/cards/{cardId}/images/presigned-url`로 Presigned URL 발급 후 S3 업로드하고, 여기서 s3Key를 전달하세요.
+            - s3Key 형식 검증 및 S3 존재 여부 확인이 수행됩니다.
+            - 응답은 수정된 카드 정보(CardCreateResponseDTO)와 동일한 형태입니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "독서카드 수정 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (메모 길이 초과, 유효하지 않은 S3 키, 중복 S3 키 등)"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "카드를 찾을 수 없음 (존재하지 않거나 수정 권한 없음)"
+            )
+    })
+    @PatchMapping("/{cardId}")
+    ApiResponse<CardCreateResponseDTO> updateCard(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId,
+            @Valid @RequestBody CardUpdateRequestDTO request
     );
 }

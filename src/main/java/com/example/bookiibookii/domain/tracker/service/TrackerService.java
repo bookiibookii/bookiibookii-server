@@ -14,18 +14,25 @@ import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
+import com.example.bookiibookii.domain.tracker.entity.TrackerImage;
+import com.example.bookiibookii.domain.tracker.enums.TrackerImageType;
+import com.example.bookiibookii.domain.tracker.exception.TrackerImageException;
+import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageErrorCode;
 import com.example.bookiibookii.domain.tracker.repository.TrackerHistoryRepository;
+import com.example.bookiibookii.domain.tracker.repository.TrackerImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -50,6 +57,9 @@ public class TrackerService {
 
     private final TrackerRepository trackerRepository;
     private final TrackerHistoryRepository trackerHistoryRepository;
+    private final TrackerImageRepository trackerImageRepository;
+    private final TrackerImageValidationService trackerImageValidationService;
+    private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
@@ -61,6 +71,17 @@ public class TrackerService {
         if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
             throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER); // 403 Forbidden
         }
+    }
+
+    private static final int TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES = 10;
+
+    /**
+     * 트래커 인증 이미지(배송/수령) 업로드용 Presigned PUT URL 발급.
+     * 그룹 멤버만 발급 가능.
+     */
+    public PresignedUrlResponseDTO getPresignedPutUrlForTrackerImage(Long groupId, User user) {
+        validateGroupMember(groupId, user.getId());
+        return trackerImageS3Service.generatePresignedPutUrl(TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES);
     }
 
 
@@ -250,46 +271,78 @@ public class TrackerService {
         // 엔티티에 판단 위임 (위에 작성한 메서드 호출)
         tracker.updateShippingStatus(bookOwner, nextOwner);
 
-        // 트래커 히스토리에 write.
+        // S3 인증 이미지 검증
+        String s3Key = request.s3Key();
+        validateTrackerImageS3Key(s3Key);
+
+        // 트래커 히스토리에 write. (이미지는 TrackerImage로 저장)
         TrackerHistory shippingHistory = tracker.createHistorySnapshot(
-                bookOwner.getId(),      // 보내는 사람
-                nextOwner.getId(),       // 받는 사람
+                bookOwner.getId(),
+                nextOwner.getId(),
                 request.deliveryCompany(),
                 request.trackingNumber(),
-                request.authenticationImageUrl()
+                null
         );
         trackerHistoryRepository.save(shippingHistory);
+
+        TrackerImage senderProof = TrackerImage.builder()
+                .trackerHistory(shippingHistory)
+                .s3Key(s3Key)
+                .type(TrackerImageType.SENDER_PROOF)
+                .build();
+        trackerImageRepository.save(senderProof);
 
         // 알림 publish
         publisher.publish(new TrackerNotificationEvent(SHIPPING_REGISTERED, user.getId(), groupId, null) );
     }
 
+    private void validateTrackerImageS3Key(String s3Key) {
+        if (!trackerImageValidationService.isValidS3Key(s3Key)) {
+            throw new TrackerImageException(TrackerImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+        if (!trackerImageS3Service.doesImageExist(s3Key)) {
+            throw new TrackerImageException(TrackerImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
+        }
+        if (trackerImageRepository.existsByS3Key(s3Key)) {
+            throw new TrackerImageException(TrackerImageErrorCode.DUPLICATE_S3_KEY);
+        }
+    }
+
 
     //수령 완료
     @Transactional
-    public void registerReceive(Long groupId, User user) {
+    public void registerReceive(Long groupId, TrackerReceiveRequest request, User user) {
         // 1. 트래커 조회
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         MatchedMember bookOwner = tracker.getBookOwner();
         // 권한 검증
-        if(!bookOwner.getUser().getId().equals(user.getId())){
+        if (!bookOwner.getUser().getId().equals(user.getId())) {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
+        // S3 수령 인증 이미지 검증
+        String s3Key = request.s3Key();
+        validateTrackerImageS3Key(s3Key);
 
         // 2. [상태 변경] 엔티티 상태 업데이트 (SHIPPING -> RECEIVED/RETURNED)
         tracker.updateReceiveStatus();
 
         // 3. [새로운 단계 기록] '수령 완료' 상태가 시작되었음을 히스토리에 기록
-        // 수령 완료는 배송이 아니므로 senderId는 null, receiverId는 현재 주자로 기록합니다.
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
                 null, null, null
         );
         trackerHistoryRepository.save(receiveHistory);
+
+        TrackerImage receiverProof = TrackerImage.builder()
+                .trackerHistory(receiveHistory)
+                .s3Key(s3Key)
+                .type(TrackerImageType.RECEIVER_PROOF)
+                .build();
+        trackerImageRepository.save(receiverProof);
 
         // 알림 publish
         publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, user.getId(), groupId, null) );

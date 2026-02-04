@@ -44,13 +44,7 @@ public class CardController implements CardControllerDocs {
             @Valid @RequestBody CardCreateRequestDTO request
     ) {
         CardCreateResponseDTO responseDTO = cardService.createCard(
-                userBookId,
-                user.getId(),
-                request.getPage(),
-                request.getMemo(),
-                request.getS3Key(),
-                PRESIGNED_GET_URL_EXPIRATION_MINUTES
-        );
+                userBookId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(CardImageSuccessCode.CARD_CREATED, responseDTO);
     }
 
@@ -84,13 +78,7 @@ public class CardController implements CardControllerDocs {
             @Valid @RequestBody CardUpdateRequestDTO request
     ) {
         CardCreateResponseDTO responseDTO = cardService.updateCardResponseDTO(
-                cardId,
-                user.getId(),
-                request.getPage(),
-                request.getMemo(),
-                request.getS3Key(),
-                PRESIGNED_GET_URL_EXPIRATION_MINUTES
-        );
+                cardId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(CardImageSuccessCode.CARD_UPDATED, responseDTO);
     }
 }

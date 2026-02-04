@@ -49,11 +49,10 @@ public class CardCommentService {
             throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
         }
 
-        long totalCount = cardCommentRepository.countByCardId(cardId);
-
         var comments = cardCommentRepository.findAllByCardIdWithUserOrderByCreatedAtAsc(cardId).stream()
                 .map(this::toCommentDto)
                 .toList();
+        long totalCount = comments.size();
 
         return new CardCommentResDTO.ListResponse(totalCount, comments);
     }

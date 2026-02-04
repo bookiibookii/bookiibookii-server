@@ -22,6 +22,4 @@ public interface CardCommentRepository extends JpaRepository<CardComment, Long> 
 
     Optional<CardComment> findByIdAndCardId(Long commentId, Long cardId);
 
-    long countByCardId(Long cardId);
-
 }

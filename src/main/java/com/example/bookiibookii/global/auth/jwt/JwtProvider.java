@@ -90,4 +90,16 @@ public class JwtProvider {
         Claims claims = parseClaims(token);
         return claims.get("role", String.class);
     }
+
+    // AuthService에서 Redis 저장 시 만료 시간을 알기 위해 필요
+    public long getRefreshTokenExpireTime() {
+        return refreshTokenExpireTime.toMillis();
+    }
+
+    // 토큰의 남은 유효 시간 계산 (밀리초 반환)
+    public long getRemainingTime(String token) {
+        Date expiration = parseClaims(token).getExpiration();
+        long now = new Date().getTime();
+        return expiration.getTime() - now;
+    }
 }

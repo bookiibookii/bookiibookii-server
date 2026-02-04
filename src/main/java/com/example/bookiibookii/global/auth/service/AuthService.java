@@ -7,31 +7,32 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserService;
 import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
-import com.example.bookiibookii.global.auth.entity.RefreshToken;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.jwt.JwtProvider;
 import com.example.bookiibookii.global.auth.jwt.JwtTokenResolver;
 import com.example.bookiibookii.global.auth.social.SocialTokenVerifier;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
-import com.example.bookiibookii.global.auth.repository.RefreshTokenRepository;
+import com.example.bookiibookii.global.util.RedisUtil;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AuthService {
     private final UserRepository userRepository;
     private final UserService userService;
-    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenResolver jwtTokenResolver;
     private final JwtProvider jwtProvider;
+    private final RedisUtil redisUtil;
 
     // social Type기준으로 분기 처리
     private final List<SocialTokenVerifier> tokenVerifiers;
@@ -65,15 +66,12 @@ public class AuthService {
         String accessToken = jwtProvider.createAccessToken(userId, role);
         String refreshToken = jwtProvider.createRefreshToken(userId);
 
-        // RefreshToken 저장 (기존 토큰 존재하면 갱신)
-        refreshTokenRepository.findById(userId)
-                .ifPresentOrElse(
-                        saved -> saved.update(refreshToken),
-                        () -> refreshTokenRepository.save(
-                                RefreshToken.of(userId, refreshToken)
-                        )
-                );
-        
+        // Redis에 Refresh Token 저장
+        // Key: "RT:{userId}", Value: refreshToken
+        // Expiration: application.yml에 설정된 시간 (밀리초 -> 분 변환 필요)
+        int rtExpirationMinutes = (int) (jwtProvider.getRefreshTokenExpireTime() / 1000 / 60);
+        redisUtil.set("RT:" + userId, refreshToken, rtExpirationMinutes);
+
         return AuthResponseDTO.TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -84,29 +82,25 @@ public class AuthService {
     
     // Token 재발급
     public AuthResponseDTO.TokenResponse refresh(HttpServletRequest request) {
-
-        String refreshToken = jwtTokenResolver.resolve(request);
-
-        if (refreshToken == null) {
+        String requestRefreshToken = jwtTokenResolver.resolve(request);
+        if (requestRefreshToken == null) {
             throw new AuthException(AuthErrorCode.NOT_FOUND_REFRESH_TOKEN);
         }
 
-        try{
-            jwtProvider.validateToken(refreshToken); // refresh token 유효성 검증
-        } catch(JwtException | IllegalArgumentException e) {
+        if (!jwtProvider.validateToken(requestRefreshToken)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        Long userId = jwtProvider.getUserId(refreshToken);
+        Long userId = jwtProvider.getUserId(requestRefreshToken);
 
-        RefreshToken savedToken = refreshTokenRepository.findByUserId(userId)
-                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN));
+        // Redis에서 Refresh Token 조회
+        String savedRefreshToken = redisUtil.get("RT:" + userId, String.class);
 
-        if (!savedToken.getToken().equals(refreshToken)) {
-            throw new AuthException(AuthErrorCode.NOT_FOUND);
+        // Redis에 없거나(만료됨), 요청 토큰과 다르면 에러
+        if (savedRefreshToken == null || !savedRefreshToken.equals(requestRefreshToken)) {
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        // role은 DB 기준으로 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.NOT_FOUND));
         String role = user.getRole().name();
@@ -115,7 +109,9 @@ public class AuthService {
         String newAccessToken = jwtProvider.createAccessToken(userId, role);
         String newRefreshToken = jwtProvider.createRefreshToken(userId);
 
-        savedToken.update(newRefreshToken);
+        // Redis 업데이트 (덮어쓰기)
+        int rtExpirationMinutes = (int) Math.ceil(jwtProvider.getRefreshTokenExpireTime() / 1000.0 / 60);
+        redisUtil.set("RT:" + userId, newRefreshToken, rtExpirationMinutes);
 
         return AuthResponseDTO.TokenResponse.builder()
                 .accessToken(newAccessToken)
@@ -127,18 +123,43 @@ public class AuthService {
 
     // 로그아웃
     public void logout(HttpServletRequest request) {
-        String refreshToken = jwtTokenResolver.resolve(request);
+        String accessToken = jwtTokenResolver.resolve(request);
 
-        if (refreshToken == null) {
-            return; // 로그인 안 되어 있어도 로그아웃은 성공
+        if (accessToken == null) {
+            return;
         }
 
+        // 토큰 유효성 검증 (JWT 관련 예외 처리)
+        // validateToken 내부에서 이미 예외를 잡아서 false를 반환하도록 되어 있다면 try-catch 불필요
+        // 하지만 getUserId나 getRemainingTime에서 발생할 수 있는 JwtException을 대비
         try {
-            jwtProvider.validateToken(refreshToken);
-            Long userId = jwtProvider.getUserId(refreshToken);
-            refreshTokenRepository.deleteByUserId(userId);
-        } catch (AuthException e) {
+            if (!jwtProvider.validateToken(accessToken)) {
+                log.debug("로그아웃 요청이 왔으나 유효하지 않은 토큰임: {}", accessToken);
+                return; // 유효하지 않으면 블랙리스트 등록도 필요 없음
+            }
+        } catch (JwtException e) {
+            // 파싱 불가능하거나 만료된 토큰은 무시 (또는 Debug 로그)
+            log.debug("로그아웃 토큰 검증 실패: {}", e.getMessage());
             return;
+        }
+
+        // Redis 처리 (시스템/인프라 관련 예외 처리)
+        try {
+            Long userId = jwtProvider.getUserId(accessToken);
+
+            // Refresh Token 삭제
+            redisUtil.delete("RT:" + userId);
+
+            // Access Token 남은 시간 계산
+            long remainingTime = jwtProvider.getRemainingTime(accessToken);
+
+            // Redis에 Blacklist 등록
+            if (remainingTime > 0) {
+                redisUtil.setBlackList("BL:" + accessToken, "logout", remainingTime);
+            }
+
+        } catch (Exception e) {
+            log.error("로그아웃 중 Redis 처리 에러 발생. user access token: {}", accessToken, e);
         }
     }
 
@@ -161,7 +182,7 @@ public class AuthService {
                 .findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        refreshTokenRepository.deleteByUserId(userId); // RefreshToken 제거
+        redisUtil.delete("RT:" + userId); // RefreshToken 제거
         user.withdraw();
     }
 

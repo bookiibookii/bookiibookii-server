@@ -1,11 +1,13 @@
 package com.example.bookiibookii.domain.userbook.controller;
 
+import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
@@ -17,6 +19,7 @@ public interface CardImageControllerDocs {
             description = """
             기존 카드의 이미지를 수정하기 위한 presigned URL을 발급합니다.
             
+            - **카드 소유자(UserBook 소유자)만** 발급 가능합니다. 그룹 멤버는 카드 목록/상세 조회 시 응답에 포함된 presignedGetUrl로 이미지 보기만 가능합니다.
             - UUID 기반 s3Key를 생성하여 presigned URL을 발급합니다.
             - **카드 수정 시 이미지 변경에 사용합니다.** 카드 생성 전 이미지 업로드는 `/api/card/{userBookId}/presigned-url`을 사용하세요.
             - 발급된 presignedPutUrl로 PUT 요청 후, 받은 s3Key를 **독서카드 수정 API** (`PATCH /api/card/{cardId}`)의 request body에 넣어 호출하세요.
@@ -31,11 +34,12 @@ public interface CardImageControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "카드를 찾을 수 없음"
+                    description = "카드를 찾을 수 없음 (존재하지 않거나 접근 권한 없음)"
             )
     })
     @PostMapping("/{cardId}/images/presigned-url")
     ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrl(
+            @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "카드 식별자(ID)", example = "1")
             @PathVariable Long cardId
     );

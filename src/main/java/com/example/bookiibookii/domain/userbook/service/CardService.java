@@ -306,6 +306,20 @@ public class CardService {
     }
 
     /**
+     * 카드 소유자(UserBook 소유자)만 접근 가능한 조회. Presigned PUT URL 발급 등 수정 권한이 필요한 경우 사용합니다.
+     */
+    public Card getCardForOwner(Long cardId, Long userId) {
+        Card card = cardRepository.findByIdWithCardImageAndUserBookAndBook(cardId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
+
+        if (!card.getUserBook().getUser().getId().equals(userId)) {
+            throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
+        }
+
+        return card;
+    }
+
+    /**
      * UserBook에 속한 Card 목록과 해당 UserBook의 책 제목을 조회합니다.
      * UserBook 소유자이거나 같은 그룹 멤버인 경우에만 조회 가능합니다.
      * 책 제목, groupId, 카드 목록을 생성일 기준 오름차순으로 반환합니다.

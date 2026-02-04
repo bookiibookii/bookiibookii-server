@@ -4,6 +4,8 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
@@ -32,25 +34,32 @@ public class CardService {
     private final UserBookRepository userBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
 
-    // Card의 이미지 업데이트 결과
+    // Card의 이미지 업데이트 결과 (내부 로직용)
     public record CardImageUpdateResult(Card card, CardImage cardImage, boolean isCreated) {}
 
-    // UserBook 책 제목 + 그룹 ID + 카드 목록 조회 결과
-    public record CardsWithTitleResult(String title, Long groupId, List<CardCreateResponseDTO> cards) {}
+    /**
+     * Presigned PUT URL 발급. UserBook 존재 및 소유권 검증 후 DTO 반환.
+     */
+    public PresignedUrlResponseDTO getPresignedPutUrlForNewCard(Long userBookId, Long userId, int presignedPutUrlExpirationMinutes) {
+        userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+        return cardImageS3Service.generatePresignedPutUrl(presignedPutUrlExpirationMinutes);
+    }
 
     /**
-     * 독서카드를 생성합니다.
+     * 독서카드를 생성하고 응답 DTO를 반환합니다.
      * Card는 항상 CardImage를 가져야 하므로, Card와 CardImage를 함께 생성합니다.
-     * 
+     *
      * @param userBookId 사용자 책 ID
      * @param userId 인증된 사용자 ID (소유권 검증용)
      * @param page 페이지 정보
      * @param memo 메모 (선택)
      * @param s3Key S3 키 (이미 업로드된 이미지)
-     * @return 생성된 Card
+     * @param presignedGetUrlExpirationMinutes Presigned GET URL 만료 시간(분)
+     * @return 생성된 카드의 응답 DTO
      */
     @Transactional
-    public Card createCard(Long userBookId, Long userId, Integer page, String memo, String s3Key) {
+    public CardCreateResponseDTO createCard(Long userBookId, Long userId, Integer page, String memo, String s3Key, int presignedGetUrlExpirationMinutes) {
         // s3Key 형식 검증
         if (!cardImageValidationService.isValidS3Key(s3Key)) {
             throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
@@ -93,7 +102,23 @@ public class CardService {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 
-        return savedCard;
+        return buildCardCreateResponseDTO(savedCard, cardImage, presignedGetUrlExpirationMinutes, null);
+    }
+
+    private CardCreateResponseDTO buildCardCreateResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle) {
+        CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
+                .cardImageId(cardImage.getId())
+                .s3Key(cardImage.getS3Key())
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
+                .build();
+        return CardCreateResponseDTO.builder()
+                .cardId(card.getId())
+                .page(card.getPage())
+                .memo(card.getMemo())
+                .cardImage(cardImageResponseDTO)
+                .createdAt(card.getCreatedAt())
+                .bookTitle(bookTitle)
+                .build();
     }
 
     /**
@@ -327,9 +352,9 @@ public class CardService {
     /**
      * UserBook에 속한 Card 목록과 해당 UserBook의 책 제목을 조회합니다.
      * UserBook 소유자이거나 같은 그룹 멤버인 경우에만 조회 가능합니다.
-     * 책 제목, groupId, 카드 목록을 생성일 기준 오름차순으로 반환합니다.
+     * 책 제목, groupId, 카드 목록을 생성일 기준 오름차순으로 DTO로 반환합니다.
      */
-    public CardsWithTitleResult getCardsByUserBookId(Long userBookId, Long userId, int presignedGetUrlExpirationMinutes) {
+    public CardListResponseDTO getCardsByUserBookId(Long userBookId, Long userId, int presignedGetUrlExpirationMinutes) {
         UserBook userBook = userBookRepository.findByIdWithGroupAndUser(userBookId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
 
@@ -378,7 +403,34 @@ public class CardService {
                             .build();
                 })
                 .toList();
-        
-        return new CardsWithTitleResult(title, groupId, cardDTOs);
+
+        return CardListResponseDTO.builder()
+                .title(title)
+                .groupId(groupId)
+                .cards(cardDTOs)
+                .build();
+    }
+
+    /**
+     * 카드 상세 조회. 카드 소유자 또는 그룹 멤버만 조회 가능하며, 응답 DTO를 반환합니다.
+     */
+    public CardCreateResponseDTO getCardDetailResponseDTO(Long cardId, Long userId, int presignedGetUrlExpirationMinutes) {
+        Card card = getCardDetail(cardId, userId);
+        CardImage cardImage = card.getCardImage();
+        String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
+        return buildCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle);
+    }
+
+    /**
+     * 독서카드를 수정하고 응답 DTO를 반환합니다.
+     */
+    @Transactional
+    public CardCreateResponseDTO updateCardResponseDTO(Long cardId, Long userId, Integer page, String memo, String s3Key, int presignedGetUrlExpirationMinutes) {
+        Card card = updateCard(cardId, userId, page, memo, s3Key);
+        CardImage cardImage = card.getCardImage();
+        if (cardImage == null) {
+            cardImage = getCardImage(cardId);
+        }
+        return buildCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, null);
     }
 }

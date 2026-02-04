@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -92,8 +93,8 @@ public interface CardControllerDocs {
             
             - UserBook 소유자이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
             - 생성일 기준 오름차순으로 정렬된 카드 목록을 반환합니다.
-            - 각 카드에는 카드 이미지(cardImageId, s3Key, presignedGetUrl), 카드 생성일(createdAt)이 포함됩니다.
-            - 응답에 책 제목(title), 그룹 ID(groupId)가 포함됩니다.
+            - 각 카드(GroupCardResponseDTO)에는 cardId, page, memo, cardImage, createdAt, bookTitle이 포함됩니다.
+            - 응답에 그룹 ID(groupId), 카드 작성자 이름(creatorName)이 포함됩니다.
             """
     )
     @ApiResponses({
@@ -119,7 +120,7 @@ public interface CardControllerDocs {
             특정 독서카드 한 건의 상세 정보를 조회합니다.
             
             - 카드 소유자(UserBook 소유자)이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
-            - cardId, page, memo, cardImage(이미지 정보), createdAt, bookTitle(책 제목)을 반환합니다.
+            - GroupCardResponseDTO(cardId, page, memo, cardImage, createdAt, bookTitle)를 반환합니다.
             - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
             """
     )
@@ -134,7 +135,7 @@ public interface CardControllerDocs {
             )
     })
     @GetMapping("/detail/{cardId}")
-    ApiResponse<CardCreateResponseDTO> getCardDetail(
+    ApiResponse<GroupCardResponseDTO> getCardDetail(
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "카드 식별자(ID)", example = "1")
             @PathVariable Long cardId

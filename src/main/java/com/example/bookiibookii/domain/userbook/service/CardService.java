@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
@@ -91,7 +92,7 @@ public class CardService {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 
-        return buildCardCreateResponseDTO(savedCard, cardImage, presignedGetUrlExpirationMinutes, null);
+        return buildCardCreateResponseDTO(savedCard, cardImage, presignedGetUrlExpirationMinutes);
     }
 
     /**
@@ -116,34 +117,18 @@ public class CardService {
         if (book == null) {
             throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
         }
-        String title = book.getTitle();
+        String bookTitle = book.getTitle();
+        String creatorName = userBook.getUser().getName();
 
         List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
 
-        List<CardCreateResponseDTO> cardDTOs = cards.stream()
-                .map(card -> {
-                    CardImage ci = card.getCardImage();
-                    if (ci == null) {
-                        throw new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND);
-                    }
-                    CardImageResponseDTO imageDto = CardImageResponseDTO.builder()
-                            .cardImageId(ci.getId())
-                            .s3Key(ci.getS3Key())
-                            .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(ci.getS3Key(), presignedGetUrlExpirationMinutes))
-                            .build();
-                    return CardCreateResponseDTO.builder()
-                            .cardId(card.getId())
-                            .page(card.getPage())
-                            .memo(card.getMemo())
-                            .cardImage(imageDto)
-                            .createdAt(card.getCreatedAt())
-                            .build();
-                })
+        List<GroupCardResponseDTO> cardDTOs = cards.stream()
+                .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle))
                 .toList();
 
         return CardListResponseDTO.builder()
-                .title(title)
                 .groupId(groupId)
+                .creatorName(creatorName)
                 .cards(cardDTOs)
                 .build();
     }
@@ -151,11 +136,11 @@ public class CardService {
     /**
      * 카드 상세 조회. 카드 소유자 또는 그룹 멤버만 조회 가능하며, 응답 DTO를 반환합니다.
      */
-    public CardCreateResponseDTO getCardDetailResponseDTO(Long cardId, Long userId, int presignedGetUrlExpirationMinutes) {
+    public GroupCardResponseDTO getCardDetailResponseDTO(Long cardId, Long userId, int presignedGetUrlExpirationMinutes) {
         Card card = getCardDetail(cardId, userId);
         CardImage cardImage = card.getCardImage();
         String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
-        return buildCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle);
+        return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle);
     }
 
     /**
@@ -168,7 +153,7 @@ public class CardService {
         if (cardImage == null) {
             cardImage = getCardImage(cardId);
         }
-        return buildCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, null);
+        return buildCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes);
     }
 
     /**
@@ -319,7 +304,7 @@ public class CardService {
         return card;
     }
 
-    private CardCreateResponseDTO buildCardCreateResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle) {
+    private CardCreateResponseDTO buildCardCreateResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes) {
         CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())
                 .s3Key(cardImage.getS3Key())
@@ -330,6 +315,24 @@ public class CardService {
                 .page(card.getPage())
                 .memo(card.getMemo())
                 .cardImage(cardImageResponseDTO)
+                .createdAt(card.getCreatedAt())
+                .build();
+    }
+
+    private GroupCardResponseDTO buildGroupCardResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle) {
+        if (cardImage == null) {
+            throw new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND);
+        }
+        CardImageResponseDTO imageDto = CardImageResponseDTO.builder()
+                .cardImageId(cardImage.getId())
+                .s3Key(cardImage.getS3Key())
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
+                .build();
+        return GroupCardResponseDTO.builder()
+                .cardId(card.getId())
+                .page(card.getPage())
+                .memo(card.getMemo())
+                .cardImage(imageDto)
                 .createdAt(card.getCreatedAt())
                 .bookTitle(bookTitle)
                 .build();

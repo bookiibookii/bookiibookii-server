@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageSuccessCode;
 import com.example.bookiibookii.domain.userbook.service.CardService;
@@ -61,11 +62,11 @@ public class CardController implements CardControllerDocs {
 
     @Override
     @GetMapping("/detail/{cardId}")
-    public ApiResponse<CardCreateResponseDTO> getCardDetail(
+    public ApiResponse<GroupCardResponseDTO> getCardDetail(
             @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable Long cardId
     ) {
-        CardCreateResponseDTO responseDTO = cardService.getCardDetailResponseDTO(
+        GroupCardResponseDTO responseDTO = cardService.getCardDetailResponseDTO(
                 cardId, user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(CardImageSuccessCode.CARD_FOUND, responseDTO);
     }

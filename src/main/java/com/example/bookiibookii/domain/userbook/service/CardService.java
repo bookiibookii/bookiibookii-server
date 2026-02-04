@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.userbook.service;
 
+import com.example.bookiibookii.domain.book.entity.Book;
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
@@ -295,9 +297,12 @@ public class CardService {
         Card card = cardRepository.findByIdWithCardImageAndUserBookAndBook(cardId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
 
-        Long groupId = card.getGroup().getGroupId();
         boolean isOwner = card.getUserBook().getUser().getId().equals(userId);
-        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+        boolean isGroupMember = false;
+        if (card.getGroup() != null) {
+            Long groupId = card.getGroup().getGroupId();
+            isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+        }
         if (!isOwner && !isGroupMember) {
             throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
         }
@@ -328,7 +333,11 @@ public class CardService {
         UserBook userBook = userBookRepository.findByIdWithGroupAndUser(userBookId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
 
-        Long groupId = userBook.getGroup().getGroupId();
+        Groups group = userBook.getGroup();
+        if (group == null) {
+            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
+        }
+        Long groupId = group.getGroupId();
         boolean isOwner = userBook.getUser().getId().equals(userId);
         boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
         if (!isOwner && !isGroupMember) {
@@ -336,7 +345,11 @@ public class CardService {
         }
 
         // Book 제목 조회 (Group → Book)
-        String title = userBook.getGroup().getBook().getTitle();
+        Book book = group.getBook();
+        if (book == null) {
+            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
+        }
+        String title = book.getTitle();
         
         List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
         

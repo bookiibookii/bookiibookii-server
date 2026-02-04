@@ -1,9 +1,11 @@
 package com.example.bookiibookii.domain.tracker.controller.docs;
 
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +17,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -33,10 +36,23 @@ public interface TrackerApi {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "배송 시작 등록", description = "책 읽기를 완료하고 다음 주자에게 배송을 시작할 때 정보를 등록합니다.")
+    @Operation(summary = "트래커 인증 이미지 업로드용 Presigned URL 발급", description = "배송 인증(SENDER_PROOF) 또는 수령 인증(RECEIVER_PROOF) 이미지를 S3에 업로드하기 위한 Presigned PUT URL을 발급합니다. " +
+            "발급된 presignedPutUrl로 PUT 요청 후 받은 s3Key를 배송 시작 등록 또는 도서 수령 완료 API에 전달하세요. URL 유효 시간은 10분입니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Presigned URL 발급 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "해당 그룹 멤버가 아님", content = @Content)
+    })
+    @PostMapping("/{groupId}/tracker/images/presigned-url")
+    ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForTrackerImage(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(summary = "배송 시작 등록", description = "책 읽기를 완료하고 다음 주자에게 배송을 시작할 때 정보를 등록합니다. " +
+            "배송 인증 이미지는 Presigned URL로 S3 업로드 후 발급받은 s3Key(형식: image/trackers/{uuid})를 전달하세요. TrackerImage(SENDER_PROOF)로 저장됩니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "배송 등록 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 입력값", content = @Content)
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 입력값(s3Key 형식/중복/S3 미존재)", content = @Content)
     })
     ApiResponse<TrackerDetailResponse> registerShipping(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
@@ -44,9 +60,15 @@ public interface TrackerApi {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "도서 수령 완료 처리", description = "배송 중인 도서를 수령했을 때 호출합니다.")
+    @Operation(summary = "도서 수령 완료 처리", description = "배송 중인 도서를 수령했을 때 호출합니다. " +
+            "수령 인증 이미지는 Presigned URL로 S3 업로드 후 발급받은 s3Key를 전달하세요. TrackerImage(RECEIVER_PROOF)로 저장됩니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수령 완료 처리 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 입력값(s3Key 형식/중복/S3 미존재)", content = @Content)
+    })
     ApiResponse<TrackerDetailResponse> registerReceive(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @RequestBody @Valid TrackerReceiveRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 

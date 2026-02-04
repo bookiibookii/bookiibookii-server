@@ -25,7 +25,7 @@ public class CardCommentController implements CardCommentControllerDocs{
             @Valid @RequestBody CardCommentReqDTO.Create req
     ){
         CardCommentResDTO.Create result = cardCommentService.create(cardId, user, req);
-        return ApiResponse.onSuccess(CommentSuccessCode.CARD_CREATE_SUCCESS, result);
+        return ApiResponse.onSuccess(CommentSuccessCode.CARD_COMMENT_CREATE_SUCCESS, result);
     }
 
     @GetMapping("/cards/{cardId}/comments")

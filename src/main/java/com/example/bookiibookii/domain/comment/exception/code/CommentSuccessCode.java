@@ -12,7 +12,7 @@ public enum CommentSuccessCode implements BaseCode {
     CREATE_SUCCESS(HttpStatus.CREATED,
             "COMMENT201_1",
             "댓글을 성공적으로 생성했습니다."),
-    CARD_CREATE_SUCCESS(HttpStatus.CREATED,
+    CARD_COMMENT_CREATE_SUCCESS(HttpStatus.CREATED,
             "COMMENT201_2",
             "독서카드 댓글을 성공적으로 생성했습니다."),
 

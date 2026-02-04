@@ -33,7 +33,7 @@ public class CardCommentController implements CardCommentControllerDocs{
             @PathVariable Long cardId
     ) {
         CardCommentResDTO.ListResponse result = cardCommentService.getList(cardId);
-        return ApiResponse.onSuccess(CommentSuccessCode.COMMENT_FOUND_OK, result);
+        return ApiResponse.onSuccess(CommentSuccessCode.CARD_COMMENT_FOUND_OK, result);
     }
 
     @DeleteMapping("/cards/{cardId}/comments/{commentId}")

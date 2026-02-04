@@ -24,7 +24,7 @@ public enum CommentSuccessCode implements BaseCode {
             "독서카드 댓글 조회에 성공했습니다."),
 
     DELETE_SUCCESS(HttpStatus.OK,
-            "COMMENT200_2",
+            "COMMENT200_3",
             "댓글 삭제에 성공했습니다."),
     ;
 

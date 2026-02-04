@@ -113,9 +113,10 @@ public class CardController implements CardControllerDocs {
     @Override
     @GetMapping("/detail/{cardId}")
     public ApiResponse<CardCreateResponseDTO> getCardDetail(
+            @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable Long cardId
     ) {
-        Card card = cardService.getCardWithCardImageAndBook(cardId);
+        Card card = cardService.getCardDetail(cardId, user.getId());
         CardImage cardImage = card.getCardImage();
         String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
 

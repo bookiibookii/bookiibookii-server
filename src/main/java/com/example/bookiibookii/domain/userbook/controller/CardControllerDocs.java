@@ -118,6 +118,7 @@ public interface CardControllerDocs {
             description = """
             특정 독서카드 한 건의 상세 정보를 조회합니다.
             
+            - 카드 소유자(UserBook 소유자)이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
             - cardId, page, memo, cardImage(이미지 정보), createdAt, bookTitle(책 제목)을 반환합니다.
             - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
             """
@@ -129,11 +130,12 @@ public interface CardControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "카드를 찾을 수 없음"
+                    description = "카드를 찾을 수 없음 (존재하지 않거나 접근 권한 없음)"
             )
     })
     @GetMapping("/detail/{cardId}")
     ApiResponse<CardCreateResponseDTO> getCardDetail(
+            @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "카드 식별자(ID)", example = "1")
             @PathVariable Long cardId
     );

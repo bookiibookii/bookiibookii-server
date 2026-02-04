@@ -289,6 +289,23 @@ public class CardService {
     }
 
     /**
+     * 카드 상세 조회. 카드 소유자(UserBook 소유자)이거나 같은 그룹 멤버만 조회 가능합니다.
+     */
+    public Card getCardDetail(Long cardId, Long userId) {
+        Card card = cardRepository.findByIdWithCardImageAndUserBookAndBook(cardId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
+
+        Long groupId = card.getGroup().getGroupId();
+        boolean isOwner = card.getUserBook().getUser().getId().equals(userId);
+        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+        if (!isOwner && !isGroupMember) {
+            throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
+        }
+
+        return card;
+    }
+
+    /**
      * UserBook에 속한 Card 목록과 해당 UserBook의 책 제목을 조회합니다.
      * UserBook 소유자이거나 같은 그룹 멤버인 경우에만 조회 가능합니다.
      * 책 제목, groupId, 카드 목록을 생성일 기준 오름차순으로 반환합니다.

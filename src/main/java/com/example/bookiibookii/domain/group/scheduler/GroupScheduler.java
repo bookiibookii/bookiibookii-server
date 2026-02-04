@@ -8,11 +8,11 @@ import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +28,7 @@ public class GroupScheduler {
     private final GroupsRepository groupsRepository;
     private final ApplicationRepository applicationRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
@@ -42,7 +42,7 @@ public class GroupScheduler {
             if (memberCount >= 2) {
                 group.updateStatus(GroupStatus.MATCHED);
                 //매칭 이벤트 발행
-                eventPublisher.publishEvent(new GroupMatchedEvent(
+                eventPublisher.publish(new GroupMatchedEvent(
                         group.getGroupId(),
                         group.getHost().getId(),
                         group.getStartDate(),

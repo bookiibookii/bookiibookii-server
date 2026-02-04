@@ -27,7 +27,7 @@ public enum NotificationType {
     TRACKER_EXCHANGE_COMPLETED(NotificationCategory.SYSTEM),  // TRK-030 (후기작성)
 
     // KEYWORD
-    KEYWORD_GROUP_CREATED(NotificationCategory.KEYWORD);      // GRP-010
+    KEYWORD_GROUP_CREATED(NotificationCategory.KEYWORD),      // GRP-010
     ;
 
     private final NotificationCategory category;

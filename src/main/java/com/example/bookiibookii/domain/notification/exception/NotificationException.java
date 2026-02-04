@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.notification.exception.code;
+package com.example.bookiibookii.domain.notification.exception;
 
 import com.example.bookiibookii.global.apiPayload.code.BaseCode;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;

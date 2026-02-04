@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.notification.dto.NotificationResDTO;
 import com.example.bookiibookii.domain.notification.entity.Notification;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.exception.code.NotificationErrorCode;
-import com.example.bookiibookii.domain.notification.exception.code.NotificationException;
+import com.example.bookiibookii.domain.notification.exception.NotificationException;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.dto.req;
 
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -7,7 +8,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class CardUpdateRequestDTO {
-    /** 변경할 페이지 (null이면 미변경) */
+    /** 변경할 페이지 (null이면 미변경, 양수만 허용) */
+    @Positive(message = "페이지는 양수여야 합니다.")
     private Integer page;
 
     /** 변경할 메모 (null이면 미변경, 최대 500자) */

@@ -8,6 +8,22 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum AuthErrorCode implements BaseCode {
+    INVALID_REFRESH_TOKEN(HttpStatus.BAD_REQUEST,
+            "AUTH400_1",
+            "RefreshToken이 불일치합니다."),
+    INVALID_ACCESS_TOKEN(HttpStatus.BAD_REQUEST,
+            "AUTH400_2",
+            "AccessToken이 불일치합니다."),
+    UNSUPPORTED_SOCIAL_TYPE(HttpStatus.BAD_REQUEST,
+            "AUTH400_3",
+            "지원하지 않는 소셜 로그인 방식입니다."),
+    JWT_SECRET_KEY_TOO_SHORT(HttpStatus.BAD_REQUEST,
+            "AUTH400_4",
+            "JWT 시크릿 키는 최소 32바이트 이상이어야 합니다."),
+
+    INVALID_SOCIAL_TOKEN(HttpStatus.UNAUTHORIZED,
+            "AUTH401_1",
+            "소셜 인증에 실패했습니다."),
 
     NOT_FOUND_REFRESH_TOKEN(HttpStatus.NOT_FOUND,
             "AUTH404_1",
@@ -18,18 +34,7 @@ public enum AuthErrorCode implements BaseCode {
     NOT_FOUND(HttpStatus.NOT_FOUND,
             "AUTH404_3",
             "토큰에 저장된 해당 사용자를 찾을 수 없습니다."),
-    INVALID_REFRESH_TOKEN(HttpStatus.BAD_REQUEST,
-            "AUTH400_1",
-            "RefreshToken이 불일치합니다."),
-    INVALID_ACCESS_TOKEN(HttpStatus.BAD_REQUEST,
-            "AUTH400_2",
-            "AccessToken이 불일치합니다."),
-    UNSUPPORTED_SOCIAL_TYPE(HttpStatus.BAD_REQUEST,
-            "AUTH400_3",
-            "지원하지 않는 소셜 로그인 방식입니다."),
-    INVALID_SOCIAL_TOKEN(HttpStatus.UNAUTHORIZED,
-            "AUTH401_1",
-            "소셜 인증에 실패했습니다."),
+
     ;
     private final HttpStatus status;
     private final String code;

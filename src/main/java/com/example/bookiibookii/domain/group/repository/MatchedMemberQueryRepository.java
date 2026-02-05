@@ -24,7 +24,7 @@ public class MatchedMemberQueryRepository {
 
         return queryFactory
                 .select(Projections.constructor(GroupResponseDTO.GroupSummaryResponse.class,
-                        groups.groupId, groups.book.title, groups.host.name,
+                        groups.groupId, groups.book.title, groups.host.nickName,
                         // 호스트 여부
                         new CaseBuilder()
                                 .when(groups.host.id.eq(userId)).then(true)
@@ -46,7 +46,7 @@ public class MatchedMemberQueryRepository {
         return queryFactory
                 .select(Projections.constructor(GroupResponseDTO.GroupMemberResponse.class,
                         user.id,
-                        user.name
+                        user.nickName
                 ))
                 .from(matchedMember)
                 .join(matchedMember.user, user) // 멤버 정보 가져오기 위해 Join

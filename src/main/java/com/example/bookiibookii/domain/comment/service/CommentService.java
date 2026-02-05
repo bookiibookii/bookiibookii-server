@@ -79,7 +79,7 @@ public class CommentService {
                 .build();
         Comment saved = commentRepository.save(comment);
 
-        eventPublisher.publish(new CommentEvent(user.getName(), group.getBook().getTitle(), group.getHost().getId(), group.getGroupId()));
+        eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), group.getHost().getId(), group.getGroupId()));
 
         return toCreateResDTO(saved, writerRole);
     }
@@ -154,7 +154,7 @@ public class CommentService {
                 : null;
         return WriterDto.builder()
                 .userId(u.getId())
-                .name(u.getName())
+                .name(u.getNickName())
                 .profileImage(profileImageUrl)
                 .role(writerRole)
                 .build();

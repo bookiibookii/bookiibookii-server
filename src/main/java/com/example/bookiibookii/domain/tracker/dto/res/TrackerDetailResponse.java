@@ -34,7 +34,7 @@ public class TrackerDetailResponse {
         private String receiverAddress; // 주소
 
         // 배송 정보
-        private String courierName;     // 택배사명
+        private String deliveryCompany;     // 택배사명
         private String trackingNumber;  // 운송장 번호
     }
 

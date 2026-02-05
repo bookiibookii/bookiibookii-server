@@ -27,7 +27,9 @@ import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.domain.tracker.repository.TrackerHistoryRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
+import com.example.bookiibookii.domain.user.entity.Address;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,7 @@ public class TrackerService {
     private final TrackerRepository trackerRepository;
     private final TrackerHistoryRepository trackerHistoryRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final AddressRepository addressRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
     private final TrackerConverter trackerConverter;
@@ -105,12 +108,54 @@ public class TrackerService {
     }
 
     //트래커 상세 조회
+    @Transactional(readOnly = true)
     public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId, User user) {
+        // 1. 권한 검증 및 트래커 조회
         validateGroupMember(groupId, user.getId());
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        return trackerConverter.toDetailResponse(tracker);
+        // 2. 1:1 파트너(상대방) 정보 조회
+        MatchedMember partnerMember = findPartner(groupId, user.getId());
+        User partnerUser = partnerMember.getUser();
+
+        // 3. TradeType에 따라 필요한 추가 데이터 수집
+        Meeting latestMeeting = null;
+        Address partnerAddress = null;
+        TrackerHistory latestHistory = null;
+
+        if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
+            // [직접 교환] 최신 약속 정보 조회
+            latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
+        } else {
+            // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
+            partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
+
+            TrackerStatus currentStatus = tracker.getTrackerStatus();
+            if (currentStatus == TrackerStatus.SHIPPING_TO_GUEST || currentStatus == TrackerStatus.SHIPPING_TO_HOST) {
+
+                List<TrackerStatus> shippingStatuses = List.of(
+                        TrackerStatus.SHIPPING_TO_GUEST,
+                        TrackerStatus.SHIPPING_TO_HOST
+                );
+
+                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingStatuses)
+                        .orElse(null);
+            }
+        }
+
+        // 4. 수집된 모든 정보를 컨버터에 전달
+        return trackerConverter.toDetailResponse(tracker, latestMeeting, partnerAddress, partnerUser, latestHistory);
+    }
+
+    /**
+     * 1:1 교환 상황에서 현재 로그인한 유저를 제외한 파트너(MatchedMember)를 조회합니다.
+     */
+    private MatchedMember findPartner(Long groupId, Long myUserId) {
+        return matchedMemberRepository.findAllByGroup_GroupId(groupId).stream()
+                .filter(mm -> !mm.getUser().getId().equals(myUserId))
+                .findFirst()
+                .orElseThrow(() -> new GroupException(GroupErrorCode.PARTNER_NOT_FOUND));
     }
 
 
@@ -188,7 +233,7 @@ public class TrackerService {
     private String findTargetNickname(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()
                 .filter(mm -> !mm.getUser().getId().equals(userId)) // 내가 아닌 멤버 필터링
-                .map(mm -> mm.getUser().getName()) // 유저의 이름(닉네임) 추출
+                .map(mm -> mm.getUser().getNickName()) // 유저의 이름(닉네임) 추출
                 .findFirst()
                 .orElse("상대방 없음"); // 만약 멤버가 혼자라면 기본값 반환
     }

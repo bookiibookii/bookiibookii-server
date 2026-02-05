@@ -51,7 +51,7 @@ public class TrackerNotificationService {
         TrackerNotiType type = resolveNotiType(event.action(), myRole);
 
         // 알림 필드
-        String nickname = userRepository.findNameById(event.actorId())
+        String nickname = userRepository.findNickNameById(event.actorId())
                 .orElseThrow(()->new UserException(UserErrorCode.NOT_FOUND));
 
         Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())

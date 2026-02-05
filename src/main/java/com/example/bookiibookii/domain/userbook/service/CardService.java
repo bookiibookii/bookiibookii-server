@@ -118,7 +118,7 @@ public class CardService {
             throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
         }
         String bookTitle = book.getTitle();
-        String creatorName = userBook.getUser().getName();
+        String creatorName = userBook.getUser().getNickName();
 
         List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
 

@@ -21,7 +21,6 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
-import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.UserBookQueryRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
@@ -75,7 +74,7 @@ public class UserService {
     
     // 닉네임 검증
     public boolean isNicknameAvailable(String nickname) {
-        return !userRepository.existsByName(nickname); // 중복되면 False 반환
+        return !userRepository.existsByNickName(nickname); // 중복되면 False 반환
     }
 
     // 온보딩 세팅
@@ -195,7 +194,7 @@ public class UserService {
         return UserResponseDTO.UserProfileResDTO.builder()
                 // TODO : 프로필 이미지 조회
                 .userId(userId)
-                .nickname(user.getName())
+                .nickname(user.getNickName())
                 .manner(user.getManner())
                 .topTags(topTagCodes)
                 .completeBook(completeBookCount.intValue())
@@ -227,7 +226,7 @@ public class UserService {
 
     // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)
     public Long findUserIdByNickname(String nickname) {
-        return userRepository.findByName(nickname)
+        return userRepository.findByNickName(nickname)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND))
                 .getId();
     }

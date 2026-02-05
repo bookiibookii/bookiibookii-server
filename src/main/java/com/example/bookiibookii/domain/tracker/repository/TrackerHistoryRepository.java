@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.tracker.repository;
 
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
+import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,5 +25,13 @@ public interface TrackerHistoryRepository extends JpaRepository<TrackerHistory, 
     List<TrackerHistory> findAllByGroupId(@Param("groupId") Long groupId);
 
 
+    @Query("SELECT th FROM TrackerHistory th " +
+            "WHERE th.tracker = :tracker " +
+            "AND th.trackerStatus IN :statuses " + // 파라미터로 받기
+            "ORDER BY th.createdAt DESC LIMIT 1")
+    Optional<TrackerHistory> findLatestShippingHistory(
+            @Param("tracker") Tracker tracker,
+            @Param("statuses") List<TrackerStatus> statuses // 상태 리스트 전달
+    );
 
 }

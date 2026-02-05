@@ -10,7 +10,6 @@ import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,8 +36,8 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name")
-    private String name;
+    @Column(name = "nickname")
+    private String nickName;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "social_type", nullable = false, length = 30)
@@ -93,6 +92,6 @@ public class User extends BaseEntity {
     public void reactivate() {
         this.status = Status.ACTIVE;
     }
-    public void updateName(String name) { this.name = name; }
+    public void updateName(String name) { this.nickName = name; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
 }

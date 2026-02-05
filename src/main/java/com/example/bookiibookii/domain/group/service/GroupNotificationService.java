@@ -33,7 +33,7 @@ public class GroupNotificationService {
         GroupNotiType type = event.type();
 
         // 알림 필드 공통 조회 : actor 닉네임, 그룹(책 포함)
-        String actorNickname = userRepository.findNameById(event.actorId())
+        String actorNickname = userRepository.findNickNameById(event.actorId())
                 .orElseThrow(()-> new UserException(UserErrorCode.NOT_FOUND));
 
         String bookTitle = event.bookTitle();

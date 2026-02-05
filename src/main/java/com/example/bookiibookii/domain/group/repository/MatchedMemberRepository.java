@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,10 +22,10 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
 //            "WHERE mm.user.id = :userId")
 //    List<MatchedMember> findAllByUserIdWithTracker(@Param("userId") Long userId);
 
-@Query("SELECT mm FROM MatchedMember mm " +
-        "JOIN FETCH mm.group g " +
-        "WHERE g.groupId = :groupId AND mm.readingOrder = :readingOrder")
-Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("readingOrder") int readingOrder);
+    @Query("SELECT mm FROM MatchedMember mm " +
+            "JOIN FETCH mm.group g " +
+            "WHERE g.groupId = :groupId AND mm.readingOrder = :readingOrder")
+    Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("readingOrder") int readingOrder);
 
     //현재까지의 참여맴버 수
     long countByGroup(Groups groups);
@@ -56,6 +57,9 @@ Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Par
   where mm.group.groupId = :groupId
 """)
     List<WriterRow> findWriterRowsByGroupId(@Param("groupId") Long groupId);
+
+    List<MatchedMember> findAllByGroup_GroupId(Long groupId);
+
 
     interface WriterRow {
         Long getUserId();

@@ -71,7 +71,7 @@ public class AladinClient {
             @JsonProperty("item") List<AladinBookItem> item
     ) {}
 
-    // json response by Aladin - 단건 조회
+    // json response by Aladin - 단건 조회(알라딘-단건도 list 형태로 내려주는 구조)
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AladinItemLookupResponse(
             @JsonProperty("item") List<AladinBookItem> item
@@ -81,13 +81,21 @@ public class AladinClient {
     public record AladinBookItem(
             @JsonProperty("title") String title,
             @JsonProperty("author") String author,
-            @JsonProperty("priceStandard") Long priceStandard,
             @JsonProperty("cover") String cover,
             @JsonProperty("publisher") String publisher,
             @JsonProperty("pubDate") String pubDate,
             @JsonProperty("isbn13") String isbn13,
             @JsonProperty("categoryId") Long categoryId,
             @JsonProperty("categoryName") String categoryName,
-            @JsonProperty("description") String description
-    ) {}
+            @JsonProperty("subInfo") SubInfo subInfo // isbn13 조회
+    ) {
+        public Integer itemPage() {
+            return subInfo != null ? subInfo.itemPage() : null;
+        }
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record SubInfo(
+                @JsonProperty("itemPage") Integer itemPage
+        ) {}
+    }
 }

@@ -25,7 +25,7 @@ public class GroupReviewBadge extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "group_review_id")
+    @JoinColumn(name = "group_review_id", nullable=false)
     private GroupReview groupReview;
 
     @Enumerated(EnumType.STRING)

@@ -53,6 +53,10 @@ public class GroupReview extends BaseEntity {
     private List<GroupReviewBadge> badges = new ArrayList<>();
 
     public void addBadge(Badge badge) {
-        this.badges.add(GroupReviewBadge.of(this, badge));
+        boolean exists = this.badges.stream()
+                .anyMatch(grb -> grb.getBadge() == badge);
+        if (!exists) {
+            this.badges.add(GroupReviewBadge.of(this, badge));
+        }
     }
 }

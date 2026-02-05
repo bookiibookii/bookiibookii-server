@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
@@ -115,8 +116,8 @@ public class TrackerService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        // 2. 1:1 파트너(상대방) 정보 조회
-        MatchedMember partnerMember = findPartner(groupId, user.getId());
+           // 2. 1:1 파트너(상대방) 정보 조회
+        MatchedMember partnerMember = findPartnerForRelay(groupId, user.getId());
         User partnerUser = partnerMember.getUser();
 
         // 3. TradeType에 따라 필요한 추가 데이터 수집
@@ -151,11 +152,18 @@ public class TrackerService {
     /**
      * 1:1 교환 상황에서 현재 로그인한 유저를 제외한 파트너(MatchedMember)를 조회합니다.
      */
-    private MatchedMember findPartner(Long groupId, Long myUserId) {
-        return matchedMemberRepository.findAllByGroup_GroupId(groupId).stream()
+    private MatchedMember findPartnerForRelay(Long groupId, Long myUserId) {
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_GroupId(groupId);
+
+        // 1:1 상황인지 데이터 수준에서 한 번 더 검증
+        if (members.size() > 2) {
+            throw new TrackerException(TrackerErrorCode.INVALID_PARTNER_COUNT);
+        }
+
+        return members.stream()
                 .filter(mm -> !mm.getUser().getId().equals(myUserId))
                 .findFirst()
-                .orElseThrow(() -> new GroupException(GroupErrorCode.PARTNER_NOT_FOUND));
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
     }
 
 

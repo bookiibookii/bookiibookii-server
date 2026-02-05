@@ -32,4 +32,9 @@ public class UserBook extends BaseEntity {
 
     @Column(name = "comment", length = 255)
     private String comment;
+
+    public void updateReview(Double rating, String comment) {
+        this.rating = rating;
+        this.comment = comment;
+    }
 }

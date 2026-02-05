@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.user.dto.res;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.user.entity.UserImage;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Builder;
 
 import java.util.List;
@@ -20,7 +22,13 @@ public class UserResponseDTO {
             Integer togetherGroup,
             List<UserBadgeDTO>  userBadges,
             List<GroupResponseDTO.MypageGroupDto> groups,
-            List<UserBookResponseDTO.MypageBookDto> books
+            List<UserBookResponseDTO.MypageBookDto> books,
+            String receiverName,
+            String phone,
+            String zipCode,
+            String address,
+            String addressDetail,
+            String meetPlace
     ){}
 
     @Builder

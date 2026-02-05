@@ -191,6 +191,14 @@ public class UserService {
                 PageRequest.of(0, 3)
         );
 
+        // Address 정보 조회
+        Address address = addressRepository.findByUserId(userId).orElse(null);
+        String receiverName = address != null ? address.getReceiverName() : null;
+        String phone = address != null ? address.getPhone() : null;
+        String zipCode = address != null ? address.getZipCode() : null;
+        String addressValue = address != null ? address.getAddress() : null;
+        String addressDetail = address != null ? address.getAddressDetail() : null;
+
         return UserResponseDTO.UserProfileResDTO.builder()
                 // TODO : 프로필 이미지 조회
                 .userId(userId)
@@ -203,6 +211,12 @@ public class UserService {
                 .userBadges(badgeList)
                 .groups(groupList)
                 .books(recentBooks)
+                .receiverName(receiverName)
+                .phone(phone)
+                .zipCode(zipCode)
+                .address(addressValue)
+                .addressDetail(addressDetail)
+                .meetPlace(user.getMeetPlace())
                 .build();
     }
 

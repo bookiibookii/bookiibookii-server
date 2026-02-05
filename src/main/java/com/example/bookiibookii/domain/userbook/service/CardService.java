@@ -354,7 +354,7 @@ public class CardService {
             if (currentPage > totalPages) {
                 throw new CardException(CardErrorCode.PAGE_EXCEEDS_TOTAL);
             }
-            if (currentPage < 0) {
+            if (currentPage <= 0) {
                 throw new CardException(CardErrorCode.INVALID_PAGE_VALUE);
             }
         }

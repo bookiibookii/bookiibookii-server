@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserService;
+import com.example.bookiibookii.global.auth.dto.req.AuthRequestDTO;
 import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.auth.exception.AuthException;
@@ -80,24 +81,29 @@ public class AuthService {
     }
 
     
-    // Token 재발급
-    public AuthResponseDTO.TokenResponse refresh(HttpServletRequest request) {
-        String requestRefreshToken = jwtTokenResolver.resolve(request);
-        if (requestRefreshToken == null) {
-            throw new AuthException(AuthErrorCode.NOT_FOUND_REFRESH_TOKEN);
+    // Access Token 재발급
+    public AuthResponseDTO.TokenResponse refresh(AuthRequestDTO.RefreshRequest requestRefreshToken,
+                                                 HttpServletRequest request) {
+        String accessToken = jwtTokenResolver.resolve(request);
+        if (accessToken == null) {
+            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
         }
 
-        if (!jwtProvider.validateToken(requestRefreshToken)) {
-            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+        Long userId;
+        try {
+            userId = jwtProvider.getUserIdIgnoreExpiration(accessToken);
+        } catch (Exception e) {
+            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
         }
-
-        Long userId = jwtProvider.getUserId(requestRefreshToken);
 
         // Redis에서 Refresh Token 조회
         String savedRefreshToken = redisUtil.get("RT:" + userId, String.class);
 
-        // Redis에 없거나(만료됨), 요청 토큰과 다르면 에러
-        if (savedRefreshToken == null || !savedRefreshToken.equals(requestRefreshToken)) {
+        // Redis에 토큰이 있는지 + 클라이언트가 보낸 것과 일치하는지 + 유효한지
+        if (savedRefreshToken == null ||
+                !savedRefreshToken.equals(requestRefreshToken.refreshToken()) ||
+                !jwtProvider.validateToken(requestRefreshToken.refreshToken())) {
+
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 

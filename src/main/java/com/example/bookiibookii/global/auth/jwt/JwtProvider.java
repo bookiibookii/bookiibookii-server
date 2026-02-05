@@ -1,4 +1,6 @@
 package com.example.bookiibookii.global.auth.jwt;
+import com.example.bookiibookii.global.auth.exception.AuthException;
+import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +25,7 @@ public class JwtProvider {
     ) {
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
-            throw new IllegalArgumentException("jwt.token.secret-key must be at least 32 bytes for HS256");
+            throw new AuthException(AuthErrorCode.JWT_SECRET_KEY_TOO_SHORT);
         }
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
         this.accessTokenExpireTime = Duration.ofMillis(accessTokenExpireTime);
@@ -101,5 +103,16 @@ public class JwtProvider {
         Date expiration = parseClaims(token).getExpiration();
         long now = new Date().getTime();
         return expiration.getTime() - now;
+    }
+
+    // 만료 예외를 무시하고 Claims를 가져오는 로직
+    public Long getUserIdIgnoreExpiration(String token) {
+        try {
+            return Long.valueOf(parseClaims(token).getSubject());
+        } catch (ExpiredJwtException e) {
+            return Long.valueOf(e.getClaims().getSubject());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
+        }
     }
 }

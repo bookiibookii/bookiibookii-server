@@ -7,4 +7,8 @@ import lombok.Getter;
 public class AuthRequestDTO {
     private String socialType;
     private String token;
+
+    public record RefreshRequest(String refreshToken) {}
+
 }
+

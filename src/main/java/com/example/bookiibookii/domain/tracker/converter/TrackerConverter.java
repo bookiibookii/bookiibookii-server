@@ -92,8 +92,9 @@ public class TrackerConverter {
                 .build();
     }
 
-    public TrackerListResponse toListResponse(Tracker tracker, String targetNickname, List<String> stepDates) {
-        Groups group = tracker.getGroup();
+    public TrackerListResponse toListResponse(Tracker tracker, Groups group,
+                                              String targetNickname, List<String> stepDates,
+                                              Integer myRate, Integer groupRate) {
 
         String groupType = group.getGroupType().toString();
 
@@ -128,8 +129,8 @@ public class TrackerConverter {
             builder.togetherDetail(TrackerListResponse.TogetherDetail.builder()
                     .hostNickname(group.getHost().getNickName())
                     .participantCount(group.getMatchedMember().size())
-                    .myReadingRate(0) // 추후 계산 로직 연결
-                    .groupReadingRate(0) // 추후 계산 로직 연결
+                    .myReadingRate(myRate)
+                    .groupReadingRate(groupRate)
                     .build());
         }
 

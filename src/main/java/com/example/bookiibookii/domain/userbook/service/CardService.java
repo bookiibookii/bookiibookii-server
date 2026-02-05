@@ -53,7 +53,8 @@ public class CardService {
      * 독서카드를 생성하고 응답 DTO를 반환합니다.
      */
     @Transactional
-    public CardCreateResponseDTO createCard(Long userBookId, Long userId, CardCreateRequestDTO request, int presignedGetUrlExpirationMinutes) {
+    public CardCreateResponseDTO createCard(Long userBookId, Long userId,
+                                            CardCreateRequestDTO request, int presignedGetUrlExpirationMinutes) {
         String s3Key = request.getS3Key();
         Integer page = request.getPage();
         String memo = request.getMemo();
@@ -80,6 +81,8 @@ public class CardService {
                 .build();
 
         Card savedCard = cardRepository.save(card);
+
+        updateProgressRate(userId, savedCard.getGroup());
 
         CardImage cardImage = CardImage.builder()
                 .card(savedCard)
@@ -189,6 +192,8 @@ public class CardService {
         if (s3Key != null && !s3Key.isBlank()) {
             updateCardImage(cardId, s3Key);
         }
+
+        updateProgressRate(userId, card.getGroup());
 
         cardRepository.flush();
         return cardRepository.findByIdWithCardImage(cardId)
@@ -337,4 +342,41 @@ public class CardService {
                 .bookTitle(bookTitle)
                 .build();
     }
+
+
+    /**
+     * 사용자의 최신 페이지를 바탕으로 그룹 내 독서율을 업데이트합니다.
+     */
+    private void updateProgressRate(Long userId, Groups group) {
+        if (group == null) return;
+
+        // 1. 해당 유저의 MatchedMember 찾기
+        matchedMemberRepository.findByGroup_GroupIdAndUser_Id(group.getGroupId(), userId)
+                .ifPresent(mm -> {
+                    // 2. 현재 CardService에 있는 로직을 활용해 독서율 계산
+                    int newRate = calculateUserReadingRate(userId, group);
+
+                    // 3. MatchedMember 엔티티의 필드 업데이트 (필드명은 예시입니다)
+                    mm.updateReadingRate(newRate);
+
+                    // @Transactional 덕분에 Dirty Checking으로 자동 저장됩니다.
+                });
+    }
+
+    // 앞서 만든 계산 로직을 CardService로 가져오기
+    private int calculateUserReadingRate(Long userId, Groups group) {
+        return cardRepository.findTopByUserBook_User_IdAndGroupOrderByPageDesc(userId, group)
+                .map(card -> {
+                    UserBook ub = card.getUserBook();
+                    if (ub == null || ub.getBook() == null) return 0;
+
+                    Integer totalPages = ub.getBook().getTotalPages();
+                    Integer currentPage = card.getPage();
+
+                    if (totalPages == null || totalPages <= 0) return 0;
+                    return (currentPage * 100) / totalPages;
+                })
+                .orElse(0);
+    }
+
 }

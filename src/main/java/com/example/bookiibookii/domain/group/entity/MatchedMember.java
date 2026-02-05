@@ -33,4 +33,11 @@ public class MatchedMember extends BaseEntity {
 
     @Column(name = "reading_order", nullable = false)
     private Integer readingOrder; // 1, 2, 3... 순서 저장
+
+    @Column(name = "current_reading_rate")
+    private Integer currentReadingRate = 0;
+
+    public void updateReadingRate(int newRate) {
+        this.currentReadingRate = (newRate < 0) ? 0 : newRate;
+    }
 }

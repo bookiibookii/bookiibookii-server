@@ -27,7 +27,7 @@ import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
-import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
+import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import com.example.bookiibookii.global.util.RedisUtil;

@@ -30,7 +30,7 @@ public enum AuthErrorCode implements BaseCode {
             "RefreshToken을 찾을 수 없습니다."),
     NOT_FOUND_ACCESS_TOKEN(HttpStatus.NOT_FOUND,
             "AUTH404_2",
-            "ACCESSToken을 찾을 수 없습니다."),
+            "AccessToken을 찾을 수 없습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND,
             "AUTH404_3",
             "토큰에 저장된 해당 사용자를 찾을 수 없습니다."),

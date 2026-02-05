@@ -510,7 +510,7 @@ public class GroupService {
     public GroupResponseDTO.SearchResultDTO searchGroups(GroupRequestDTO.SearchDTO request) {
 
         // 검색어 정규화 (trim 처리된 변수를 하나로 통일)
-        String rawSearchWord = request.searchword();
+        String rawSearchWord = request.keyword();
         String cleanSearchWord = (rawSearchWord != null) ? rawSearchWord.trim() : null;
 
         // 1. 검색어 기록 (정제된 단어로 Redis 기록)

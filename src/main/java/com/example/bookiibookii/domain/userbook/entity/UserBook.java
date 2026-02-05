@@ -30,7 +30,7 @@ public class UserBook extends BaseEntity {
     @Column(name = "rating")
     private Double rating;
 
-    @Column(name = "comment", length = 255)
+    @Column(name = "comment", length = 500)
     private String comment;
 
     public void updateReview(Double rating, String comment) {

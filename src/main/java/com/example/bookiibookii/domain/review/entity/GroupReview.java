@@ -45,7 +45,7 @@ public class GroupReview extends BaseEntity {
     @Column(name = "rating")
     private Double rating;
 
-    @Column(name = "comment", length = 255)
+    @Column(name = "comment", length = 200)
     private String comment;
 
     @Builder.Default

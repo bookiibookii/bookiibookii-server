@@ -11,7 +11,7 @@ public enum ReviewErrorCode implements BaseCode {
 
     // 400
     INVALID_RATING(HttpStatus.BAD_REQUEST, "REVIEW400_1", "평점은 0.0~5.0, 0.5 단위여야 합니다."),
-    COMMENT_TOO_LONG(HttpStatus.BAD_REQUEST, "REVIEW400_2", "코멘트는 255자 이하여야 합니다."),
+    COMMENT_TOO_LONG(HttpStatus.BAD_REQUEST, "REVIEW400_2", "코멘트 길이 제한을 초과했습니다."),
     REVIEW_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "REVIEW400_3", "이미 리뷰를 작성했습니다."),
 
     // 403

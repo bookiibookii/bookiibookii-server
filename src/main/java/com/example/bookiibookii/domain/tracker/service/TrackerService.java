@@ -312,10 +312,10 @@ public class TrackerService {
 
     private String findTargetNickname(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()
-                .filter(mm -> !mm.getUser().getId().equals(userId)) // 내가 아닌 멤버 필터링
-                .map(mm -> mm.getUser().getNickName()) // 유저의 이름(닉네임) 추출
+                .filter(mm -> mm.getUser() != null && !mm.getUser().getId().equals(userId))
+                .map(mm -> mm.getUser().getNickName())
                 .findFirst()
-                .orElse("상대방 없음"); // 만약 멤버가 혼자라면 기본값 반환
+                .orElse("상대방 없음");
     }
 
     private List<String> buildStepDates(Tracker tracker) {

@@ -375,7 +375,6 @@ public class CardService {
                     // 3. MatchedMember 엔티티의 필드 업데이트 (필드명은 예시입니다)
                     mm.updateReadingRate(newRate);
 
-                    // @Transactional 덕분에 Dirty Checking으로 자동 저장됩니다.
                 });
     }
 

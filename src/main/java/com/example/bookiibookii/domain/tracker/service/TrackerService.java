@@ -313,9 +313,9 @@ public class TrackerService {
                     Integer myRate = 0;
                     Integer groupRate = 0;
 
-                    // TOGETHER 타입일 경우: 이미 필드에 계산된 값을 가져오기만 하면 끝!
+
                     if (group.getGroupType() == GroupType.TOGETHER) {
-                        myRate = calculateUserReadingRate(userId, group); // group을 넘기도록 수정
+                        myRate = calculateUserReadingRate(userId, group);
                         groupRate = calculateGroupAverageRate(group);
                     }
 

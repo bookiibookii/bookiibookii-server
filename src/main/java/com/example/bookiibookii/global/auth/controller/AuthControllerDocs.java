@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface AuthControllerDocs {
@@ -52,7 +53,7 @@ public interface AuthControllerDocs {
             )
     })
     @PostMapping("/refresh")
-    ApiResponse<AuthResponseDTO.TokenResponse> refresh(HttpServletRequest request);
+    ApiResponse<AuthResponseDTO.TokenResponse> refresh(@RequestParam String requestRefreshToken, HttpServletRequest request);
 
     @Operation(
             summary = "로그아웃",

@@ -28,10 +28,12 @@ public class AuthController implements AuthControllerDocs{
     // 토큰 재발급
     @Override
     @PostMapping("/refresh")
-    public ApiResponse<AuthResponseDTO.TokenResponse> refresh(HttpServletRequest request) {
+    public ApiResponse<AuthResponseDTO.TokenResponse> refresh(
+            @RequestParam String requestRefreshToken,
+            HttpServletRequest request) {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK,
-                authService.refresh(request));
+                authService.refresh(requestRefreshToken, request));
     }
 
     // 로그아웃

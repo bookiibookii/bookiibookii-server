@@ -102,4 +102,15 @@ public class JwtProvider {
         long now = new Date().getTime();
         return expiration.getTime() - now;
     }
+
+    // 만료 예외를 무시하고 Claims를 가져오는 로직
+    public Long getUserIdIgnoreExpiration(String token) {
+        try {
+            return Long.valueOf(parseClaims(token).getSubject());
+        } catch (ExpiredJwtException e) {
+            return Long.valueOf(e.getClaims().getSubject());
+        } catch (Exception e) {
+            throw new JwtException("유효하지 않은 토큰입니다.");
+        }
+    }
 }

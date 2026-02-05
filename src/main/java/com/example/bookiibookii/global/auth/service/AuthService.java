@@ -81,25 +81,27 @@ public class AuthService {
 
     
     // Access Token 재발급
-    public AuthResponseDTO.TokenResponse refresh(HttpServletRequest request) {
+    public AuthResponseDTO.TokenResponse refresh(String requestRefreshToken, HttpServletRequest request) {
         String accessToken = jwtTokenResolver.resolve(request);
         if (accessToken == null) {
             throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
         }
 
+        Long userId;
         try {
-            jwtProvider.validateToken(accessToken);
-        } catch (JwtException | IllegalArgumentException e) {
+            userId = jwtProvider.getUserIdIgnoreExpiration(accessToken);
+        } catch (Exception e) {
             throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
         }
-        Long userId = jwtProvider.getUserId(accessToken);
 
         // Redis에서 Refresh Token 조회
         String savedRefreshToken = redisUtil.get("RT:" + userId, String.class);
-        log.info("조회한 Refresh Tokne: {}", savedRefreshToken);
 
-        // Redis에 없거나(만료됨), 검증되지 않으면 에러
-        if (savedRefreshToken == null || !jwtProvider.validateToken(savedRefreshToken)) {
+        // Redis에 토큰이 있는지 + 클라이언트가 보낸 것과 일치하는지 + 유효한지
+        if (savedRefreshToken == null ||
+                !savedRefreshToken.equals(requestRefreshToken) ||
+                !jwtProvider.validateToken(requestRefreshToken)) {
+
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 

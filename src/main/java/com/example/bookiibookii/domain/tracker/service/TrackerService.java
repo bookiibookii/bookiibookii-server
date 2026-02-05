@@ -3,7 +3,6 @@ package com.example.bookiibookii.domain.tracker.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
@@ -303,17 +302,20 @@ public class TrackerService {
         return trackers.stream()
                 .map(tracker -> {
                     List<String> stepDates = buildStepDates(tracker);
-                    String targetNickname = findTargetNickname(tracker, userId);
+                    String targetNickname = findTargetNickName(tracker, userId);
                     return trackerConverter.toListResponse(tracker, targetNickname, stepDates);
                 })
                 .collect(Collectors.toList());
     }
 
 
-    private String findTargetNickname(Tracker tracker, Long userId) {
+    private String findTargetNickName(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()
                 .filter(mm -> mm.getUser() != null && !mm.getUser().getId().equals(userId))
-                .map(mm -> mm.getUser().getNickName())
+                .map(mm -> {
+                    String nickname = mm.getUser().getNickName();
+                    return (nickname != null) ? nickname : "닉네임 미설정"; // null이면 기본값 반환
+                })
                 .findFirst()
                 .orElse("상대방 없음");
     }

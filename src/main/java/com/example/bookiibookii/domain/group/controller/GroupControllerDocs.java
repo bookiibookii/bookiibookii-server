@@ -6,6 +6,8 @@ import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -84,6 +86,20 @@ public interface GroupControllerDocs {
     })
     ApiResponse<GroupResponseDTO.SearchResultDTO> searchGroups(
             @Valid @ModelAttribute GroupRequestDTO.SearchDTO request);
+
+    @Operation(summary = "인기 검색어 조회 API", description = "최근 실시간으로 가장 많이 검색된 상위 10개 키워드를 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공",
+                    content = @Content(examples = @ExampleObject(value = """
+                            {
+                              "isSuccess": true,
+                              "code": "COMMON200",
+                              "message": "성공입니다.",
+                              "result": ["슬램덩크", "한강", "채식주의자", "자바", "스프링부트"]
+                            }
+                            """)))
+    })
+    ApiResponse<List<String>> getPopularKeywords();
 
     @Operation(summary = "신고할 그룹 조회 API (드롭다운 데이터)",
             description = "신고하기 페이지에서 유저가 속해있는 현재 진행중(MATCHED) 상태의 그룹 데이터를 조회하는 API입니다.")

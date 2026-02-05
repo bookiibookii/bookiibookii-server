@@ -30,6 +30,7 @@ import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
+import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -66,6 +67,7 @@ public class GroupService {
     private final UserImageS3Service userImageS3Service;
     private final UserBookService userBookService;
     private final AddressRepository addressRepository;
+    private final RedisUtil redisUtil;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -508,6 +510,11 @@ public class GroupService {
     //그룹검색
     @Transactional(readOnly = true)
     public GroupResponseDTO.SearchResultDTO searchGroups(GroupRequestDTO.SearchDTO request) {
+        // 검색어가 있을 경우 Redis에 점수 기록 (기록 로직)
+        if (request.searchword() != null && !request.searchword().isBlank()) {
+            redisUtil.incrementSearchScore(request.searchword().trim());
+        }
+
         // 1. 페이징 설정 (검색은 총 개수 확인을 위해 PageRequest 사용)
         PageRequest pageable = PageRequest.of(request.page(), request.size());
 
@@ -572,6 +579,12 @@ public class GroupService {
                 searchResult.getNumber(),        // 현재 페이지
                 searchResult.hasNext()           // 다음 페이지 여부
         );
+    }
+
+    //인기검색어 상위 10개 조회
+    @Transactional(readOnly = true)
+    public List<String> getPopularKeywords() {
+        return redisUtil.getTopKeywords(10);
     }
 
     // 신고할 그룹 조회

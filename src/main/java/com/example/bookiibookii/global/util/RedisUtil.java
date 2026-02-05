@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -16,6 +19,7 @@ public class RedisUtil {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper; // Spring이 기본 제공하는 ObjectMapper 주입
+    private static final String SEARCH_RANKING_KEY = "search:ranking";
 
     // 데이터 저장 (객체를 받아서 JSON String으로 변환 후 저장)
     public void set(String key, Object data, int minutes) {
@@ -65,5 +69,30 @@ public class RedisUtil {
             log.error("Redis 저장 에러: {}", e.getMessage());
             throw new RuntimeException("Redis Parsing Error", e);
         }
+    }
+
+    //인기검색어
+    //검색어 점수 1증가
+    public void incrementSearchScore(String keyword) {
+        if (keyword == null || keyword.isBlank()) return;
+
+        // 검색어 정규화 (공백 제거 및 필요시 소문자 변환)
+        String cleanKeyword = keyword.trim();
+
+        // ZSET의 score를 1 증가시킴
+        redisTemplate.opsForZSet().incrementScore(SEARCH_RANKING_KEY, cleanKeyword, 1);
+        log.info("인기 검색어 카운팅 추가: {}", cleanKeyword);
+    }
+
+    //인기 검색어 조회
+    public List<String> getTopKeywords(int limit) {
+        // 역순(큰 점수 순)으로 상위 N개 멤버 가져오기
+        Set<String> range = redisTemplate.opsForZSet().reverseRange(SEARCH_RANKING_KEY, 0, limit - 1);
+
+        if (range == null || range.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return new ArrayList<>(range);
     }
 }

@@ -13,7 +13,9 @@ import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
+import com.example.bookiibookii.domain.userbook.exception.CardException;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
+import com.example.bookiibookii.domain.userbook.exception.code.CardErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
@@ -68,6 +70,11 @@ public class CardService {
 
         UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+
+        if (page != null) {
+            Integer totalPages = userBook.getBook().getTotalPages();
+            validatePage(page, totalPages);
+        }
 
         if (cardImageRepository.existsByS3Key(s3Key)) {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
@@ -179,11 +186,10 @@ public class CardService {
         Card card = cardRepository.findByIdWithUserBookAndGroup(cardId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.CARD_NOT_FOUND));
 
-        if (!card.getUserBook().getUser().getId().equals(userId)) {
-            throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
-        }
 
         if (page != null) {
+            Integer totalPages = card.getUserBook().getBook().getTotalPages();
+            validatePage(page, totalPages);
             card.updatePage(page);
         }
         if (memo != null) {
@@ -343,6 +349,16 @@ public class CardService {
                 .build();
     }
 
+    private void validatePage(Integer currentPage, Integer totalPages) {
+        if (currentPage != null && totalPages != null) {
+            if (currentPage > totalPages) {
+                throw new CardException(CardErrorCode.PAGE_EXCEEDS_TOTAL);
+            }
+            if (currentPage < 0) {
+                throw new CardException(CardErrorCode.INVALID_PAGE_VALUE);
+            }
+        }
+    }
 
     /**
      * 사용자의 최신 페이지를 바탕으로 그룹 내 독서율을 업데이트합니다.
@@ -374,7 +390,10 @@ public class CardService {
                     Integer currentPage = card.getPage();
 
                     if (totalPages == null || totalPages <= 0) return 0;
-                    return (currentPage * 100) / totalPages;
+
+                    int rate = (currentPage*100)/totalPages;
+                    return Math.min(100, Math.max(0,rate));
+
                 })
                 .orElse(0);
     }

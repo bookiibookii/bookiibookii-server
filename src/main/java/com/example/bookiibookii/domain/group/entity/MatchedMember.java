@@ -34,10 +34,11 @@ public class MatchedMember extends BaseEntity {
     @Column(name = "reading_order", nullable = false)
     private Integer readingOrder; // 1, 2, 3... 순서 저장
 
-    @Column(name = "current_reading_rate")
+    @Column(name = "current_reading_rate", nullable = false)
     private Integer currentReadingRate = 0;
 
     public void updateReadingRate(int newRate) {
-        this.currentReadingRate = (newRate < 0) ? 0 : newRate;
+        int normalized = Math.min(100, Math.max(0,newRate));
+        this.currentReadingRate = normalized;
     }
 }

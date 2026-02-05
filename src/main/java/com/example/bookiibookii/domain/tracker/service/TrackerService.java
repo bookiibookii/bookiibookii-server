@@ -173,7 +173,7 @@ public class TrackerService {
         TrackerHistory initialHistory = tracker.createHistorySnapshot(
                 null,
                 firstOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(initialHistory);
 
@@ -386,8 +386,7 @@ public class TrackerService {
                 bookOwner.getId(),
                 nextOwner.getId(),
                 request.deliveryCompany(),
-                request.trackingNumber(),
-                null
+                request.trackingNumber()
         );
         trackerHistoryRepository.save(shippingHistory);
 
@@ -439,7 +438,7 @@ public class TrackerService {
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(receiveHistory);
 
@@ -477,7 +476,7 @@ public class TrackerService {
         TrackerHistory readingHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(readingHistory);
 
@@ -502,7 +501,7 @@ public class TrackerService {
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(doneHistory);
 
@@ -529,7 +528,7 @@ public class TrackerService {
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(extensionHistory);
 
@@ -623,7 +622,7 @@ public class TrackerService {
         TrackerHistory meetingHistory = tracker.createHistorySnapshot(
                 bookOwner.getId(),
                 nextOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(meetingHistory);
     }
@@ -677,7 +676,7 @@ public class TrackerService {
         TrackerHistory transitionHistory = tracker.createHistorySnapshot(
                 currentOwner.getId(),
                 nextOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(transitionHistory);
 

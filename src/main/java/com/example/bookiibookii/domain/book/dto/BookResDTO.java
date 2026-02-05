@@ -9,14 +9,9 @@ import lombok.Getter;
 public class BookResDTO {
     private String title;
     private String author;
-    // private Long price;
     private String image;
     private String publisher;
-    // private LocalDate publishDate;
     private String isbn13;
-    // private Long categoryId;
     private CustomCategory category;
     private String categoryLabel;
-    // private Long stock;
-    // private String description;
 }

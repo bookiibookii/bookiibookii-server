@@ -89,7 +89,7 @@ public interface GroupControllerDocs {
 
     @Operation(summary = "인기 검색어 조회 API", description = "최근 실시간으로 가장 많이 검색된 상위 10개 키워드를 조회합니다.")
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공(리스트의 0번째 요소가 검색량 1위입니다.)",
                     content = @Content(examples = @ExampleObject(value = """
                             {
                               "isSuccess": true,

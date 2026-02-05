@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.aladin.service;
 import com.example.bookiibookii.domain.aladin.config.AladinClient;
 import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
 import com.example.bookiibookii.domain.book.dto.BookResDTO;
+import com.example.bookiibookii.domain.book.dto.TempBookResDTO;
 import com.example.bookiibookii.domain.book.exception.BookException;
 import com.example.bookiibookii.domain.book.exception.code.BookErrorCode;
 import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
@@ -30,7 +31,7 @@ public class AladinService {
                 : raw.item().stream()
                 .flatMap(item -> {
                     Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryName());
-                    if (cc.isEmpty()) return Stream.empty(); // 차단이면 제거
+                    if (cc.isEmpty()) return Stream.empty(); // 차단 카테고리일 시 제거
 
                     return Stream.of(
                             BookResDTO.builder()
@@ -55,7 +56,7 @@ public class AladinService {
                 .build();
     }
 
-    public BookResDTO searchBookByISBN(String isbn13){
+    public TempBookResDTO searchBookByISBN(String isbn13){
         AladinClient.AladinBookItem bookItem = aladinClient.lookupBookByIsbn13(isbn13);
 
         Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(bookItem.categoryName());
@@ -63,7 +64,7 @@ public class AladinService {
             throw new BookException(BookErrorCode.BLOCKED_CATEGORY);
         }
 
-        return BookResDTO.builder()
+        return TempBookResDTO.builder()
                 .title(nvl(bookItem.title()))
                 .author(nvl(bookItem.author()))
                 .image(nvl(bookItem.cover()))
@@ -71,6 +72,7 @@ public class AladinService {
                 .isbn13(nvl(bookItem.isbn13()))
                 .category(cc.get())
                 .categoryLabel(cc.get().label())
+                .itemPage(bookItem.itemPage())
                 .build();
     }
 

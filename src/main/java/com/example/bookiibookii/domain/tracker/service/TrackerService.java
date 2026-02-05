@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
@@ -22,6 +23,7 @@ import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
@@ -36,8 +38,10 @@ import com.example.bookiibookii.domain.tracker.repository.TrackerHistoryReposito
 import com.example.bookiibookii.domain.tracker.repository.TrackerImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.Address;
-import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
+import com.example.bookiibookii.domain.userbook.entity.Card;
+import com.example.bookiibookii.domain.userbook.entity.UserBook;
+import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +68,7 @@ public class TrackerService {
     private final TrackerImageValidationService trackerImageValidationService;
     private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final CardRepository cardRepository;
     private final AddressRepository addressRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
@@ -173,7 +178,7 @@ public class TrackerService {
         TrackerHistory initialHistory = tracker.createHistorySnapshot(
                 null,
                 firstOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(initialHistory);
 
@@ -301,11 +306,45 @@ public class TrackerService {
     private List<TrackerListResponse> convertToResponseList(List<Tracker> trackers, Long userId) {
         return trackers.stream()
                 .map(tracker -> {
+                    Groups group = tracker.getGroup();
                     List<String> stepDates = buildStepDates(tracker);
                     String targetNickname = findTargetNickName(tracker, userId);
-                    return trackerConverter.toListResponse(tracker, targetNickname, stepDates);
+
+                    Integer myRate = 0;
+                    Integer groupRate = 0;
+
+
+                    if (group.getGroupType() == GroupType.TOGETHER) {
+                        myRate = calculateUserReadingRate(userId, group);
+                        groupRate = calculateGroupAverageRate(group);
+                    }
+
+                    return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, myRate, groupRate);
                 })
                 .collect(Collectors.toList());
+    }
+
+    // 내 독서율 가져오기
+    private int calculateUserReadingRate(Long userId, Groups group) {
+        // MatchedMember에서 해당 유저의 이미 저장된 독서율 필드를 가져옵니다.
+        return group.getMatchedMember().stream()
+                .filter(mm -> mm.getUser().getId().equals(userId))
+                .findFirst()
+                .map(mm -> mm.getCurrentReadingRate() != null ? mm.getCurrentReadingRate() : 0)
+                .orElse(0);
+    }
+
+    // 그룹 평균 독서율 가져오기
+    private int calculateGroupAverageRate(Groups group) {
+        List<MatchedMember> members = group.getMatchedMember();
+        if (members == null || members.isEmpty()) return 0;
+
+        // 루프 안에서 쿼리 실행 없이, 메모리에 로드된 멤버들의 필드값만 합산
+        double totalSum = members.stream()
+                .mapToDouble(mm -> mm.getCurrentReadingRate() != null ? mm.getCurrentReadingRate() : 0)
+                .sum();
+
+        return (int) (totalSum / members.size());
     }
 
 
@@ -386,8 +425,7 @@ public class TrackerService {
                 bookOwner.getId(),
                 nextOwner.getId(),
                 request.deliveryCompany(),
-                request.trackingNumber(),
-                null
+                request.trackingNumber()
         );
         trackerHistoryRepository.save(shippingHistory);
 
@@ -439,7 +477,7 @@ public class TrackerService {
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(receiveHistory);
 
@@ -477,7 +515,7 @@ public class TrackerService {
         TrackerHistory readingHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(readingHistory);
 
@@ -502,7 +540,7 @@ public class TrackerService {
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(doneHistory);
 
@@ -529,7 +567,7 @@ public class TrackerService {
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(extensionHistory);
 
@@ -623,7 +661,7 @@ public class TrackerService {
         TrackerHistory meetingHistory = tracker.createHistorySnapshot(
                 bookOwner.getId(),
                 nextOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(meetingHistory);
     }
@@ -677,12 +715,15 @@ public class TrackerService {
         TrackerHistory transitionHistory = tracker.createHistorySnapshot(
                 currentOwner.getId(),
                 nextOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(transitionHistory);
 
         // 알림 발송
         publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, nextOwner.getUser().getId(), groupId, null));
     }
+
+
+
 
 }

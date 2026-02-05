@@ -172,7 +172,7 @@ public class UserService {
                         .build()).toList();
 
         // 완독 수 (로직에 따라 조건 추가 가능)
-        Long completeBookCount = userBookRepository.countByUser_Id(userId);
+        Long completeBookCount = userBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
         // 참여한 그룹 수 (타입별)
         Long relayCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.RELAY);
         Long togetherCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.TOGETHER);

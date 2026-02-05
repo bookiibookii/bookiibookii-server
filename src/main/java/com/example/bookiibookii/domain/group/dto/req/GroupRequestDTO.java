@@ -63,7 +63,7 @@ public class GroupRequestDTO {
     public record SearchDTO(
             @NotBlank(message = "검색어를 입력해주세요.")
             @Schema(description = "검색어", example = "자바") // 예시 단어 설정
-            String searchword,
+            String keyword,
 
             @Schema(description = "정렬 방식", defaultValue = "LATEST")
             GroupSortType sort,

@@ -122,13 +122,13 @@ public class TrackerService {
         Long receiverMatchedMemberId = myShippingHistory.getReceiverMatchedMemberId();
 
         List<TrackerHistory> histories = trackerHistoryRepository.findAllByGroupId(groupId);
-        TrackerHistory receiveHistory = histories.stream()
+        List<Long> historyIds = histories.stream()
                 .filter(h -> receiverMatchedMemberId.equals(h.getReceiverMatchedMemberId()))
-                .filter(h -> trackerImageRepository.findByTrackerHistory_IdAndType(h.getId(), TrackerImageType.RECEIVER_PROOF).isPresent())
-                .findFirst()
-                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
+                .map(TrackerHistory::getId)
+                .toList();
 
-        TrackerImage receiverProof = trackerImageRepository.findByTrackerHistory_IdAndType(receiveHistory.getId(), TrackerImageType.RECEIVER_PROOF)
+        TrackerImage receiverProof = trackerImageRepository
+                .findFirstByTrackerHistory_IdInAndTypeOrderByCreatedAtDesc(historyIds, TrackerImageType.RECEIVER_PROOF)
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
 
         String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(receiverProof.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);

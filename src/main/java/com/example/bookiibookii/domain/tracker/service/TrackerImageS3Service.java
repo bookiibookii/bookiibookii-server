@@ -69,6 +69,9 @@ public class TrackerImageS3Service {
         } catch (NoSuchKeyException e) {
             return false;
         } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
             log.error("S3 접근 오류 (s3Key: {}): {}", s3Key, e.getMessage(), e);
             throw new TrackerImageException(TrackerImageErrorCode.S3_ACCESS_ERROR);
         } catch (SdkClientException e) {

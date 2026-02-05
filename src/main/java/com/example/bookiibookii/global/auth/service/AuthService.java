@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserService;
+import com.example.bookiibookii.global.auth.dto.req.AuthRequestDTO;
 import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.auth.exception.AuthException;
@@ -81,7 +82,8 @@ public class AuthService {
 
     
     // Access Token 재발급
-    public AuthResponseDTO.TokenResponse refresh(String requestRefreshToken, HttpServletRequest request) {
+    public AuthResponseDTO.TokenResponse refresh(AuthRequestDTO.RefreshRequest requestRefreshToken,
+                                                 HttpServletRequest request) {
         String accessToken = jwtTokenResolver.resolve(request);
         if (accessToken == null) {
             throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
@@ -99,8 +101,8 @@ public class AuthService {
 
         // Redis에 토큰이 있는지 + 클라이언트가 보낸 것과 일치하는지 + 유효한지
         if (savedRefreshToken == null ||
-                !savedRefreshToken.equals(requestRefreshToken) ||
-                !jwtProvider.validateToken(requestRefreshToken)) {
+                !savedRefreshToken.equals(requestRefreshToken.refreshToken()) ||
+                !jwtProvider.validateToken(requestRefreshToken.refreshToken())) {
 
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }

@@ -109,7 +109,7 @@ public class JwtProvider {
             return Long.valueOf(parseClaims(token).getSubject());
         } catch (ExpiredJwtException e) {
             return Long.valueOf(e.getClaims().getSubject());
-        } catch (Exception e) {
+        } catch (JwtException | IllegalArgumentException e) {
             throw new JwtException("유효하지 않은 토큰입니다.");
         }
     }

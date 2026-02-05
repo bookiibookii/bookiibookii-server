@@ -289,7 +289,7 @@ public class ApplicationService {
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
                 .user(guest.getId())
-                .name(guest.getName())
+                .name(guest.getNickName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .tags(top3Tags)

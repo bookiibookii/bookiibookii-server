@@ -55,7 +55,7 @@ public class RecommendationService {
         return matchedUsers.stream()
                 .map(user -> RecommendationResponseDTO.BookmateDto.builder()
                         .userId(user.getId())
-                        .nickname(user.getName())
+                        .nickname(user.getNickName())
                         .userImage(user.getUserImage())
                         .matchedTags(displayTags)
                         .recentBookTitle(userBookService.findRecentBookTitleByUserId(user.getId()))

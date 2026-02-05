@@ -89,7 +89,7 @@ public class CardCommentService {
 
         return CardWriterDto.builder()
                 .userId(u.getId())
-                .name(u.getName())
+                .name(u.getNickName())
                 .profileImage(profileImageUrl)
                 .build();
     }

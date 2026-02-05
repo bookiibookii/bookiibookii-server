@@ -21,9 +21,7 @@ import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
-import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
@@ -369,7 +367,7 @@ public class GroupService {
                 .maxCapacity(group.getMaxCapacity())
                 .waitingCount(waitingCount)
                 .isHot(isHot)
-                .hostNickname(group.getHost().getName())
+                .hostNickname(group.getHost().getNickName())
                 .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 .groupTags(groupTag)
@@ -384,7 +382,7 @@ public class GroupService {
 
         for (MatchedMember mm : matchedMembers) {
             slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
-                    .nickname(mm.getUser().getName())
+                    .nickname(mm.getUser().getNickName())
                     .profileImage(userProfileImageUrl(mm.getUser()))
                     .role(mm.getRole().name())
                     .isMe(mm.getUser().getId().equals(userId))
@@ -475,7 +473,7 @@ public class GroupService {
                             .groupId(group.getGroupId())
                             .title(group.getBook().getTitle())
                             .bookImage(group.getBook().getImage())
-                            .hostNickname(group.getHost().getName())
+                            .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
                             .currentCount(group.getMatchedMember().size()) // matchedMember는 메인 쿼리에서 fetchJoin 권장
                             .maxCapacity(group.getMaxCapacity())
@@ -564,7 +562,7 @@ public class GroupService {
                             .groupId(group.getGroupId())
                             .title(group.getBook().getTitle())
                             .bookImage(group.getBook().getImage())
-                            .hostNickname(group.getHost().getName())
+                            .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
                             .currentCount(group.getMatchedMember().size())
                             .maxCapacity(group.getMaxCapacity())

@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.group.enums.GroupNotiType;
-import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
@@ -24,13 +24,12 @@ public class GroupNotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationFactory notificationFactory;
     private final NotiTemplateRenderer templateRenderer;
-
     private final UserRepository userRepository;
-    private final GroupsRepository groupsRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void send(GroupNotificationEvent event) {
         GroupNotiType type = event.type();
+        NotificationType notiType = type.getNotificationType();
 
         // 알림 필드 공통 조회 : actor 닉네임, 그룹(책 포함)
         String actorNickname = userRepository.findNickNameById(event.actorId())
@@ -57,7 +56,8 @@ public class GroupNotificationService {
             notificationRepository.save(
                     notificationFactory.create(
                             receiverId,
-                            NotificationType.SYSTEM,
+                            NotificationCategory.SYSTEM,
+                            notiType,
                             type.title,
                             bodyMessage,
                             payload

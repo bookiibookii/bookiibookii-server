@@ -1,12 +1,12 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
@@ -49,6 +49,7 @@ public class TrackerNotificationService {
                 .orElseThrow(() -> new GroupException(GroupErrorCode.PARTNER_NOT_FOUND));
 
         TrackerNotiType type = resolveNotiType(event.action(), myRole);
+        NotificationType notiType = type.getNotificationType();
 
         // 알림 필드
         String nickname = userRepository.findNickNameById(event.actorId())
@@ -72,7 +73,8 @@ public class TrackerNotificationService {
         notificationRepository.save(
                 notificationFactory.create(
                         receiverId,
-                        NotificationType.SYSTEM,
+                        NotificationCategory.SYSTEM,
+                        notiType,
                         type.title,
                         bodyMessage,
                         payload

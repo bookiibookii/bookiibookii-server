@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.notification.util;
 
 import com.example.bookiibookii.domain.notification.entity.Notification;
+import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -19,11 +20,12 @@ public class NotificationFactory {
     private final ObjectMapper objectMapper;
 
     // converter
-    public Notification create(Long receiverId, NotificationType type,
+    public Notification create(Long receiverId, NotificationCategory category, NotificationType type,
                                String title, String message, String payload) {
         User receiver = userRepository.getReferenceById(receiverId);
         return Notification.builder()
                 .receiver(receiver)
+                .category(category)
                 .type(type)
                 .title(title)
                 .message(message)

@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.comment.service;
 
 import com.example.bookiibookii.domain.comment.event.CommentEvent;
+import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
@@ -27,7 +28,8 @@ public class CommentNotificationService {
         String payload = notificationFactory.toJson(Map.of("groupId", event.groupId()));
 
         notificationRepository.save(
-                notificationFactory.create(receiverId, NotificationType.SYSTEM, title, message, payload)
+                notificationFactory.create(receiverId, NotificationCategory.SYSTEM, NotificationType.GROUP_COMMENT_CREATED,
+                        title, message, payload)
         );
     }
 }

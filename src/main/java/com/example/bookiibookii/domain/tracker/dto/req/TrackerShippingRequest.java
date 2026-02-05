@@ -9,6 +9,6 @@ public record TrackerShippingRequest(
         @NotBlank(message = "송장 번호는 필수 입력입니다.")
         String trackingNumber,
 
-        @NotBlank(message = "인증샷 URL은 필수 입력입니다.")
-        String authenticationImageUrl
+        @NotBlank(message = "배송 인증 이미지 S3 키는 필수 입력입니다. Presigned URL로 업로드 후 발급받은 s3Key를 전달하세요.")
+        String s3Key
 ) {}

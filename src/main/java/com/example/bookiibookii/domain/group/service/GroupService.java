@@ -511,18 +511,21 @@ public class GroupService {
     @Transactional(readOnly = true)
     public GroupResponseDTO.SearchResultDTO searchGroups(GroupRequestDTO.SearchDTO request) {
 
-        //검색어 기록 정돈
-        String searchWord = request.searchword();
-        if (searchWord != null && !searchWord.isBlank()) {
-            redisUtil.incrementSearchScore(searchWord.trim());
+        // 검색어 정규화 (trim 처리된 변수를 하나로 통일)
+        String rawSearchWord = request.searchword();
+        String cleanSearchWord = (rawSearchWord != null) ? rawSearchWord.trim() : null;
+
+        // 1. 검색어 기록 (정제된 단어로 Redis 기록)
+        if (cleanSearchWord != null && !cleanSearchWord.isBlank()) {
+            redisUtil.incrementSearchScore(cleanSearchWord);
         }
 
-        // 1. 페이징 설정 (검색은 총 개수 확인을 위해 PageRequest 사용)
+        // 2. 페이징 설정
         PageRequest pageable = PageRequest.of(request.page(), request.size());
 
-        // 2. 키워드 기반 통합 검색 실행 (Repository 호출)
+        // 3. 키워드 기반 통합 검색 실행
         org.springframework.data.domain.Page<Groups> searchResult = groupQueryRepository.searchGroupsByKeyword(
-                searchWord,
+                cleanSearchWord, // 원본 대신 trim 사용
                 request.sort(),
                 pageable
         );

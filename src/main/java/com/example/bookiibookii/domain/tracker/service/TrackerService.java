@@ -18,6 +18,7 @@ import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
@@ -74,6 +75,7 @@ public class TrackerService {
     }
 
     private static final int TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES = 10;
+    private static final int TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES = 60;
 
     /**
      * 트래커 인증 이미지(배송/수령) 업로드용 Presigned PUT URL 발급.
@@ -82,6 +84,55 @@ public class TrackerService {
     public PresignedUrlResponseDTO getPresignedPutUrlForTrackerImage(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
         return trackerImageS3Service.generatePresignedPutUrl(TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES);
+    }
+
+    /**
+     * 배송 인증 사진 보기. 수령한 사람(나)이 배송한 사람이 올린 SENDER_PROOF 이미지를 조회.
+     * 같은 그룹 멤버만 조회 가능.
+     */
+    public TrackerImageGetResponse getShippingProofImageUrl(Long groupId, User user) {
+        validateGroupMember(groupId, user.getId());
+        MatchedMember myMatchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+
+        TrackerHistory shippingHistory = trackerHistoryRepository
+                .findTop1ByTracker_Group_GroupIdAndReceiverMatchedMemberIdOrderByCreatedAtDesc(groupId, myMatchedMember.getId())
+                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
+
+        TrackerImage senderProof = trackerImageRepository.findByTrackerHistory_IdAndType(shippingHistory.getId(), TrackerImageType.SENDER_PROOF)
+                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
+
+        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(senderProof.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
+        return TrackerImageGetResponse.builder().presignedGetUrl(presignedGetUrl).build();
+    }
+
+    /**
+     * 수령 인증 사진 보기. 배송한 사람(나)이 수령한 사람이 올린 RECEIVER_PROOF 이미지를 조회.
+     * 같은 그룹 멤버만 조회 가능.
+     */
+    public TrackerImageGetResponse getReceivedProofImageUrl(Long groupId, User user) {
+        validateGroupMember(groupId, user.getId());
+        MatchedMember myMatchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+
+        TrackerHistory myShippingHistory = trackerHistoryRepository
+                .findTop1ByTracker_Group_GroupIdAndSenderMatchedMemberIdOrderByCreatedAtDesc(groupId, myMatchedMember.getId())
+                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
+
+        Long receiverMatchedMemberId = myShippingHistory.getReceiverMatchedMemberId();
+
+        List<TrackerHistory> histories = trackerHistoryRepository.findAllByGroupId(groupId);
+        TrackerHistory receiveHistory = histories.stream()
+                .filter(h -> receiverMatchedMemberId.equals(h.getReceiverMatchedMemberId()))
+                .filter(h -> trackerImageRepository.findByTrackerHistory_IdAndType(h.getId(), TrackerImageType.RECEIVER_PROOF).isPresent())
+                .findFirst()
+                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
+
+        TrackerImage receiverProof = trackerImageRepository.findByTrackerHistory_IdAndType(receiveHistory.getId(), TrackerImageType.RECEIVER_PROOF)
+                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
+
+        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(receiverProof.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
+        return TrackerImageGetResponse.builder().presignedGetUrl(presignedGetUrl).build();
     }
 
 

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -32,6 +33,28 @@ public interface TrackerApi {
                     content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class)))
     })
     ApiResponse<TrackerDetailResponse> registerReadingDone(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(summary = "배송 인증 사진 보기", description = "수령한 사람이 배송한 사람이 올린 배송 인증(SENDER_PROOF) 이미지를 조회합니다. Presigned GET URL을 반환하며, 같은 그룹 멤버만 조회 가능합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "배송 인증 이미지 없음", content = @Content)
+    })
+    @GetMapping("/{groupId}/tracker/check/shipping")
+    ApiResponse<TrackerImageGetResponse> getShippingProofImageUrl(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(summary = "수령 인증 사진 보기", description = "배송한 사람이 수령한 사람이 올린 수령 인증(RECEIVER_PROOF) 이미지를 조회합니다. Presigned GET URL을 반환하며, 같은 그룹 멤버만 조회 가능합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "수령 인증 이미지 없음", content = @Content)
+    })
+    @GetMapping("/{groupId}/tracker/check/received")
+    ApiResponse<TrackerImageGetResponse> getReceivedProofImageUrl(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );

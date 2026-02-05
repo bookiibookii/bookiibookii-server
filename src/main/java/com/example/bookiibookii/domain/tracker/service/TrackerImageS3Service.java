@@ -11,9 +11,11 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 import java.time.Duration;
@@ -73,5 +75,21 @@ public class TrackerImageS3Service {
             log.error("S3 클라이언트 오류 (s3Key: {}): {}", s3Key, e.getMessage(), e);
             throw new TrackerImageException(TrackerImageErrorCode.S3_ACCESS_ERROR);
         }
+    }
+
+    /**
+     * 인증 이미지 조회용 Presigned GET URL 발급.
+     */
+    public String generatePresignedGetUrl(String s3Key, int expirationMinutes) {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(awsS3Properties.bucketName())
+                .key(s3Key)
+                .build();
+        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(
+                presigner -> presigner
+                        .signatureDuration(Duration.ofMinutes(expirationMinutes))
+                        .getObjectRequest(getObjectRequest)
+        );
+        return presignedRequest.url().toString();
     }
 }

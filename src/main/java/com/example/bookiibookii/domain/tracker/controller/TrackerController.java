@@ -66,6 +66,26 @@ public class TrackerController implements TrackerApi {
     }
 
     @Override
+    @GetMapping("/{groupId}/tracker/check/shipping")
+    public ApiResponse<TrackerImageGetResponse> getShippingProofImageUrl(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        TrackerImageGetResponse response = trackerService.getShippingProofImageUrl(groupId, user);
+        return ApiResponse.onSuccess(TrackerImageSuccessCode.TRACKING_IMAGE_FOUND, response);
+    }
+
+    @Override
+    @GetMapping("/{groupId}/tracker/check/received")
+    public ApiResponse<TrackerImageGetResponse> getReceivedProofImageUrl(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        TrackerImageGetResponse response = trackerService.getReceivedProofImageUrl(groupId, user);
+        return ApiResponse.onSuccess(TrackerImageSuccessCode.RECEIVED_IMAGE_FOUND, response);
+    }
+
+    @Override
     @PostMapping("/{groupId}/tracker/images/presigned-url")
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForTrackerImage(
             @PathVariable Long groupId,

@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.userbook.service;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.dto.res.LibraryBookResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
+import com.example.bookiibookii.domain.userbook.exception.CardImageException;
+import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +25,19 @@ public class LibraryService {
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     /**
+     * 서재에서만 제거(소프트 삭제). 그룹·카드는 삭제되지 않고, 다른 멤버는 계속 조회 가능.
+     * 본인 소유 UserBook만 제거 가능.
+     */
+    @Transactional
+    public void removeFromLibrary(Long userBookId, Long userId) {
+        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+        userBook.markRemoved();
+    }
+
+    /**
      * 현재 사용자의 라이브러리(UserBook 목록)를 조회합니다.
-     * user_id = userId 인 UserBook 목록을 그룹·책·호스트·호스트 프로필 이미지와 함께 반환합니다.
+     * user_id = userId 이고 removedAt IS NULL 인 UserBook만 반환합니다.
      */
     @Transactional(readOnly = true)
     public List<LibraryBookResponseDTO> getLibraryBooks(Long userId) {

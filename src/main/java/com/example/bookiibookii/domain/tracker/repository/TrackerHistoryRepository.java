@@ -23,6 +23,10 @@ public interface TrackerHistoryRepository extends JpaRepository<TrackerHistory, 
             "order by h.createdAt desc")
     List<TrackerHistory> findAllByGroupId(@Param("groupId") Long groupId);
 
+    Optional<TrackerHistory> findTop1ByTracker_Group_GroupIdAndReceiverMatchedMemberIdOrderByCreatedAtDesc(
+            Long groupId, Long receiverMatchedMemberId);
 
+    Optional<TrackerHistory> findTop1ByTracker_Group_GroupIdAndSenderMatchedMemberIdOrderByCreatedAtDesc(
+            Long groupId, Long senderMatchedMemberId);
 
 }

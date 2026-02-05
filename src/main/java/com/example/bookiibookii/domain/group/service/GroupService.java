@@ -508,7 +508,7 @@ public class GroupService {
     }
 
     //그룹검색
-    @Transactional(readOnly = true)
+    @Transactional
     public GroupResponseDTO.SearchResultDTO searchGroups(GroupRequestDTO.SearchDTO request) {
 
         // 검색어 정규화 (trim 처리된 변수를 하나로 통일)

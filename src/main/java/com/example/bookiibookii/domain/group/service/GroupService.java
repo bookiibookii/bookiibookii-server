@@ -510,9 +510,11 @@ public class GroupService {
     //그룹검색
     @Transactional(readOnly = true)
     public GroupResponseDTO.SearchResultDTO searchGroups(GroupRequestDTO.SearchDTO request) {
-        // 검색어가 있을 경우 Redis에 점수 기록 (기록 로직)
-        if (request.searchword() != null && !request.searchword().isBlank()) {
-            redisUtil.incrementSearchScore(request.searchword().trim());
+
+        //검색어 기록 정돈
+        String searchWord = request.searchword();
+        if (searchWord != null && !searchWord.isBlank()) {
+            redisUtil.incrementSearchScore(searchWord.trim());
         }
 
         // 1. 페이징 설정 (검색은 총 개수 확인을 위해 PageRequest 사용)
@@ -520,7 +522,7 @@ public class GroupService {
 
         // 2. 키워드 기반 통합 검색 실행 (Repository 호출)
         org.springframework.data.domain.Page<Groups> searchResult = groupQueryRepository.searchGroupsByKeyword(
-                request.searchword(),
+                searchWord,
                 request.sort(),
                 pageable
         );

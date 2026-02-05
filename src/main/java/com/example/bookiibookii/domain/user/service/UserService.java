@@ -191,6 +191,9 @@ public class UserService {
                 PageRequest.of(0, 3)
         );
 
+        // Address 정보 조회
+        Address address = addressRepository.findByUserId(userId).orElse(null);
+
         return UserResponseDTO.UserProfileResDTO.builder()
                 // TODO : 프로필 이미지 조회
                 .userId(userId)
@@ -203,6 +206,12 @@ public class UserService {
                 .userBadges(badgeList)
                 .groups(groupList)
                 .books(recentBooks)
+                .receiverName(address.getReceiverName())
+                .phone(address.getPhone())
+                .zipCode(address.getZipCode())
+                .address(address.getAddress())
+                .addressDetail(address.getAddressDetail())
+                .meetPlace(user.getMeetPlace())
                 .build();
     }
 

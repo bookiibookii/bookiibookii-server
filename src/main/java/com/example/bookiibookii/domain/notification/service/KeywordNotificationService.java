@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.notification.service;
 
+import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
@@ -37,7 +38,9 @@ public class KeywordNotificationService {
 
         notificationRepository.saveAll(
                 receiverIds.stream()
-                        .map(id -> notificationFactory.create(id, NotificationType.KEYWORD, title, message, payload))
+                        .map(id -> notificationFactory.create(id,
+                                NotificationCategory.KEYWORD, NotificationType.KEYWORD_GROUP_CREATED,
+                                title, message, payload))
                         .toList()
         );
     }

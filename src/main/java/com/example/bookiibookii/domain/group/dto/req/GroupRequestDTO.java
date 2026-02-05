@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.enums.TagType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -60,12 +61,26 @@ public class GroupRequestDTO {
     ){}
 
     public record SearchDTO(
-        @NotBlank(message = "검색어를 입력해주세요.")
-        String searchword,
-        GroupSortType sort,
-        @Min(0) int page,
-        @Positive int size
-    ){}
+            @NotBlank(message = "검색어를 입력해주세요.")
+            @Schema(description = "검색어", example = "자바") // 예시 단어 설정
+            String searchword,
+
+            @Schema(description = "정렬 방식", defaultValue = "LATEST")
+            GroupSortType sort,
+
+            @Min(0)
+            @Schema(description = "페이지 번호", defaultValue = "0") // 스웨거 기본값 설정
+            Integer page,
+
+            @Positive
+            @Schema(description = "페이지 크기", defaultValue = "10") // 스웨거 기본값 설정
+            Integer size
+    ){
+        public SearchDTO {
+            if (page == null) page = 0;
+            if (size == null) size = 10;
+            if (sort == null) sort = GroupSortType.LATEST;
+        }}
 }
 
 

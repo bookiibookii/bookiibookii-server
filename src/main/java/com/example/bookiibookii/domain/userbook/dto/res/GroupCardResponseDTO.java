@@ -20,4 +20,6 @@ public class GroupCardResponseDTO {
     private LocalDateTime createdAt;
     /** 책 제목 (목록/상세 모두 설정) */
     private String bookTitle;
+    /** 현재 로그인 사용자가 이 카드를 북마크했는지 (목록/상세/북마크 목록에서 사용) */
+    private Boolean isBookmarked;
 }

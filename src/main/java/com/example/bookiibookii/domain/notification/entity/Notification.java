@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.notification.entity;
 
+import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -32,8 +33,12 @@ public class Notification extends BaseEntity {
     private User actor;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "notification_type", nullable = false)
-    private NotificationType type;
+    @Column(name = "category", nullable = false)
+    private NotificationCategory category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private NotificationType type; // 라우팅 용도
 
     @Column(name = "title", nullable = false)
     private String title;

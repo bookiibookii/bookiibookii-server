@@ -120,7 +120,7 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
 
         TrackerHistory myShippingHistory = trackerHistoryRepository
-                .findTop1ByTracker_Group_GroupIdAndSenderMatchedMemberIdOrderByCreatedAtDesc(groupId, myMatchedMember.getId())
+                .findLatestHistoryByGroupAndSender(groupId, myMatchedMember.getId())
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
 
         Long receiverMatchedMemberId = myShippingHistory.getReceiverMatchedMemberId();
@@ -468,7 +468,6 @@ public class TrackerService {
 
 
         // 2. [상태 변경] 엔티티 상태 업데이트 (RECEIVED -> GUEST_READING 등)
-        // 성진님이 짜놓으신 엔티티 내 startReading() 호출
         tracker.startReading();
 
         // 3. [새로운 단계 기록] '독서 중' 상태가 시작되었음을 히스토리에 기록

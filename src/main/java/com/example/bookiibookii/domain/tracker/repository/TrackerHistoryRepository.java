@@ -36,4 +36,13 @@ public interface TrackerHistoryRepository extends JpaRepository<TrackerHistory, 
             @Param("statuses") List<TrackerStatus> statuses // 상태 리스트 전달
     );
 
+    @Query("SELECT th FROM TrackerHistory th " +
+            "WHERE th.tracker.group.groupId = :groupId " +
+            "AND th.senderMatchedMemberId = :senderId " + // 필드명과 일치시킴
+            "ORDER BY th.createdAt DESC LIMIT 1")
+    Optional<TrackerHistory> findLatestHistoryByGroupAndSender(
+            @Param("groupId") Long groupId,
+            @Param("senderId") Long senderId
+    );
+
 }

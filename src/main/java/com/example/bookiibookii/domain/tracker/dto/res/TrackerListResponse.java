@@ -13,9 +13,9 @@ public class TrackerListResponse {
     private Long groupId;
     private String groupType; // RELAY, TOGETHER
     private String bookTitle;
-    private String image;
-    private String author;
-    private String category;
+    private String bookImage;
+    private String bookAuthor;
+    private String bookCategory;
 
     // 타입별 상세 데이터
     private RelayDetail relayDetail;

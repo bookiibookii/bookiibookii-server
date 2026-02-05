@@ -11,10 +11,38 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 public class TrackerDetailResponse {
-    private Long trackerId;
-    private TrackerStatus trackerStatus;   //도서상태
-    private Long currentMatchedMemberId; // 현재 주자 식별자
+    private String bookTitle;           // 책 제목
+    private String partnerNickname;     // 파트너 닉네임
+    private TrackerStatus trackerStatus; // 도서 상태
+    private LocalDateTime startDate;     // 대여 시작일
     private LocalDateTime endDate;       // 반납 예정일
-    private Integer extension_count;    // 연장횟수
-    private Integer extension_days;     // 연장일수
+    private Integer extensionCount;      // 연장 횟수
+    private Integer extensionDays;       // 연장 일수
+    private Long trackerId;
+
+    private DeliveryInfo deliveryInfo;
+
+    private MeetingInfo meetingInfo;
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class DeliveryInfo {
+        // 상대방 배송지 정보
+        private String receiverName;    // 받는 분 성함
+        private String receiverPhone;   // 연락처
+        private String receiverAddress; // 주소
+
+        // 배송 정보
+        private String courierName;     // 택배사명
+        private String trackingNumber;  // 운송장 번호
+    }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class MeetingInfo {
+        private LocalDateTime meetingTime; // 약속 날짜 및 시간
+        private String meetingPlace;       // 약속 장소
+    }
 }

@@ -6,6 +6,8 @@ import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -48,7 +50,9 @@ public class User extends BaseEntity {
 
     @Column(name = "manner", nullable = false)
     @Builder.Default
-    private Double manner = 0.0;
+    @Min(0)
+    @Max(100)
+    private Double manner = 36.5;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

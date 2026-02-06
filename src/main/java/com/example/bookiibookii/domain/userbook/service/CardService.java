@@ -18,6 +18,7 @@ import com.example.bookiibookii.domain.userbook.exception.CardException;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardBookmarkRepository;
@@ -44,6 +45,7 @@ public class CardService {
     private final CardImageValidationService cardImageValidationService;
     private final CardImageS3Service cardImageS3Service;
     private final UserBookRepository userBookRepository;
+    private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final UserRepository userRepository;
 
@@ -113,31 +115,20 @@ public class CardService {
     }
 
     /**
-     * UserBook에 속한 Card 목록과 책 제목을 DTO로 반환합니다.
+     * 그룹에 속한 전체 멤버의 독서카드 목록을 한 번에 조회합니다.
+     * 그룹 멤버만 조회 가능하며, 생성일 기준 오름차순으로 반환합니다.
      */
-    public CardListResponseDTO getCardsByUserBookId(Long userBookId, Long userId, int presignedGetUrlExpirationMinutes) {
-        UserBook userBook = userBookRepository.findByIdWithGroupAndUser(userBookId)
+    public CardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
+        }
+
+        Groups group = groupsRepository.findById(groupId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
-
-        Groups group = userBook.getGroup();
-        if (group == null) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
-        }
-        Long groupId = group.getGroupId();
-        boolean isOwner = userBook.getUser().getId().equals(userId);
-        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
-        if (!isOwner && !isGroupMember) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
-        }
-
         Book book = group.getBook();
-        if (book == null) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
-        }
-        String bookTitle = book.getTitle();
-        String creatorName = userBook.getUser().getNickName();
+        String bookTitle = (book != null && book.getTitle() != null) ? book.getTitle() : "";
 
-        List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
+        List<Card> cards = cardRepository.findByGroup_GroupIdWithCardImageAndUserBookAndGroupAndBook(groupId);
 
         List<Long> cardIds = cards.stream().map(Card::getId).toList();
         Set<Long> bookmarkedCardIds = cardIds.isEmpty()
@@ -145,12 +136,12 @@ public class CardService {
                 : cardBookmarkRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
 
         List<GroupCardResponseDTO> cardDTOs = cards.stream()
-                .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarkedCardIds.contains(card.getId())))
+                .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarkedCardIds.contains(card.getId()), getCreatorNameSafely(card)))
                 .toList();
 
         return CardListResponseDTO.builder()
                 .groupId(groupId)
-                .creatorName(creatorName)
+                .creatorName(null)
                 .cards(cardDTOs)
                 .build();
     }
@@ -163,7 +154,7 @@ public class CardService {
         CardImage cardImage = card.getCardImage();
         String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
         boolean bookmarked = cardBookmarkRepository.existsByUser_IdAndCard_Id(userId, cardId);
-        return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle, bookmarked);
+        return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle, bookmarked, getCreatorNameSafely(card));
     }
 
     /**
@@ -343,7 +334,7 @@ public class CardService {
                 .build();
     }
 
-    private GroupCardResponseDTO buildGroupCardResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle, boolean isBookmarked) {
+    private GroupCardResponseDTO buildGroupCardResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle, boolean isBookmarked, String creatorName) {
         if (cardImage == null) {
             throw new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND);
         }
@@ -360,6 +351,7 @@ public class CardService {
                 .createdAt(card.getCreatedAt())
                 .bookTitle(bookTitle)
                 .isBookmarked(isBookmarked)
+                .creatorName(creatorName)
                 .build();
     }
 
@@ -399,9 +391,20 @@ public class CardService {
                 .map(cb -> {
                     Card card = cb.getCard();
                     String bookTitle = getBookTitleSafely(card);
-                    return buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, true);
+                    return buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, true, getCreatorNameSafely(card));
                 })
                 .toList();
+    }
+
+    /**
+     * 카드 작성자 이름을 안전하게 조회합니다.
+     */
+    private String getCreatorNameSafely(Card card) {
+        if (card == null || card.getUserBook() == null || card.getUserBook().getUser() == null) {
+            return "";
+        }
+        String name = card.getUserBook().getUser().getNickName();
+        return name != null ? name : "";
     }
 
     /**

@@ -88,14 +88,14 @@ public interface CardControllerDocs {
     );
 
     @Operation(
-            summary = "독서카드 목록 조회",
+            summary = "독서카드 목록 조회 (그룹 전체)",
             description = """
-            사용자 책(userBook)에 속한 독서카드 목록을 조회합니다.
+            그룹에 속한 전체 멤버의 독서카드 목록을 한 번에 조회합니다.
             
-            - UserBook 소유자이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
+            - 그룹 멤버인 경우에만 조회 가능합니다.
             - 생성일 기준 오름차순으로 정렬된 카드 목록을 반환합니다.
-            - 각 카드(GroupCardResponseDTO)에는 cardId, page, memo, cardImage, createdAt, bookTitle, isBookmarked(현재 사용자 북마크 여부)가 포함됩니다.
-            - 응답에 그룹 ID(groupId), 카드 작성자 이름(creatorName)이 포함됩니다.
+            - 각 카드(GroupCardResponseDTO)에는 cardId, page, memo, cardImage, createdAt, bookTitle, isBookmarked, creatorName(카드 작성자)이 포함됩니다.
+            - 응답에 그룹 ID(groupId)가 포함됩니다.
             """
     )
     @ApiResponses({
@@ -105,14 +105,14 @@ public interface CardControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
-                    description = "사용자 책을 찾을 수 없음 (존재하지 않거나 접근 권한 없음)"
+                    description = "그룹을 찾을 수 없음 (존재하지 않거나 접근 권한 없음)"
             )
     })
-    @GetMapping("/{userBookId}")
+    @GetMapping("/group/{groupId}")
     ApiResponse<CardListResponseDTO> getCards(
             @AuthenticationPrincipal(expression = "user") User user,
-            @Parameter(description = "사용자 책 식별자(ID)", example = "1")
-            @PathVariable Long userBookId
+            @Parameter(description = "그룹 식별자(ID)", example = "1")
+            @PathVariable Long groupId
     );
 
     @Operation(

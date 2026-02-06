@@ -18,6 +18,7 @@ import com.example.bookiibookii.domain.userbook.exception.CardException;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -25,6 +26,7 @@ import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardStateRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
+import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -48,6 +50,7 @@ public class CardService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final UserRepository userRepository;
+    private final TrackerRepository trackerRepository;
 
     // ========== 컨트롤러에서 직접 호출 (DTO 반환) ==========
 
@@ -151,9 +154,33 @@ public class CardService {
                 .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarkedCardIds.contains(card.getId()), getCreatorNameSafely(card)))
                 .toList();
 
+        var trackerOpt = trackerRepository.findByGroupId(groupId);
+        CardListResponseDTO.CurrentBookOwnerDto currentBookOwner = trackerOpt
+                .map(t -> CardListResponseDTO.CurrentBookOwnerDto.builder()
+                        .matchedMemberId(t.getBookOwner().getId())
+                        .nickname(t.getBookOwner().getUser().getNickName() != null ? t.getBookOwner().getUser().getNickName() : "")
+                        .build())
+                .orElse(null);
+
+        String myComment = null;
+        String partnerComment = null;
+        if (group.getGroupType() == GroupType.RELAY) {
+            myComment = userBookRepository.findByUser_IdAndGroup_GroupId(userId, groupId)
+                    .map(ub -> ub.getComment())
+                    .orElse(null);
+            if (trackerOpt.isPresent() && !trackerOpt.get().getBookOwner().getUser().getId().equals(userId)) {
+                Long partnerUserId = trackerOpt.get().getBookOwner().getUser().getId();
+                partnerComment = userBookRepository.findByUser_IdAndGroup_GroupId(partnerUserId, groupId)
+                        .map(ub -> ub.getComment())
+                        .orElse(null);
+            }
+        }
+
         return CardListResponseDTO.builder()
                 .groupId(groupId)
-                .creatorName(null)
+                .currentBookOwner(currentBookOwner)
+                .myComment(myComment)
+                .partnerComment(partnerComment)
                 .cards(cardDTOs)
                 .build();
     }

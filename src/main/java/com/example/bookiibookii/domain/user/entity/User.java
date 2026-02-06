@@ -67,8 +67,8 @@ public class User extends BaseEntity {
     @Column(name = "meet_place")
     private String meetPlace;
 
-    @Column(name = "Region")
-    private String region;
+    @Column(name = "prefer_region")
+    private String preferRegion;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -97,7 +97,7 @@ public class User extends BaseEntity {
         this.status = Status.ACTIVE;
     }
     public void updateName(String name) { this.nickName = name; }
-    public void updateRegion(String region) { this.region = region; }
+    public void updateRegion(String preferRegion) { this.preferRegion = preferRegion; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
 
     public void updateManner(double rating, int tagCount) {

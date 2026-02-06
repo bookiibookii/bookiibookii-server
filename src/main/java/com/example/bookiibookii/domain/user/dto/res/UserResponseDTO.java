@@ -28,7 +28,7 @@ public class UserResponseDTO {
             String zipCode,
             String address,
             String addressDetail,
-            String region,
+            String preferRegion,
             String meetPlace
     ){}
 

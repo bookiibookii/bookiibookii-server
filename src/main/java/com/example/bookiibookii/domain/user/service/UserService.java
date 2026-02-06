@@ -216,7 +216,7 @@ public class UserService {
                 .zipCode(zipCode)
                 .address(addressValue)
                 .addressDetail(addressDetail)
-                .region(user.getRegion())
+                .preferRegion(user.getPreferRegion())
                 .meetPlace(user.getMeetPlace())
                 .build();
     }
@@ -253,7 +253,7 @@ public class UserService {
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         if (isNicknameAvailable(request.nickname())) user.updateName(request.nickname());
-        user.updateRegion(request.region());
+        user.updateRegion(request.preferRegion());
         user.updateMeetPlace(request.meetPlace());
 
         //TODO : 프로필 이미지 처리

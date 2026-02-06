@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -138,11 +139,13 @@ public class CardService {
 
         List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
 
+        List<Long> cardIds = cards.stream().map(Card::getId).toList();
+        Set<Long> bookmarkedCardIds = cardIds.isEmpty()
+                ? Set.of()
+                : cardBookmarkRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
+
         List<GroupCardResponseDTO> cardDTOs = cards.stream()
-                .map(card -> {
-                    boolean bookmarked = cardBookmarkRepository.existsByUser_IdAndCard_Id(userId, card.getId());
-                    return buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarked);
-                })
+                .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarkedCardIds.contains(card.getId())))
                 .toList();
 
         return CardListResponseDTO.builder()
@@ -379,7 +382,7 @@ public class CardService {
                 .card(card)
                 .build();
         try {
-            cardBookmarkRepository.save(bookmark);
+            cardBookmarkRepository.saveAndFlush(bookmark);
         } catch (DataIntegrityViolationException e) {
             // 동시 요청으로 인한 중복 생성 시도 → 이미 북마크됨으로 처리
             throw new CardException(CardErrorCode.ALREADY_BOOKMARKED);

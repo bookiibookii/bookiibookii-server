@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -173,5 +174,22 @@ public interface CardControllerDocs {
             @Parameter(description = "카드 식별자(ID)", example = "1")
             @PathVariable Long cardId,
             @Valid @RequestBody CardUpdateRequestDTO request
+    );
+
+    @Operation(
+            summary = "독서카드 내 화면에서 제거",
+            description = """
+            그룹 내 공유된 독서카드를 '내 화면에서만' 숨깁니다. 카드/그룹은 삭제되지 않으며, 다른 멤버는 계속 조회할 수 있습니다.
+            카드 소유자 또는 그룹 멤버만 호출 가능합니다. 이미 제거한 카드는 무시됩니다(멱등).
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "제거 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드 없음 또는 접근 권한 없음")
+    })
+    @DeleteMapping("/{cardId}")
+    ApiResponse<Void> removeCardFromView(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "카드 식별자(ID)", example = "1") @PathVariable Long cardId
     );
 }

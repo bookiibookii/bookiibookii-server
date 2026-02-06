@@ -12,14 +12,17 @@ import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
+import com.example.bookiibookii.domain.userbook.entity.DeletedCard;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.exception.CardException;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
+import com.example.bookiibookii.domain.userbook.repository.DeletedCardRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,8 @@ import java.util.Optional;
 public class CardService {
 
     private final CardRepository cardRepository;
+    private final DeletedCardRepository deletedCardRepository;
+    private final UserRepository userRepository;
     private final CardImageRepository cardImageRepository;
     private final CardImageValidationService cardImageValidationService;
     private final CardImageS3Service cardImageS3Service;
@@ -131,6 +137,10 @@ public class CardService {
         String creatorName = userBook.getUser().getNickName();
 
         List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
+        Set<Long> deletedCardIds = Set.copyOf(deletedCardRepository.findCardIdsByUser_Id(userId));
+        cards = cards.stream()
+                .filter(c -> !deletedCardIds.contains(c.getId()))
+                .toList();
 
         List<GroupCardResponseDTO> cardDTOs = cards.stream()
                 .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle))
@@ -148,6 +158,9 @@ public class CardService {
      */
     public GroupCardResponseDTO getCardDetailResponseDTO(Long cardId, Long userId, int presignedGetUrlExpirationMinutes) {
         Card card = getCardDetail(cardId, userId);
+        if (deletedCardRepository.existsByUser_IdAndCard_Id(userId, cardId)) {
+            throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
+        }
         CardImage cardImage = card.getCardImage();
         String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
         return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle);
@@ -164,6 +177,23 @@ public class CardService {
             cardImage = getCardImage(cardId);
         }
         return buildCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes);
+    }
+
+    /**
+     * 카드를 "내 화면에서만 숨김" 처리. 그룹/카드는 삭제되지 않고, 해당 사용자만 목록·상세에서 제외.
+     * 카드 소유자 또는 그룹 멤버만 호출 가능. 이미 삭제 처리된 경우 무시(멱등).
+     */
+    @Transactional
+    public void markCardAsDeleted(Long cardId, Long userId) {
+        Card card = getCardDetail(cardId, userId);
+        if (deletedCardRepository.existsByUser_IdAndCard_Id(userId, cardId)) {
+            return;
+        }
+        DeletedCard deleted = DeletedCard.builder()
+                .user(userRepository.getReferenceById(userId))
+                .card(card)
+                .build();
+        deletedCardRepository.save(deleted);
     }
 
     /**

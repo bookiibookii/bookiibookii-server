@@ -97,6 +97,7 @@ public class User extends BaseEntity {
         this.status = Status.ACTIVE;
     }
     public void updateName(String name) { this.nickName = name; }
+    public void updateRegion(String region) { this.region = region; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
 
     public void updateManner(double rating, int tagCount) {

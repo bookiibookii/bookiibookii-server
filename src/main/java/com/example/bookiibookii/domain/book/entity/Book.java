@@ -32,6 +32,9 @@ public class Book {
     @Column(name = "image", nullable = false)
     private String image;
 
+    @Column(name = "totalPages", nullable = false)
+    private Integer totalPages;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false, length = 30)
     private CustomCategory category;

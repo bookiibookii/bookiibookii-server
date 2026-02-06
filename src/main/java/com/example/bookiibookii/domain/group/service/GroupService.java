@@ -21,15 +21,14 @@ import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
-import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
-import com.example.bookiibookii.domain.user.repository.UserTagRepository; // 석진님 추천로직용
+import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
+import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -66,6 +65,7 @@ public class GroupService {
     private final UserImageS3Service userImageS3Service;
     private final UserBookService userBookService;
     private final AddressRepository addressRepository;
+    private final RedisUtil redisUtil;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -149,6 +149,7 @@ public class GroupService {
                 .user(host)                // 엔티티의 private User user;
                 .role(RoleStatus.HOST)       // 엔티티의 RoleStatus 타입 사용
                 .readingOrder(1)             // 엔티티의 private Integer readingOrder;
+                .currentReadingRate(0)      // 초기 독서율 0으로 세팅
                 .build();
 
         matchedMemberRepository.save(hostMember);
@@ -367,7 +368,7 @@ public class GroupService {
                 .maxCapacity(group.getMaxCapacity())
                 .waitingCount(waitingCount)
                 .isHot(isHot)
-                .hostNickname(group.getHost().getName())
+                .hostNickname(group.getHost().getNickName())
                 .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 .groupTags(groupTag)
@@ -382,7 +383,7 @@ public class GroupService {
 
         for (MatchedMember mm : matchedMembers) {
             slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
-                    .nickname(mm.getUser().getName())
+                    .nickname(mm.getUser().getNickName())
                     .profileImage(userProfileImageUrl(mm.getUser()))
                     .role(mm.getRole().name())
                     .isMe(mm.getUser().getId().equals(userId))
@@ -473,7 +474,7 @@ public class GroupService {
                             .groupId(group.getGroupId())
                             .title(group.getBook().getTitle())
                             .bookImage(group.getBook().getImage())
-                            .hostNickname(group.getHost().getName())
+                            .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
                             .currentCount(group.getMatchedMember().size()) // matchedMember는 메인 쿼리에서 fetchJoin 권장
                             .maxCapacity(group.getMaxCapacity())
@@ -506,14 +507,24 @@ public class GroupService {
     }
 
     //그룹검색
-    @Transactional(readOnly = true)
+    @Transactional
     public GroupResponseDTO.SearchResultDTO searchGroups(GroupRequestDTO.SearchDTO request) {
-        // 1. 페이징 설정 (검색은 총 개수 확인을 위해 PageRequest 사용)
+
+        // 검색어 정규화 (trim 처리된 변수를 하나로 통일)
+        String rawSearchWord = request.keyword();
+        String cleanSearchWord = (rawSearchWord != null) ? rawSearchWord.trim() : null;
+
+        // 1. 검색어 기록 (정제된 단어로 Redis 기록)
+        if (cleanSearchWord != null && !cleanSearchWord.isBlank()) {
+            redisUtil.incrementSearchScore(cleanSearchWord);
+        }
+
+        // 2. 페이징 설정
         PageRequest pageable = PageRequest.of(request.page(), request.size());
 
-        // 2. 키워드 기반 통합 검색 실행 (Repository 호출)
+        // 3. 키워드 기반 통합 검색 실행
         org.springframework.data.domain.Page<Groups> searchResult = groupQueryRepository.searchGroupsByKeyword(
-                request.searchword(),
+                cleanSearchWord, // 원본 대신 trim 사용
                 request.sort(),
                 pageable
         );
@@ -552,7 +563,7 @@ public class GroupService {
                             .groupId(group.getGroupId())
                             .title(group.getBook().getTitle())
                             .bookImage(group.getBook().getImage())
-                            .hostNickname(group.getHost().getName())
+                            .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
                             .currentCount(group.getMatchedMember().size())
                             .maxCapacity(group.getMaxCapacity())
@@ -572,6 +583,12 @@ public class GroupService {
                 searchResult.getNumber(),        // 현재 페이지
                 searchResult.hasNext()           // 다음 페이지 여부
         );
+    }
+
+    //인기검색어 상위 10개 조회
+    @Transactional(readOnly = true)
+    public List<String> getPopularKeywords() {
+        return redisUtil.getTopKeywords(10);
     }
 
     // 신고할 그룹 조회

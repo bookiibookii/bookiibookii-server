@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.repository;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,4 +25,6 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     @Query("SELECT c FROM Card c JOIN FETCH c.cardImage WHERE c.userBook.id = :userBookId ORDER BY c.createdAt ASC")
     List<Card> findByUserBookIdWithCardImage(@Param("userBookId") Long userBookId);
+
+    Optional<Card> findTopByUserBook_User_IdAndGroupOrderByPageDesc(Long userId, Groups group);
 }

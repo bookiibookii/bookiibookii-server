@@ -2,13 +2,17 @@ package com.example.bookiibookii.domain.tracker.converter;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
+import com.example.bookiibookii.domain.user.entity.Address;
+import com.example.bookiibookii.domain.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,16 +20,59 @@ import java.util.List;
 @Component
 public class TrackerConverter {
 
-    public TrackerDetailResponse toDetailResponse(Tracker tracker) {
-        return TrackerDetailResponse.builder()
+
+    public TrackerDetailResponse toDetailResponse(Tracker tracker, Meeting latestMeeting,
+                                                  Address partnerAddress, User partnerUser,
+                                                  TrackerHistory latestHistory) {
+        // 1. 공통 빌더 생성
+        TrackerDetailResponse.TrackerDetailResponseBuilder builder = TrackerDetailResponse.builder()
                 .trackerId(tracker.getId())
+                .bookTitle(tracker.getGroup().getBook().getTitle())
+                .partnerNickname(partnerUser.getNickName())
                 .trackerStatus(tracker.getTrackerStatus())
-                .currentMatchedMemberId(tracker.getBookOwner() != null ?
-                        tracker.getBookOwner().getId() : null)
+                .startDate(tracker.getStartDate())
                 .endDate(tracker.getEndDate())
-                .extension_count(tracker.getExtensionCount())
-                .extension_days(tracker.getExtensionDays())
-                .build();
+                .extensionCount(tracker.getExtensionCount())
+                .extensionDays(tracker.getExtensionDays());
+
+        // 2. TradeType에 따른 분기 처리
+        TradeType tradeType = tracker.getGroup().getTradeType();
+
+        if (tradeType == TradeType.DELIVERY) {
+            if (partnerAddress != null) {
+                // DeliveryInfo 빌더 생성
+                TrackerDetailResponse.DeliveryInfo.DeliveryInfoBuilder deliveryBuilder = TrackerDetailResponse.DeliveryInfo.builder()
+                        .receiverName(partnerAddress.getReceiverName())
+                        .receiverPhone(partnerAddress.getPhone())
+                        .receiverAddress(String.format("[%s] %s %s",
+                                partnerAddress.getZipCode(),
+                                partnerAddress.getAddress(),
+                                partnerAddress.getAddressDetail()));
+
+                // 운송 정보 추출
+                if (latestHistory != null) {
+                    deliveryBuilder.deliveryCompany(latestHistory.getDeliveryCompany())
+                            .trackingNumber(latestHistory.getTrackingNumber());
+                }
+
+                builder.deliveryInfo(deliveryBuilder.build());
+            }
+        } else if (tradeType == TradeType.DIRECT) {
+            // 직접 교환일 경우: 최신 약속 정보 세팅
+            if (latestMeeting != null) {
+                builder.meetingInfo(TrackerDetailResponse.MeetingInfo.builder()
+                        .meetingTime(latestMeeting.getMeetingTime())
+                        .meetingPlace(latestMeeting.getMeetingPlace())
+                        .build());
+            } else {
+                // 약속 전이면 호스트가 설정한 기본 장소 노출
+                builder.meetingInfo(TrackerDetailResponse.MeetingInfo.builder()
+                        .meetingPlace(tracker.getGroup().getHost().getMeetPlace())
+                        .build());
+            }
+        }
+
+        return builder.build();
     }
 
 
@@ -45,8 +92,9 @@ public class TrackerConverter {
                 .build();
     }
 
-    public TrackerListResponse toListResponse(Tracker tracker, String targetNickname, List<String> stepDates) {
-        Groups group = tracker.getGroup();
+    public TrackerListResponse toListResponse(Tracker tracker, Groups group,
+                                              String targetNickname, List<String> stepDates,
+                                              Integer myRate, Integer groupRate) {
 
         String groupType = group.getGroupType().toString();
 
@@ -57,9 +105,9 @@ public class TrackerConverter {
                 .groupId(group.getGroupId())
                 .groupType(groupType)
                 .bookTitle(book != null ? book.getTitle() : null)
-                .image(book != null ? book.getImage() : null)
-                .author(book != null ? book.getAuthor() : null)
-                .category(book != null && book.getCategory() != null ? book.getCategory().toString() : null);
+                .bookImage(book != null ? book.getImage() : null)
+                .bookAuthor(book != null ? book.getAuthor() : null)
+                .bookCategory(book != null && book.getCategory() != null ? book.getCategory().toString() : null);
 
         // 4. 타입별 상세 데이터 매핑
         if (group.getGroupType() == GroupType.RELAY) {
@@ -79,10 +127,10 @@ public class TrackerConverter {
         }
         else if (group.getGroupType() == GroupType.TOGETHER) {
             builder.togetherDetail(TrackerListResponse.TogetherDetail.builder()
-                    .hostNickname(group.getHost().getName())
+                    .hostNickname(group.getHost().getNickName())
                     .participantCount(group.getMatchedMember().size())
-                    .myReadingRate(0) // 추후 계산 로직 연결
-                    .groupReadingRate(0) // 추후 계산 로직 연결
+                    .myReadingRate(myRate)
+                    .groupReadingRate(groupRate)
                     .build());
         }
 

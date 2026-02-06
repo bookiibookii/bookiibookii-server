@@ -73,6 +73,8 @@ public class GroupController implements GroupControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
 
     }
+
+    //그룹 검색 API
     @GetMapping("/search")
     public ApiResponse<GroupResponseDTO.SearchResultDTO> searchGroups(
             @Valid @ModelAttribute GroupRequestDTO.SearchDTO request) {
@@ -81,6 +83,14 @@ public class GroupController implements GroupControllerDocs {
         GroupResponseDTO.SearchResultDTO result = groupService.searchGroups(request);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
+
+    //인기 검색어 API
+    @GetMapping("/popular-keywords")
+    public ApiResponse<List<String>> getPopularKeywords() {
+        List<String> result = groupService.getPopularKeywords();
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
     // 신고할 그룹 조회 API
     @GetMapping("/my")
     public ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(

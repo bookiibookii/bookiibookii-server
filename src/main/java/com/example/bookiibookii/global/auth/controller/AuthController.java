@@ -6,6 +6,7 @@ import com.example.bookiibookii.global.auth.dto.req.AuthRequestDTO;
 import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import com.example.bookiibookii.global.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,13 +26,16 @@ public class AuthController implements AuthControllerDocs{
                 authService.socialLogin(request.getSocialType(),request.getToken()));
     }
 
+
     // 토큰 재발급
     @Override
     @PostMapping("/refresh")
-    public ApiResponse<AuthResponseDTO.TokenResponse> refresh(HttpServletRequest request) {
+    public ApiResponse<AuthResponseDTO.TokenResponse> refresh(
+            @Valid @RequestBody AuthRequestDTO.RefreshRequest requestRefreshToken,
+            HttpServletRequest request) {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK,
-                authService.refresh(request));
+                authService.refresh(requestRefreshToken, request));
     }
 
     // 로그아웃

@@ -29,6 +29,9 @@ public enum CommentErrorCode implements BaseCode {
     NO_PERMISSION(HttpStatus.FORBIDDEN,
             "COMMENT403_2",
             "해당 댓글에 대한 권한이 없습니다."),
+    COMMENT_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN,
+            "COMMENT403_3",
+            "댓글 작성자만 댓글 삭제가 가능합니다."),
     ;
 
     private final HttpStatus status;

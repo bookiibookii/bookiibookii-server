@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.notification.util;
 import com.example.bookiibookii.domain.notification.entity.Notification;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.exception.NotificationException;
+import com.example.bookiibookii.domain.notification.exception.code.NotificationErrorCode;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,7 +41,7 @@ public class NotificationFactory {
         try {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize notification payload", e);
+            throw new NotificationException(NotificationErrorCode.NOTIFICATION_SERIALIZE_PAYLOAD_FAILED);
         }
     }
 }

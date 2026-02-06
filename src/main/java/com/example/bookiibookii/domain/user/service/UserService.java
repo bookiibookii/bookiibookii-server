@@ -21,7 +21,6 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
-import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.UserBookQueryRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
@@ -75,7 +74,7 @@ public class UserService {
     
     // 닉네임 검증
     public boolean isNicknameAvailable(String nickname) {
-        return !userRepository.existsByName(nickname); // 중복되면 False 반환
+        return !userRepository.existsByNickName(nickname); // 중복되면 False 반환
     }
 
     // 온보딩 세팅
@@ -192,10 +191,18 @@ public class UserService {
                 PageRequest.of(0, 3)
         );
 
+        // Address 정보 조회
+        Address address = addressRepository.findByUserId(userId).orElse(null);
+        String receiverName = address != null ? address.getReceiverName() : null;
+        String phone = address != null ? address.getPhone() : null;
+        String zipCode = address != null ? address.getZipCode() : null;
+        String addressValue = address != null ? address.getAddress() : null;
+        String addressDetail = address != null ? address.getAddressDetail() : null;
+
         return UserResponseDTO.UserProfileResDTO.builder()
                 // TODO : 프로필 이미지 조회
                 .userId(userId)
-                .nickname(user.getName())
+                .nickname(user.getNickName())
                 .manner(user.getManner())
                 .topTags(topTagCodes)
                 .completeBook(completeBookCount.intValue())
@@ -204,6 +211,12 @@ public class UserService {
                 .userBadges(badgeList)
                 .groups(groupList)
                 .books(recentBooks)
+                .receiverName(receiverName)
+                .phone(phone)
+                .zipCode(zipCode)
+                .address(addressValue)
+                .addressDetail(addressDetail)
+                .meetPlace(user.getMeetPlace())
                 .build();
     }
 
@@ -227,7 +240,7 @@ public class UserService {
 
     // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)
     public Long findUserIdByNickname(String nickname) {
-        return userRepository.findByName(nickname)
+        return userRepository.findByNickName(nickname)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND))
                 .getId();
     }

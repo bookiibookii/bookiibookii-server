@@ -17,8 +17,8 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findById(Long id);
-    Optional<User> findByName(String name);
-    boolean existsByName(String name);
+    Optional<User> findByNickName(String name);
+    boolean existsByNickName(String name);
 
     @Query("""
     SELECT u FROM User u
@@ -91,6 +91,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "LIMIT 1", nativeQuery = true)
     Optional<User> findOneRandomHost(@Param("userId") Long userId, @Param("status") String status);
 
-    @Query("select u.name from User u where u.id = :userId")
-    Optional<String> findNameById(@Param("userId") Long userId);
+    @Query("select u.nickName from User u where u.id = :userId")
+    Optional<String> findNickNameById(@Param("userId") Long userId);
 }

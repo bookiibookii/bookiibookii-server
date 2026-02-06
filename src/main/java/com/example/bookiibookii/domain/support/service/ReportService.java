@@ -51,7 +51,7 @@ public class ReportService {
         return reports.stream()
                 .map(report -> new ReportResponseDTO.ReportListDTO(
                         report.getId(),
-                        report.getUser().getName(),
+                        report.getUser().getNickName(),
                         report.getGroup().getBook().getTitle(),
                         report.getCreatedAt(),
                         report.getReportType(),

@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.entity;
 
+import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -23,6 +24,10 @@ public class UserBook extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_id", nullable = false)
+    private Book book;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
@@ -30,6 +35,11 @@ public class UserBook extends BaseEntity {
     @Column(name = "rating")
     private Double rating;
 
-    @Column(name = "comment", length = 255)
+    @Column(name = "comment", length = 500)
     private String comment;
+
+    public void updateReview(Double rating, String comment) {
+        this.rating = rating;
+        this.comment = comment;
+    }
 }

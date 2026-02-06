@@ -117,6 +117,7 @@ public class ApplicationService {
                     .user(application.getGuest())
                     .role(RoleStatus.GUEST)
                     .readingOrder((int) currentTotalCount + 1)
+                    .currentReadingRate(0)
                     .build();
             matchedMemberRepository.save(newMember);
 
@@ -289,7 +290,7 @@ public class ApplicationService {
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
                 .user(guest.getId())
-                .name(guest.getName())
+                .name(guest.getNickName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .tags(top3Tags)

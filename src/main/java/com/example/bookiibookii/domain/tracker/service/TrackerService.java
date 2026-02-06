@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
@@ -22,6 +23,7 @@ import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
@@ -35,7 +37,11 @@ import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageErrorC
 import com.example.bookiibookii.domain.tracker.repository.TrackerHistoryRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
-import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.Address;
+import com.example.bookiibookii.domain.user.repository.AddressRepository;
+import com.example.bookiibookii.domain.userbook.entity.Card;
+import com.example.bookiibookii.domain.userbook.entity.UserBook;
+import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +68,8 @@ public class TrackerService {
     private final TrackerImageValidationService trackerImageValidationService;
     private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final CardRepository cardRepository;
+    private final AddressRepository addressRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
     private final TrackerConverter trackerConverter;
@@ -116,7 +124,7 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
 
         TrackerHistory myShippingHistory = trackerHistoryRepository
-                .findTop1ByTracker_Group_GroupIdAndSenderMatchedMemberIdOrderByCreatedAtDesc(groupId, myMatchedMember.getId())
+                .findLatestHistoryByGroupAndSender(groupId, myMatchedMember.getId())
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
 
         Long receiverMatchedMemberId = myShippingHistory.getReceiverMatchedMemberId();
@@ -170,19 +178,68 @@ public class TrackerService {
         TrackerHistory initialHistory = tracker.createHistorySnapshot(
                 null,
                 firstOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(initialHistory);
 
     }
 
     //트래커 상세 조회
+    @Transactional(readOnly = true)
     public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId, User user) {
+        // 1. 권한 검증 및 트래커 조회
         validateGroupMember(groupId, user.getId());
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        return trackerConverter.toDetailResponse(tracker);
+           // 2. 1:1 파트너(상대방) 정보 조회
+        MatchedMember partnerMember = findPartnerForRelay(groupId, user.getId());
+        User partnerUser = partnerMember.getUser();
+
+        // 3. TradeType에 따라 필요한 추가 데이터 수집
+        Meeting latestMeeting = null;
+        Address partnerAddress = null;
+        TrackerHistory latestHistory = null;
+
+        if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
+            // [직접 교환] 최신 약속 정보 조회
+            latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
+        } else {
+            // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
+            partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
+
+            TrackerStatus currentStatus = tracker.getTrackerStatus();
+            if (currentStatus == TrackerStatus.SHIPPING_TO_GUEST || currentStatus == TrackerStatus.SHIPPING_TO_HOST) {
+
+                List<TrackerStatus> shippingStatuses = List.of(
+                        TrackerStatus.SHIPPING_TO_GUEST,
+                        TrackerStatus.SHIPPING_TO_HOST
+                );
+
+                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingStatuses)
+                        .orElse(null);
+            }
+        }
+
+        // 4. 수집된 모든 정보를 컨버터에 전달
+        return trackerConverter.toDetailResponse(tracker, latestMeeting, partnerAddress, partnerUser, latestHistory);
+    }
+
+    /**
+     * 1:1 교환 상황에서 현재 로그인한 유저를 제외한 파트너(MatchedMember)를 조회합니다.
+     */
+    private MatchedMember findPartnerForRelay(Long groupId, Long myUserId) {
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_GroupId(groupId);
+
+        // 1:1 상황인지 데이터 수준에서 한 번 더 검증
+        if (members.size() > 2) {
+            throw new TrackerException(TrackerErrorCode.INVALID_PARTNER_COUNT);
+        }
+
+        return members.stream()
+                .filter(mm -> !mm.getUser().getId().equals(myUserId))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
     }
 
 
@@ -249,20 +306,57 @@ public class TrackerService {
     private List<TrackerListResponse> convertToResponseList(List<Tracker> trackers, Long userId) {
         return trackers.stream()
                 .map(tracker -> {
+                    Groups group = tracker.getGroup();
                     List<String> stepDates = buildStepDates(tracker);
-                    String targetNickname = findTargetNickname(tracker, userId);
-                    return trackerConverter.toListResponse(tracker, targetNickname, stepDates);
+                    String targetNickname = findTargetNickName(tracker, userId);
+
+                    Integer myRate = 0;
+                    Integer groupRate = 0;
+
+
+                    if (group.getGroupType() == GroupType.TOGETHER) {
+                        myRate = calculateUserReadingRate(userId, group);
+                        groupRate = calculateGroupAverageRate(group);
+                    }
+
+                    return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, myRate, groupRate);
                 })
                 .collect(Collectors.toList());
     }
 
-
-    private String findTargetNickname(Tracker tracker, Long userId) {
-        return tracker.getGroup().getMatchedMember().stream()
-                .filter(mm -> !mm.getUser().getId().equals(userId)) // 내가 아닌 멤버 필터링
-                .map(mm -> mm.getUser().getName()) // 유저의 이름(닉네임) 추출
+    // 내 독서율 가져오기
+    private int calculateUserReadingRate(Long userId, Groups group) {
+        // MatchedMember에서 해당 유저의 이미 저장된 독서율 필드를 가져옵니다.
+        return group.getMatchedMember().stream()
+                .filter(mm -> mm.getUser().getId().equals(userId))
                 .findFirst()
-                .orElse("상대방 없음"); // 만약 멤버가 혼자라면 기본값 반환
+                .map(mm -> mm.getCurrentReadingRate() != null ? mm.getCurrentReadingRate() : 0)
+                .orElse(0);
+    }
+
+    // 그룹 평균 독서율 가져오기
+    private int calculateGroupAverageRate(Groups group) {
+        List<MatchedMember> members = group.getMatchedMember();
+        if (members == null || members.isEmpty()) return 0;
+
+        // 루프 안에서 쿼리 실행 없이, 메모리에 로드된 멤버들의 필드값만 합산
+        double totalSum = members.stream()
+                .mapToDouble(mm -> mm.getCurrentReadingRate() != null ? mm.getCurrentReadingRate() : 0)
+                .sum();
+
+        return (int) (totalSum / members.size());
+    }
+
+
+    private String findTargetNickName(Tracker tracker, Long userId) {
+        return tracker.getGroup().getMatchedMember().stream()
+                .filter(mm -> mm.getUser() != null && !mm.getUser().getId().equals(userId))
+                .map(mm -> {
+                    String nickname = mm.getUser().getNickName();
+                    return (nickname != null) ? nickname : "닉네임 미설정"; // null이면 기본값 반환
+                })
+                .findFirst()
+                .orElse("상대방 없음");
     }
 
     private List<String> buildStepDates(Tracker tracker) {
@@ -331,8 +425,7 @@ public class TrackerService {
                 bookOwner.getId(),
                 nextOwner.getId(),
                 request.deliveryCompany(),
-                request.trackingNumber(),
-                null
+                request.trackingNumber()
         );
         trackerHistoryRepository.save(shippingHistory);
 
@@ -384,7 +477,7 @@ public class TrackerService {
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(receiveHistory);
 
@@ -415,7 +508,6 @@ public class TrackerService {
 
 
         // 2. [상태 변경] 엔티티 상태 업데이트 (RECEIVED -> GUEST_READING 등)
-        // 성진님이 짜놓으신 엔티티 내 startReading() 호출
         tracker.startReading();
 
         // 3. [새로운 단계 기록] '독서 중' 상태가 시작되었음을 히스토리에 기록
@@ -423,7 +515,7 @@ public class TrackerService {
         TrackerHistory readingHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(readingHistory);
 
@@ -448,7 +540,7 @@ public class TrackerService {
         TrackerHistory doneHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(doneHistory);
 
@@ -475,7 +567,7 @@ public class TrackerService {
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(extensionHistory);
 
@@ -569,7 +661,7 @@ public class TrackerService {
         TrackerHistory meetingHistory = tracker.createHistorySnapshot(
                 bookOwner.getId(),
                 nextOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(meetingHistory);
     }
@@ -623,12 +715,15 @@ public class TrackerService {
         TrackerHistory transitionHistory = tracker.createHistorySnapshot(
                 currentOwner.getId(),
                 nextOwner.getId(),
-                null, null, null
+                null, null
         );
         trackerHistoryRepository.save(transitionHistory);
 
         // 알림 발송
         publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, nextOwner.getUser().getId(), groupId, null));
     }
+
+
+
 
 }

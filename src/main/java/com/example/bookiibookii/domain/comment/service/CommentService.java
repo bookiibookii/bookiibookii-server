@@ -79,7 +79,7 @@ public class CommentService {
                 .build();
         Comment saved = commentRepository.save(comment);
 
-        eventPublisher.publish(new CommentEvent(user.getName(), group.getBook().getTitle(), group.getHost().getId(), group.getGroupId()));
+        eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), group.getHost().getId(), group.getGroupId()));
 
         return toCreateResDTO(saved, writerRole);
     }
@@ -121,6 +121,20 @@ public class CommentService {
         return roots;
     }
 
+    @Transactional
+    public void delete(Long groupId, Long commentId, User user) {
+        Comment comment = commentRepository.findByIdAndGroupIdWithUser(commentId, groupId)
+                .orElseThrow(() -> new CommentException(CommentErrorCode.COMMENT_NOT_FOUND));
+
+        if (!comment.getUser().getId().equals(user.getId())) {
+            throw new CommentException(CommentErrorCode.COMMENT_DELETE_FORBIDDEN);
+        }
+
+        if (comment.isDeleted()) return;
+
+        comment.markDeleted();
+    }
+
     private static WriterRole toWriterRole(RoleStatus roleStatus) {
         if (roleStatus == null) return WriterRole.NONE;
         return roleStatus == RoleStatus.HOST ? WriterRole.HOST : WriterRole.GUEST;
@@ -141,7 +155,8 @@ public class CommentService {
     private CommentTreeResDTO toTreeDTO(Comment c, WriterRole writerRole) {
         return CommentTreeResDTO.builder()
                 .id(c.getId())
-                .content(c.getContent())
+                .deleted(c.isDeleted())
+                .content(c.isDeleted() ? "삭제된 댓글입니다." : c.getContent())
                 .parentId(c.getParent() == null ? null : c.getParent().getId())
                 .createdAt(c.getCreatedAt())
                 .writer(toWriterDto(c.getUser(), writerRole))
@@ -154,7 +169,7 @@ public class CommentService {
                 : null;
         return WriterDto.builder()
                 .userId(u.getId())
-                .name(u.getName())
+                .name(u.getNickName())
                 .profileImage(profileImageUrl)
                 .role(writerRole)
                 .build();

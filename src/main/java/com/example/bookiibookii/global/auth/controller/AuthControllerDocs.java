@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface AuthControllerDocs {
@@ -33,7 +34,8 @@ public interface AuthControllerDocs {
             description = """
             만료된 Access Token을 Refresh Token을 이용해 재발급합니다.
 
-            - Authorization 헤더에 Refresh Token을 전달해야 합니다.
+            - Authorization 헤더에 만료된 Access Token을 전달해야 합니다.
+            - requestRefreshToken 파라미터로 Refresh Token을 전달해야 합니다.
             - Refresh Token이 유효하지 않으면 재발급에 실패합니다.
             """
     )
@@ -52,7 +54,8 @@ public interface AuthControllerDocs {
             )
     })
     @PostMapping("/refresh")
-    ApiResponse<AuthResponseDTO.TokenResponse> refresh(HttpServletRequest request);
+    ApiResponse<AuthResponseDTO.TokenResponse> refresh(
+            @RequestBody AuthRequestDTO.RefreshRequest requestRefreshToken, HttpServletRequest request);
 
     @Operation(
             summary = "로그아웃",

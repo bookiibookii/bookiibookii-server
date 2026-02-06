@@ -35,7 +35,7 @@ public class InquiryService {
         return inquiries.stream()
                 .map(inquiry -> new InquiryResponseDTO.InquiryListDTO(
                         inquiry.getId(),
-                        inquiry.getUser().getName(),
+                        inquiry.getUser().getNickName(),
                         inquiry.getCreatedAt(),
                         inquiry.getTitle(),
                         inquiry.getContent(),

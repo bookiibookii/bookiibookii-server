@@ -54,7 +54,7 @@ public class Tracker extends BaseEntity {
     private List<TrackerHistory> histories = new ArrayList<>();
 
     public TrackerHistory createHistorySnapshot(Long senderId, Long receiverId, String company,
-                                        String number, String imageUrl) {
+                                        String number) {
         return TrackerHistory.builder()
                 .tracker(this)
                 .senderMatchedMemberId(senderId)
@@ -64,7 +64,6 @@ public class Tracker extends BaseEntity {
                 .endDate(this.endDate)
                 .deliveryCompany(company)
                 .trackingNumber(number)
-                .imageUrl(imageUrl)
                 .build();
     }
 

@@ -29,6 +29,7 @@ public class UserBookService {
     public UserBook createForParticipation(User user, Groups group) {
         UserBook userBook = UserBook.builder()
                 .user(user)
+                .book(group.getBook())
                 .group(group)
                 .rating(null)
                 .comment(null)

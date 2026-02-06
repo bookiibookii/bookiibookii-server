@@ -53,7 +53,6 @@ public class GroupService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final ApplicationRepository applicationRepository;
-    private final MeetingRepository meetingRepository;
     private final BookService bookService;
     private final GroupQueryRepository groupQueryRepository;
     private final UserTagRepository userTagRepository;

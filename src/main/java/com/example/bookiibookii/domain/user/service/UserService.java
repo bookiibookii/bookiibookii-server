@@ -216,7 +216,7 @@ public class UserService {
                 .zipCode(zipCode)
                 .address(addressValue)
                 .addressDetail(addressDetail)
-                .region(user.getregion())
+                .region(user.getRegion())
                 .meetPlace(user.getMeetPlace())
                 .build();
     }

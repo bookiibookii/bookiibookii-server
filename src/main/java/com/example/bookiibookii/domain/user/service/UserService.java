@@ -13,6 +13,7 @@ import com.example.bookiibookii.domain.tag.repository.TagRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
+import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
@@ -51,6 +52,7 @@ public class UserService {
     private final AddressRepository addressRepository;
     private final UserBadgeRepository userBadgeRepository;
     private final UserBookQueryRepository userBookQueryRepository;
+    private final BadWordService badWordService;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -71,10 +73,20 @@ public class UserService {
                     .orElseThrow(() -> new RuntimeException("소셜 유저 생성 중 동시성 오류로 사용자 조회 실패"));
         }
     }
-    
-    // 닉네임 검증
-    public boolean isNicknameAvailable(String nickname) {
-        return !userRepository.existsByNickName(nickname); // 중복되면 False 반환
+
+    @Transactional
+    public NicknameStatus checkNicknameStatus(String nickname) {
+        // 금칙어 검사
+        if (badWordService.containsBadWord(nickname)) {
+            return NicknameStatus.BAD_WORD;
+        }
+
+        // 중복 검사
+        if (userRepository.existsByNickName(nickname)) {
+            return NicknameStatus.DUPLICATE;
+        }
+
+        return NicknameStatus.AVAILABLE;
     }
 
     // 온보딩 세팅
@@ -83,7 +95,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (isNicknameAvailable(request.name())) user.updateName(request.name());
+        if (checkNicknameStatus(request.name()) != NicknameStatus.AVAILABLE) {
+            throw new UserException(UserErrorCode.INVALID_NICKNAME);
+        }
+        user.updateName(request.name());
 
         // 프로필 이미지(s3Key) 처리: 있으면 검증 후 UserImage 생성/갱신
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
@@ -252,7 +267,12 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (isNicknameAvailable(request.nickname())) user.updateName(request.nickname());
+        if (!user.getNickName().equals(request.nickname())) {
+            if (checkNicknameStatus(request.nickname()) != NicknameStatus.AVAILABLE) {
+                throw new UserException(UserErrorCode.INVALID_NICKNAME);
+            }
+            user.updateName(request.nickname());
+        }
         user.updateRegion(request.region());
         user.updateMeetPlace(request.meetPlace());
 

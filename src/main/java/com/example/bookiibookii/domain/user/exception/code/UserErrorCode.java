@@ -16,7 +16,10 @@ public enum UserErrorCode implements BaseCode {
             "사용자의 태그가 존재하지 않습니다."),
     USER_WITHDRAWN(HttpStatus.FORBIDDEN,
             "USER403_1",
-            "탈퇴한 사용자입니다.")
+            "탈퇴한 사용자입니다."),
+    INVALID_NICKNAME(HttpStatus.BAD_REQUEST,
+            "USER400_1",
+            "사용 불가능한 닉네임입니다.")
     ;
     private final HttpStatus status;
     private final String code;

@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.user.exception.code.UserImageSuccessCode;
 import com.example.bookiibookii.domain.user.exception.code.UserSuccessCode;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
@@ -19,7 +20,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Validated
 @RestController
@@ -43,11 +43,14 @@ public class UserController implements UserControllerDocs{
     // 닉네임 검증
     @Override
     @PostMapping("/api/users/name-validation")
-    public ApiResponse<Map<String, Boolean>> validateNickname(
+    public ApiResponse<UserResponseDTO.NicknameValidationDTO> validateNickname(
             @NotNull @RequestParam String nickname
     ) {
-        boolean isAvailable = userService.isNicknameAvailable(nickname);
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, Map.of("isAvailable", isAvailable));
+        NicknameStatus status = userService.checkNicknameStatus(nickname);
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.REQUEST_OK,
+                UserResponseDTO.NicknameValidationDTO.from(status)
+        );
     }
 
     // User 온보딩 설정

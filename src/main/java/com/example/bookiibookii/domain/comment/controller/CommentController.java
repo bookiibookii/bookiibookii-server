@@ -38,4 +38,14 @@ public class CommentController implements CommentControllerDocs{
         List<CommentTreeResDTO> result = commentService.getTree(groupId);
         return ApiResponse.onSuccess(CommentSuccessCode.COMMENT_FOUND_OK, result);
     }
+
+    @DeleteMapping("/groups/{groupId}/comments/{commentId}")
+    public ApiResponse<Void> deleteComment(
+            @PathVariable Long groupId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        commentService.delete(groupId, commentId, user);
+        return ApiResponse.onSuccess(CommentSuccessCode.DELETE_SUCCESS, null);
+    }
 }

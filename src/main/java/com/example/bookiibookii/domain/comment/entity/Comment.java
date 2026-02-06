@@ -25,6 +25,9 @@ public class Comment extends BaseEntity {
     @Column(name = "content", nullable = false)
     private String content;
 
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted;
+
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -40,4 +43,9 @@ public class Comment extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "parent", cascade = CascadeType.REMOVE)
     private List<Comment> children = new ArrayList<>();
+
+    public void markDeleted() {
+        if (this.deleted) return;
+        this.deleted = true;
+    }
 }

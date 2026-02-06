@@ -12,6 +12,7 @@ import java.util.List;
 @Builder
 public class CommentTreeResDTO {
     private Long id;
+    private boolean deleted;
     private String content;
     private Long parentId;
     private WriterDto writer;

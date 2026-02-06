@@ -21,7 +21,7 @@ import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/api/card")
+@RequestMapping("/api/cards")
 @RequiredArgsConstructor
 public class CardController implements CardControllerDocs {
 
@@ -56,6 +56,17 @@ public class CardController implements CardControllerDocs {
     ) {
         PresignedUrlResponseDTO responseDTO = cardService.getPresignedPutUrlForNewCard(
                 userBookId, user.getId(), PRESIGNED_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
+    }
+
+    @Override
+    @PostMapping("/{cardId}/images/presigned-url")
+    public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForCardImageUpdate(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        PresignedUrlResponseDTO responseDTO = cardService.getPresignedPutUrlForCardImageUpdate(
+                cardId, user.getId(), PRESIGNED_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
     }
 

@@ -61,6 +61,14 @@ public class CardService {
     }
 
     /**
+     * 카드 이미지 수정용 Presigned PUT URL 발급. 카드 소유자(UserBook 소유자)만 발급 가능.
+     */
+    public PresignedUrlResponseDTO getPresignedPutUrlForCardImageUpdate(Long cardId, Long userId, int presignedPutUrlExpirationMinutes) {
+        getCardForOwner(cardId, userId);
+        return cardImageS3Service.generatePresignedPutUrl(presignedPutUrlExpirationMinutes);
+    }
+
+    /**
      * 독서카드를 생성하고 응답 DTO를 반환합니다.
      */
     @Transactional
@@ -171,7 +179,7 @@ public class CardService {
     }
 
     /**
-     * 카드 소유자(UserBook 소유자)만 접근 가능한 조회. CardImageController 등에서 사용.
+     * 카드 소유자(UserBook 소유자)만 접근 가능한 조회. 카드 이미지 수정용 Presigned URL 발급 등에서 사용.
      */
     public Card getCardForOwner(Long cardId, Long userId) {
         Card card = cardRepository.findByIdWithCardImageAndUserBookAndBook(cardId)

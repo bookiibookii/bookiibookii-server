@@ -266,10 +266,12 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (checkNicknameStatus(request.nickname()) != NicknameStatus.AVAILABLE) {
-            throw new UserException(UserErrorCode.INVALID_NICKNAME);
+        if (!user.getNickName().equals(request.nickname())) {
+            if (checkNicknameStatus(request.nickname()) != NicknameStatus.AVAILABLE) {
+                throw new UserException(UserErrorCode.INVALID_NICKNAME);
+            }
+            user.updateName(request.nickname());
         }
-        user.updateName(request.nickname());
         user.updateMeetPlace(request.meetPlace());
 
         //TODO : 프로필 이미지 처리

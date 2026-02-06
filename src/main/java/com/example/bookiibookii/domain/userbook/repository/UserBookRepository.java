@@ -43,8 +43,6 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<String> findRecentBookTitle(@Param("userId") Long userId, Pageable pageable);
 
     // 완독한 책 개수 (서재에서 제거한 항목 제외)
-    Long countByUser_Id(Long userId);
-
     Long countByUser_IdAndRemovedAtIsNull(Long userId);
 
 

@@ -193,7 +193,11 @@ public class CardService {
                 .user(userRepository.getReferenceById(userId))
                 .card(card)
                 .build();
-        deletedCardRepository.save(deleted);
+        try {
+            deletedCardRepository.saveAndFlush(deleted);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // 동시 요청으로 이미 삽입된 경우 — 멱등 처리
+        }
     }
 
     /**

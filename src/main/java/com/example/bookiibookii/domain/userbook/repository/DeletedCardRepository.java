@@ -14,8 +14,6 @@ public interface DeletedCardRepository extends JpaRepository<DeletedCard, Long> 
 
     boolean existsByUser_IdAndCard_Id(Long userId, Long cardId);
 
-    Optional<DeletedCard> findByUser_IdAndCard_Id(Long userId, Long cardId);
-
     @Query("SELECT dc.card.id FROM DeletedCard dc WHERE dc.user.id = :userId")
     List<Long> findCardIdsByUser_Id(@Param("userId") Long userId);
 }

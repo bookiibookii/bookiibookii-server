@@ -193,6 +193,7 @@ public interface CardControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "카드 식별자(ID)", example = "1") @PathVariable Long cardId
     );
+    @Operation(
             summary = "독서카드 북마크 토글",
             description = """
             독서카드에 대한 북마크를 토글합니다. 터치 시 북마크 ↔ 해제가 전환됩니다.

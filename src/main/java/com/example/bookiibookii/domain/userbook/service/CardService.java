@@ -49,7 +49,6 @@ public class CardService {
     private final CardImageS3Service cardImageS3Service;
     private final UserBookRepository userBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final UserRepository userRepository;
 
     // ========== 컨트롤러에서 직접 호출 (DTO 반환) ==========
 

@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -114,5 +115,15 @@ public class CardController implements CardControllerDocs {
         CardCreateResponseDTO responseDTO = cardService.updateCardResponseDTO(
                 cardId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(CardImageSuccessCode.CARD_UPDATED, responseDTO);
+    }
+
+    @Override
+    @DeleteMapping("/{cardId}")
+    public ApiResponse<Void> removeCardFromView(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        cardService.markCardAsDeleted(cardId, user.getId());
+        return ApiResponse.onSuccess(CardImageSuccessCode.CARD_REMOVED_FROM_VIEW, null);
     }
 }

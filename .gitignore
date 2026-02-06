@@ -40,5 +40,6 @@ out/
 ## local ##
 src/main/resources/application-local.yml
 src/main/resources/application-local.yaml
+src/main/resources/badword.txt
 
 docker-compose.yml

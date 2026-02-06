@@ -9,8 +9,10 @@ import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,6 +24,16 @@ import java.util.List;
 public class LibraryController implements LibraryControllerDocs {
 
     private final LibraryService libraryService;
+
+    @Override
+    @DeleteMapping("/{userBookId}")
+    public ApiResponse<Void> removeFromLibrary(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long userBookId
+    ) {
+        libraryService.removeFromLibrary(userBookId, user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
+    }
 
     @Override
     @GetMapping("/books")

@@ -27,6 +27,7 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
         JOIN FETCH g.host h
         LEFT JOIN FETCH h.userImage
         WHERE ub.user.id = :userId
+        AND ub.removedAt IS NULL
         ORDER BY ub.updatedAt DESC
         """)
     List<UserBook> findAllByUser_IdWithGroupAndBookAndHost(@Param("userId") Long userId);
@@ -36,12 +37,13 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
         FROM UserBook ub
         JOIN ub.group g
         WHERE ub.user.id = :userId
+        AND ub.removedAt IS NULL
         ORDER BY ub.updatedAt DESC
     """)
     List<String> findRecentBookTitle(@Param("userId") Long userId, Pageable pageable);
 
-    // 완독한 책 개수
-    Long countByUser_Id(Long userId);
+    // 완독한 책 개수 (서재에서 제거한 항목 제외)
+    Long countByUser_IdAndRemovedAtIsNull(Long userId);
 
 
 
@@ -53,6 +55,7 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     JOIN FETCH g.host h
     LEFT JOIN FETCH h.userImage
     WHERE ub.user.id = :userId
+    AND ub.removedAt IS NULL
     AND (b.title LIKE %:keyword% 
          OR b.author LIKE %:keyword% 
          OR ub.comment LIKE %:keyword%)

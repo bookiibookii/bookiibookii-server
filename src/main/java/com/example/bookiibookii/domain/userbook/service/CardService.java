@@ -25,6 +25,7 @@ import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -377,7 +378,12 @@ public class CardService {
                 .user(userRepository.getReferenceById(userId))
                 .card(card)
                 .build();
-        cardBookmarkRepository.save(bookmark);
+        try {
+            cardBookmarkRepository.save(bookmark);
+        } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 인한 중복 생성 시도 → 이미 북마크됨으로 처리
+            throw new CardException(CardErrorCode.ALREADY_BOOKMARKED);
+        }
         return true;
     }
 

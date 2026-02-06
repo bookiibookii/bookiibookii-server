@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.userbook.controller;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardBookmarkResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
@@ -16,6 +17,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Validated
 @RestController
 @RequestMapping("/api/card")
@@ -25,6 +28,25 @@ public class CardController implements CardControllerDocs {
     private final CardService cardService;
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+
+    @Override
+    @GetMapping("/bookmarks")
+    public ApiResponse<List<GroupCardResponseDTO>> getMyBookmarkedCards(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        List<GroupCardResponseDTO> list = cardService.getMyBookmarkedCards(user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(CardImageSuccessCode.BOOKMARKED_CARDS_FOUND, list);
+    }
+
+    @Override
+    @PatchMapping("/{cardId}/bookmark")
+    public ApiResponse<CardBookmarkResponseDTO> toggleBookmark(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        boolean bookmarked = cardService.toggleBookmark(cardId, user.getId());
+        return ApiResponse.onSuccess(CardImageSuccessCode.BOOKMARK_TOGGLED, CardBookmarkResponseDTO.builder().bookmarked(bookmarked).build());
+    }
 
     @Override
     @PostMapping("/{userBookId}/presigned-url")

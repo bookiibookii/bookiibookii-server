@@ -39,7 +39,7 @@ public class AuthService {
     private final List<SocialTokenVerifier> tokenVerifiers;
 
     // 소셜 로그인
-    public AuthResponseDTO.TokenResponse socialLogin(String socialType, String token) {
+    public AuthResponseDTO.LoginResponse socialLogin(String socialType, String token) {
 
         final SocialType social;
         try {
@@ -73,10 +73,11 @@ public class AuthService {
         int rtExpirationMinutes = (int) (jwtProvider.getRefreshTokenExpireTime() / 1000 / 60);
         redisUtil.set("RT:" + userId, refreshToken, rtExpirationMinutes);
 
-        return AuthResponseDTO.TokenResponse.builder()
+        return AuthResponseDTO.LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(userId)
+                .onboardingDone(user.getNickName() != null)
                 .build();
     }
 

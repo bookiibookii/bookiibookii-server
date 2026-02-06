@@ -40,7 +40,7 @@ public class OAuthTestController {
     private static final String KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 
     @GetMapping("/kakao/callback")
-    public ApiResponse<AuthResponseDTO.TokenResponse> kakaoCallback(@RequestParam String code) {
+    public ApiResponse<AuthResponseDTO.LoginResponse> kakaoCallback(@RequestParam String code) {
         // 테스트용 코드 → 실제 AuthService 호출 가능
         // 여기선 code를 토큰처럼 사용하여 AuthService를 호출하도록 시뮬레이션
         String accessToken = getKakaoAccessToken(code);
@@ -51,7 +51,7 @@ public class OAuthTestController {
     }
 
     @GetMapping("/google/callback")
-    public AuthResponseDTO.TokenResponse googleCallback(@RequestParam String code) {
+    public AuthResponseDTO.LoginResponse googleCallback(@RequestParam String code) {
         return authService.socialLogin("GOOGLE", code);
     }
 

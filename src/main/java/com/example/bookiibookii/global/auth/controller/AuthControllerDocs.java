@@ -27,7 +27,7 @@ public interface AuthControllerDocs {
             """
     )
     @PostMapping("/login")
-    ApiResponse<AuthResponseDTO.TokenResponse> socialLogin(@RequestBody AuthRequestDTO request);
+    ApiResponse<AuthResponseDTO.LoginResponse> socialLogin(@RequestBody AuthRequestDTO request);
 
     @Operation(
             summary = "Access Token 재발급",

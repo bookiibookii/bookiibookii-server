@@ -472,6 +472,9 @@ public class GroupService {
                     return GroupResponseDTO.GroupSummaryDTO.builder()
                             .groupId(group.getGroupId())
                             .title(group.getBook().getTitle())
+                            .author(group.getBook().getAuthor())
+                            .genre(group.getBook().getCategory().label())
+                            .hostProfileImage(userProfileImageUrl(group.getHost()))
                             .bookImage(group.getBook().getImage())
                             .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
@@ -482,6 +485,7 @@ public class GroupService {
                             .groupType(group.getGroupType().name())
                             .tradeType(group.getTradeType().name())
                             .pictureBadge(determinePictureBadge(group))
+                            .startDate(group.getStartDate().toString())
                             .tags(tags) // 미리 수집한 태그 리스트 주입
                             .build();
                 }).toList();

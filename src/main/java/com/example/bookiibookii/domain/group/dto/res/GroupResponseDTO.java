@@ -100,8 +100,11 @@ public class GroupResponseDTO {
     public record GroupSummaryDTO(
             Long groupId,
             String title,
+            String author,
+            String genre,
             String bookImage,
             String hostNickname,
+            String hostProfileImage,
             List<String> tags,
             String groupStatus,
             int currentCount,
@@ -110,6 +113,7 @@ public class GroupResponseDTO {
             boolean isHot,
             String groupType,
             String tradeType,
+            String startDate,
             String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
     ) {}
 

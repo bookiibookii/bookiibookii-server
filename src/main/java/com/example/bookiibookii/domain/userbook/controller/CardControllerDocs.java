@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.userbook.controller;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
+import com.example.bookiibookii.domain.userbook.dto.res.CardBookmarkResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
@@ -94,7 +95,7 @@ public interface CardControllerDocs {
             
             - UserBook 소유자이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
             - 생성일 기준 오름차순으로 정렬된 카드 목록을 반환합니다.
-            - 각 카드(GroupCardResponseDTO)에는 cardId, page, memo, cardImage, createdAt, bookTitle이 포함됩니다.
+            - 각 카드(GroupCardResponseDTO)에는 cardId, page, memo, cardImage, createdAt, bookTitle, isBookmarked(현재 사용자 북마크 여부)가 포함됩니다.
             - 응답에 그룹 ID(groupId), 카드 작성자 이름(creatorName)이 포함됩니다.
             """
     )
@@ -121,7 +122,7 @@ public interface CardControllerDocs {
             특정 독서카드 한 건의 상세 정보를 조회합니다.
             
             - 카드 소유자(UserBook 소유자)이거나 같은 그룹의 멤버인 경우에만 조회 가능합니다.
-            - GroupCardResponseDTO(cardId, page, memo, cardImage, createdAt, bookTitle)를 반환합니다.
+            - GroupCardResponseDTO(cardId, page, memo, cardImage, createdAt, bookTitle, isBookmarked)를 반환합니다.
             - cardImage에는 cardImageId, s3Key, presignedGetUrl이 포함됩니다.
             """
     )
@@ -191,5 +192,35 @@ public interface CardControllerDocs {
     ApiResponse<Void> removeCardFromView(
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "카드 식별자(ID)", example = "1") @PathVariable Long cardId
+    );
+            summary = "독서카드 북마크 토글",
+            description = """
+            독서카드에 대한 북마크를 토글합니다. 터치 시 북마크 ↔ 해제가 전환됩니다.
+            
+            - 카드 소유자이거나 같은 그룹 멤버만 북마크 가능합니다.
+            - 응답 bookmarked: true = 북마크됨, false = 북마크 해제됨.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "토글 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드를 찾을 수 없음 또는 접근 권한 없음")
+    })
+    @PatchMapping("/{cardId}/bookmark")
+    ApiResponse<CardBookmarkResponseDTO> toggleBookmark(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "카드 식별자(ID)", example = "1") @PathVariable Long cardId
+    );
+
+    @Operation(
+            summary = "내가 북마크한 독서카드 목록 조회",
+            description = "현재 로그인한 사용자가 북마크한 독서카드 목록을 최신 북마크 순으로 반환합니다. 각 항목은 GroupCardResponseDTO이며 isBookmarked는 true입니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/bookmarks")
+    ApiResponse<java.util.List<GroupCardResponseDTO>> getMyBookmarkedCards(
+            @AuthenticationPrincipal(expression = "user") User user
     );
 }

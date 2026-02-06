@@ -41,6 +41,7 @@ public class BookService {
                             .author(item.author())
                             .publisher(item.publisher())
                             .image(item.cover())
+                            .totalPages(item.itemPage())
                             .category(cc.get())
                             .build();
 
@@ -55,9 +56,4 @@ public class BookService {
                 });
     }
 
-    @Transactional(readOnly = true)
-    public Book getByIsbn13(String isbn13) {
-        return bookRepository.findByIsbn13(isbn13)
-                .orElseThrow(() -> new BookException(BookErrorCode.BOOK_NOT_FOUND));
-    }
 }

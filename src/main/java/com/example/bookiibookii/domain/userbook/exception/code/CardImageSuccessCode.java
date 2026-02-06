@@ -17,6 +17,8 @@ public enum CardImageSuccessCode implements BaseCode {
     CARDS_FOUND(HttpStatus.OK, "CARDIMG200_4", "독서카드 목록을 조회했습니다."),
     CARD_UPDATED(HttpStatus.OK, "CARDIMG200_5", "독서카드를 수정했습니다."),
     CARD_REMOVED_FROM_VIEW(HttpStatus.OK, "CARDIMG200_9", "독서카드를 내 화면에서 제거했습니다.");
+    BOOKMARK_TOGGLED(HttpStatus.OK, "CARDIMG200_7", "북마크를 변경했습니다."),
+    BOOKMARKED_CARDS_FOUND(HttpStatus.OK, "CARDIMG200_8", "북마크한 독서카드 목록을 조회했습니다.");
 
     private final HttpStatus status;
     private final String code;

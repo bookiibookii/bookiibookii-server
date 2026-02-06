@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
@@ -17,4 +18,15 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         order by c.createdAt asc
     """)
     List<Comment> findAllByGroupIdWithUserOrderByCreatedAtAsc(@Param("groupId") Long groupId);
+
+    @Query("""
+    select c
+    from Comment c
+    join fetch c.user u
+    where c.id = :commentId and c.group.groupId = :groupId
+    """)
+    Optional<Comment> findByIdAndGroupIdWithUser(@Param("commentId") Long commentId,
+                                                 @Param("groupId") Long groupId);
+
+    boolean existsByParent_Id(Long parentId);
 }

@@ -83,15 +83,20 @@ public class ReviewService {
                 .build();
 
         List<Badge> badgeCodes = request.badgeCodes();
-        if (badgeCodes != null) {
-            badgeCodes.forEach(groupReview::addBadge);
+        int badgeCount = 0;
+
+        if (badgeCodes != null && !badgeCodes.isEmpty()) {
+            badgeCount = badgeCodes.size();
+            for (Badge badge : badgeCodes) {
+                groupReview.addBadge(badge);
+                increaseUserBadgeCount(reviewed.getUser(), badge);
+            }
         }
 
-        GroupReview saved = groupReviewRepository.save(groupReview);
+        User targetUser = reviewed.getUser();
+        targetUser.updateManner(request.rating(), badgeCount);
 
-        if (badgeCodes != null) {
-            badgeCodes.forEach(badge -> increaseUserBadgeCount(reviewed.getUser(), badge));
-        }
+        groupReviewRepository.save(groupReview);
     }
 
     private void validateRating(Double rating) {
@@ -124,4 +129,6 @@ public class ReviewService {
         userBadge.increaseCount();
         userBadgeRepository.save(userBadge);
     }
+
+
 }

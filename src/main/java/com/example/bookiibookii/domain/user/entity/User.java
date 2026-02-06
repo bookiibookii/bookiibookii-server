@@ -6,6 +6,8 @@ import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -48,7 +50,9 @@ public class User extends BaseEntity {
 
     @Column(name = "manner", nullable = false)
     @Builder.Default
-    private Double manner = 0.0;
+    @Min(0)
+    @Max(100)
+    private Double manner = 36.5;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -63,7 +67,7 @@ public class User extends BaseEntity {
     @Column(name = "meet_place")
     private String meetPlace;
 
-    @Column(name = "Region")
+    @Column(name = "region")
     private String region;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -93,5 +97,30 @@ public class User extends BaseEntity {
         this.status = Status.ACTIVE;
     }
     public void updateName(String name) { this.nickName = name; }
+    public void updateRegion(String region) { this.region = region; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
+
+    public void updateManner(double rating, int tagCount) {
+        double scoreChange = calculateRatingScore(rating);
+        double bonusScore = tagCount * 0.1; // 태그 보너스 (+0.1 per tag)
+
+        double currentManner = (this.manner != null) ? this.manner : 36.5;
+        double newManner = currentManner + scoreChange + bonusScore;
+
+        // 상한 및 하한선 적용 (0.0 ~ 100.0)
+        this.manner = Math.max(0.0, Math.min(100.0, Math.round(newManner * 10) / 10.0));
+    }
+
+    private double calculateRatingScore(double rating) {
+        if (rating >= 5.0) return 0.5;
+        if (rating >= 4.5) return 0.3;
+        if (rating >= 4.0) return 0.2;
+        if (rating >= 3.5) return 0.1;
+        if (rating >= 3.0) return 0.0;
+        if (rating >= 2.5) return -0.1;
+        if (rating >= 2.0) return -0.3;
+        if (rating >= 1.5) return -0.4;
+        if (rating >= 1.0) return -0.5;
+        return -1.0; // 0.5점 이하 (심각한 비매너)
+    }
 }

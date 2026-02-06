@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class BookResDTO {
+public class TempBookResDTO {
     private String title;
     private String author;
     private String image;
@@ -14,4 +14,5 @@ public class BookResDTO {
     private String isbn13;
     private CustomCategory category;
     private String categoryLabel;
+    private Integer itemPage;
 }

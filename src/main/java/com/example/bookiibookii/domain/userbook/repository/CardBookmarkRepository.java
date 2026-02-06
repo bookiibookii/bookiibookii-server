@@ -20,6 +20,6 @@ public interface CardBookmarkRepository extends JpaRepository<CardBookmark, Long
     @Query("SELECT cb.card.id FROM CardBookmark cb WHERE cb.user.id = :userId AND cb.card.id IN :cardIds")
     Set<Long> findBookmarkedCardIdsByUserIdAndCardIdIn(@Param("userId") Long userId, @Param("cardIds") List<Long> cardIds);
 
-    @Query("SELECT cb FROM CardBookmark cb JOIN FETCH cb.card c JOIN FETCH c.cardImage JOIN FETCH c.userBook ub JOIN FETCH ub.group g JOIN FETCH g.book WHERE cb.user.id = :userId ORDER BY cb.createdAt DESC")
+    @Query("SELECT cb FROM CardBookmark cb JOIN FETCH cb.card c LEFT JOIN FETCH c.cardImage LEFT JOIN FETCH c.userBook ub LEFT JOIN FETCH ub.group g LEFT JOIN FETCH g.book WHERE cb.user.id = :userId ORDER BY cb.createdAt DESC")
     List<CardBookmark> findByUser_IdWithCardAndImageAndBookOrderByCreatedAtDesc(@Param("userId") Long userId);
 }

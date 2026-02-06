@@ -103,7 +103,8 @@ public class User extends BaseEntity {
         double scoreChange = calculateRatingScore(rating);
         double bonusScore = tagCount * 0.1; // 태그 보너스 (+0.1 per tag)
 
-        double newManner = this.manner + scoreChange + bonusScore;
+        double currentManner = (this.manner != null) ? this.manner : 36.5;
+        double newManner = currentManner + scoreChange + bonusScore;
 
         // 상한 및 하한선 적용 (0.0 ~ 100.0)
         this.manner = Math.max(0.0, Math.min(100.0, Math.round(newManner * 10) / 10.0));

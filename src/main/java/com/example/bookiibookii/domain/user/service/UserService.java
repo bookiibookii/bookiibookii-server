@@ -95,7 +95,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (checkNicknameStatus(request.name()) == NicknameStatus.AVAILABLE) user.updateName(request.name());
+        if (checkNicknameStatus(request.name()) != NicknameStatus.AVAILABLE) {
+            throw new UserException(UserErrorCode.INVALID_NICKNAME);
+        }
+        user.updateName(request.name());
 
         // 프로필 이미지(s3Key) 처리: 있으면 검증 후 UserImage 생성/갱신
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
@@ -263,7 +266,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (checkNicknameStatus(request.nickname()) == NicknameStatus.AVAILABLE) user.updateName(request.nickname());
+        if (checkNicknameStatus(request.nickname()) != NicknameStatus.AVAILABLE) {
+            throw new UserException(UserErrorCode.INVALID_NICKNAME);
+        }
+        user.updateName(request.nickname());
         user.updateMeetPlace(request.meetPlace());
 
         //TODO : 프로필 이미지 처리

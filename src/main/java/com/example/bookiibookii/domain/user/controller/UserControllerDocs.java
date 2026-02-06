@@ -39,18 +39,20 @@ public interface UserControllerDocs {
 
     // api/users/name-validation
     @Operation(
-            summary = "닉네임 중복 검증 API",
+            summary = "닉네임 검증 API",
             description = """
-            닉네임의 중복 여부를 검증합니다.
+            닉네임의 중복 여부와 금칙어 포함 여부를 검사합니다.
 
-            - TRUE : 사용 가능한 닉네임입니다.
-            - FALSE : 이미 존재하는 닉네임입니다.
+            - SUCCESS : 사용 가능한 닉네임입니다. (isAvailable = true)
+            - DUPLICATE : 이미 존재하는 닉네임입니다. (isAvailable = false)
+            - BAD_WORD : 금칙어가 포함되어 있습니다. (isAvailable = false)
             """
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "중복 여부 검증 성공")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "닉네임 검증 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "닉네임 검증 실패")
     })
-    ApiResponse<Map<String, Boolean>> validateNickname(@NotNull @RequestParam String nickname);
+    ApiResponse<UserResponseDTO.NicknameValidationDTO> validateNickname(@NotNull @RequestParam String nickname);
 
 
     // api/users/onboarding

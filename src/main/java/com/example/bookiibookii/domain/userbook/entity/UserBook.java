@@ -7,6 +7,8 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "user_book")
 @Getter
@@ -38,8 +40,17 @@ public class UserBook extends BaseEntity {
     @Column(name = "comment", length = 500)
     private String comment;
 
+    /** 서재에서 제거한 시점. null이면 목록에 노출, 값이 있으면 라이브러리에서 제외 */
+    @Column(name = "removed_at")
+    private LocalDateTime removedAt;
+
     public void updateReview(Double rating, String comment) {
         this.rating = rating;
         this.comment = comment;
+    }
+
+    /** 서재에서만 제거(소프트 삭제??). 다른 멤버는 계속 조회 가능. */
+    public void markRemoved() {
+        this.removedAt = LocalDateTime.now();
     }
 }

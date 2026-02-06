@@ -395,10 +395,26 @@ public class CardService {
         return bookmarks.stream()
                 .map(cb -> {
                     Card card = cb.getCard();
-                    String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
+                    String bookTitle = getBookTitleSafely(card);
                     return buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, true);
                 })
                 .toList();
+    }
+
+    /**
+     * 카드의 그룹·책 정보에서 책 제목을 안전하게 조회합니다.
+     * 그룹/책이 null이거나 삭제된 경우 빈 문자열을 반환합니다.
+     */
+    private String getBookTitleSafely(Card card) {
+        if (card == null || card.getUserBook() == null) {
+            return "";
+        }
+        var group = card.getUserBook().getGroup();
+        if (group == null || group.getBook() == null) {
+            return "";
+        }
+        String title = group.getBook().getTitle();
+        return title != null ? title : "";
     }
     private void validatePage(Integer currentPage, Integer totalPages) {
         if (currentPage != null && totalPages != null) {

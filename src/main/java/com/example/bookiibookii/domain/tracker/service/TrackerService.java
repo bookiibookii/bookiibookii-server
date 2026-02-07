@@ -596,7 +596,7 @@ public class TrackerService {
                 ))
                 .orElseGet(() -> {
                     // 약속 테이블 자체가 비어있을 때만 호스트의 선호 장소 반환
-                    String defaultPlace = tracker.getGroup().getHost().getMeetPlace();
+                    String defaultPlace = tracker.getGroup().getPreferRegion();
                     return new TrackerMeetingResponse(null, defaultPlace);
                 });
     }

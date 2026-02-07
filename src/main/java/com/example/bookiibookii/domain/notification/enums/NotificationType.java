@@ -16,6 +16,7 @@ public enum NotificationType {
     GROUP_DELETED(NotificationCategory.SYSTEM),               // 문의하기 or GRP-001
     GROUP_MATCH_FAILED_BY_EXPIRE(NotificationCategory.SYSTEM),// GRP-001 (리스트)
     GROUP_MATCH_FAILED_BY_CAPACITY(NotificationCategory.SYSTEM), // GRP-001 (리스트)
+    GROUP_MATCH_EXPIRED(NotificationCategory.SYSTEM),         // GRP-001 (리스트)
 
     // TRACKER (SYSTEM) - 택배/독서 트래킹
     TRACKER_READING_STARTED(NotificationCategory.SYSTEM),     // TRK-010

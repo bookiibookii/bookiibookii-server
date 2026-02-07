@@ -81,48 +81,45 @@ public class AuthService {
                 .build();
     }
 
-    
+
     // Access Token 재발급
-    public AuthResponseDTO.TokenResponse refresh(AuthRequestDTO.RefreshRequest requestRefreshToken,
+    public AuthResponseDTO.TokenResponse refresh(AuthRequestDTO.RefreshRequest requestDTO,
                                                  HttpServletRequest request) {
         String accessToken = jwtTokenResolver.resolve(request);
-        if (accessToken == null) {
-            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
+        String requestRT = requestDTO.refreshToken();
+
+        if (accessToken == null || requestRT == null) {
+            throw new AuthException(AuthErrorCode.NOT_FOUND);
         }
 
-        Long userId;
-        try {
-            userId = jwtProvider.getUserIdIgnoreExpiration(accessToken);
-        } catch (Exception e) {
-            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
-        }
-
-        // Redis에서 Refresh Token 조회
-        String savedRefreshToken = redisUtil.get("RT:" + userId, String.class);
-
-        // Redis에 토큰이 있는지 + 클라이언트가 보낸 것과 일치하는지 + 유효한지
-        if (savedRefreshToken == null ||
-                !savedRefreshToken.equals(requestRefreshToken.refreshToken()) ||
-                !jwtProvider.validateToken(requestRefreshToken.refreshToken())) {
-
+        // RT 자체 유효성 선검증 (서명, 만료여부)
+        if (!jwtProvider.validateToken(requestRT)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
+        // AT에서 유저 정보 추출 (만료 무시)
+        Long userId = jwtProvider.getUserIdIgnoreExpiration(accessToken);
+
+        // Redis 대조
+        String savedRT = redisUtil.get("RT:" + userId, String.class);
+        if (savedRT == null || !savedRT.equals(requestRT)) {
+            throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        // 사용자 존재 확인 및 권한 획득
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.NOT_FOUND));
-        String role = user.getRole().name();
 
-        // 새 토큰 발급
-        String newAccessToken = jwtProvider.createAccessToken(userId, role);
-        String newRefreshToken = jwtProvider.createRefreshToken(userId);
+        // 신규 토큰 생성 및 Redis 갱신
+        String newAT = jwtProvider.createAccessToken(userId, user.getRole().name());
+        String newRT = jwtProvider.createRefreshToken(userId);
 
-        // Redis 업데이트 (덮어쓰기)
-        int rtExpirationMinutes = (int) Math.ceil(jwtProvider.getRefreshTokenExpireTime() / 1000.0 / 60);
-        redisUtil.set("RT:" + userId, newRefreshToken, rtExpirationMinutes);
+        long expireMs = jwtProvider.getRefreshTokenExpireTime();
+        redisUtil.set("RT:" + userId, newRT, (int) (expireMs / (1000 * 60)));
 
         return AuthResponseDTO.TokenResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
+                .accessToken(newAT)
+                .refreshToken(newRT)
                 .userId(userId)
                 .build();
     }

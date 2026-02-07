@@ -10,6 +10,7 @@ import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.util.RedisUtil;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -40,15 +41,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String token = tokenResolver.resolve(request);
+        String path = request.getRequestURI();
 
-        if (token != null) {
+        if (token != null && !path.equals("/api/auth/refresh")) {
             try {
                 // 블랙리스트 확인
                 if (redisUtil.hasKey("BL:" + token)) {
                     // 로그아웃된 토큰이므로 예외 발생 -> catch 블록으로 이동
                     throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
                 }
-
                 Claims claims = jwtProvider.parseClaims(token);
 
                 Long userId = Long.valueOf(claims.getSubject());
@@ -78,11 +79,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (JwtException | UserException | AuthException e) {
-                request.setAttribute("jwt_exception", e);
+            } catch (ExpiredJwtException e) { // 만료된 경우
+                sendErrorResponse(response, AuthErrorCode.EXPIRED_ACCESS_TOKEN);
+                return;
+            } catch (JwtException | AuthException e) { // 그 외 잘못된 토큰
+                sendErrorResponse(response, AuthErrorCode.INVALID_ACCESS_TOKEN);
+                return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, AuthErrorCode errorCode) throws IOException {
+        response.setStatus(errorCode.getStatus().value());
+        response.setContentType("application/json;charset=UTF-8");
+
+        String json = String.format(
+                "{\"code\": \"%s\", \"message\": \"%s\"}",
+                errorCode.getCode(),
+                errorCode.getMessage()
+        );
+
+        response.getWriter().write(json);
     }
 }

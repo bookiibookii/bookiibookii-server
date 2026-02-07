@@ -24,6 +24,9 @@ public enum AuthErrorCode implements BaseCode {
     INVALID_SOCIAL_TOKEN(HttpStatus.UNAUTHORIZED,
             "AUTH401_1",
             "소셜 인증에 실패했습니다."),
+    EXPIRED_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED,
+            "AUTH401_2",
+            "AccessToken이 만료되었습니다."),
 
     NOT_FOUND_REFRESH_TOKEN(HttpStatus.NOT_FOUND,
             "AUTH404_1",

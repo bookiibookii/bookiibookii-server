@@ -339,6 +339,14 @@ public class GroupService {
         Groups group = groupsRepository.findDetailById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
+        String persistedMeetPlace = null;
+        if (group.getTradeType() == TradeType.DIRECT) {
+            // findByGroup 대신 더 명확한 이름을 사용
+            persistedMeetPlace = meetingRepository.findFirstByGroupOrderByCreatedAtDesc(group)
+                    .map(Meeting::getMeetingPlace) // 엔티티 필드명이 meetingPlace이므로 정확함!
+                    .orElse(null);
+        }
+
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByReadingOrderAsc(group);
 
@@ -364,6 +372,8 @@ public class GroupService {
                 .groupComment(group.getGroupComment())
                 .groupStatus(group.getGroupStatus().name())
                 .isHost(group.getHost().getId().equals(userId))
+                .preferRegion(group.getPreferRegion())
+                .meetPlace(persistedMeetPlace)
                 .bookTitle(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .author(group.getBook().getAuthor())
@@ -508,11 +518,11 @@ public class GroupService {
         if (group.getTradeType() == TradeType.DELIVERY) return "택배";
 
         // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
-        String meetPlace = group.getHost().getMeetPlace();
-        if (meetPlace == null || meetPlace.isBlank()) return "지역미정";
+        String region = group.getPreferRegion();
+        if (region == null || region.isBlank()) return "지역미정";
 
-        String[] parts = meetPlace.split(" ");
-        return parts[parts.length - 1]; // 마지막 단어(구 단위)만 추출
+        String[] parts = region.split(" ");
+        return parts[parts.length - 1];
     }
 
     //그룹검색

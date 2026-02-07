@@ -100,7 +100,7 @@ public class GroupQueryRepository {
                    return place;
                })
                .filter(keyword -> keyword != null && !keyword.isBlank())
-               .map(user.meetPlace::contains)
+               .map(groups.preferRegion::contains)
                .reduce(BooleanExpression::or)
                .orElse(null);
    }

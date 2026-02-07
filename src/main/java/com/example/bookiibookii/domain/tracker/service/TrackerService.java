@@ -639,10 +639,13 @@ public class TrackerService {
             meeting = Meeting.builder()
                     .group(tracker.getGroup())
                     .trackerStatus(meetingStep)
+                    .meetingPlace(request.meetingPlace()) // Autofilled 된 값 그대로 저장
+                    .meetingTime(request.meetingTime())
                     .build();
         } else {
             log.info("==> [UPDATE] 기존 약속 수정 (그룹: {}, ID: {})", groupId, meeting.getMeetingId());
             meeting.resetConfirmation();
+
         }
 
         tracker.updateStatus(meetingStep);

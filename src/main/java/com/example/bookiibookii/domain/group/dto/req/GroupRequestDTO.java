@@ -28,6 +28,8 @@ public class GroupRequestDTO {
         private String customTag;
         private GroupType groupType;   // RELAY, TOGETHER
         private TradeType tradeType;   // DELIVERY, DIRECT
+        private String preferRegion;
+        private String meetPlace;
         private List<GroupRequestDTO.TagSettingDTO> tags;
     }
 

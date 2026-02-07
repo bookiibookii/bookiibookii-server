@@ -50,7 +50,7 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
         }
 
-        ensureTrackerCompleted(userBook.getGroup().getGroupId());
+        ensureTrackerReturned(userBook.getGroup().getGroupId());
 
         userBook.updateReview(request.rating(), request.comment());
     }
@@ -73,7 +73,7 @@ public class ReviewService {
         MatchedMember reviewed = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
-        ensureTrackerCompleted(groupId);
+        ensureTrackerReturned(groupId);
 
         GroupReview groupReview = GroupReview.builder()
                 .reviewer(reviewer)
@@ -111,11 +111,11 @@ public class ReviewService {
         }
     }
 
-    private void ensureTrackerCompleted(Long groupId) {
+    private void ensureTrackerReturned(Long groupId) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
-        if (tracker.getTrackerStatus() != TrackerStatus.COMPLETED) {
-            throw new ReviewException(ReviewErrorCode.TRACKER_NOT_COMPLETED);
+        if (tracker.getTrackerStatus() != TrackerStatus.RETURNED) {
+            throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED);
         }
     }
 

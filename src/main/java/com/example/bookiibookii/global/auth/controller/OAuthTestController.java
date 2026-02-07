@@ -44,7 +44,6 @@ public class OAuthTestController {
         // 테스트용 코드 → 실제 AuthService 호출 가능
         // 여기선 code를 토큰처럼 사용하여 AuthService를 호출하도록 시뮬레이션
         String accessToken = getKakaoAccessToken(code);
-        log.info("AccessToken: {}", accessToken);
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK,
                 authService.socialLogin("KAKAO", accessToken));
@@ -74,9 +73,6 @@ public class OAuthTestController {
                     request,
                     Map.class
             );
-
-            log.info("Token response status: {}", response.getStatusCode());
-            log.info("Token response body: {}", response.getBody());
 
             Map<String, Object> body = response.getBody();
             if (body == null || !body.containsKey("access_token")) {

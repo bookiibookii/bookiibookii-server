@@ -22,6 +22,13 @@ public enum GroupNotiType {
             true
     ),
 
+    MATCH_EXPIRED(
+            NotificationType.GROUP_MATCH_FAILED_BY_EXPIRE,
+            "그룹 매칭에 실패했어요",
+            "기간 만료로 인해 {bookTitle} 그룹 매칭에 실패했어요. 새로운 그룹을 만들어보세요.",
+            true
+    ),
+
     MATCH_REJECTED(
             NotificationType.GROUP_MATCH_REJECTED,
             "그룹 매칭에 실패했어요",

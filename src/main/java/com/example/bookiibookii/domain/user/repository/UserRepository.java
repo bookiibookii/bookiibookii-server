@@ -24,10 +24,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "(SELECT 1 FROM users WHERE nickname = :name)", nativeQuery = true)
     boolean existsByNickName(@Param("name") String name);
 
-    @Query("""
-    SELECT u FROM User u
-    WHERE u.id = :id
-    """)
+    @Query(value = "SELECT * FROM users " +
+            "WHERE id = :id", nativeQuery = true)
     Optional<User> findByIdIncludingWithdrawn(@Param("id") Long id);
 
     // 재가입을 위해 탈퇴 유저까지 포함하여 조회 (Native Query로 @SQLRestriction("status = 'ACTIVE'") 무시)
@@ -40,11 +38,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     );
 
     @Modifying
-    @Query("""
-    DELETE FROM User u
-    WHERE u.status = 'WITHDRAWN'
-    AND u.updatedAt <= :deleteBefore
-    """)
+    @Query(value = "DELETE FROM users " +
+            "WHERE status = 'WITHDRAWN' " +
+            "AND updated_at <= :deleteBefore", nativeQuery = true)
     int deleteWithdrawnUsersBefore(@Param("deleteBefore") LocalDateTime deleteBefore);
 
 
@@ -85,6 +81,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 랜덤 유저 1명 조회 ('모집 중'그룹의 호스트 유저)
     @Query(value = "SELECT * FROM users u " +
             "WHERE u.id <> :userId " +
+            "AND u.status = 'ACTIVE' " +
             "AND EXISTS (" +
             "  SELECT 1 FROM groups g " +
             "  WHERE g.host_id = u.id " +

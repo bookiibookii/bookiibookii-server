@@ -18,6 +18,8 @@ import com.example.bookiibookii.domain.userbook.exception.CardException;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
@@ -130,12 +132,13 @@ public class CardService {
      * 그룹 멤버만 조회 가능하며, 생성일 기준 오름차순으로 반환합니다.
      */
     public CardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
+        Groups group = groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
         if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
+            throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
         }
 
-        Groups group = groupsRepository.findById(groupId)
-                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
         Book book = group.getBook();
         String bookTitle = (book != null && book.getTitle() != null) ? book.getTitle() : "";
 
@@ -156,6 +159,8 @@ public class CardService {
 
         var trackerOpt = trackerRepository.findByGroupId(groupId);
         CardListResponseDTO.CurrentBookOwnerDto currentBookOwner = trackerOpt
+                .filter(t -> t.getBookOwner() != null && t.getBookOwner().getUser() != null)
+
                 .map(t -> CardListResponseDTO.CurrentBookOwnerDto.builder()
                         .matchedMemberId(t.getBookOwner().getId())
                         .nickname(t.getBookOwner().getUser().getNickName() != null ? t.getBookOwner().getUser().getNickName() : "")
@@ -221,12 +226,22 @@ public class CardService {
     public void markCardAsDeleted(Long cardId, Long userId) {
         Card card = getCardDetail(cardId, userId);
         CardState state = cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
-                .orElseGet(() -> cardStateRepository.save(CardState.builder()
-                        .user(userRepository.getReferenceById(userId))
-                        .card(card)
-                        .bookmarked(false)
-                        .hidden(false)
-                        .build()));
+                .orElseGet(() -> {
+                    try {
+                        return cardStateRepository.saveAndFlush(CardState.builder()
+                                .user(userRepository.getReferenceById(userId))
+                                .card(card)
+                                .bookmarked(false)
+                                .hidden(false)
+                                .build());
+                    } catch (DataIntegrityViolationException e) {
+                        return cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
+                                .orElseThrow(() -> new CardException(CardErrorCode.CARD_NOT_FOUND));
+                    }
+                });
+        if (state.isBookmarked()) {
+            throw new CardException(CardErrorCode.BOOKMARKED_CARD_CANNOT_DELETE);
+        }
         if (state.isHidden()) {
             return;
         }
@@ -438,7 +453,7 @@ public class CardService {
                                 .build());
                     } catch (DataIntegrityViolationException e) {
                         return cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
-                                .orElseThrow(() -> new CardException(CardErrorCode.ALREADY_BOOKMARKED));
+                                .orElseThrow(() -> new CardException(CardErrorCode.CARD_STATE_CONFLICT));
                     }
                 });
         state.setBookmarked(!state.isBookmarked());

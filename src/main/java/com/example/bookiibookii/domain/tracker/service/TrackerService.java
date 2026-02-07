@@ -635,13 +635,11 @@ public class TrackerService {
                 .orElse(null);
 
         if (meeting == null) {
-            log.info("==> [INSERT] 새 약속 생성 (그룹: {}, 단계: {})", groupId, meetingStep);
             meeting = Meeting.builder()
                     .group(tracker.getGroup())
                     .trackerStatus(meetingStep)
                     .build();
         } else {
-            log.info("==> [UPDATE] 기존 약속 수정 (그룹: {}, ID: {})", groupId, meeting.getMeetingId());
             meeting.resetConfirmation();
         }
 
@@ -694,7 +692,7 @@ public class TrackerService {
             processStatusTransition(tracker);
         } else {
             // 아직 한 명만 확인한 상태일 때
-            log.info("그룹 {}의 {} 유저가 교환 확인을 눌렀습니다. 상대방 확인 대기 중.", groupId, userRole);
+            log.info("상대방 확인 대기 중.");
         }
     }
 

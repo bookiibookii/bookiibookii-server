@@ -177,9 +177,9 @@ public class GroupService {
         }
 
         // 시작 날짜는 오늘 이후(내일부터) 선택 가능
-        if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
-            throw new GroupException(GroupErrorCode.INVALID_START_DATE);
-        }
+        //if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
+          //  throw new GroupException(GroupErrorCode.INVALID_START_DATE);
+        //}
 
         // 독서 기간 최소 3일 ~ 최대 30일
         if (request.getReadingPeriod() == null || request.getReadingPeriod() < 3 || request.getReadingPeriod() > 30) {

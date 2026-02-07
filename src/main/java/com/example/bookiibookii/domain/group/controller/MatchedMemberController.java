@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/groups/{groupId}/together/members")
+@RequestMapping("/api/groups/{groupId}/together/members")
 public class MatchedMemberController implements MatchedMemberControllerDocs {
 
     private final MatchedMemberService matchedMemberService;

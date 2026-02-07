@@ -25,18 +25,18 @@ public interface MatchedMemberControllerDocs {
                     description = "완독 처리 성공"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "GROUP404_1",
-                    description = "해당 그룹을 찾을 수 없음",
+                    responseCode = "404",
+                    description = "MEMBER404_1: 해당 그룹의 멤버를 찾을 수 없음 (또는 그룹 없음)",
                     content = @Content(schema = @Schema(implementation = ApiResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "MEMBER404_1",
-                    description = "해당 그룹의 멤버가 아님",
+                    responseCode = "400",
+                    description = "MEMBER400_1: 이미 완독 처리가 완료된 상태임",
                     content = @Content(schema = @Schema(implementation = ApiResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "MEMBER400_1",
-                    description = "이미 완독 처리가 완료된 도서임",
+                    responseCode = "403",
+                    description = "FORBIDDEN_GROUP_ACCESS: 해당 그룹에 접근 권한이 없음",
                     content = @Content(schema = @Schema(implementation = ApiResponse.class))
             )
     })

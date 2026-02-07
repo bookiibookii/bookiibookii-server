@@ -173,7 +173,10 @@ public class CardService {
             myComment = userBookRepository.findByUser_IdAndGroup_GroupId(userId, groupId)
                     .map(ub -> ub.getComment())
                     .orElse(null);
-            if (trackerOpt.isPresent() && !trackerOpt.get().getBookOwner().getUser().getId().equals(userId)) {
+            if (trackerOpt.isPresent()
+                    && trackerOpt.get().getBookOwner() != null
+                    && trackerOpt.get().getBookOwner().getUser() != null
+                    && !trackerOpt.get().getBookOwner().getUser().getId().equals(userId)) {
                 Long partnerUserId = trackerOpt.get().getBookOwner().getUser().getId();
                 partnerComment = userBookRepository.findByUser_IdAndGroup_GroupId(partnerUserId, groupId)
                         .map(ub -> ub.getComment())

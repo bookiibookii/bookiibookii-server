@@ -85,6 +85,7 @@ public class AladinClient {
             @JsonProperty("publisher") String publisher,
             @JsonProperty("pubDate") String pubDate,
             @JsonProperty("isbn13") String isbn13,
+            @JsonProperty("link") String link,
             @JsonProperty("categoryId") Long categoryId,
             @JsonProperty("categoryName") String categoryName,
             @JsonProperty("subInfo") SubInfo subInfo // isbn13 조회

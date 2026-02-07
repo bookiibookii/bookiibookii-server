@@ -560,8 +560,10 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
+        RoleStatus roleStatus= bookOwner.getRole();
+
         // 2. [상태/데이터 변경] 엔티티의 연장 로직 호출
-        tracker.extensionDays(days);
+        tracker.extensionDays(days, roleStatus);
 
         // 3. [새로운 단계 기록] 연장된 정보가 반영된 새로운 히스토리 생성
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(

@@ -560,8 +560,10 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
+        RoleStatus roleStatus= bookOwner.getRole();
+
         // 2. [상태/데이터 변경] 엔티티의 연장 로직 호출
-        tracker.extensionDays(days);
+        tracker.extensionDays(days, roleStatus);
 
         // 3. [새로운 단계 기록] 연장된 정보가 반영된 새로운 히스토리 생성
         TrackerHistory extensionHistory = tracker.createHistorySnapshot(
@@ -635,13 +637,11 @@ public class TrackerService {
                 .orElse(null);
 
         if (meeting == null) {
-            log.info("==> [INSERT] 새 약속 생성 (그룹: {}, 단계: {})", groupId, meetingStep);
             meeting = Meeting.builder()
                     .group(tracker.getGroup())
                     .trackerStatus(meetingStep)
                     .build();
         } else {
-            log.info("==> [UPDATE] 기존 약속 수정 (그룹: {}, ID: {})", groupId, meeting.getMeetingId());
             meeting.resetConfirmation();
         }
 
@@ -694,7 +694,7 @@ public class TrackerService {
             processStatusTransition(tracker);
         } else {
             // 아직 한 명만 확인한 상태일 때
-            log.info("그룹 {}의 {} 유저가 교환 확인을 눌렀습니다. 상대방 확인 대기 중.", groupId, userRole);
+            log.info("상대방 확인 대기 중.");
         }
     }
 

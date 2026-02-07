@@ -58,7 +58,7 @@ public class LibraryService {
                 hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
                         host.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
             } catch (Exception e) {
-                log.warn("호스트 프로필 이미지 Presigned URL 생성 실패 (hostId={})", host.getId(), e);
+                log.warn("호스트 프로필 이미지 Presigned URL 생성 실패", e);
             }
         }
 

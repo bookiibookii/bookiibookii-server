@@ -177,9 +177,9 @@ public class GroupService {
         }
 
         // 시작 날짜는 오늘 이후(내일부터) 선택 가능
-        if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
-            throw new GroupException(GroupErrorCode.INVALID_START_DATE);
-        }
+        //if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
+          //  throw new GroupException(GroupErrorCode.INVALID_START_DATE);
+        //}
 
         // 독서 기간 최소 3일 ~ 최대 30일
         if (request.getReadingPeriod() == null || request.getReadingPeriod() < 3 || request.getReadingPeriod() > 30) {
@@ -472,6 +472,9 @@ public class GroupService {
                     return GroupResponseDTO.GroupSummaryDTO.builder()
                             .groupId(group.getGroupId())
                             .title(group.getBook().getTitle())
+                            .author(group.getBook().getAuthor())
+                            .genre(group.getBook().getCategory().label())
+                            .hostProfileImage(userProfileImageUrl(group.getHost()))
                             .bookImage(group.getBook().getImage())
                             .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
@@ -482,6 +485,7 @@ public class GroupService {
                             .groupType(group.getGroupType().name())
                             .tradeType(group.getTradeType().name())
                             .pictureBadge(determinePictureBadge(group))
+                            .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .tags(tags) // 미리 수집한 태그 리스트 주입
                             .build();
                 }).toList();

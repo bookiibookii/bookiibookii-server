@@ -39,7 +39,7 @@ public class AuthService {
     private final List<SocialTokenVerifier> tokenVerifiers;
 
     // 소셜 로그인
-    public AuthResponseDTO.TokenResponse socialLogin(String socialType, String token) {
+    public AuthResponseDTO.LoginResponse socialLogin(String socialType, String token) {
 
         final SocialType social;
         try {
@@ -73,10 +73,11 @@ public class AuthService {
         int rtExpirationMinutes = (int) (jwtProvider.getRefreshTokenExpireTime() / 1000 / 60);
         redisUtil.set("RT:" + userId, refreshToken, rtExpirationMinutes);
 
-        return AuthResponseDTO.TokenResponse.builder()
+        return AuthResponseDTO.LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(userId)
+                .onboardingDone(user.getNickName() != null)
                 .build();
     }
 
@@ -136,15 +137,11 @@ public class AuthService {
         }
 
         // 토큰 유효성 검증 (JWT 관련 예외 처리)
-        // validateToken 내부에서 이미 예외를 잡아서 false를 반환하도록 되어 있다면 try-catch 불필요
-        // 하지만 getUserId나 getRemainingTime에서 발생할 수 있는 JwtException을 대비
         try {
             if (!jwtProvider.validateToken(accessToken)) {
-                log.debug("로그아웃 요청이 왔으나 유효하지 않은 토큰임: {}", accessToken);
                 return; // 유효하지 않으면 블랙리스트 등록도 필요 없음
             }
         } catch (JwtException e) {
-            // 파싱 불가능하거나 만료된 토큰은 무시 (또는 Debug 로그)
             log.debug("로그아웃 토큰 검증 실패: {}", e.getMessage());
             return;
         }
@@ -165,7 +162,7 @@ public class AuthService {
             }
 
         } catch (Exception e) {
-            log.error("로그아웃 중 Redis 처리 에러 발생. user access token: {}", accessToken, e);
+            log.error("로그아웃 중 Redis 처리 에러 발생.", e);
         }
     }
 

@@ -83,6 +83,7 @@ public class CardService {
         Integer page = request.getPage();
         String memo = request.getMemo();
 
+
         if (!cardImageValidationService.isValidS3Key(s3Key)) {
             throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
         }

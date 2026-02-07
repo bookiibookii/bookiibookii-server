@@ -6,6 +6,8 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "matchedmember")
 @Getter
@@ -37,8 +39,16 @@ public class MatchedMember extends BaseEntity {
     @Column(name = "current_reading_rate", nullable = false)
     private Integer currentReadingRate = 0;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt; // 독서 종료일 기록
+
     public void updateReadingRate(int newRate) {
         int normalized = Math.min(100, Math.max(0,newRate));
         this.currentReadingRate = normalized;
+    }
+
+    public void completeReading() {
+        this.currentReadingRate = 100;
+        this.completedAt = LocalDateTime.now();
     }
 }

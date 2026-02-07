@@ -9,4 +9,12 @@ public class AuthResponseDTO {
             String refreshToken,
             Long userId
     ){}
+
+    @Builder
+    public record LoginResponse(
+            String accessToken,
+            String refreshToken,
+            Long userId,
+            Boolean onboardingDone
+    ){}
 }

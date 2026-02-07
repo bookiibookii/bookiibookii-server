@@ -18,7 +18,7 @@ public class AuthController implements AuthControllerDocs{
 
     @Override
     @PostMapping("/login")
-    public ApiResponse<AuthResponseDTO.TokenResponse> socialLogin(
+    public ApiResponse<AuthResponseDTO.LoginResponse> socialLogin(
             @RequestBody AuthRequestDTO request
     ) {
         return ApiResponse.onSuccess(

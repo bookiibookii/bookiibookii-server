@@ -1,10 +1,10 @@
 package com.example.bookiibookii.domain.group.scheduler;
 
-import com.example.bookiibookii.domain.group.entity.Application;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
+import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+
+import static com.example.bookiibookii.domain.group.enums.GroupNotiType.*;
 
 @Slf4j
 @Component
@@ -48,17 +50,19 @@ public class GroupScheduler {
                         group.getStartDate(),
                         group.getMaxCapacity()
                 ));
+                // 매칭 성공 알람
+//                eventPublisher.publish(new GroupNotificationEvent(
+//                        MATCH_SUCCEEDED, group.getHost().getId(), group.getBook().getTitle(),
+//                        newMember.getUser().getId(), null, group.getGroupId()
+//                ));
+                // 대기자들 거절 알람
 
             } else {
                 group.markAsDELETED();
-            }
-
-            // 신청자 관리: 알림 발송을 위해 대기자 명단 먼저 추출
-            List<Application> pendingApps = applicationRepository.findAllPendingByGroupId(group.getGroupId());
-
-            for (Application app : pendingApps) {
-                // 신청자들에게 '자동 거절' 알림 발송
-
+                eventPublisher.publish(new GroupNotificationEvent(MATCH_EXPIRED, null, group.getBook().getTitle(), group.getHost().getId(), null, group.getGroupId()));
+                // 신청자 관리: 알림 발송을 위해 대기자 명단 먼저 추출
+                List<Long> rcvIds = applicationRepository.findPendingUserIdsByGroupId(group.getGroupId());
+                eventPublisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, group.getHost().getId(), group.getBook().getTitle(), null, rcvIds, group.getGroupId()));
             }
 
             // 어떤 경우든 남은 대기자(Pending)는 일괄 거절 처리

@@ -16,6 +16,22 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
+    private static final String[] PERMIT_URLS = {
+            "/",
+            "/health",
+
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger/login/**",
+            "/swagger-resources/**",
+            "/swagger-ui.html",
+
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/kakao/callback",
+            "/google/callback"
+    };
+
     // Security Filter Chain 설정
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -28,14 +44,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능
-                        .requestMatchers(
-                                "/**",                 // 테스트용 임시 설정 (제거 예정)
-                                "/api/auth/**",        // 로그인, 토큰 재발급, 로그아웃
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-
-                                "/api/test/**"// 로그인 구현 전 api 테스트 용도(나중에 삭제 필요)
-                        ).permitAll()
+                        .requestMatchers(PERMIT_URLS).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore( // JWT 인증 필터 등록 (UsernamePasswordAuthenticationFilter 이전에 실행)

@@ -88,7 +88,7 @@ public class RedisUtil {
         // 해당 날짜 키에 90일 TTL 설정 (자동 삭제)
         redisTemplate.expire(todayKey, 90, TimeUnit.DAYS);
 
-        log.info("인기 검색어 기록 (날짜별): {} -> {}", todayKey, cleanKeyword);
+        // log.info("인기 검색어 기록 (날짜별): {} -> {}", todayKey, cleanKeyword);
     }
 
     //인기 검색어 조회

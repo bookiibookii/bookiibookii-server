@@ -69,5 +69,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     where a.group.groupId = :groupId
 """)
     List<Long> findApplicantUserIdsByGroupId(@Param("groupId") Long groupId);
+
+    @Query("""
+        select a.guest.id
+        from Application a
+        where a.group.groupId = :groupId
+          and a.applicationStatus = 'PENDING'
+    """)
+    List<Long> findPendingUserIdsByGroupId(@Param("groupId") Long groupId);
 }
 

@@ -18,7 +18,11 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findById(Long id);
     Optional<User> findByNickName(String name);
-    boolean existsByNickName(String name);
+
+    // 탈퇴 유저 포함 닉네임 중복 검사 (Native Query로 @SQLRestriction("status = 'ACTIVE'") 무시)
+    @Query(value = "SELECT EXISTS " +
+            "(SELECT 1 FROM users WHERE nickname = :name)", nativeQuery = true)
+    boolean existsByNickName(@Param("name") String name);
 
     @Query("""
     SELECT u FROM User u
@@ -26,15 +30,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     """)
     Optional<User> findByIdIncludingWithdrawn(@Param("id") Long id);
 
-    // status='ACTIVE' 필터 무시용 (WITHDRAWN까지 조회하여 재가입 로직 구성)
-    @Query("""
-    SELECT u FROM User u
-    WHERE u.socialId = :socialId
-      AND u.socialType = :socialType
-    """)
+    // 재가입을 위해 탈퇴 유저까지 포함하여 조회 (Native Query로 @SQLRestriction("status = 'ACTIVE'") 무시)
+    @Query(value = "SELECT * FROM users " +
+            "WHERE social_id = :socialId " +
+            "AND social_type = :socialType", nativeQuery = true)
     Optional<User> findBySocialIdAndSocialType(
             @Param("socialId") String socialId,
-            @Param("socialType") SocialType socialType
+            @Param("socialType") String socialType
     );
 
     @Modifying

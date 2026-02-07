@@ -60,7 +60,7 @@ public class UserService {
             SocialType socialType
     ) {
         try {
-            return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
+            return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType.name())
                     .map(user -> {
                         if (user.getStatus() == Status.WITHDRAWN) {
                             user.reactivate();
@@ -69,7 +69,7 @@ public class UserService {
                     })
                     .orElseGet(() -> userRepository.save(User.createSocialUser(info, socialType)));
         } catch (DataIntegrityViolationException e) {
-            return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
+            return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType.name())
                     .orElseThrow(() -> new RuntimeException("소셜 유저 생성 중 동시성 오류로 사용자 조회 실패"));
         }
     }

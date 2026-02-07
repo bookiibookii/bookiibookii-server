@@ -9,8 +9,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.*;
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,14 +22,14 @@ import static com.example.bookiibookii.domain.user.enums.Status.ACTIVE;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Filter(name = "activeUserFilter", condition = "status = 'ACTIVE'")
-@FilterDef(name = "activeUserFilter", defaultCondition = "status = 'ACTIVE'")
+@SQLRestriction("status = 'ACTIVE'")
 @Table(
         name = "users",
         uniqueConstraints = {
                 @UniqueConstraint(
                         columnNames = {"social_type", "social_id"}
                 )
+
         }
 )
 public class User extends BaseEntity {

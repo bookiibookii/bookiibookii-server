@@ -172,7 +172,7 @@ public class Tracker extends BaseEntity {
         if(roleStatus.equals(RoleStatus.GUEST)){
             this.trackerStatus = TrackerStatus.GUEST_EXTENSION;
         }else if(roleStatus.equals(RoleStatus.HOST)){
-            this.trackerStatus = trackerStatus.HOST_EXTENSION;
+            this.trackerStatus = TrackerStatus.HOST_EXTENSION;
         }
         this.extensionCount += 1;
         this.extensionDays += days; // 총 연장된 전체 일수 누적

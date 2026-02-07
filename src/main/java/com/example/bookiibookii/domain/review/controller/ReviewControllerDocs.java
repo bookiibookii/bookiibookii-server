@@ -24,7 +24,7 @@ public interface ReviewControllerDocs {
             사용자의 UserBook에 평점(0.5 단위)과 코멘트를 저장합니다.
             
             - 경로: /api/reviews/books/{userBookId}
-            - 조건: 해당 UserBook 소유자이며, 그룹 트래커가 COMPLETED 상태여야 합니다.
+            - 조건: 해당 UserBook 소유자이며, 그룹 트래커가 RETURNED 상태여야 합니다.
             - 코멘트는 최대 500자입니다.
             """
     )
@@ -49,7 +49,7 @@ public interface ReviewControllerDocs {
             1:1 교환독서 그룹에서 상대방에게 평점, 코멘트, 배지를 부여합니다.
             
             - 경로: /api/reviews/{groupId}/groupreview
-            - 조건: 그룹 멤버이며 트래커가 COMPLETED 상태여야 합니다. 한 번만 작성 가능.
+            - 조건: 그룹 멤버이며 트래커가 RETURNED 상태여야 합니다. 한 번만 작성 가능.
             - 코멘트는 최대 200자, 배지는 enum Badge 코드 배열로 전달합니다.
             """
     )

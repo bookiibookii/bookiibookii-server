@@ -135,11 +135,11 @@ public class Tracker extends BaseEntity {
     }
 
     public void completeReading() {
-        if (this.trackerStatus == TrackerStatus.GUEST_READING) {
+        if (this.trackerStatus == TrackerStatus.GUEST_READING || this.trackerStatus == TrackerStatus.GUEST_EXTENSION) {
             this.trackerStatus = TrackerStatus.GUEST_DONE;
-        } else if (this.trackerStatus == TrackerStatus.HOST_READING) {
+        } else if (this.trackerStatus == TrackerStatus.HOST_READING || this.trackerStatus == TrackerStatus.HOST_EXTENSION) {
             this.trackerStatus = TrackerStatus.HOST_DONE;
-        } else if(this.trackerStatus == TrackerStatus.READING) {
+        } else if(this.trackerStatus == TrackerStatus.READING || this.trackerStatus == TrackerStatus.EXTENSION) {
             this.trackerStatus = TrackerStatus.READ_DONE;
         }  else{
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
@@ -149,7 +149,7 @@ public class Tracker extends BaseEntity {
         this.endDate = LocalDateTime.now();
     }
 
-    public void extensionDays(int days) {
+    public void extensionDays(int days, RoleStatus roleStatus) {
         if(days <= 0){
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);
         }
@@ -169,6 +169,11 @@ public class Tracker extends BaseEntity {
         this.endDate = this.endDate.plusDays(days);
 
         // 3. 연장 정보 업데이트
+        if(roleStatus.equals(RoleStatus.GUEST)){
+            this.trackerStatus = TrackerStatus.GUEST_EXTENSION;
+        }else if(roleStatus.equals(RoleStatus.HOST)){
+            this.trackerStatus = trackerStatus.HOST_EXTENSION;
+        }
         this.extensionCount += 1;
         this.extensionDays += days; // 총 연장된 전체 일수 누적
     }

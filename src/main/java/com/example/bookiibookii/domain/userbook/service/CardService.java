@@ -203,7 +203,7 @@ public class CardService {
             throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
         }
         CardImage cardImage = card.getCardImage();
-        String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
+        String bookTitle = getBookTitleSafely(card);
         boolean bookmarked = stateOpt.map(CardState::isBookmarked).orElse(false);
         return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle, bookmarked, getCreatorNameSafely(card));
     }

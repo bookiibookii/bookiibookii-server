@@ -115,4 +115,6 @@ public class CardController implements CardControllerDocs {
         cardService.markCardAsDeleted(cardId, user.getId());
         return ApiResponse.onSuccess(CardImageSuccessCode.CARD_REMOVED_FROM_VIEW, null);
     }
+
+
 }

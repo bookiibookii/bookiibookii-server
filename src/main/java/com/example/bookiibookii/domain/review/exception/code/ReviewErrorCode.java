@@ -23,7 +23,7 @@ public enum ReviewErrorCode implements BaseCode {
     MATCHED_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_2", "그룹 매칭 정보를 찾을 수 없습니다."),
     PARTNER_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_3", "리뷰 대상 파트너를 찾을 수 없습니다."),
     TRACKER_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_4", "트래커를 찾을 수 없습니다."),
-    TRACKER_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "REVIEW400_4", "트래커 완료 후에만 리뷰 작성이 가능합니다.");
+    TRACKER_NOT_RETURNED(HttpStatus.BAD_REQUEST, "REVIEW400_4", "호스트 회수완료 후에만 리뷰 작성이 가능합니다.");
 
     private final HttpStatus status;
     private final String code;

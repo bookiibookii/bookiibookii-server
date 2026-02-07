@@ -107,7 +107,8 @@ public class TrackerConverter {
                 .bookTitle(book != null ? book.getTitle() : null)
                 .bookImage(book != null ? book.getImage() : null)
                 .bookAuthor(book != null ? book.getAuthor() : null)
-                .bookCategory(book != null && book.getCategory() != null ? book.getCategory().toString() : null);
+                .bookCategory(book != null && book.getCategory() != null ? book.getCategory().toString() : null)
+                .tradeType(group.getTradeType());
 
         // 4. 타입별 상세 데이터 매핑
         if (group.getGroupType() == GroupType.RELAY) {

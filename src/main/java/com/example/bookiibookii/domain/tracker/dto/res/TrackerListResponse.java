@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.dto.res;
 
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,6 +17,9 @@ public class TrackerListResponse {
     private String bookImage;
     private String bookAuthor;
     private String bookCategory;
+
+    // 거래방식
+    private TradeType tradeType;
 
     // 타입별 상세 데이터
     private RelayDetail relayDetail;

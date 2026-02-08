@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능
                         .requestMatchers(PERMIT_URLS).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // 관리자 전용 API
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore( // JWT 인증 필터 등록 (UsernamePasswordAuthenticationFilter 이전에 실행)

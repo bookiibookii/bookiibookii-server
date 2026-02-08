@@ -4,10 +4,12 @@ import com.example.bookiibookii.domain.support.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
+@Tag(name = "Notice", description = "공지 관련 API")
 public interface NoticeControllerDocs {
     @Operation(
             summary = "공지 리스트 조회 API",

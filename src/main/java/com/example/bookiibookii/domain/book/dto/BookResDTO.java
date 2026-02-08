@@ -12,6 +12,7 @@ public class BookResDTO {
     private String image;
     private String publisher;
     private String isbn13;
+    private String link;
     private CustomCategory category;
     private String categoryLabel;
 }

@@ -9,7 +9,7 @@ import java.time.LocalDate;
 @Getter
 @Builder
 public class LibraryBookResponseDTO {
-    private Long userBookId;
+    private Long groupId;
     private Long bookId;
     private String title;
     private String author;

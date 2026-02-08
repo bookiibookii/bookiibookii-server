@@ -594,6 +594,7 @@ public class GroupService {
                             .tradeType(group.getTradeType().name())
                             .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
                             .tags(tags)
+                            .customTag(group.getCustomTag())
                             .build();
                 }).toList();
 

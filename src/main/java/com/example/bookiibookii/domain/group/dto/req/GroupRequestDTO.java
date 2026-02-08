@@ -19,6 +19,8 @@ public class GroupRequestDTO {
     @Getter
     //그룹생성 req
     public static class CreateDTO{
+        @NotBlank(message = "ISBN은 필수 입력 사항입니다.")
+        @Pattern(regexp = "^[0-9]{13}$", message = "ISBN13은 숫자 13자리여야 합니다.")
         private String isbn13;          // 대상 도서 ID
         private Integer maxCapacity;   // TOGETHER일 때 인원수
         private LocalDate startDate;

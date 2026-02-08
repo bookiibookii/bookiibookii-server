@@ -67,6 +67,7 @@ public class GroupResponseDTO {
         private Integer waitingCount; // 대기자 수
         private Boolean isHot;         // 대기자가 정원의 3배 이상인지 여부 (Service에서 계산)
         private String createdAt;
+        private String startDate;
 
         // 4. 호스트 정보 및 태그
         private String hostNickname;

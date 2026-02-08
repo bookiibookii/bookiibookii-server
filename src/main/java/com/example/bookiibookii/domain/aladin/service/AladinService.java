@@ -40,6 +40,7 @@ public class AladinService {
                                     .image(nvl(item.cover()))
                                     .publisher(nvl(item.publisher()))
                                     .isbn13(nvl(item.isbn13()))
+                                    .link(nvl(item.link()))
                                     .category(cc.get())
                                     .categoryLabel(cc.get().label())
                                     .build()

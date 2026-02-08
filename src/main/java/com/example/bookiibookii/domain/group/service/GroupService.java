@@ -504,6 +504,7 @@ public class GroupService {
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .tags(tags) // 미리 수집한 태그 리스트 주입
+                            .customtag(group.getCustomTag())
                             .build();
                 }).toList();
 

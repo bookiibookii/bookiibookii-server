@@ -89,7 +89,7 @@ public class AuthService {
         String requestRT = requestDTO.refreshToken();
 
         if (accessToken == null || requestRT == null) {
-            throw new AuthException(AuthErrorCode.NOT_FOUND);
+            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
         }
 
         // RT 자체 유효성 선검증 (서명, 만료여부)

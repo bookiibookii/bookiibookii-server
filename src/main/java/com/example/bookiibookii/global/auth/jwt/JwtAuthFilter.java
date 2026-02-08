@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
+import com.example.bookiibookii.global.apiPayload.code.BaseCode;
 import com.example.bookiibookii.global.auth.CustomUserDetails;
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
@@ -85,13 +86,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             } catch (JwtException | AuthException e) { // 그 외 잘못된 토큰
                 sendErrorResponse(response, AuthErrorCode.INVALID_ACCESS_TOKEN);
                 return;
+            } catch (UserException e) {
+                sendErrorResponse(response, e.getCode());
+                return;
             }
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private void sendErrorResponse(HttpServletResponse response, AuthErrorCode errorCode) throws IOException {
+    private void sendErrorResponse(HttpServletResponse response, BaseCode errorCode) throws IOException {
         response.setStatus(errorCode.getStatus().value());
         response.setContentType("application/json;charset=UTF-8");
 

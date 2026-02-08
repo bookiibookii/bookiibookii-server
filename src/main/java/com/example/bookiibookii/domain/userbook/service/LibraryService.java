@@ -63,7 +63,7 @@ public class LibraryService {
         }
 
         return LibraryBookResponseDTO.builder()
-                .userBookId(ub.getId())
+                .groupId(group.getGroupId())
                 .bookId(book.getId())
                 .title(book.getTitle())
                 .author(book.getAuthor())

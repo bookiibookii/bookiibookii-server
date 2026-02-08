@@ -7,7 +7,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "notification")
@@ -53,12 +53,12 @@ public class Notification extends BaseEntity {
     private boolean read;
 
     @Column(name = "read_at")
-    private LocalDateTime readAt;
+    private Instant readAt;
 
     public void markAsRead() {
         if (!this.read) {
             this.read = true;
-            this.readAt = LocalDateTime.now();
+            this.readAt = Instant.now();
         }
     }
 }

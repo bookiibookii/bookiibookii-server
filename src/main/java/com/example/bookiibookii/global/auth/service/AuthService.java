@@ -71,6 +71,7 @@ public class AuthService {
         // Key: "RT:{userId}", Value: refreshToken
         // Expiration: application.yml에 설정된 시간 (밀리초 -> 분 변환 필요)
         int rtExpirationMinutes = (int) (jwtProvider.getRefreshTokenExpireTime() / 1000 / 60);
+        redisUtil.delete("RT:" + userId);
         redisUtil.set("RT:" + userId, refreshToken, rtExpirationMinutes);
 
         return AuthResponseDTO.LoginResponse.builder()
@@ -115,6 +116,7 @@ public class AuthService {
         String newRT = jwtProvider.createRefreshToken(userId);
 
         long expireMs = jwtProvider.getRefreshTokenExpireTime();
+        redisUtil.delete("RT:" + userId);
         redisUtil.set("RT:" + userId, newRT, (int) (expireMs / (1000 * 60)));
 
         return AuthResponseDTO.TokenResponse.builder()

@@ -84,7 +84,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(value = "SELECT * FROM users u " +
             "WHERE u.id <> :userId " +
             "AND EXISTS (" +
-            "  SELECT 1 FROM 'groups' g " +
+            "  SELECT 1 FROM `groups` g " +
             "  WHERE g.host_id = u.id " +
             "  AND g.group_status = :status) " +
             "ORDER BY RAND() " +

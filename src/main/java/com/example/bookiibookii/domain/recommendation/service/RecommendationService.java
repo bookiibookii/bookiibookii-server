@@ -148,7 +148,11 @@ public class RecommendationService {
 
             // 조회된 결과가 있다면 Redis에 저장 (예: 1시간 유효)
             if (!candidateDtos.isEmpty()) {
-                redisUtil.set(cacheKey, candidateDtos, 60);
+                redisUtil.set(
+                        cacheKey,
+                        candidateDtos.toArray(new RecommendationResponseDTO.RecommendedGroupDto[0]), // List -> Array 변환
+                        60
+                );
             }
         }
 
@@ -172,7 +176,7 @@ public class RecommendationService {
 
         List<Groups> candidateGroups = new ArrayList<>();
 
-        // 태그 일치 그룹 조회 (최대 6개)
+        // 태그 일치 그룹 조회 (최대 50개)
         if (!userTagIds.isEmpty()) {
             List<Groups> matchedGroups = groupsRepository.findGroupsByTagMatching(
                     userTagIds,
@@ -182,7 +186,7 @@ public class RecommendationService {
             candidateGroups.addAll(matchedGroups);
         }
 
-        // 6개를 충족하지 못한 경우, 부족한 수량 랜덤 채우기
+        // 최소 6개를 충족하지 못한 경우, 부족한 수량 랜덤 채우기
         int candidateGroupsCount = 6 - candidateGroups.size();
 
         if (candidateGroupsCount > 0) {
@@ -198,7 +202,7 @@ public class RecommendationService {
 
             List<Groups> randomGroups = groupsRepository.findRandomGroupsExcluding(
                     excludedIds,
-                    GroupStatus.RECRUITING,
+                    GroupStatus.RECRUITING.name(),
                     candidateGroupsCount
             );
             candidateGroups.addAll(randomGroups);

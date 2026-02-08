@@ -10,7 +10,7 @@ public class InquiryResponseDTO {
     public record InquiryListDTO(
             Long inquiryId,
             String nickname,
-            @JsonFormat(pattern = "yyyy.MM.dd")
+            @JsonFormat(pattern = "yyyy.MM.dd", timezone = "Asia/Seoul")
             Instant createdAt,
             String title,
             String content,

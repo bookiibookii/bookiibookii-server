@@ -11,7 +11,7 @@ public class NoticeResponseDTO {
             String title,
             String content,
             String image,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
+            @JsonFormat(pattern = "yyyy.MM.dd HH:mm", timezone = "Asia/Seoul")
             Instant createdAt
     ) {}
 

@@ -13,7 +13,7 @@ public class ReportResponseDTO {
             Long reportId,
             String reporterNickname,
             String groupName,
-            @JsonFormat(pattern = "yyyy.MM.dd")
+            @JsonFormat(pattern = "yyyy.MM.dd", timezone = "Asia/Seoul")
             Instant createdAt, // 신고 날짜
             ReportType reportType,
             String content,

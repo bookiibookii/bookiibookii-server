@@ -1,9 +1,11 @@
 package com.example.bookiibookii.domain.review.service;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.review.dto.req.BookReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.req.GroupReviewRequestDTO;
+import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
 import com.example.bookiibookii.domain.review.exception.ReviewException;
 import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
@@ -21,7 +23,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -131,4 +136,67 @@ public class ReviewService {
     }
 
 
+    @Transactional(readOnly = true)
+    public GroupReviewResponseDTO.GroupReviewDetailDTO getMyRelayReviewHistory(User user) {
+        // 2. 내가 받은 리뷰 목록 조회 (gr.reviewed가 나인 것들)
+        List<GroupReview> partnerToMeReviews = groupReviewRepository.findByReviewedUserId(user.getId());
+        if (partnerToMeReviews == null) partnerToMeReviews = new ArrayList<>();
+
+        List<GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO> reviewItems = partnerToMeReviews.stream()
+                .map(gr -> {
+                    // 3. 상대방(나에게 리뷰를 쓴 작성자) 찾기
+                    MatchedMember partnerMM = gr.getReviewer();
+                    if (partnerMM == null) return null;
+
+                    Groups group = partnerMM.getGroup();
+
+                    // 4. 트래커 및 상대방 독후감 조회
+                    Tracker tracker = trackerRepository.findByGroupId(group.getGroupId()).orElse(null);
+                    UserBook partnerBookReview = userBookRepository.findByUser_IdAndGroup_GroupId(
+                            partnerMM.getUser().getId(),
+                            group.getGroupId()
+                    ).orElse(null);
+
+                    return buildReviewItemDTO(group, tracker, partnerMM, gr, partnerBookReview);
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        return GroupReviewResponseDTO.GroupReviewDetailDTO.builder()
+                .reviews(reviewItems)
+                .build();
+    }
+
+    private GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO buildReviewItemDTO(
+            Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, UserBook pub) {
+
+        // 5. 뱃지 변환 로직
+        List<GroupReviewResponseDTO.BadgeInfo> badges = (gr != null) ? gr.getBadges().stream()
+                .map(b -> GroupReviewResponseDTO.BadgeInfo.builder()
+                        .code(b.getBadge().name())
+                        .description(b.getBadge().getDescription())
+                        .build())
+                .toList() : new ArrayList<>();
+
+        return GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO.builder()
+                .groupId(group.getGroupId())
+                .bookTitle(group.getBook().getTitle())
+                .bookImage(group.getBook().getImage())
+                .startDate(group.getStartDate().toString())
+                // 6. finishedDate 처리
+                .finishedDate(tracker != null && tracker.getUpdatedAt() != null ?
+                        tracker.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")) : "진행중")
+                .partnerNickname(partnerMM != null ? partnerMM.getUser().getNickName() : "알 수 없음")
+                // 7. DTO 필드명과 일치시킴 (partnerBadges)
+                .partnerToMeRating(gr != null ? gr.getRating() : 0.0)
+                .partnerToMeComment(gr != null ? gr.getComment() : "평가가 없습니다.")
+                .partnerBadges(badges)
+                // 8. 상대방 책 리뷰 (pub.getComment() 사용)
+                .partnerBookRating(pub != null ? pub.getRating() : 0.0)
+                .partnerBookComment(pub != null ? pub.getComment() : "리뷰가 없습니다.")
+                .partnerBookReviewDate(pub != null && pub.getUpdatedAt() != null ?
+                        pub.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")) : null)
+                .build();
+    }
 }
+

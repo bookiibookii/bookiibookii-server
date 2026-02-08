@@ -62,4 +62,6 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     ORDER BY ub.updatedAt DESC
     """)
     List<UserBook> searchMyLibrary(@Param("userId") Long userId, @Param("keyword") String keyword);
+
+    Optional<UserBook> findByUser_IdAndGroup_GroupId(Long userId, Long groupId);
 }

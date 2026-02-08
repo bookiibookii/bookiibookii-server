@@ -102,4 +102,15 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     // 참여했던 전체 그룹 중 특정 타입(RELAY, TOGETHER) 개수 조회
     Long countByUser_IdAndGroup_GroupType(Long userId, GroupType groupType);
 
+    //review용 메서드
+    @Query("SELECT mm FROM MatchedMember mm " +
+            "JOIN FETCH mm.group g " +
+            "JOIN FETCH g.book b " +      // 책 정보 한 번에 가져오기
+            "JOIN Tracker t ON t.group = g " +  // 종료 상태 확인을 위해 트래커 가져오기
+            "WHERE mm.user.id = :userId " +
+            "AND g.groupType = 'RELAY' " +
+            "AND t.trackerStatus = 'RETURNED' " + // 회수 완료된 것만
+            "ORDER BY t.updatedAt DESC")          // 최신순 정렬
+    List<MatchedMember> findFinishedRelayParticipations(@Param("userId") Long userId);
+
 }

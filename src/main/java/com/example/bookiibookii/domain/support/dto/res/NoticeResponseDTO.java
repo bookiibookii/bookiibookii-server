@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.support.dto.res;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 public class NoticeResponseDTO {
@@ -11,12 +12,12 @@ public class NoticeResponseDTO {
             String content,
             String image,
             @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
-            LocalDateTime createdAt
+            Instant createdAt
     ) {}
 
     public record NoticeListDTO(
             Long id,
-            LocalDateTime createdAt,
+            Instant createdAt,
             String title,
             String summary
     ) {}

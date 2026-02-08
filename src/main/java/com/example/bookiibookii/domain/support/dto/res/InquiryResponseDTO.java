@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.support.dto.res;
 import com.example.bookiibookii.domain.support.enums.SupportStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 public class InquiryResponseDTO {
@@ -10,7 +11,7 @@ public class InquiryResponseDTO {
             Long inquiryId,
             String nickname,
             @JsonFormat(pattern = "yyyy.MM.dd")
-            LocalDateTime createdAt,
+            Instant createdAt,
             String title,
             String content,
             SupportStatus supportStatus,

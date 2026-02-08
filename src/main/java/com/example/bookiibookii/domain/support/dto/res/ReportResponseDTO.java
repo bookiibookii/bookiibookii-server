@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.support.enums.SupportStatus;
 import com.example.bookiibookii.domain.support.enums.ReportType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 public class ReportResponseDTO {
@@ -13,7 +14,7 @@ public class ReportResponseDTO {
             String reporterNickname,
             String groupName,
             @JsonFormat(pattern = "yyyy.MM.dd")
-            LocalDateTime createdAt, // 신고 날짜
+            Instant createdAt, // 신고 날짜
             ReportType reportType,
             String content,
             SupportStatus supportStatus,

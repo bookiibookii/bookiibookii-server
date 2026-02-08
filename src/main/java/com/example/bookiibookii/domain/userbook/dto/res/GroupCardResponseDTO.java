@@ -3,7 +3,7 @@ package com.example.bookiibookii.domain.userbook.dto.res;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 목록·상세 공통 카드 응답 DTO.
@@ -17,7 +17,7 @@ public class GroupCardResponseDTO {
     private Integer page;
     private String memo;
     private CardImageResponseDTO cardImage;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     /** 책 제목 (목록/상세 모두 설정) */
     private String bookTitle;
     /** 현재 로그인 사용자가 이 카드를 북마크했는지 (목록/상세/북마크 목록에서 사용) */

@@ -1,7 +1,8 @@
 package com.example.bookiibookii.domain.comment.dto.res;
 
 import com.example.bookiibookii.domain.comment.dto.CardWriterDto;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 import java.util.List;
 
 public class CardCommentResDTO {
@@ -14,7 +15,7 @@ public class CardCommentResDTO {
             Long id,
             String content,
             CardWriterDto writer,
-            LocalDateTime createdAt
+            Instant createdAt
     ) {}
 
     public record ListResponse(

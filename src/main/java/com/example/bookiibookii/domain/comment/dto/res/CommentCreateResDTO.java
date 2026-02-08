@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.comment.dto.WriterDto;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -13,6 +13,6 @@ public class CommentCreateResDTO {
     private Long groupId;
     private Long parentId;
     private String content;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private WriterDto writer;
 }

@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +35,7 @@ public class ApplicationResponseDTO {
         private String name;
         //private String profileImageUrl; //유저 프로필 이미지
         private List<String> tags; // "#메모환영", "#인사이트" 등?
-        private String createdAt;
+        private Instant createdAt;
         private String applyMsg;
     }
 

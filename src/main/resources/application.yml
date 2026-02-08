@@ -3,3 +3,5 @@ spring:
     name: bookiibookii
   profiles:
     active: dev
+  jackson:
+    time-zone: Asia/Seoul

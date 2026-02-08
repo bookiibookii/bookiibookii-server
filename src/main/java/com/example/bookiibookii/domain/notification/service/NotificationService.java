@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +110,7 @@ public class NotificationService {
     }
 
     //  cursor utils
-    private record Cursor(boolean read, LocalDateTime createdAt, Long id) {
+    private record Cursor(boolean read, Instant createdAt, Long id) {
     }
 
     private Cursor parseCursor(String cursor) {
@@ -124,7 +125,7 @@ public class NotificationService {
 
         try {
             boolean read = Boolean.parseBoolean(cursor.substring(0, first));
-            LocalDateTime createdAt = LocalDateTime.parse(cursor.substring(first + 1, last));
+            Instant createdAt = Instant.parse(cursor.substring(first + 1, last));
             Long id = Long.parseLong(cursor.substring(last + 1));
             return new Cursor(read, createdAt, id);
         } catch (Exception e) {
@@ -132,7 +133,7 @@ public class NotificationService {
         }
     }
 
-    private String buildCursor(boolean read, LocalDateTime createdAt, Long id) {
+    private String buildCursor(boolean read, Instant createdAt, Long id) {
         return read + "_" + createdAt + "_" + id;
     }
 }

@@ -32,7 +32,7 @@ public class GroupScheduler {
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * *", zone="Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         LocalDate today = LocalDate.now();

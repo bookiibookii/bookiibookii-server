@@ -292,7 +292,7 @@ public class ApplicationService {
                 .user(guest.getId())
                 .name(guest.getNickName())
                 //.profileImageUrl(guest.getImageUrl()) //프로필 사진
-                .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
+                .createdAt(application.getCreatedAt())
                 .tags(top3Tags)
                 .applyMsg(application.getApplyMsg())
                 .build();

@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.tracker.dto.res;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -17,5 +19,5 @@ public class TrackerHistoryResponse {
     private String trackingNumber; // 운송장 번호
     private LocalDateTime start_date;
     private LocalDateTime end_date;
-    private LocalDateTime createdAt; // 기록 일시
+    private Instant createdAt; // 기록 일시
 }

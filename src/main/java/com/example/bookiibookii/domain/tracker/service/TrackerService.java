@@ -49,6 +49,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,6 +75,7 @@ public class TrackerService {
     private final MeetingRepository meetingRepository;
     private final TrackerConverter trackerConverter;
     private final DomainEventPublisher publisher;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
 
     private void validateGroupMember(Long groupId, Long userId) {
@@ -377,12 +379,14 @@ public class TrackerService {
     }
 
     private void addDateIfPresent(List<String> dates, List<TrackerHistory> histories, TrackerStatus status, DateTimeFormatter formatter) {
+        DateTimeFormatter kstFormatter = formatter.withZone(KST);
+
         histories.stream()
                 .filter(h -> h.getTrackerStatus() == status)
                 .map(BaseEntity::getCreatedAt) // 히스토리가 생성된 시점
                 .sorted() // 혹시 모를 중복 기록에 대비해 가장 빠른 날짜 선택
                 .findFirst()
-                .ifPresent(createdAt -> dates.add(createdAt.format(formatter)));
+                .ifPresent(createdAt -> dates.add(kstFormatter.format(createdAt)));
     }
 
 

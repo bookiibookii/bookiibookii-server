@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,7 +42,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("receiverId") Long receiverId,
             @Param("category") NotificationCategory category,
             @Param("cursorRead") boolean cursorRead,
-            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorCreatedAt") Instant cursorCreatedAt,
             @Param("cursorId") Long cursorId,
             Pageable pageable
     );

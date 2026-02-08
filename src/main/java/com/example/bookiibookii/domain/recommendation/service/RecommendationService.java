@@ -156,7 +156,7 @@ public class RecommendationService {
             }
         }
 
-        // 캐시된 6개 데이터 랜덤하게 추출
+        // 새로고침 시 캐시된 추천 풀을 셔플하여 다른 조합 반환
         if(isRefresh) {
             Collections.shuffle(candidateDtos);
         }

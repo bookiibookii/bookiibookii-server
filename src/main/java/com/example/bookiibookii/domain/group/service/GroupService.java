@@ -504,6 +504,7 @@ public class GroupService {
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .tags(tags) // 미리 수집한 태그 리스트 주입
+                            .customTag(group.getCustomTag())
                             .build();
                 }).toList();
 
@@ -593,6 +594,7 @@ public class GroupService {
                             .tradeType(group.getTradeType().name())
                             .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
                             .tags(tags)
+                            .customTag(group.getCustomTag())
                             .build();
                 }).toList();
 

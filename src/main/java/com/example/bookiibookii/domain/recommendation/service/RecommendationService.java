@@ -12,6 +12,7 @@ import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.user.service.UserTagService;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
+import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,10 @@ public class RecommendationService {
     private final UserTagRepository userTagRepository;
     private final UserBookService userBookService;
     private final GroupsRepository groupsRepository;
+    private final RedisUtil redisUtil;
+
+    // 캐시 키 접두사 상수
+    private static final String REC_CACHE_KEY_PREFIX = "REC:GROUP:";
 
     public List<RecommendationResponseDTO.BookmateDto> findRecommendBookmates(Long userId) {
         List<TagType> targetTypes = List.of(TagType.METHOD, TagType.VIBE);
@@ -127,8 +132,38 @@ public class RecommendationService {
         return result.stream().limit(5).toList();
     }
 
-
     public List<RecommendationResponseDTO.RecommendedGroupDto> findRecommendGroups(Long userId, boolean isRefresh) {
+        String cacheKey = REC_CACHE_KEY_PREFIX + userId; // Redis 키 설정
+        List<RecommendationResponseDTO.RecommendedGroupDto> candidateDtos;
+
+        // Redis에서 캐시 조회
+        RecommendationResponseDTO.RecommendedGroupDto[] cachedArray =
+                redisUtil.get(cacheKey, RecommendationResponseDTO.RecommendedGroupDto[].class);
+        if (cachedArray != null && cachedArray.length > 0) {
+            // [Cache Hit] 캐시가 있으면 리스트로 변환하여 사용
+            candidateDtos = new ArrayList<>(Arrays.asList(cachedArray));
+        } else {
+            // [Cache Miss] 캐시가 없으면 DB에서 조회 (기존 로직 수행)
+            candidateDtos = fetchRecommendationsFromDB(userId);
+
+            // 조회된 결과가 있다면 Redis에 저장 (예: 1시간 유효)
+            if (!candidateDtos.isEmpty()) {
+                redisUtil.set(cacheKey, candidateDtos, 60);
+            }
+        }
+
+        // 캐시된 6개 데이터 랜덤하게 추출
+        if(isRefresh) {
+            Collections.shuffle(candidateDtos);
+        }
+
+        // 앞에서 3개 잘라서 DTO 변환 및 반환
+        return candidateDtos.stream()
+                .limit(3)
+                .collect(Collectors.toList());
+    }
+
+    private List<RecommendationResponseDTO.RecommendedGroupDto> fetchRecommendationsFromDB(Long userId) {
         List<TagType> targetTypes = List.of(TagType.GENRE, TagType.METHOD, TagType.VIBE, TagType.SPEED);
         List<UserTag> userTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
         List<Long> userTagIds = userTags.stream()
@@ -136,12 +171,13 @@ public class RecommendationService {
                 .toList();
 
         List<Groups> candidateGroups = new ArrayList<>();
+
         // 태그 일치 그룹 조회 (최대 6개)
         if (!userTagIds.isEmpty()) {
             List<Groups> matchedGroups = groupsRepository.findGroupsByTagMatching(
                     userTagIds,
                     GroupStatus.RECRUITING,
-                    PageRequest.of(0, 6)
+                    PageRequest.of(0, 50)
             );
             candidateGroups.addAll(matchedGroups);
         }
@@ -168,15 +204,7 @@ public class RecommendationService {
             candidateGroups.addAll(randomGroups);
         }
 
-        // 반환 로직 분기 : 처음 조회할 땐 가장 일치도가 높은 것 추출, 새로 고침 시엔 6개 중 랜덤 3개
-        // TODO : Redis 적용하여 candidateGroups를 매번 계산하지 않도록 최적화할 예정
-        if (isRefresh) {
-            Collections.shuffle(candidateGroups); // 6개 풀 안에서 랜덤 섞기
-        }
-
-        // 앞에서 3개 잘라서 DTO 변환 및 반환
         return candidateGroups.stream()
-                .limit(3)
                 .map(this::toSuggestGroupDto)
                 .collect(Collectors.toList());
     }

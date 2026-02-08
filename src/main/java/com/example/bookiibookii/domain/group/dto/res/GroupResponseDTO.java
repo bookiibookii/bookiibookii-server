@@ -108,7 +108,7 @@ public class GroupResponseDTO {
             String hostNickname,
             String hostProfileImage,
             List<String> tags,
-            String customtag,
+            String customTag,
             String groupStatus,
             int currentCount,
             int maxCapacity,

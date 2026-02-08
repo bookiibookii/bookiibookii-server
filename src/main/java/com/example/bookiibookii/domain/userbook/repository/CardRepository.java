@@ -26,5 +26,8 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     @Query("SELECT c FROM Card c JOIN FETCH c.cardImage WHERE c.userBook.id = :userBookId ORDER BY c.createdAt ASC")
     List<Card> findByUserBookIdWithCardImage(@Param("userBookId") Long userBookId);
 
+    @Query("SELECT c FROM Card c JOIN FETCH c.cardImage JOIN FETCH c.userBook ub JOIN FETCH ub.user JOIN FETCH c.group g JOIN FETCH g.book WHERE c.group.groupId = :groupId ORDER BY c.createdAt ASC")
+    List<Card> findByGroup_GroupIdWithCardImageAndUserBookAndGroupAndBook(@Param("groupId") Long groupId);
+
     Optional<Card> findTopByUserBook_User_IdAndGroupOrderByPageDesc(Long userId, Groups group);
 }

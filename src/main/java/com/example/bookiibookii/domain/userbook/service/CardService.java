@@ -11,21 +11,24 @@ import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.Card;
-import com.example.bookiibookii.domain.userbook.entity.CardBookmark;
 import com.example.bookiibookii.domain.userbook.entity.CardImage;
-import com.example.bookiibookii.domain.userbook.entity.DeletedCard;
+import com.example.bookiibookii.domain.userbook.entity.CardState;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.exception.CardException;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardErrorCode;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
-import com.example.bookiibookii.domain.userbook.repository.CardBookmarkRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardImageRepository;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
-import com.example.bookiibookii.domain.userbook.repository.DeletedCardRepository;
+import com.example.bookiibookii.domain.userbook.repository.CardStateRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
+import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -41,14 +44,15 @@ import java.util.Set;
 public class CardService {
 
     private final CardRepository cardRepository;
-    private final DeletedCardRepository deletedCardRepository;
-    private final UserRepository userRepository;
-    private final CardBookmarkRepository cardBookmarkRepository;
+    private final CardStateRepository cardStateRepository;
     private final CardImageRepository cardImageRepository;
     private final CardImageValidationService cardImageValidationService;
     private final CardImageS3Service cardImageS3Service;
     private final UserBookRepository userBookRepository;
+    private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final UserRepository userRepository;
+    private final TrackerRepository trackerRepository;
 
     // ========== 컨트롤러에서 직접 호출 (DTO 반환) ==========
 
@@ -58,6 +62,14 @@ public class CardService {
     public PresignedUrlResponseDTO getPresignedPutUrlForNewCard(Long userBookId, Long userId, int presignedPutUrlExpirationMinutes) {
         userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+        return cardImageS3Service.generatePresignedPutUrl(presignedPutUrlExpirationMinutes);
+    }
+
+    /**
+     * 카드 이미지 수정용 Presigned PUT URL 발급. 카드 소유자(UserBook 소유자)만 발급 가능.
+     */
+    public PresignedUrlResponseDTO getPresignedPutUrlForCardImageUpdate(Long cardId, Long userId, int presignedPutUrlExpirationMinutes) {
+        getCardForOwner(cardId, userId);
         return cardImageS3Service.generatePresignedPutUrl(presignedPutUrlExpirationMinutes);
     }
 
@@ -117,48 +129,67 @@ public class CardService {
     }
 
     /**
-     * UserBook에 속한 Card 목록과 책 제목을 DTO로 반환합니다.
+     * 그룹에 속한 전체 멤버의 독서카드 목록을 한 번에 조회합니다.
+     * 그룹 멤버만 조회 가능하며, 생성일 기준 오름차순으로 반환합니다.
      */
-    public CardListResponseDTO getCardsByUserBookId(Long userBookId, Long userId, int presignedGetUrlExpirationMinutes) {
-        UserBook userBook = userBookRepository.findByIdWithGroupAndUser(userBookId)
-                .orElseThrow(() -> new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND));
+    public CardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
+        Groups group = groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        Groups group = userBook.getGroup();
-        if (group == null) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
-        }
-        Long groupId = group.getGroupId();
-        boolean isOwner = userBook.getUser().getId().equals(userId);
-        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
-        if (!isOwner && !isGroupMember) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
         }
 
         Book book = group.getBook();
-        if (book == null) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
-        }
-        String bookTitle = book.getTitle();
-        String creatorName = userBook.getUser().getNickName();
+        String bookTitle = (book != null && book.getTitle() != null) ? book.getTitle() : "";
 
-        List<Card> cards = cardRepository.findByUserBookIdWithCardImage(userBookId);
-        Set<Long> deletedCardIds = Set.copyOf(deletedCardRepository.findCardIdsByUser_Id(userId));
+        List<Card> cards = cardRepository.findByGroup_GroupIdWithCardImageAndUserBookAndGroupAndBook(groupId);
+        Set<Long> hiddenCardIds = Set.copyOf(cardStateRepository.findHiddenCardIdsByUserId(userId));
         cards = cards.stream()
-                .filter(c -> !deletedCardIds.contains(c.getId()))
+                .filter(c -> !hiddenCardIds.contains(c.getId()))
                 .toList();
 
         List<Long> cardIds = cards.stream().map(Card::getId).toList();
         Set<Long> bookmarkedCardIds = cardIds.isEmpty()
                 ? Set.of()
-                : cardBookmarkRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
+                : cardStateRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
 
         List<GroupCardResponseDTO> cardDTOs = cards.stream()
-                .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarkedCardIds.contains(card.getId())))
+                .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarkedCardIds.contains(card.getId()), getCreatorNameSafely(card)))
                 .toList();
+
+        var trackerOpt = trackerRepository.findByGroupId(groupId);
+        CardListResponseDTO.CurrentBookOwnerDto currentBookOwner = trackerOpt
+                .filter(t -> t.getBookOwner() != null && t.getBookOwner().getUser() != null)
+
+                .map(t -> CardListResponseDTO.CurrentBookOwnerDto.builder()
+                        .matchedMemberId(t.getBookOwner().getId())
+                        .nickname(t.getBookOwner().getUser().getNickName() != null ? t.getBookOwner().getUser().getNickName() : "")
+                        .build())
+                .orElse(null);
+
+        String myComment = null;
+        String partnerComment = null;
+        if (group.getGroupType() == GroupType.RELAY) {
+            myComment = userBookRepository.findByUser_IdAndGroup_GroupId(userId, groupId)
+                    .map(ub -> ub.getComment())
+                    .orElse(null);
+            if (trackerOpt.isPresent()
+                    && trackerOpt.get().getBookOwner() != null
+                    && trackerOpt.get().getBookOwner().getUser() != null
+                    && !trackerOpt.get().getBookOwner().getUser().getId().equals(userId)) {
+                Long partnerUserId = trackerOpt.get().getBookOwner().getUser().getId();
+                partnerComment = userBookRepository.findByUser_IdAndGroup_GroupId(partnerUserId, groupId)
+                        .map(ub -> ub.getComment())
+                        .orElse(null);
+            }
+        }
 
         return CardListResponseDTO.builder()
                 .groupId(groupId)
-                .creatorName(creatorName)
+                .currentBookOwner(currentBookOwner)
+                .myComment(myComment)
+                .partnerComment(partnerComment)
                 .cards(cardDTOs)
                 .build();
     }
@@ -168,13 +199,14 @@ public class CardService {
      */
     public GroupCardResponseDTO getCardDetailResponseDTO(Long cardId, Long userId, int presignedGetUrlExpirationMinutes) {
         Card card = getCardDetail(cardId, userId);
-        if (deletedCardRepository.existsByUser_IdAndCard_Id(userId, cardId)) {
+        var stateOpt = cardStateRepository.findByUser_IdAndCard_Id(userId, cardId);
+        if (stateOpt.map(CardState::isHidden).orElse(false)) {
             throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
         }
         CardImage cardImage = card.getCardImage();
-        String bookTitle = card.getUserBook().getGroup().getBook().getTitle();
-        boolean bookmarked = cardBookmarkRepository.existsByUser_IdAndCard_Id(userId, cardId);
-        return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle, bookmarked);
+        String bookTitle = getBookTitleSafely(card);
+        boolean bookmarked = stateOpt.map(CardState::isBookmarked).orElse(false);
+        return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle, bookmarked, getCreatorNameSafely(card));
     }
 
     /**
@@ -197,22 +229,31 @@ public class CardService {
     @Transactional
     public void markCardAsDeleted(Long cardId, Long userId) {
         Card card = getCardDetail(cardId, userId);
-        if (deletedCardRepository.existsByUser_IdAndCard_Id(userId, cardId)) {
+        CardState state = cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
+                .orElseGet(() -> {
+                    try {
+                        return cardStateRepository.saveAndFlush(CardState.builder()
+                                .user(userRepository.getReferenceById(userId))
+                                .card(card)
+                                .bookmarked(false)
+                                .hidden(false)
+                                .build());
+                    } catch (DataIntegrityViolationException e) {
+                        return cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
+                                .orElseThrow(() -> new CardException(CardErrorCode.CARD_NOT_FOUND));
+                    }
+                });
+        if (state.isBookmarked()) {
+            throw new CardException(CardErrorCode.BOOKMARKED_CARD_CANNOT_DELETE);
+        }
+        if (state.isHidden()) {
             return;
         }
-        DeletedCard deleted = DeletedCard.builder()
-                .user(userRepository.getReferenceById(userId))
-                .card(card)
-                .build();
-        try {
-            deletedCardRepository.saveAndFlush(deleted);
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            // 동시 요청으로 이미 삽입된 경우 — 멱등 처리
-        }
+        state.setHidden(true);
     }
 
     /**
-     * 카드 소유자(UserBook 소유자)만 접근 가능한 조회. CardImageController 등에서 사용.
+     * 카드 소유자(UserBook 소유자)만 접근 가능한 조회. 카드 이미지 수정용 Presigned URL 발급 등에서 사용.
      */
     public Card getCardForOwner(Long cardId, Long userId) {
         Card card = cardRepository.findByIdWithCardImageAndUserBookAndBook(cardId)
@@ -375,7 +416,7 @@ public class CardService {
                 .build();
     }
 
-    private GroupCardResponseDTO buildGroupCardResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle, boolean isBookmarked) {
+    private GroupCardResponseDTO buildGroupCardResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle, boolean isBookmarked, String creatorName) {
         if (cardImage == null) {
             throw new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND);
         }
@@ -392,6 +433,7 @@ public class CardService {
                 .createdAt(card.getCreatedAt())
                 .bookTitle(bookTitle)
                 .isBookmarked(isBookmarked)
+                .creatorName(creatorName)
                 .build();
     }
 
@@ -404,36 +446,47 @@ public class CardService {
     @Transactional
     public boolean toggleBookmark(Long cardId, Long userId) {
         Card card = getCardDetail(cardId, userId);
-        var existing = cardBookmarkRepository.findByUser_IdAndCard_Id(userId, cardId);
-        if (existing.isPresent()) {
-            cardBookmarkRepository.delete(existing.get());
-            return false;
-        }
-        CardBookmark bookmark = CardBookmark.builder()
-                .user(userRepository.getReferenceById(userId))
-                .card(card)
-                .build();
-        try {
-            cardBookmarkRepository.saveAndFlush(bookmark);
-        } catch (DataIntegrityViolationException e) {
-            // 동시 요청으로 인한 중복 생성 시도 → 이미 북마크됨으로 처리
-            throw new CardException(CardErrorCode.ALREADY_BOOKMARKED);
-        }
-        return true;
+        CardState state = cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
+                .orElseGet(() -> {
+                    try {
+                        return cardStateRepository.saveAndFlush(CardState.builder()
+                                .user(userRepository.getReferenceById(userId))
+                                .card(card)
+                                .bookmarked(false)
+                                .hidden(false)
+                                .build());
+                    } catch (DataIntegrityViolationException e) {
+                        return cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
+                                .orElseThrow(() -> new CardException(CardErrorCode.CARD_STATE_CONFLICT));
+                    }
+                });
+        state.setBookmarked(!state.isBookmarked());
+        return state.isBookmarked();
     }
 
     /**
      * 현재 사용자가 북마크한 독서카드 목록을 반환합니다.
      */
     public List<GroupCardResponseDTO> getMyBookmarkedCards(Long userId, int presignedGetUrlExpirationMinutes) {
-        List<CardBookmark> bookmarks = cardBookmarkRepository.findByUser_IdWithCardAndImageAndBookOrderByCreatedAtDesc(userId);
-        return bookmarks.stream()
-                .map(cb -> {
-                    Card card = cb.getCard();
+        List<CardState> states = cardStateRepository.findByUser_IdAndBookmarkedTrueWithCardAndImageAndBookOrderByCreatedAtDesc(userId);
+        return states.stream()
+                .map(cs -> {
+                    Card card = cs.getCard();
                     String bookTitle = getBookTitleSafely(card);
-                    return buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, true);
+                    return buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, true, getCreatorNameSafely(card));
                 })
                 .toList();
+    }
+
+    /**
+     * 카드 작성자 이름을 안전하게 조회합니다.
+     */
+    private String getCreatorNameSafely(Card card) {
+        if (card == null || card.getUserBook() == null || card.getUserBook().getUser() == null) {
+            return "";
+        }
+        String name = card.getUserBook().getUser().getNickName();
+        return name != null ? name : "";
     }
 
     /**

@@ -20,6 +20,9 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
 
     Optional<UserBook> findByIdAndUser_Id(Long id, Long userId);
 
+    /** 그룹 내 해당 사용자의 UserBook (한줄평 조회용) */
+    Optional<UserBook> findByUser_IdAndGroup_GroupId(Long userId, Long groupId);
+
     @Query("""
         SELECT DISTINCT ub FROM UserBook ub
         JOIN FETCH ub.group g

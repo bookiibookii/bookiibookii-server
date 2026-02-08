@@ -115,6 +115,7 @@ public class GroupResponseDTO {
             boolean isHot,
             String groupType,
             String tradeType,
+            Integer readingPeriod,
             String startDate,
             String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
     ) {}

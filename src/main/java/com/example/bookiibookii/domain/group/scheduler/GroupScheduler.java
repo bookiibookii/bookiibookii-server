@@ -17,7 +17,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 
 import static com.example.bookiibookii.domain.group.enums.GroupNotiType.*;
@@ -35,7 +35,7 @@ public class GroupScheduler {
     @Scheduled(cron = "0 0 0 * * *", zone="Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
-        LocalDate today = LocalDate.now();
+        Instant today = Instant.now();
         List<Groups> targetGroups = groupsRepository.findGroupsToStart(today);
 
         for (Groups group : targetGroups) {

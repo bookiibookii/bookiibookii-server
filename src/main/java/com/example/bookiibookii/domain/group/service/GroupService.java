@@ -7,6 +7,7 @@ import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -21,6 +22,7 @@ import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
+import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -65,6 +67,7 @@ public class GroupService {
     private final UserBookService userBookService;
     private final AddressRepository addressRepository;
     private final RedisUtil redisUtil;
+    private final MeetingRepository meetingRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -111,6 +114,7 @@ public class GroupService {
                 .groupType(request.getGroupType())
                 .tradeType(finalTradeType)
                 .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
+                .preferRegion(request.getPreferRegion()) //선호장소 저장
                 .build();
 
         // 5. 독서 태그 저장 로직
@@ -130,17 +134,18 @@ public class GroupService {
         Groups savedGroup = groupsRepository.save(group);
 
         // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
-//        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
-//
-//            // host.getMeetPlace()를 통해 유저가 미리 입력한 주소를 초기 장소로 저장
-//            Meeting initialMeeting = Meeting.builder()
-//                    .group(savedGroup)
-//                    .meetingPlace(host.getMeetPlace()) //host가 마이페이지에서 입력한 meetPlace
-//                    .meetingTime(null) // 시간은 초기 생성 시에는 결정되지 않음
-//                    .build();
-//
-//            meetingRepository.save(initialMeeting);
-//        }
+        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
+
+            // request.getMeetPlace()를 통해 유저가 최종 수정한 주소를 저장
+            Meeting initialMeeting = Meeting.builder()
+                    .group(savedGroup)
+                    .meetingPlace(request.getMeetPlace()) //host 프로필이 아닌 DTO 값 사용
+                    .trackerStatus(TrackerStatus.READY)
+                    .meetingTime(null)
+                    .build();
+
+            meetingRepository.save(initialMeeting);
+        }
 
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
@@ -196,7 +201,8 @@ public class GroupService {
     private void validateRelayPolicy(User host, GroupRequestDTO.CreateDTO request) {
         // 직접 교환 시 유저 엔티티의 지역/상세장소 정보 필수
         if (request.getTradeType() == TradeType.DIRECT) {
-            if (host.getMeetPlace() == null) {
+            // host 프로필이 비어있어도 request에 값이 있다면 통과
+            if (request.getPreferRegion() == null || request.getMeetPlace() == null) {
                 throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
             }
         }
@@ -333,6 +339,14 @@ public class GroupService {
         Groups group = groupsRepository.findDetailById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
+        String persistedMeetPlace = null;
+        if (group.getTradeType() == TradeType.DIRECT) {
+            // findByGroup 대신 더 명확한 이름을 사용
+            persistedMeetPlace = meetingRepository.findFirstByGroupOrderByCreatedAtDesc(group)
+                    .map(Meeting::getMeetingPlace) // 엔티티 필드명이 meetingPlace이므로 정확함!
+                    .orElse(null);
+        }
+
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByReadingOrderAsc(group);
 
@@ -358,6 +372,8 @@ public class GroupService {
                 .groupComment(group.getGroupComment())
                 .groupStatus(group.getGroupStatus().name())
                 .isHost(group.getHost().getId().equals(userId))
+                .preferRegion(group.getPreferRegion())
+                .meetPlace(persistedMeetPlace)
                 .bookTitle(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .author(group.getBook().getAuthor())
@@ -502,11 +518,11 @@ public class GroupService {
         if (group.getTradeType() == TradeType.DELIVERY) return "택배";
 
         // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
-        String meetPlace = group.getHost().getMeetPlace();
-        if (meetPlace == null || meetPlace.isBlank()) return "지역미정";
+        String region = group.getPreferRegion();
+        if (region == null || region.isBlank()) return "지역미정";
 
-        String[] parts = meetPlace.split(" ");
-        return parts[parts.length - 1]; // 마지막 단어(구 단위)만 추출
+        String[] parts = region.split(" ");
+        return parts[parts.length - 1];
     }
 
     //그룹검색

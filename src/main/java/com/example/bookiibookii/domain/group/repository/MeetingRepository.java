@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.repository;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import jakarta.persistence.LockModeType;
@@ -24,4 +25,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Meeting m WHERE m.group.groupId = :groupId AND m.trackerStatus = :status")
     Optional<Meeting> findByGroupWithLock(@Param("groupId") Long groupId, @Param("status") TrackerStatus status);
+
+    // 그룹에 속한 미팅 중 가장 최근에 생성된 1건을 가져옵니다.
+    Optional<Meeting> findFirstByGroupOrderByCreatedAtDesc(Groups group);
 }

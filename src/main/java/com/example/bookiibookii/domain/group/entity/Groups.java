@@ -68,6 +68,9 @@ public class Groups extends BaseEntity {
     @Column(name = "trade_type")
     private TradeType tradeType;//DIRECT, DELIVERY
 
+    @Column(name = "prefer_region")
+    private String preferRegion;
+
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();

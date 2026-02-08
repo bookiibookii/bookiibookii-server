@@ -129,6 +129,4 @@ public class ReviewService {
         userBadge.increaseCount();
         userBadgeRepository.save(userBadge);
     }
-
-
 }

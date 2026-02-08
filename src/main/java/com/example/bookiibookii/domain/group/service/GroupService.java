@@ -386,6 +386,7 @@ public class GroupService {
                 .hostNickname(group.getHost().getNickName())
                 .hostProfileImage(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
+                .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                 .groupTags(groupTag)
                 .customTag(group.getCustomTag())
                 .participantSlots(participantSlots)

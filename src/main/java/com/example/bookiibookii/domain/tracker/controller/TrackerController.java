@@ -179,5 +179,18 @@ public class TrackerController implements TrackerApi {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_MEETING_DONE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
     }
 
+    @Override
+    @PatchMapping("/{groupId}/tracker/verify")
+    public ApiResponse<TrackerDetailResponse> verifyPartnerReception(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        trackerService.verifyPartnerReception(groupId, user);
+        // 승인 후 최신 트래커 상세 정보를 반환합니다.
+        return ApiResponse.onSuccess(
+                TrackerSuccessCode.RECEPTION_VERIFIED,
+                trackerService.getTrackerDetailByGroupId(groupId, user)
+        );
+    }
 
 }

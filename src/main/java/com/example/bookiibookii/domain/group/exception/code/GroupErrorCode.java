@@ -31,11 +31,15 @@ public enum GroupErrorCode implements BaseCode {
     APPLY_CANT_CANCEL(HttpStatus.BAD_REQUEST, "GROUP400_12", "그룹신청을 취소할 수 없습니다."),
     RECEIVER_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_13", "단일 알림은 수신자(receiverId)가 필요합니다."),
     INVALID_GROUP_TYPE(HttpStatus.BAD_REQUEST, "GROUP400_14", "그룹 타입이 TOGETHER이어야 합니다." ),
+    INTRODUCTION_TOO_LONG(HttpStatus.BAD_REQUEST, "GROUP400_15", "그룹소개글은 500자 이하여야 합니다."),
+    FORBIDDEN_WORD_INCLUDED(HttpStatus.FORBIDDEN, "GROUP400_16", "금칙어가 포함되어 있습니다."),
+
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),
     HOST_CANNOT_APPLY(HttpStatus.FORBIDDEN, "GROUP403_2", "Host는 신청할 수 없습니다."),
     HOST_CANNOT_LEAVE(HttpStatus.FORBIDDEN, "GROUP403_3","Host는 그룹을 떠날 수 없습니다."),
-    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다."),
+    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다.")
+
 ;
 
     private final HttpStatus status;

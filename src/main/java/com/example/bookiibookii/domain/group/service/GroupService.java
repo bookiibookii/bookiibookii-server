@@ -28,6 +28,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository;
+import com.example.bookiibookii.domain.user.service.BadWordService;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import com.example.bookiibookii.global.util.RedisUtil;
@@ -68,6 +69,7 @@ public class GroupService {
     private final AddressRepository addressRepository;
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
+    private final BadWordService badWordService;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -195,6 +197,17 @@ public class GroupService {
         if (request.getGroupComment() == null || request.getGroupComment().isBlank()) {
             throw new GroupException(GroupErrorCode.COMMENT_REQUIRED);
         }
+
+        // 4. 소개글 글자 수 제한 (최대 500자)
+        if (request.getGroupComment().length() > 500) {
+            throw new GroupException(GroupErrorCode.INTRODUCTION_TOO_LONG);
+        }
+
+        // 5. 금칙어 검증 (BadWordService 활용)
+        // 닉네임에서 썼던 아호-코라식 알고리즘이 500자 문장도 순식간에 훑어줍니다.
+        if (badWordService.containsBadWord(request.getGroupComment())) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+        }
     }
 
     //1:1 relay 읽기 정책
@@ -265,6 +278,12 @@ public class GroupService {
 
         //그룹 소개글 수정
         if(request.getGroupComment() != null){
+            if (request.getGroupComment().length() > 500) {
+                throw new GroupException(GroupErrorCode.INTRODUCTION_TOO_LONG);
+            }
+            if (badWordService.containsBadWord(request.getGroupComment())) {
+                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+            }
             group.setGroupComment(request.getGroupComment());
         }
 

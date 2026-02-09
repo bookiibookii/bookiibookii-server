@@ -51,7 +51,7 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
     // UserBook과 조인하여 내(userId)가 아직 별점을 남기지 않은 것만 가져옴
     @Query("SELECT DISTINCT t FROM Tracker t " +
             "JOIN FETCH t.group g " +
-            "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId" +
+            "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
             "JOIN UserBook ub ON ub.group = g AND ub.user.id = :userId " +
             "LEFT JOIN FETCH t.histories " +
             "WHERE ub.rating IS NULL " +

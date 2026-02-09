@@ -102,4 +102,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     // 참여했던 전체 그룹 중 특정 타입(RELAY, TOGETHER) 개수 조회
     Long countByUser_IdAndGroup_GroupType(Long userId, GroupType groupType);
 
+    // 내가 게스트로 '참여 확정'되어 진행 중인 그룹 개수
+    long countByUserIdAndRoleAndGroup_GroupStatusIn(Long userId, RoleStatus role, List<GroupStatus> statuses);
+
 }

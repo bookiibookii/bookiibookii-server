@@ -12,6 +12,7 @@ import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBadge;
@@ -138,8 +139,9 @@ public class ReviewService {
 
     @Transactional(readOnly = true)
     public GroupReviewResponseDTO.GroupReviewDetailDTO getMyRelayReviewHistory(User user) {
-        // 2. 내가 받은 리뷰 목록 조회 (gr.reviewed가 나인 것들)
-        List<GroupReview> partnerToMeReviews = groupReviewRepository.findByReviewedUserId(user.getId());
+        // 2. 내가 받은 리뷰 목록 조회 (RELAY 그룹만, gr.reviewed가 나인 것들)
+        List<GroupReview> partnerToMeReviews = groupReviewRepository.findByReviewedUserIdAndGroupType(
+                user.getId(), GroupType.RELAY);
         if (partnerToMeReviews == null) partnerToMeReviews = new ArrayList<>();
 
         List<GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO> reviewItems = partnerToMeReviews.stream()

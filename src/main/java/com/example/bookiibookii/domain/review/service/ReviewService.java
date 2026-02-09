@@ -39,6 +39,7 @@ public class ReviewService {
     private static final double RATING_MAX = 5.0;
     private static final int BOOK_COMMENT_MAX_LENGTH = 500;
     private static final int GROUP_COMMENT_MAX_LENGTH = 200;
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy. MM. dd.");
 
     private final UserBookRepository userBookRepository;
     private final TrackerRepository trackerRepository;
@@ -205,7 +206,7 @@ public class ReviewService {
                 .groupId(group.getGroupId())
                 .bookTitle(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
-                .startDate(group.getStartDate().toString())
+                .startDate(group.getStartDate().format(DATE_FMT))
                 // 6. finishedDate 처리
                 .finishedDate(tracker != null && tracker.getUpdatedAt() != null ?
                         tracker.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")) : "진행중")

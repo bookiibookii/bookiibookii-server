@@ -30,7 +30,7 @@ public enum GroupErrorCode implements BaseCode {
     COMMENT_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_11", "그룹 소개글을 입력해야 합니다."),
     APPLY_CANT_CANCEL(HttpStatus.BAD_REQUEST, "GROUP400_12", "그룹신청을 취소할 수 없습니다."),
     RECEIVER_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_13", "단일 알림은 수신자(receiverId)가 필요합니다."),
-    INVALID_GROUP_TYPE(HttpStatus.BAD_REQUEST, "GROUP400_14", "그룹 타입이 TOGETHER이어야 합니다." ),
+    INVALID_GROUP_TYPE(HttpStatus.BAD_REQUEST, "GROUP400_14", "그룹 타입이 잘못되었습니다." ),
     INTRODUCTION_TOO_LONG(HttpStatus.BAD_REQUEST, "GROUP400_15", "그룹소개글은 500자 이하여야 합니다."),
     FORBIDDEN_WORD_INCLUDED(HttpStatus.FORBIDDEN, "GROUP400_16", "금칙어가 포함되어 있습니다."),
 

@@ -22,28 +22,53 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
     Optional<Tracker> findByGroupId(@Param("groupId") Long groupId);
 
 
-    @Query("SELECT DISTINCT t FROM Tracker t " +
-            "JOIN FETCH t.group g " +
-            "LEFT JOIN FETCH t.histories " +
-            "WHERE g.groupId IN (SELECT mm.group.groupId FROM MatchedMember mm WHERE mm.user.id = :userId) " +
-            "ORDER BY t.createdAt DESC")
-    List<Tracker> findAllByUserIdWithDetails(@Param("userId") Long userId);
-
-    @Query("SELECT DISTINCT t FROM Tracker t " +
-            "JOIN FETCH t.group g " +
-            "JOIN g.matchedMember mm " +
-            "LEFT JOIN FETCH t.histories " +
-            "WHERE mm.user.id = :userId " +
-            "AND mm.role = :role " + // 호스트/게스트 역할 필터 추가
-            "ORDER BY t.createdAt DESC")
-    List<Tracker> findAllByUserIdAndRoleWithDetails(
-            @Param("userId") Long userId,
-            @Param("role") RoleStatus role //
-    );
+//    @Query("SELECT DISTINCT t FROM Tracker t " +
+//            "JOIN FETCH t.group g " +
+//            "LEFT JOIN FETCH t.histories " +
+//            "WHERE g.groupId IN (SELECT mm.group.groupId FROM MatchedMember mm WHERE mm.user.id = :userId) " +
+//            "ORDER BY t.createdAt DESC")
+//    List<Tracker> findAllByUserIdWithDetails(@Param("userId") Long userId);
+//
+//    @Query("SELECT DISTINCT t FROM Tracker t " +
+//            "JOIN FETCH t.group g " +
+//            "JOIN g.matchedMember mm " +
+//            "LEFT JOIN FETCH t.histories " +
+//            "WHERE mm.user.id = :userId " +
+//            "AND mm.role = :role " + // 호스트/게스트 역할 필터 추가
+//            "ORDER BY t.createdAt DESC")
+//    List<Tracker> findAllByUserIdAndRoleWithDetails(
+//            @Param("userId") Long userId,
+//            @Param("role") RoleStatus role //
+//    );
 
 
     boolean existsByGroup_GroupId(Long aLong);
 
     @Query("SELECT t FROM Tracker t JOIN FETCH t.group WHERE t.group.groupId IN :groupIds")
     List<Tracker> findByGroup_GroupIdIn(@Param("groupIds") List<Long> groupIds);
+
+    // 리뷰 미작성 트래커 전체 조회
+    // UserBook과 조인하여 내(userId)가 아직 별점을 남기지 않은 것만 가져옴
+    @Query("SELECT DISTINCT t FROM Tracker t " +
+            "JOIN FETCH t.group g " +
+            "JOIN UserBook ub ON ub.group = g AND ub.user.id = :userId " +
+            "LEFT JOIN FETCH t.histories " +
+            "WHERE ub.rating IS NULL " +
+            "ORDER BY t.createdAt DESC")
+    List<Tracker> findAllByUserIdWithDetails(@Param("userId") Long userId);
+
+    // 호스트/게스트 역할별 리뷰 미작성 트래커 조회
+    @Query("SELECT DISTINCT t FROM Tracker t " +
+            "JOIN FETCH t.group g " +
+            "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
+            "JOIN UserBook ub ON ub.group = g AND ub.user.id = :userId " +
+            "LEFT JOIN FETCH t.histories " +
+            "WHERE mm.role = :role " +
+            "AND ub.rating IS NULL " +
+            "ORDER BY t.createdAt DESC")
+    List<Tracker> findAllByUserIdAndRoleWithDetails(
+            @Param("userId") Long userId,
+            @Param("role") RoleStatus role
+    );
 }
+

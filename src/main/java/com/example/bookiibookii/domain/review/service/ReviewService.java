@@ -116,11 +116,7 @@ public class ReviewService {
         processGroupReview(reviewed.getUser(), groupReview, request.badgeCodes(), request.partnerRating());
         groupReviewRepository.save(groupReview);
 
-        // 2-6. 트래커 최종 완료 (릴레이 종료)
-        long reviewCount = groupReviewRepository.countByGroupId(groupId);
-        if (reviewCount >= 2) {
-            tracker.completeRelay();
-        }
+
     }
 
     /**

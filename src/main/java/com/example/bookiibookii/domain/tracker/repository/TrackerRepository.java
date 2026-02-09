@@ -47,5 +47,6 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 
     boolean existsByGroup_GroupId(Long aLong);
 
-
+    @Query("SELECT t FROM Tracker t JOIN FETCH t.group WHERE t.group.groupId IN :groupIds")
+    List<Tracker> findByGroup_GroupIdIn(@Param("groupIds") List<Long> groupIds);
 }

@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.review.controller;
 
 import com.example.bookiibookii.domain.review.dto.req.BookReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.req.GroupReviewRequestDTO;
+import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,10 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Review", description = "책/그룹 리뷰 작성 API")
 @RequestMapping("/api/reviews")
@@ -65,6 +63,24 @@ public interface ReviewControllerDocs {
     ApiResponse<Void> createGroupReview(
             @PathVariable Long groupId,
             @RequestBody @Valid GroupReviewRequestDTO.CreateGroupReviewDTO request,
+            @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(
+            summary = "내 이어읽기 리뷰 히스토리 조회",
+            description = """
+            사용자가 참여하여 종료(회수 완료)된 이어읽기(RELAY) 그룹의 평가와 파트너의 독후감을 조회합니다.
+            
+            - 경로: /api/reviews/me/relay
+            - 반환 데이터: 그룹 정보, 파트너 닉네임, 나에 대한 평가(별점/코멘트/뱃지), 파트너의 독후감 정보
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/me/relay") // Controller와 맞춤
+    ApiResponse<GroupReviewResponseDTO.GroupReviewDetailDTO> getMyRelayReviews(
             @AuthenticationPrincipal(expression = "user") User user
     );
 }

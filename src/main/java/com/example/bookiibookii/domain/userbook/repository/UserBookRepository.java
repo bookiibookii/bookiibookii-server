@@ -67,6 +67,10 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<UserBook> searchMyLibrary(@Param("userId") Long userId, @Param("keyword") String keyword);
 
 
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.user JOIN FETCH ub.group WHERE ub.group.groupId IN :groupIds")
+    List<UserBook> findByGroup_GroupIdInWithUserAndGroup(@Param("groupIds") List<Long> groupIds);
+
+
     // 특정 그룹의 모든 멤버가 가진 UserBook 목록 조회 (트래커 할당용)
     List<UserBook> findAllByGroup_GroupId(Long groupId);
 }

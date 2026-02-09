@@ -36,7 +36,7 @@ public class UserBook extends BaseEntity {
     private Groups group;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tracker_id", nullable = false)
+    @JoinColumn(name = "tracker_id", nullable = true)
     private Tracker tracker;
 
     @Column(name = "rating")
@@ -57,5 +57,11 @@ public class UserBook extends BaseEntity {
     /** 서재에서만 제거(소프트 삭제??). 다른 멤버는 계속 조회 가능. */
     public void markRemoved() {
         this.removedAt = LocalDateTime.now();
+    }
+
+
+    // 나중에 트래커 할당
+    public void assignTracker(Tracker tracker) {
+        this.tracker = tracker;
     }
 }

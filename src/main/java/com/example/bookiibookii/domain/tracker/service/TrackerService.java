@@ -42,6 +42,7 @@ import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
+import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +71,7 @@ public class TrackerService {
     private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
     private final CardRepository cardRepository;
+    private final UserBookRepository userBookRepository;
     private final AddressRepository addressRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
@@ -182,6 +184,12 @@ public class TrackerService {
                 null, null
         );
         trackerHistoryRepository.save(initialHistory);
+
+        // userbook에 트래커 사후 할당
+        List<UserBook> userBooks = userBookRepository.findAllByGroup_GroupId(event.groupId());
+        if (!userBooks.isEmpty()) {
+            userBooks.forEach(ub -> ub.assignTracker(tracker));
+        }
 
     }
 

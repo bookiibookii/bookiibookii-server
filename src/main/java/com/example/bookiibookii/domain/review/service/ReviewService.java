@@ -11,8 +11,6 @@ import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
-import com.example.bookiibookii.domain.tracker.exception.TrackerException;
-import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBadge;
@@ -57,7 +55,6 @@ public class ReviewService {
 
         userBook.updateReview(request.rating(), request.comment());
 
-        tracker.completeRelay();
 
     }
 

@@ -1,8 +1,10 @@
 package com.example.bookiibookii.domain.tracker.repository;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -44,4 +46,6 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 
 
     boolean existsByGroup_GroupId(Long aLong);
+
+
 }

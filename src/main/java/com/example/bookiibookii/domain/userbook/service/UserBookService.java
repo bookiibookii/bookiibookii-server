@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.userbook.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;

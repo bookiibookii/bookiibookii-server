@@ -42,6 +42,7 @@ import com.example.bookiibookii.domain.user.repository.AddressRepository;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
+import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +53,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.*;
@@ -69,6 +71,7 @@ public class TrackerService {
     private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
     private final CardRepository cardRepository;
+    private final UserBookRepository userBookRepository;
     private final AddressRepository addressRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
@@ -182,6 +185,12 @@ public class TrackerService {
         );
         trackerHistoryRepository.save(initialHistory);
 
+        // userbook에 트래커 사후 할당
+        List<UserBook> userBooks = userBookRepository.findAllByGroup_GroupId(event.groupId());
+        if (!userBooks.isEmpty()) {
+            userBooks.forEach(ub -> ub.assignTracker(tracker));
+        }
+
     }
 
     //트래커 상세 조회
@@ -204,7 +213,7 @@ public class TrackerService {
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
             // [직접 교환] 최신 약속 정보 조회
             latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
-        } else {
+        } else if(tracker.getGroup().getTradeType() == TradeType.DELIVERY ) {
             // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
             partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
 
@@ -379,7 +388,8 @@ public class TrackerService {
     private void addDateIfPresent(List<String> dates, List<TrackerHistory> histories, TrackerStatus status, DateTimeFormatter formatter) {
         histories.stream()
                 .filter(h -> h.getTrackerStatus() == status)
-                .map(BaseEntity::getCreatedAt) // 히스토리가 생성된 시점
+                .map(TrackerHistory::getStartDate) // 각 상태의 start_date
+                .filter(Objects::nonNull)
                 .sorted() // 혹시 모를 중복 기록에 대비해 가장 빠른 날짜 선택
                 .findFirst()
                 .ifPresent(createdAt -> dates.add(createdAt.format(formatter)));

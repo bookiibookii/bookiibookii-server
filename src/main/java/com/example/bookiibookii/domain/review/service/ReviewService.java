@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.review.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.review.dto.req.BookReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.req.GroupReviewRequestDTO;
@@ -12,7 +13,6 @@ import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBadge;
@@ -59,9 +59,12 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
         }
 
-        ensureTrackerReturned(userBook.getGroup().getGroupId());
+        Tracker tracker = ensureTrackerReturned(userBook.getGroup().getGroupId());
 
         userBook.updateReview(request.rating(), request.comment());
+
+        tracker.completeRelay();
+
     }
 
     @Transactional
@@ -82,7 +85,7 @@ public class ReviewService {
         MatchedMember reviewed = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
-        ensureTrackerReturned(groupId);
+        Tracker tracker = ensureTrackerReturned(groupId);
 
         GroupReview groupReview = GroupReview.builder()
                 .reviewer(reviewer)
@@ -106,6 +109,9 @@ public class ReviewService {
         targetUser.updateManner(request.rating(), badgeCount);
 
         groupReviewRepository.save(groupReview);
+
+        tracker.completeRelay();
+
     }
 
     private void validateRating(Double rating) {
@@ -120,12 +126,14 @@ public class ReviewService {
         }
     }
 
-    private void ensureTrackerReturned(Long groupId) {
+    private Tracker ensureTrackerReturned(Long groupId) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
         if (tracker.getTrackerStatus() != TrackerStatus.RETURNED) {
             throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED);
         }
+
+        return tracker;
     }
 
     private void increaseUserBadgeCount(User user, Badge badge) {

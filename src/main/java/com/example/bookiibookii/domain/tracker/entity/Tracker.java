@@ -183,6 +183,7 @@ public class Tracker extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.trackerStatus = TrackerStatus.COMPLETED;
+        this.endDate = LocalDateTime.now();
     }
 
 

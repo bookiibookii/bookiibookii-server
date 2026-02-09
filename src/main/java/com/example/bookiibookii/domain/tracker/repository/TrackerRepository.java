@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.tracker.repository;
 
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.userbook.entity;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -34,6 +35,10 @@ public class UserBook extends BaseEntity {
     @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tracker_id", nullable = true)
+    private Tracker tracker;
+
     @Column(name = "rating")
     private Double rating;
 
@@ -52,5 +57,11 @@ public class UserBook extends BaseEntity {
     /** 서재에서만 제거(소프트 삭제??). 다른 멤버는 계속 조회 가능. */
     public void markRemoved() {
         this.removedAt = LocalDateTime.now();
+    }
+
+
+    // 나중에 트래커 할당
+    public void assignTracker(Tracker tracker) {
+        this.tracker = tracker;
     }
 }

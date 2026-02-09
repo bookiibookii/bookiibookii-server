@@ -38,7 +38,7 @@ public enum GroupErrorCode implements BaseCode {
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),
     HOST_CANNOT_APPLY(HttpStatus.FORBIDDEN, "GROUP403_2", "Host는 신청할 수 없습니다."),
     HOST_CANNOT_LEAVE(HttpStatus.FORBIDDEN, "GROUP403_3","Host는 그룹을 떠날 수 없습니다."),
-    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다.")
+    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다."),
 
 ;
 

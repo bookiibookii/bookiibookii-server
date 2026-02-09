@@ -77,5 +77,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
           and a.applicationStatus = 'PENDING'
     """)
     List<Long> findPendingUserIdsByGroupId(@Param("groupId") Long groupId);
+
+    // 내가 게스트로 '신청 중'인 개수
+    long countByGuestIdAndApplicationStatus(Long guestId, ApplicationStatus status);
+
 }
 

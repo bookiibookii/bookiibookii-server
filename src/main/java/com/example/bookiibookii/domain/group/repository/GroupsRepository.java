@@ -94,4 +94,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
           AND g.startDate <= :today
     """)
     List<Groups> findGroupsToStart(@Param("today") LocalDate today);
+
+    // 내가 방장인 그룹 중 '모집 중' 또는 '진행 중'인 개수
+    long countByHostIdAndGroupStatusIn(Long hostId, List<GroupStatus> statuses);
 }

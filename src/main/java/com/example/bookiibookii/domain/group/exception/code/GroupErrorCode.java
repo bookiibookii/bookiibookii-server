@@ -32,7 +32,9 @@ public enum GroupErrorCode implements BaseCode {
     RECEIVER_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_13", "단일 알림은 수신자(receiverId)가 필요합니다."),
     INVALID_GROUP_TYPE(HttpStatus.BAD_REQUEST, "GROUP400_14", "그룹 타입이 TOGETHER이어야 합니다." ),
     INTRODUCTION_TOO_LONG(HttpStatus.BAD_REQUEST, "GROUP400_15", "그룹소개글은 500자 이하여야 합니다."),
-    FORBIDDEN_WORD_INCLUDED(HttpStatus.FORBIDDEN, "GROUP400_16", "금칙어가 포함되어 있습니다."),
+    FORBIDDEN_WORD_INCLUDED(HttpStatus.BAD_REQUEST, "GROUP400_16", "금칙어가 포함되어 있습니다."),
+    GUEST_MAX_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "GROUP400_17", "그룹은 3개까지 신청할 수 있습니다."),
+    HOST_MAX_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "GROUP400_18", "그룹은 3개까지 생성 할 수 있습니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),

@@ -81,6 +81,17 @@ public class GroupService {
             throw new UserException(UserErrorCode.NOT_FOUND);
         }
 
+        // RECRUITING 이거나 MATCHED인 그룹만 찾기
+        List<GroupStatus> activeStatuses = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
+
+        //활성화 된 그룹개수 카운트
+        long hostingCount = groupsRepository.countByHostIdAndGroupStatusIn(host.getId(), activeStatuses);
+
+        //카운트 개수 3개 이상이면 그룹생성 제한
+        if (hostingCount >= 3) {
+            throw new GroupException(GroupErrorCode.HOST_MAX_LIMIT_EXCEEDED); // 에러코드 추가 필요
+        }
+
         // 1. 공통 정책 검증 (도서 필수, 날짜, 기간 체크)
         validateCommonPolicy(request);
 

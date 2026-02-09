@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -22,53 +23,64 @@ public class RedisUtil {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper; // Spring이 기본 제공하는 ObjectMapper 주입
+
+    // yml에 설정된 prefix 주입 (기본값 빈 문자열)
+    @Value("${spring.data.redis.prefix:}")
+    private String prefix;
+
     private static final String RANKING_KEY_PREFIX = "search:ranking:";
     private static final String COMBINED_KEY = "search:ranking:combined";
+
+    // 공통 Prefix 적용 메서드
+    private String applyPrefix(String key) {
+        return prefix + key;
+    }
 
     // 데이터 저장 (객체를 받아서 JSON String으로 변환 후 저장)
     public void set(String key, Object data, int minutes) {
         try {
             // Object -> JSON String 변환
             String jsonValue = objectMapper.writeValueAsString(data);
-            redisTemplate.opsForValue().set(key, jsonValue, minutes, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(applyPrefix(key), jsonValue, minutes, TimeUnit.MINUTES);
         } catch (JsonProcessingException e) {
             log.error("Redis 저장 중 JSON 변환 에러: {}", e.getMessage());
             throw new RuntimeException("Redis Parsing Error");
+        } catch (Exception e) {
+            log.error("[SET] Redis 연결 에러 : {}", e.getMessage());
         }
     }
 
     // 데이터 조회 (JSON String을 가져와서 원하는 클래스 타입으로 변환)
     public <T> T get(String key, Class<T> classType) {
-        String jsonValue = redisTemplate.opsForValue().get(key);
-
-        if (jsonValue == null) {
-            return null;
-        }
-
         try {
+            String jsonValue = redisTemplate.opsForValue().get(applyPrefix(key));
+            if (jsonValue == null) return null;
             // JSON String -> Object 변환
             return objectMapper.readValue(jsonValue, classType);
         } catch (JsonProcessingException e) {
             log.error("Redis 조회 중 JSON 변환 에러: {}", e.getMessage());
-            throw new RuntimeException("Redis Parsing Error");
+            return null;
+        } catch (Exception e) {
+            log.error("[GET] Redis 연결 에러 : {}", e.getMessage());
+            return null;
         }
     }
 
     // 데이터 삭제
     public boolean delete(String key) {
-        return Boolean.TRUE.equals(redisTemplate.delete(key));
+        return Boolean.TRUE.equals(redisTemplate.delete(applyPrefix(key)));
     }
 
     // 존재 여부
     public boolean hasKey(String key) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        return Boolean.TRUE.equals(redisTemplate.hasKey(applyPrefix(key)));
     }
 
     // Blacklist 등 유효기간을 밀리초 단위로 설정해야 할 때 사용
     public void setBlackList(String key, Object data, Long milliSeconds) {
         try {
             String jsonValue = objectMapper.writeValueAsString(data);
-            redisTemplate.opsForValue().set(key, jsonValue, milliSeconds, TimeUnit.MILLISECONDS);
+            redisTemplate.opsForValue().set(applyPrefix(key), jsonValue, milliSeconds, TimeUnit.MILLISECONDS);
         } catch (JsonProcessingException e) {
             log.error("Redis 저장 에러: {}", e.getMessage());
             throw new RuntimeException("Redis Parsing Error", e);
@@ -80,7 +92,7 @@ public class RedisUtil {
         if (keyword == null || keyword.isBlank()) return;
 
         String cleanKeyword = keyword.trim();
-        String todayKey = RANKING_KEY_PREFIX + LocalDate.now();
+        String todayKey = applyPrefix(RANKING_KEY_PREFIX + LocalDate.now());
 
         // 오늘자 키에 점수 1 증가
         redisTemplate.opsForZSet().incrementScore(todayKey, cleanKeyword, 1);
@@ -93,10 +105,12 @@ public class RedisUtil {
 
     //인기 검색어 조회
     public List<String> getTopKeywords(int limit) {
+        String combinedKeyWithPrefix = applyPrefix(COMBINED_KEY);
+
         // 합산된 결과(캐시)가 없으면 새로 생성
-        if (Boolean.FALSE.equals(redisTemplate.hasKey(COMBINED_KEY))) {
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(combinedKeyWithPrefix))) {
             List<String> last90DaysKeys = IntStream.range(0, 90)
-                    .mapToObj(i -> RANKING_KEY_PREFIX + LocalDate.now().minusDays(i))
+                    .mapToObj(i -> applyPrefix(RANKING_KEY_PREFIX + LocalDate.now().minusDays(i)))
                     .filter(key -> Boolean.TRUE.equals(redisTemplate.hasKey(key)))
                     .collect(Collectors.toList());
 
@@ -105,13 +119,13 @@ public class RedisUtil {
             // Redis 자체 기능으로 90개 키의 점수를 모두 합산하여 COMBINED_KEY에 저장
             redisTemplate.opsForZSet().unionAndStore(last90DaysKeys.get(0),
                     last90DaysKeys.subList(1, last90DaysKeys.size()),
-                    COMBINED_KEY);
+                    combinedKeyWithPrefix);
 
             // 합산 결과는 10분간 유지 (성능 최적화)
-            redisTemplate.expire(COMBINED_KEY, 10, TimeUnit.MINUTES);
+            redisTemplate.expire(combinedKeyWithPrefix, 10, TimeUnit.MINUTES);
         }
 
-        Set<String> range = redisTemplate.opsForZSet().reverseRange(COMBINED_KEY, 0, limit - 1);
+        Set<String> range = redisTemplate.opsForZSet().reverseRange(combinedKeyWithPrefix, 0, limit - 1);
         return range == null ? new ArrayList<>() : new ArrayList<>(range);
     }
 }

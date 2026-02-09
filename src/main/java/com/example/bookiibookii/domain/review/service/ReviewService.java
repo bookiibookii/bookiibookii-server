@@ -27,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -139,25 +141,44 @@ public class ReviewService {
 
     @Transactional(readOnly = true)
     public GroupReviewResponseDTO.GroupReviewDetailDTO getMyRelayReviewHistory(User user) {
-        // 2. 내가 받은 리뷰 목록 조회 (RELAY 그룹만, gr.reviewed가 나인 것들)
+        // 1. 내가 받은 리뷰 목록 조회 (RELAY 그룹만)
         List<GroupReview> partnerToMeReviews = groupReviewRepository.findByReviewedUserIdAndGroupType(
                 user.getId(), GroupType.RELAY);
-        if (partnerToMeReviews == null) partnerToMeReviews = new ArrayList<>();
+        if (partnerToMeReviews == null || partnerToMeReviews.isEmpty()) {
+            return GroupReviewResponseDTO.GroupReviewDetailDTO.builder().reviews(List.of()).build();
+        }
 
+        // 2. 등장하는 groupId 목록 수집
+        List<Long> groupIds = partnerToMeReviews.stream()
+                .map(gr -> gr.getReviewer().getGroup().getGroupId())
+                .distinct()
+                .toList();
+
+        // 3. Tracker / UserBook 배치 조회 (N+1 방지)
+        List<Tracker> trackers = trackerRepository.findByGroup_GroupIdIn(groupIds);
+        Map<Long, Tracker> trackerByGroupId = trackers.stream()
+                .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t, (a, b) -> a));
+
+        List<UserBook> userBooksInGroups = userBookRepository.findByGroup_GroupIdInWithUserAndGroup(groupIds);
+        Map<String, UserBook> userBookByUserAndGroup = userBooksInGroups.stream()
+                .collect(Collectors.toMap(
+                        ub -> ub.getUser().getId() + "_" + ub.getGroup().getGroupId(),
+                        ub -> ub,
+                        (a, b) -> a
+                ));
+
+        // 4. 각 리뷰에 대해 맵에서 조회 후 DTO 생성
         List<GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO> reviewItems = partnerToMeReviews.stream()
                 .map(gr -> {
-                    // 3. 상대방(나에게 리뷰를 쓴 작성자) 찾기
                     MatchedMember partnerMM = gr.getReviewer();
                     if (partnerMM == null) return null;
 
                     Groups group = partnerMM.getGroup();
+                    Long groupId = group.getGroupId();
+                    Long partnerUserId = partnerMM.getUser().getId();
 
-                    // 4. 트래커 및 상대방 독후감 조회
-                    Tracker tracker = trackerRepository.findByGroupId(group.getGroupId()).orElse(null);
-                    UserBook partnerBookReview = userBookRepository.findByUser_IdAndGroup_GroupId(
-                            partnerMM.getUser().getId(),
-                            group.getGroupId()
-                    ).orElse(null);
+                    Tracker tracker = trackerByGroupId.get(groupId);
+                    UserBook partnerBookReview = userBookByUserAndGroup.get(partnerUserId + "_" + groupId);
 
                     return buildReviewItemDTO(group, tracker, partnerMM, gr, partnerBookReview);
                 })

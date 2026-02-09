@@ -64,4 +64,7 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     List<UserBook> searchMyLibrary(@Param("userId") Long userId, @Param("keyword") String keyword);
 
     Optional<UserBook> findByUser_IdAndGroup_GroupId(Long userId, Long groupId);
+
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.user JOIN FETCH ub.group WHERE ub.group.groupId IN :groupIds")
+    List<UserBook> findByGroup_GroupIdInWithUserAndGroup(@Param("groupIds") List<Long> groupIds);
 }

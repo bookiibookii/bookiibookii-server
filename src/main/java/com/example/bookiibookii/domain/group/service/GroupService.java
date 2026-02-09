@@ -278,6 +278,12 @@ public class GroupService {
 
         //그룹 소개글 수정
         if(request.getGroupComment() != null){
+            if (request.getGroupComment().length() > 500) {
+                throw new GroupException(GroupErrorCode.INTRODUCTION_TOO_LONG);
+            }
+            if (badWordService.containsBadWord(request.getGroupComment())) {
+                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+            }
             group.setGroupComment(request.getGroupComment());
         }
 

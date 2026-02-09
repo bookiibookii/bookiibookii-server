@@ -41,6 +41,7 @@ public class GroupRequestDTO {
     public static class UpdateDTO{
             private LocalDate startDate;
             private Integer readingPeriod;
+            @Size(max = 500, message = "소개글은 최대 500자까지 입력 가능합니다.")
             private String groupComment;
             @Size(max = 8)
             private String customTag;

@@ -182,6 +182,7 @@ public class TrackerService {
                 .endDate(group.getStartDate().atStartOfDay().plusDays(group.getReadingPeriod()))
                 .extensionCount(0)
                 .extensionDays(0)
+                .isVerified(false)
                 .build();
 
         trackerRepository.save(tracker);
@@ -746,6 +747,31 @@ public class TrackerService {
     }
 
 
+    @Transactional
+    public void verifyPartnerReception(Long groupId, User user) {
+        // 1. groupId로 해당 그룹의 트래커 조회
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
+        // 2. 현재 트래커의 주인(책을 받은 사람) 정보 가져오기
+        Long currentOwnerUserId = tracker.getBookOwner().getUser().getId();
+
+        // 🟢 3. 권한 검증: 현재 주인(받은 사람)은 본인의 수령 사진을 확인할 수 없음
+        // 즉, 반대편에 있는 사람(보낸 사람)이 확인 버튼을 눌러야 함
+        if (currentOwnerUserId.equals(user.getId())) {
+            throw new TrackerException(TrackerErrorCode.OWNER_CANNOT_VERIFY);
+        }
+
+        // 4. 요청자가 해당 그룹의 멤버인지 최종 확인 (보안 강화)
+        boolean isMember = tracker.getGroup().getMatchedMember().stream()
+                .anyMatch(mm -> mm.getUser().getId().equals(user.getId()));
+
+        if (!isMember) {
+            throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER);
+        }
+
+        // 5. 엔티티 메서드 호출 (isVerified = true)
+        tracker.verifyReception();
+    }
 
 }

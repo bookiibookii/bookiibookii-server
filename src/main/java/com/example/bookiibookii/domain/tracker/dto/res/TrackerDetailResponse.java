@@ -36,6 +36,9 @@ public class TrackerDetailResponse {
         // 배송 정보
         private String deliveryCompany;     // 택배사명
         private String trackingNumber;  // 운송장 번호
+
+        // 상대방 수령 확인의 확인 검증용
+        private Boolean isVerified;
     }
 
     @Getter

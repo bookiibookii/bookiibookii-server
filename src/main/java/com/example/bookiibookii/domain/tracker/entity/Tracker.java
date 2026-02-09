@@ -44,6 +44,10 @@ public class Tracker extends BaseEntity {
     @Column(nullable = false)
     private Integer extensionDays = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isVerified = false;
+
     // 현재 주자를 지목하는 1:1 관계
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "matchedmember_id", nullable = false)
@@ -102,8 +106,10 @@ public class Tracker extends BaseEntity {
     public void updateReceiveStatus() {
         if (this.trackerStatus == TrackerStatus.SHIPPING_TO_HOST) {
             this.trackerStatus = TrackerStatus.RETURNED; // 호스트가 돌려받음
+            this.isVerified = false;
         } else if (this.trackerStatus == TrackerStatus.SHIPPING_TO_GUEST || this.trackerStatus == TrackerStatus.SHIPPING) {
             this.trackerStatus = TrackerStatus.RECEIVED; // 게스트가 전달받음
+            this.isVerified = false;
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
@@ -117,6 +123,14 @@ public class Tracker extends BaseEntity {
 
     }
 
+    public void verifyReception() {
+        // RECEIVED(받은 직후) 거나 GUEST_READING(읽는 중) 일 때 모두 확인 가능하도록 설정
+        if (this.trackerStatus != TrackerStatus.RECEIVED &&
+                this.trackerStatus != TrackerStatus.GUEST_READING) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+        this.isVerified = true;
+    }
 
     public void startReading() {
         if (this.trackerStatus == TrackerStatus.RECEIVED) {

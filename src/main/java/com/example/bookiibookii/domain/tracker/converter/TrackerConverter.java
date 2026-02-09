@@ -47,7 +47,8 @@ public class TrackerConverter {
                         .receiverAddress(String.format("[%s] %s %s",
                                 partnerAddress.getZipCode(),
                                 partnerAddress.getAddress(),
-                                partnerAddress.getAddressDetail()));
+                                partnerAddress.getAddressDetail()))
+                        .isVerified(tracker.getIsVerified());
 
                 // 운송 정보 추출
                 if (latestHistory != null) {

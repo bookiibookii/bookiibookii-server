@@ -22,7 +22,7 @@ import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/api/card")
+@RequestMapping("/api/cards")
 @RequiredArgsConstructor
 public class CardController implements CardControllerDocs {
 
@@ -61,6 +61,17 @@ public class CardController implements CardControllerDocs {
     }
 
     @Override
+    @PostMapping("/{cardId}/images/presigned-url")
+    public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForCardImageUpdate(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        PresignedUrlResponseDTO responseDTO = cardService.getPresignedPutUrlForCardImageUpdate(
+                cardId, user.getId(), PRESIGNED_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(CardImageSuccessCode.PRESIGNED_URL_ISSUED, responseDTO);
+    }
+
+    @Override
     @PostMapping("/{userBookId}")
     public ApiResponse<CardCreateResponseDTO> createCard(
             @AuthenticationPrincipal(expression = "user") User user,
@@ -73,13 +84,13 @@ public class CardController implements CardControllerDocs {
     }
 
     @Override
-    @GetMapping("/{userBookId}")
+    @GetMapping("/group/{groupId}")
     public ApiResponse<CardListResponseDTO> getCards(
             @AuthenticationPrincipal(expression = "user") User user,
-            @PathVariable Long userBookId
+            @PathVariable Long groupId
     ) {
-        CardListResponseDTO responseDTO = cardService.getCardsByUserBookId(
-                userBookId, user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        CardListResponseDTO responseDTO = cardService.getCardsByGroupId(
+                groupId, user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(CardImageSuccessCode.CARDS_FOUND, responseDTO);
     }
 

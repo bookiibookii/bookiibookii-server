@@ -42,6 +42,7 @@ public class BookService {
                             .publisher(item.publisher())
                             .image(item.cover())
                             .totalPages(item.itemPage())
+                            .link(item.link())
                             .category(cc.get())
                             .build();
 

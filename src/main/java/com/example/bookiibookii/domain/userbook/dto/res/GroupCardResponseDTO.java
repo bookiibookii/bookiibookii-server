@@ -22,4 +22,6 @@ public class GroupCardResponseDTO {
     private String bookTitle;
     /** 현재 로그인 사용자가 이 카드를 북마크했는지 (목록/상세/북마크 목록에서 사용) */
     private Boolean isBookmarked;
+    /** 카드 작성자 이름 (그룹 목록에서 누가 썼는지 구분용) */
+    private String creatorName;
 }

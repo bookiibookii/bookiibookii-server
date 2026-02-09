@@ -1,7 +1,9 @@
 package com.example.bookiibookii.domain.userbook.dto.res;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -9,6 +11,20 @@ import java.util.List;
 @Builder
 public class CardListResponseDTO {
     private Long groupId;       // 그룹 ID (그룹 멤버 간 공유 조회용)
-    private String creatorName; // 해당 독서카드를 만든 사람(UserBook 소유자)의 이름
-    private List<GroupCardResponseDTO> cards; // 각 카드에 bookTitle 포함
+    /** 트래커 현재 주자 (RELAY 등). 없으면 null (TOGETHER 또는 트래커 미생성) */
+    private CurrentBookOwnerDto currentBookOwner;
+    /** RELAY일 때만: 요청한 사용자(나)의 UserBook 한줄평. null 허용 */
+    private String myComment;
+    /** RELAY일 때만: 현재 주자(상대)의 UserBook 한줄평. 내가 주자면 null. null 허용 */
+    private String partnerComment;
+    private List<GroupCardResponseDTO> cards; // 각 카드에 bookTitle, creatorName 등 포함
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CurrentBookOwnerDto {
+        private Long matchedMemberId;
+        private String nickname;
+    }
 }

@@ -12,7 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@Tag(name = "MatchedMember API", description = "그룹 멤버 관련 상태 변경 및 관리 API")
+@Tag(name = "MatchedMember", description = "그룹 멤버 관련 상태 변경 및 관리 API")
 public interface MatchedMemberControllerDocs {
 
     @Operation(

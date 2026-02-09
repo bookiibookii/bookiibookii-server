@@ -154,7 +154,9 @@ public class GroupQueryRepository {
 
         return book.title.containsIgnoreCase(searchword)
                 .or(book.author.containsIgnoreCase(searchword))
-                .or(tag.code.containsIgnoreCase(searchword));
+                .or(tag.code.containsIgnoreCase(searchword))
+                .or(groups.customTag.containsIgnoreCase(searchword));
+
     }
 
     private OrderSpecifier<?> getSearchSortOrder(GroupSortType sort) {

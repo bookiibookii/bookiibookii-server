@@ -35,6 +35,9 @@ public class Book {
     @Column(name = "totalPages", nullable = false)
     private Integer totalPages;
 
+    @Column(name = "link", nullable = false)
+    private String link;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false, length = 30)
     private CustomCategory category;

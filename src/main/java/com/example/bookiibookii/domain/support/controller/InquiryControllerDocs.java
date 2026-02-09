@@ -6,12 +6,14 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
+@Tag(name = "Inquiry", description = "문의 관련 API")
 public interface InquiryControllerDocs {
     @Operation(
             summary = "문의하기 API",

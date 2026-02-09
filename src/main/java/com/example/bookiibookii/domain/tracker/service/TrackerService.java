@@ -164,10 +164,19 @@ public class TrackerService {
         MatchedMember firstOwner = matchedMemberRepository.findByGroupAndOrder(event.groupId(), 1)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.FIRST_MEMBER_NOT_FOUND));
 
+        TrackerStatus trackerStatus;
+        if(group.getGroupType() == GroupType.TOGETHER){
+            trackerStatus = TrackerStatus.TOGETHER;
+        }else if(group.getGroupType() == GroupType.RELAY){
+            trackerStatus = TrackerStatus.READY;
+        }else {
+            throw new GroupException(GroupErrorCode.INVALID_GROUP_TYPE);
+        }
+
         // 4. 트래커 초기 빌드
         Tracker tracker = Tracker.builder()
                 .group(group)
-                .trackerStatus(TrackerStatus.READY)
+                .trackerStatus(trackerStatus)
                 .bookOwner(firstOwner)
                 .startDate(group.getStartDate().atStartOfDay())
                 .endDate(group.getStartDate().atStartOfDay().plusDays(group.getReadingPeriod()))

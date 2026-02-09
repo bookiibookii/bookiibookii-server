@@ -28,6 +28,9 @@ public enum TrackerStatus {
     RETURNED("회수완료"),
     COMPLETED("릴레이종료"),
 
+    //함께 읽기
+    TOGETHER("함께읽기")
+
     ;
 
     private final String description;

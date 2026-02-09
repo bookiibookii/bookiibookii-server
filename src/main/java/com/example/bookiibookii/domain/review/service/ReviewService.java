@@ -3,9 +3,10 @@ package com.example.bookiibookii.domain.review.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.review.dto.req.BookReviewRequestDTO;
-import com.example.bookiibookii.domain.review.dto.req.GroupReviewRequestDTO;
+import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
 import com.example.bookiibookii.domain.review.exception.ReviewException;
@@ -47,8 +48,12 @@ public class ReviewService {
     private final GroupReviewRepository groupReviewRepository;
     private final UserBadgeRepository userBadgeRepository;
 
+    /**
+     * 1. [함께 읽기] 리뷰 생성
+     * 파트너가 없으므로 본인의 서재(UserBook)에 책 리뷰만 남깁니다.
+     */
     @Transactional
-    public void createBookReview(Long userBookId, BookReviewRequestDTO request, User user) {
+    public void createTogetherReview(Long userBookId, ReviewRequestDTO.TogetherReviewDTO request, User user) {
         validateRating(request.rating());
         validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
 
@@ -59,19 +64,41 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
         }
 
-        Tracker tracker = ensureTrackerReturned(userBook.getGroup().getGroupId());
-
         userBook.updateReview(request.rating(), request.comment());
-
-        tracker.completeRelay();
-
     }
 
+    /**
+     * 2. [릴레이] 통합 리뷰 생성
+     * 책 리뷰(UserBook)와 상대방 리뷰(GroupReview)를 한 번에 저장하고 트래커를 종료합니다.
+     */
     @Transactional
-    public void createGroupReview(Long groupId, GroupReviewRequestDTO.CreateGroupReviewDTO request, User user) {
-        validateRating(request.rating());
-        validateCommentLength(request.comment(), GROUP_COMMENT_MAX_LENGTH);
+    public void createRelayReview(Long userBookId, ReviewRequestDTO.RelayReviewDTO request, User user) {
+        // 2-1. 모든 평점 및 코멘트 검증
+        validateRating(request.bookRating());
+        validateRating(request.partnerRating());
+        validateCommentLength(request.bookComment(), BOOK_COMMENT_MAX_LENGTH);
+        validateCommentLength(request.partnerComment(), GROUP_COMMENT_MAX_LENGTH);
 
+        // 2-2. UserBook 조회 및 권한 확인
+        UserBook userBook = userBookRepository.findById(userBookId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
+        if (!userBook.getUser().getId().equals(user.getId())) {
+            throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
+        }
+
+        Groups group = userBook.getGroup();
+        if (group == null) {
+            throw new GroupException(GroupErrorCode.GROUP_NOT_FOUND);
+        }
+        Long groupId = group.getGroupId();
+
+        // 2-3. 트래커 상태 확인 (RETURNED여야 최종 완료 가능)
+        ensureTrackerReturned(groupId);
+
+        // 2-4. [책 리뷰] 업데이트
+        userBook.updateReview(request.bookRating(), request.bookComment());
+
+        // 2-5. [상대방 리뷰] 생성 및 뱃지/매너점수 처리
         MatchedMember reviewer = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
@@ -85,33 +112,32 @@ public class ReviewService {
         MatchedMember reviewed = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
-        Tracker tracker = ensureTrackerReturned(groupId);
-
         GroupReview groupReview = GroupReview.builder()
                 .reviewer(reviewer)
                 .reviewed(reviewed)
-                .rating(request.rating())
-                .comment(request.comment())
+                .rating(request.partnerRating())
+                .comment(request.partnerComment())
                 .build();
 
-        List<Badge> badgeCodes = request.badgeCodes();
-        int badgeCount = 0;
+        processGroupReview(reviewed.getUser(), groupReview, request.badgeCodes(), request.partnerRating());
+        groupReviewRepository.save(groupReview);
 
+
+    }
+
+    /**
+     * 그룹 리뷰(파트너 리뷰) 저장 시 뱃지 부여 및 매너 온도 업데이트 처리
+     */
+    private void processGroupReview(User targetUser, GroupReview groupReview, List<Badge> badgeCodes, Double rating) {
+        int badgeCount = 0;
         if (badgeCodes != null && !badgeCodes.isEmpty()) {
             badgeCount = badgeCodes.size();
             for (Badge badge : badgeCodes) {
                 groupReview.addBadge(badge);
-                increaseUserBadgeCount(reviewed.getUser(), badge);
+                increaseUserBadgeCount(targetUser, badge);
             }
         }
-
-        User targetUser = reviewed.getUser();
-        targetUser.updateManner(request.rating(), badgeCount);
-
-        groupReviewRepository.save(groupReview);
-
-        tracker.completeRelay();
-
+        targetUser.updateManner(rating, badgeCount);
     }
 
     private void validateRating(Double rating) {

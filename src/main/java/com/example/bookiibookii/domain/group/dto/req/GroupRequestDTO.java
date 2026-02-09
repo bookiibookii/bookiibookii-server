@@ -25,6 +25,8 @@ public class GroupRequestDTO {
         private Integer maxCapacity;   // TOGETHER일 때 인원수
         private LocalDate startDate;
         private Integer readingPeriod;
+        @NotBlank(message = "그룹 소개는 필수 입력 사항입니다.")
+        @Size(max = 500, message = "소개글은 최대 500자까지 입력 가능합니다.")
         private String groupComment;
         @Size(max = 8)
         private String customTag;

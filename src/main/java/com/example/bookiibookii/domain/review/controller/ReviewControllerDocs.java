@@ -45,12 +45,13 @@ public interface ReviewControllerDocs {
             
             - 경로: /api/reviews/relay/{userBookId}
             - 조건: 그룹 멤버이며 트래커가 RETURNED 상태여야 합니다. 한 번만 작성 가능.
-            - 데이터: 책 평점(500자), 파트너 평점(200자), 배지 리스트 전달
+            - 데이터: 책 평점/코멘트(500자), 파트너 평점/코멘트(200자), 배지 리스트 전달
             """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "작성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 평점/코멘트 또는 중복 작성"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한없음/소유자아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "UserBook 또는 트래커 미존재"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "트래커 미반납(RETURNED) 시 작성 불가")
     })

@@ -182,6 +182,15 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
 
+        //그룹 존재여부 확인
+        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        //그룹 상태 확인(RECRUTING)
+        if(group.getGroupStatus() != GroupStatus.RECRUITING){
+            throw new GroupException(GroupErrorCode.GROUP_NOT_RECRUITING);
+        }
+
         // 게스트 참여 제한 체크 (최대 3개)
         List<GroupStatus> activeStatuses = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
 
@@ -196,14 +205,6 @@ public class ApplicationService {
             throw new GroupException(GroupErrorCode.GUEST_MAX_LIMIT_EXCEEDED);
         }
 
-        //그룹 존재여부 확인
-        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
-                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-
-        //그룹 상태 확인(RECRUTING)
-        if(group.getGroupStatus() != GroupStatus.RECRUITING){
-            throw new GroupException(GroupErrorCode.GROUP_NOT_RECRUITING);
-        }
 
         //권한체크(HOST는 참가신청불가)
         if(group.getHost().getId().equals(userId)){

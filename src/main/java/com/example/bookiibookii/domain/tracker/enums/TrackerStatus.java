@@ -29,7 +29,7 @@ public enum TrackerStatus {
     COMPLETED("릴레이종료"),
 
     //함께 읽기
-    TOGETHER("함꼐읽기")
+    TOGETHER("함께읽기")
 
     ;
 

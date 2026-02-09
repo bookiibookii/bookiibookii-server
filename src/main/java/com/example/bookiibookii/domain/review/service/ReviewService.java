@@ -209,7 +209,7 @@ public class ReviewService {
                 .startDate(group.getStartDate().format(DATE_FMT))
                 // 6. finishedDate 처리
                 .finishedDate(tracker != null && tracker.getUpdatedAt() != null ?
-                        tracker.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")) : "진행중")
+                        tracker.getUpdatedAt().format(DATE_FMT) : "진행중")
                 .partnerNickname(partnerMM != null ? partnerMM.getUser().getNickName() : "알 수 없음")
                 // 7. DTO 필드명과 일치시킴 (partnerBadges)
                 .partnerToMeRating(gr != null ? gr.getRating() : 0.0)
@@ -219,7 +219,7 @@ public class ReviewService {
                 .partnerBookRating(pub != null ? pub.getRating() : 0.0)
                 .partnerBookComment(pub != null ? pub.getComment() : "리뷰가 없습니다.")
                 .partnerBookReviewDate(pub != null && pub.getUpdatedAt() != null ?
-                        pub.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")) : null)
+                        pub.getUpdatedAt().format(DATE_FMT) : null)
                 .build();
     }
 }

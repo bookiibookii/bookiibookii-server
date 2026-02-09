@@ -180,16 +180,14 @@ public class TrackerController implements TrackerApi {
     }
 
     @Override
-    @PatchMapping("/{groupId}/tracker/verify")
+    @PatchMapping("/{groupId}/tracker/confirm-reception")
     public ApiResponse<TrackerDetailResponse> verifyPartnerReception(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
         trackerService.verifyPartnerReception(groupId, user);
         // 승인 후 최신 트래커 상세 정보를 반환합니다.
-        return ApiResponse.onSuccess(
-                TrackerSuccessCode.RECEPTION_VERIFIED,
-                trackerService.getTrackerDetailByGroupId(groupId, user)
+        return ApiResponse.onSuccess(TrackerSuccessCode.RECEPTION_VERIFIED,trackerService.getTrackerDetailByGroupId(groupId, user)
         );
     }
 

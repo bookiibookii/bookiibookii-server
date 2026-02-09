@@ -45,6 +45,7 @@ public class Tracker extends BaseEntity {
     private Integer extensionDays = 0;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean isVerified = false;
 
     // 현재 주자를 지목하는 1:1 관계

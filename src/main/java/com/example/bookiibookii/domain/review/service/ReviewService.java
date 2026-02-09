@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.review.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
@@ -84,10 +86,14 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
         }
 
-        Long groupId = userBook.getGroup().getGroupId();
+        Groups group = userBook.getGroup();
+        if (group == null) {
+            throw new GroupException(GroupErrorCode.GROUP_NOT_FOUND);
+        }
+        Long groupId = group.getGroupId();
 
         // 2-3. 트래커 상태 확인 (RETURNED여야 최종 완료 가능)
-        Tracker tracker = ensureTrackerReturned(groupId);
+        ensureTrackerReturned(groupId);
 
         // 2-4. [책 리뷰] 업데이트
         userBook.updateReview(request.bookRating(), request.bookComment());

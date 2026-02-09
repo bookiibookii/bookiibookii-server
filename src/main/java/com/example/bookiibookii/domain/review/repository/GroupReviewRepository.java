@@ -77,4 +77,7 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
      * @return 리뷰 (존재하지 않으면 Optional.empty())
      */
     Optional<GroupReview> findByReviewer(MatchedMember reviewerMatchedMember);
+
+    @Query("SELECT COUNT(gr) FROM GroupReview gr WHERE gr.reviewer.group.groupId = :groupId")
+    long countByGroupId(@Param("groupId") Long groupId);
 }

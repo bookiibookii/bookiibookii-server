@@ -52,6 +52,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.*;
@@ -379,7 +380,8 @@ public class TrackerService {
     private void addDateIfPresent(List<String> dates, List<TrackerHistory> histories, TrackerStatus status, DateTimeFormatter formatter) {
         histories.stream()
                 .filter(h -> h.getTrackerStatus() == status)
-                .map(BaseEntity::getCreatedAt) // 히스토리가 생성된 시점
+                .map(TrackerHistory::getStartDate) // 각 상태의 start_date
+                .filter(Objects::nonNull)
                 .sorted() // 혹시 모를 중복 기록에 대비해 가장 빠른 날짜 선택
                 .findFirst()
                 .ifPresent(createdAt -> dates.add(createdAt.format(formatter)));

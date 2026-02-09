@@ -71,8 +71,9 @@ public class AuthService {
         // Key: "RT:{userId}", Value: refreshToken
         // Expiration: application.yml에 설정된 시간 (밀리초 -> 분 변환 필요)
         int rtExpirationMinutes = (int) Math.ceil(jwtProvider.getRefreshTokenExpireTime() / 1000.0 / 60);
-        redisUtil.delete("RT:" + userId);
-        redisUtil.set("RT:" + userId, refreshToken, rtExpirationMinutes);
+        String rtKey = "RT:" + userId;
+        redisUtil.delete(rtKey);
+        redisUtil.set(rtKey, refreshToken, rtExpirationMinutes);
 
         return AuthResponseDTO.LoginResponse.builder()
                 .accessToken(accessToken)
@@ -102,7 +103,8 @@ public class AuthService {
         Long userId = jwtProvider.getUserIdIgnoreExpiration(accessToken);
 
         // Redis 대조
-        String savedRT = redisUtil.get("RT:" + userId, String.class);
+        String rtKey = "RT:" + userId;
+        String savedRT = redisUtil.get(rtKey, String.class);
         if (savedRT == null || !savedRT.equals(requestRT)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
@@ -116,8 +118,9 @@ public class AuthService {
         String newRT = jwtProvider.createRefreshToken(userId);
 
         int rtExpirationMinutes = (int) Math.ceil(jwtProvider.getRefreshTokenExpireTime() / 1000.0 / 60);
-        redisUtil.delete("RT:" + userId);
-        redisUtil.set("RT:" + userId, newRT, rtExpirationMinutes);
+        rtKey = "RT:" + userId;
+        redisUtil.delete(rtKey);
+        redisUtil.set(rtKey, newRT, rtExpirationMinutes);
 
         return AuthResponseDTO.TokenResponse.builder()
                 .accessToken(newAT)
@@ -150,7 +153,8 @@ public class AuthService {
             Long userId = jwtProvider.getUserId(accessToken);
 
             // Refresh Token 삭제
-            redisUtil.delete("RT:" + userId);
+            String rtKey = "RT:" + userId;
+            redisUtil.delete(rtKey);
 
             // Access Token 남은 시간 계산
             long remainingTime = jwtProvider.getRemainingTime(accessToken);
@@ -184,7 +188,8 @@ public class AuthService {
                 .findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        redisUtil.delete("RT:" + userId); // RefreshToken 제거
+        String rtKey = "RT:" + userId;
+        redisUtil.delete(rtKey); // RefreshToken 제거
         user.withdraw();
     }
 

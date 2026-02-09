@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.review.repository;
 
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -33,7 +34,7 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
 
     /**
      * 특정 유저가 reviewed인 리뷰들을 조회 (마이페이지용)
-     * 
+     *
      * @param reviewedUserId 리뷰를 받은 유저 ID (현재 로그인한 유저)
      * @return 리뷰 목록
      */
@@ -44,6 +45,30 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
         WHERE mm.user.id = :reviewedUserId
     """)
     List<GroupReview> findByReviewedUserId(@Param("reviewedUserId") Long reviewedUserId);
+
+    /**
+     * 특정 유저가 reviewed인 리뷰 중, 지정한 그룹 타입만 조회 (이어읽기 리뷰 히스토리용).
+     * reviewer, group, book, user, badges 를 JOIN FETCH 로 한 번에 로드하여 N+1 방지.
+     *
+     * @param reviewedUserId 리뷰를 받은 유저 ID
+     * @param groupType     그룹 타입 (RELAY 등)
+     * @return 리뷰 목록 (최신순)
+     */
+    @Query("""
+        SELECT DISTINCT gr
+        FROM GroupReview gr
+        JOIN FETCH gr.reviewer reviewer
+        JOIN FETCH reviewer.group g
+        JOIN FETCH reviewer.user
+        JOIN FETCH g.book
+        LEFT JOIN FETCH gr.badges
+        JOIN gr.reviewed mm
+        WHERE mm.user.id = :reviewedUserId
+          AND g.groupType = :groupType
+        ORDER BY gr.id DESC
+    """)
+    List<GroupReview> findByReviewedUserIdAndGroupType(@Param("reviewedUserId") Long reviewedUserId,
+                                                       @Param("groupType") GroupType groupType);
 
     /**
      * 특정 reviewer MatchedMember에 대한 리뷰 조회

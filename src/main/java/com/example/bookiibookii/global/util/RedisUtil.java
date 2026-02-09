@@ -33,7 +33,7 @@ public class RedisUtil {
 
     // 공통 Prefix 적용 메서드
     private String applyPrefix(String key) {
-        return prefix + key;
+        return (prefix == null ? "" : prefix) + key;
     }
 
     // 데이터 저장 (객체를 받아서 JSON String으로 변환 후 저장)
@@ -68,12 +68,22 @@ public class RedisUtil {
 
     // 데이터 삭제
     public boolean delete(String key) {
-        return Boolean.TRUE.equals(redisTemplate.delete(applyPrefix(key)));
+        try {
+            return Boolean.TRUE.equals(redisTemplate.delete(applyPrefix(key)));
+        } catch (Exception e) {
+            log.error("[DELETE] Redis 연결 에러 : {}", e.getMessage());
+            return false;
+        }
     }
 
     // 존재 여부
     public boolean hasKey(String key) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(applyPrefix(key)));
+        try {
+            return Boolean.TRUE.equals(redisTemplate.hasKey(applyPrefix(key)));
+        } catch (Exception e) {
+            log.error("[HAS_KEY] Redis 연결 에러 : {}", e.getMessage());
+            return false;
+        }
     }
 
     // Blacklist 등 유효기간을 밀리초 단위로 설정해야 할 때 사용
@@ -84,6 +94,8 @@ public class RedisUtil {
         } catch (JsonProcessingException e) {
             log.error("Redis 저장 에러: {}", e.getMessage());
             throw new RuntimeException("Redis Parsing Error", e);
+        } catch (Exception e) {
+            log.error("[BLACKLIST] Redis 연결 에러 : {}", e.getMessage());
         }
     }
 
@@ -91,41 +103,51 @@ public class RedisUtil {
     public void incrementSearchScore(String keyword) {
         if (keyword == null || keyword.isBlank()) return;
 
-        String cleanKeyword = keyword.trim();
-        String todayKey = applyPrefix(RANKING_KEY_PREFIX + LocalDate.now());
+        try {
+            String cleanKeyword = keyword.trim();
+            String todayKey = RANKING_KEY_PREFIX + LocalDate.now();
+            String prefixedKey = applyPrefix(todayKey);
 
-        // 오늘자 키에 점수 1 증가
-        redisTemplate.opsForZSet().incrementScore(todayKey, cleanKeyword, 1);
+            // 오늘자 키에 점수 1 증가
+            redisTemplate.opsForZSet().incrementScore(prefixedKey, cleanKeyword, 1);
 
-        // 해당 날짜 키에 90일 TTL 설정 (자동 삭제)
-        redisTemplate.expire(todayKey, 90, TimeUnit.DAYS);
+            // 해당 날짜 키에 90일 TTL 설정 (자동 삭제)
+            redisTemplate.expire(prefixedKey, 90, TimeUnit.DAYS);
 
-        // log.info("인기 검색어 기록 (날짜별): {} -> {}", todayKey, cleanKeyword);
+            // log.info("인기 검색어 기록 (날짜별): {} -> {}", todayKey, cleanKeyword);
+        } catch (Exception e) {
+            log.error("[INCREMENT] Redis 연결 에러 : {}", e.getMessage());
+        }
     }
 
     //인기 검색어 조회
     public List<String> getTopKeywords(int limit) {
-        String combinedKeyWithPrefix = applyPrefix(COMBINED_KEY);
+        try {
+            String combinedKeyWithPrefix = applyPrefix(COMBINED_KEY);
 
-        // 합산된 결과(캐시)가 없으면 새로 생성
-        if (Boolean.FALSE.equals(redisTemplate.hasKey(combinedKeyWithPrefix))) {
-            List<String> last90DaysKeys = IntStream.range(0, 90)
-                    .mapToObj(i -> applyPrefix(RANKING_KEY_PREFIX + LocalDate.now().minusDays(i)))
-                    .filter(key -> Boolean.TRUE.equals(redisTemplate.hasKey(key)))
-                    .collect(Collectors.toList());
+            // 합산된 결과(캐시)가 없으면 새로 생성
+            if (Boolean.FALSE.equals(redisTemplate.hasKey(combinedKeyWithPrefix))) {
+                List<String> last90DaysKeys = IntStream.range(0, 90)
+                        .mapToObj(i -> applyPrefix(RANKING_KEY_PREFIX + LocalDate.now().minusDays(i)))
+                        .filter(key -> Boolean.TRUE.equals(redisTemplate.hasKey(key)))
+                        .collect(Collectors.toList());
 
-            if (last90DaysKeys.isEmpty()) return new ArrayList<>();
+                if (last90DaysKeys.isEmpty()) return new ArrayList<>();
 
-            // Redis 자체 기능으로 90개 키의 점수를 모두 합산하여 COMBINED_KEY에 저장
-            redisTemplate.opsForZSet().unionAndStore(last90DaysKeys.get(0),
-                    last90DaysKeys.subList(1, last90DaysKeys.size()),
-                    combinedKeyWithPrefix);
+                // Redis 자체 기능으로 90개 키의 점수를 모두 합산하여 COMBINED_KEY에 저장
+                redisTemplate.opsForZSet().unionAndStore(last90DaysKeys.get(0),
+                        last90DaysKeys.subList(1, last90DaysKeys.size()),
+                        combinedKeyWithPrefix);
 
-            // 합산 결과는 10분간 유지 (성능 최적화)
-            redisTemplate.expire(combinedKeyWithPrefix, 10, TimeUnit.MINUTES);
+                // 합산 결과는 10분간 유지 (성능 최적화)
+                redisTemplate.expire(combinedKeyWithPrefix, 10, TimeUnit.MINUTES);
+            }
+
+            Set<String> range = redisTemplate.opsForZSet().reverseRange(combinedKeyWithPrefix, 0, limit - 1);
+            return range == null ? new ArrayList<>() : new ArrayList<>(range);
+        } catch (Exception e) {
+            log.error("[GET_TOP_KEYWORDS] Redis 연결 에러 : {}", e.getMessage());
+            return new ArrayList<>();
         }
-
-        Set<String> range = redisTemplate.opsForZSet().reverseRange(combinedKeyWithPrefix, 0, limit - 1);
-        return range == null ? new ArrayList<>() : new ArrayList<>(range);
     }
 }

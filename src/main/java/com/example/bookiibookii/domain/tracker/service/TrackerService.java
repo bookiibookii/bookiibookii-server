@@ -213,7 +213,7 @@ public class TrackerService {
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
             // [직접 교환] 최신 약속 정보 조회
             latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
-        } else {
+        } else if(tracker.getGroup().getTradeType() == TradeType.DELIVERY ) {
             // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
             partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
 

@@ -7,7 +7,6 @@ import com.example.bookiibookii.domain.review.exception.code.ReviewSuccessCode;
 import com.example.bookiibookii.domain.review.service.ReviewService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

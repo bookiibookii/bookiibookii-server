@@ -643,50 +643,53 @@ public class TrackerService {
         }
 
         TrackerStatus currentStatus = tracker.getTrackerStatus();
-        if (currentStatus != TrackerStatus.HOST_DONE &&
-                currentStatus != TrackerStatus.GUEST_DONE &&
-                currentStatus != TrackerStatus.READ_DONE) {
-                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
 
+        boolean isDoneStatus = (currentStatus == TrackerStatus.HOST_DONE ||
+                currentStatus == TrackerStatus.GUEST_DONE ||
+                currentStatus == TrackerStatus.READ_DONE);
+
+        boolean isShippingStatus = (currentStatus == TrackerStatus.SHIPPING_TO_GUEST ||
+                currentStatus == TrackerStatus.SHIPPING_TO_HOST);
+
+        if (!isDoneStatus && !isShippingStatus) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
         // 현재 소유자가 호스트면 '전달(GUEST)' 단계, 게스트면 '반납(HOST)' 단계로 정의
         TrackerStatus meetingStep = (tracker.getBookOwner().getRole() == RoleStatus.HOST)
                 ? TrackerStatus.SHIPPING_TO_GUEST : TrackerStatus.SHIPPING_TO_HOST;
 
         Meeting meeting = meetingRepository.findByGroupIdAndStatusNative(groupId, meetingStep.name())
-                .orElse(null);
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
 
-        if (meeting == null) {
-            meeting = Meeting.builder()
-                    .group(tracker.getGroup())
-                    .trackerStatus(meetingStep)
-                    .meetingPlace(request.meetingPlace()) // Autofilled 된 값 그대로 저장
-                    .meetingTime(request.meetingTime())
-                    .build();
+        if (meeting.getMeetingTime() == null) {
+            // [최초 등록]
+            // 처음으로 약속을 잡는 것이므로 필요한 정보 세팅
+            meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
         } else {
+            // [재수정]
+            // 이미 약속이 잡혀있던 상태이므로, 기존 컨펌 상태를 리셋하고 정보 업데이트
             meeting.resetConfirmation();
-
+            meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
         }
 
         tracker.updateStatus(meetingStep);
-        meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
 
         meetingRepository.saveAndFlush(meeting);
 
-        int totalCapacity = tracker.getGroup().getMaxCapacity();
-        // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
-        int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
+        if (isDoneStatus) {
+            int totalCapacity = tracker.getGroup().getMaxCapacity();
+            int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
 
-        // 다음 주자(receiver) 조회
-        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+            MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
+                    .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
 
-        TrackerHistory meetingHistory = tracker.createHistorySnapshot(
-                bookOwner.getId(),
-                nextOwner.getId(),
-                null, null
-        );
-        trackerHistoryRepository.save(meetingHistory);
+            TrackerHistory meetingHistory = tracker.createHistorySnapshot(
+                    bookOwner.getId(),
+                    nextOwner.getId(),
+                    null, null
+            );
+            trackerHistoryRepository.save(meetingHistory);
+        }
     }
 
     // 약속 완료

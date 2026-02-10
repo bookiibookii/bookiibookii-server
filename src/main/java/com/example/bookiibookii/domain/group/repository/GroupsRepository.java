@@ -99,7 +99,8 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     long countByHostIdAndGroupStatusIn(Long hostId, List<GroupStatus> statuses);
 
     // 독서 종료일로부터 3일이 지났는데 아직 종료되지 않은(MATCHED) 그룹 조회
-    @Query("SELECT g FROM Groups g WHERE g.groupStatus = 'MATCHED' " +
-            "AND FUNCTION('DATE_ADD', g.startDate, g.readingPeriod) <= :deadline")
+    @Query(value = "SELECT * FROM `groups` g WHERE g.group_status = 'MATCHED' " +
+            "AND DATE_ADD(g.start_date, INTERVAL g.reading_period DAY) <= :deadline",
+            nativeQuery = true)
     List<Groups> findGroupsPastReviewDeadline(@Param("deadline") LocalDate deadline);
 }

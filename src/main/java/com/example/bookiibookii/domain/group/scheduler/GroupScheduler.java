@@ -10,6 +10,7 @@ import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.group.service.GroupCompletionService;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 
 
@@ -36,6 +37,7 @@ public class GroupScheduler {
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
     private final UserRepository userRepository;
+    private final GroupCompletionService groupCompletionService;
 
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
@@ -76,7 +78,6 @@ public class GroupScheduler {
     }
 
     @Scheduled(cron = "0 0 3 * * *")
-    @Transactional
     public void forceCompleteGroups() {
         log.info("[Scheduler] 리뷰 기간 만료 그룹 강제 종료 프로세스 시작");
 
@@ -84,23 +85,14 @@ public class GroupScheduler {
         List<Groups> timeoutGroups = groupsRepository.findGroupsPastReviewDeadline(deadline);
 
         for (Groups group : timeoutGroups) {
-            List<MatchedMember> lazyMembers = matchedMemberRepository
-                    .findAllByGroup_GroupIdAndIsReviewWrittenFalse(group.getGroupId());
-
-            for (MatchedMember mm : lazyMembers) {
-                if (group.getGroupType() == GroupType.RELAY) {
-                    matchedMemberRepository.findPartnerUserId(group.getGroupId(), mm.getUser().getId())
-                            .ifPresent(partnerId -> {
-                                User partner = userRepository.findById(partnerId).orElse(null);
-                                if (partner != null) {
-                                    partner.updateManner(3.0, 0);
-                                }
-                            });
-                }
-                mm.markReviewAsWritten();
+            try {
+                // 3. 방금 만든 서비스 호출 (각 호출마다 독립적인 트랜잭션 생성)
+                groupCompletionService.forceCompleteSingleGroup(group.getGroupId());
+                log.info("[Scheduler] 그룹 강제 종료 성공");
+            } catch (Exception e) {
+                // 4. 하나가 실패해도 catch문에서 잡히므로 다음 그룹 루프는 계속 돌아감!
+                log.error("[Scheduler] 그룹 처리 중 오류 발생");
             }
-
-            group.updateStatus(GroupStatus.COMPLETED);
         }
 
         log.info("[Scheduler] 리뷰 기간 만료 그룹 강제 종료 프로세스 완료 (처리 대상: {}건)", timeoutGroups.size());

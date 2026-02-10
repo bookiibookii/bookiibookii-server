@@ -71,7 +71,7 @@ public class GroupResponseDTO {
 
         // 4. 호스트 정보 및 태그
         private String hostNickname;
-        private String hostProfileImage;
+        private String hostProfileImageUrl;  // 프로필 이미지 Presigned GET URL
         private List<String> groupTags;
         private String customTag;
 
@@ -94,7 +94,7 @@ public class GroupResponseDTO {
     @AllArgsConstructor
     public static class ParticipantSlotDTO {
         private String nickname;       // 유저 닉네임 (빈 슬롯이면 null)
-        private String profileImage;   // 프로필 이미지 (빈 슬롯이면 null)
+        private String profileImageUrl;   // 프로필 이미지 Presigned GET URL (빈 슬롯이면 null)
         private String role;           // HOST, GUEST, EMPTY(빈자리)
         private Boolean isMe;          // 본인 여부
     }
@@ -107,7 +107,7 @@ public class GroupResponseDTO {
             String genre,
             String bookImage,
             String hostNickname,
-            String hostProfileImage,
+            String hostProfileImageUrl,  // 프로필 이미지 Presigned GET URL
             List<String> tags,
             String customTag,
             String groupStatus,

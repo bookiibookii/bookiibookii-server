@@ -6,5 +6,5 @@ import lombok.Builder;
 public record CardWriterDto(
         Long userId,
         String name,
-        String profileImage
+        String profileImageUrl  // 프로필 이미지 Presigned GET URL
 ) {}

@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.user.service;
 
-import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
@@ -10,6 +9,7 @@ import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.domain.tag.exception.TagException;
 import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
 import com.example.bookiibookii.domain.tag.repository.TagRepository;
+import com.example.bookiibookii.domain.user.converter.UserConverter;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
@@ -34,7 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +54,7 @@ public class UserService {
     private final UserBadgeRepository userBadgeRepository;
     private final UserBookQueryRepository userBookQueryRepository;
     private final BadWordService badWordService;
+    private final UserConverter userConverter;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -180,15 +180,9 @@ public class UserService {
         List<UserTag> currentUserTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
         // 누적도 -> 최신 등록 -> ID 순으로 태그 정렬 후 상위태그 추출
         List<Tag> TopTags = userTagService.extractTopTags(currentUserTags, 3);
-        List<String> topTagCodes = TopTags.stream().map(ut -> ut.getCode()).toList();
+        List<String> topTagCodes = userTagService.extractTopTagCodes(currentUserTags, 3);
 
-        // 배지 조회 (count가 0보다 큰 배지만 조회)
         List<UserBadge> userBadges = userBadgeRepository.findByUserAndCountGreaterThan(user, 0);
-        List<UserResponseDTO.UserBadgeDTO> badgeList = userBadges.stream()
-                .map(ub -> UserResponseDTO.UserBadgeDTO.builder()
-                        .userBadge(ub.getBadge().name())
-                        .count(ub.getCount())
-                        .build()).toList();
 
         // 완독 수 (로직에 따라 조건 추가 가능)
         Long completeBookCount = userBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
@@ -198,11 +192,8 @@ public class UserService {
 
         // 그룹 조회 (모집중, 진행중)
         List<Groups> targetGroups = matchedMemberRepository.findMyActiveGroups(
-                userId, targetGroupStatuses //List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED)
+                userId, targetGroupStatuses
         );
-        List<GroupResponseDTO.MypageGroupDto> groupList = targetGroups.stream()
-                .map(this::toMypageGroupDto)
-                .collect(Collectors.toList());
 
         // 최근 읽은 책 조회 (최대 3개)
         List<UserBookResponseDTO.MypageBookDto> recentBooks = userBookQueryRepository.findRecentBooksWithRating(
@@ -212,56 +203,19 @@ public class UserService {
 
         // Address 정보 조회
         Address address = addressRepository.findByUserId(userId).orElse(null);
-        String receiverName = address != null ? address.getReceiverName() : null;
-        String phone = address != null ? address.getPhone() : null;
-        String zipCode = address != null ? address.getZipCode() : null;
-        String addressValue = address != null ? address.getAddress() : null;
-        String addressDetail = address != null ? address.getAddressDetail() : null;
 
-        String profileImageUrl = null;
-        if (user.getUserImage() != null) {
-            profileImageUrl = userImageS3Service.generatePresignedGetUrl(
-                    user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
-        }
-
-        return UserResponseDTO.UserProfileResDTO.builder()
-                .userId(userId)
-                .profileImageUrl(profileImageUrl)
-                .nickname(user.getNickName())
-                .manner(user.getManner())
-                .topTags(topTagCodes)
-                .completeBook(completeBookCount.intValue())
-                .relayGroup(relayCount.intValue())
-                .togetherGroup(togetherCount.intValue())
-                .userBadges(badgeList)
-                .groups(groupList)
-                .books(recentBooks)
-                .receiverName(receiverName)
-                .phone(phone)
-                .zipCode(zipCode)
-                .address(addressValue)
-                .addressDetail(addressDetail)
-                .region(user.getRegion())
-                .meetPlace(user.getMeetPlace())
-                .build();
-    }
-
-    // 그룹 엔티티 -> 마이페이지용 DTO 변환 메서드
-    private GroupResponseDTO.MypageGroupDto toMypageGroupDto(Groups group) {
-        String genre = group.getBook().getCategory().name();
-        List<String> displayTags = group.getGroupTags().stream()
-                .map(gt -> gt.getTag().getCode())
-                .toList();
-        String author = group.getBook().getAuthor();
-
-        return GroupResponseDTO.MypageGroupDto.builder()
-                .groupId(group.getGroupId())
-                .bookTitle(group.getBook().getTitle())
-                .auth(author)
-                .genre(genre)
-                .groupStatus(group.getGroupStatus())
-                .groupTags(displayTags)
-                .build();
+        return userConverter.toUserProfileResDTO(
+                user,
+                topTagCodes,
+                userBadges,
+                completeBookCount,
+                relayCount,
+                togetherCount,
+                targetGroups,
+                recentBooks,
+                address,
+                PRESIGNED_GET_URL_EXPIRATION_MINUTES
+        );
     }
 
     // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)

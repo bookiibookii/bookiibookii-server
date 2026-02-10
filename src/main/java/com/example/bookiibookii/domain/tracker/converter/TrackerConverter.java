@@ -77,7 +77,7 @@ public class TrackerConverter {
             } else {
                 // 약속 전이면 호스트가 설정한 기본 장소 노출
                 builder.meetingInfo(TrackerDetailResponse.MeetingInfo.builder()
-                        .meetingPlace(tracker.getGroup().getHost().getMeetPlace())
+                        .meetingPlace(tracker.getGroup().getPreferRegion())
                         .build());
             }
         }

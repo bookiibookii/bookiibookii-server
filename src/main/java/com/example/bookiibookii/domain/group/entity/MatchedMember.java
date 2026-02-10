@@ -42,6 +42,13 @@ public class MatchedMember extends BaseEntity {
     @Column(name = "completed_at")
     private LocalDateTime completedAt; // 독서 종료일 기록
 
+    @Column(name = "is_review_written", nullable = false)
+    private boolean isReviewWritten = false; // 리뷰 작성 여부 추가
+
+    public void markReviewAsWritten() {
+        this.isReviewWritten = true;
+    }
+
     public void updateReadingRate(int newRate) {
         int normalized = Math.min(100, Math.max(0,newRate));
         this.currentReadingRate = normalized;

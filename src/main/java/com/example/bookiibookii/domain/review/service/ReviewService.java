@@ -2,9 +2,11 @@ package com.example.bookiibookii.domain.review.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
@@ -47,6 +49,7 @@ public class ReviewService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupReviewRepository groupReviewRepository;
     private final UserBadgeRepository userBadgeRepository;
+    private final GroupsRepository groupsRepository;
 
     /**
      * 1. [함께 읽기] 리뷰 생성
@@ -65,6 +68,24 @@ public class ReviewService {
         }
 
         userBook.updateReview(request.rating(), request.comment());
+
+        //그룹 조회 락 추가
+        Groups group = groupsRepository.findByIdForUpdate(userBook.getGroup().getGroupId())
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        // 그룹이 MATCHED 상태일 때만 종료 로직 수행
+        if (group.getGroupStatus() == GroupStatus.MATCHED) {
+            MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(group.getGroupId(), user.getId())
+                    .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+            matchedMember.markReviewAsWritten();
+
+            long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(group.getGroupId());
+
+            if (remainingCount == 0) {
+                group.updateStatus(GroupStatus.COMPLETED);
+            }
+        }
     }
 
     /**
@@ -86,19 +107,23 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
         }
 
-        Groups group = userBook.getGroup();
-        if (group == null) {
-            throw new GroupException(GroupErrorCode.GROUP_NOT_FOUND);
-        }
-        Long groupId = group.getGroupId();
+        // [보완] 비관적 락을 사용하여 그룹 조회 (동시성 제어)
+        Groups group = groupsRepository.findByIdForUpdate(userBook.getGroup().getGroupId())
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 2-3. 트래커 상태 확인 (RETURNED여야 최종 완료 가능)
+        // [보완] 그룹 상태가 MATCHED일 때만 리뷰 프로세스 진행
+        if (group.getGroupStatus() != GroupStatus.MATCHED) {
+            // 이미 COMPLETED거나 DELETED인 경우 예외를 던지거나 리턴 처리
+            throw new GroupException(GroupErrorCode.INVALID_GROUP_STATUS);
+        }
+
+        Long groupId = group.getGroupId();
         ensureTrackerReturned(groupId);
 
-        // 2-4. [책 리뷰] 업데이트
+        // 2-3. [책 리뷰] 업데이트
         userBook.updateReview(request.bookRating(), request.bookComment());
 
-        // 2-5. [상대방 리뷰] 생성 및 뱃지/매너점수 처리
+        // 2-4. 리뷰어 조회 및 중복 체크
         MatchedMember reviewer = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
@@ -106,6 +131,10 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
+        // 2-5. 내 상태 업데이트
+        reviewer.markReviewAsWritten(); // isReviewWritten = true
+
+        // 2-6. 상대방 조회 및 리뷰 저장
         Long partnerUserId = matchedMemberRepository.findPartnerUserId(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
@@ -122,7 +151,12 @@ public class ReviewService {
         processGroupReview(reviewed.getUser(), groupReview, request.badgeCodes(), request.partnerRating());
         groupReviewRepository.save(groupReview);
 
+        // [핵심] 락이 걸린 상태에서 전원 완료 여부 체크
+        long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(groupId);
 
+        if (remainingCount == 0) {
+            group.updateStatus(GroupStatus.COMPLETED);
+        }
     }
 
     /**

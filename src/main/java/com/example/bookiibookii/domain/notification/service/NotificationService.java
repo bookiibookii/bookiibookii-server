@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.notification.service;
 
+import com.example.bookiibookii.domain.notification.converter.NotificationConverter;
 import com.example.bookiibookii.domain.notification.dto.NotificationResDTO;
 import com.example.bookiibookii.domain.notification.entity.Notification;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
@@ -23,6 +24,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final ObjectMapper objectMapper;
+    private final NotificationConverter notificationConverter;
 
     public NotificationResDTO.NotificationListRes getNotifications(
             Long receiverId,
@@ -48,11 +50,7 @@ public class NotificationService {
             nextCursor = buildCursor(last.isRead(), last.getCreatedAt(), last.getId());
         }
 
-        List<NotificationResDTO.NotificationItemRes> items = page.stream()
-                .map(this::toItemRes)
-                .toList();
-
-        return new NotificationResDTO.NotificationListRes(items, nextCursor, hasNext);
+        return notificationConverter.toNotificationListRes(page, nextCursor, hasNext);
     }
 
     @Transactional
@@ -66,41 +64,7 @@ public class NotificationService {
         }
 
         n.markAsRead();
-
-        return toReadRes(n);
-    }
-
-    // converter
-    private NotificationResDTO.NotificationReadRes toReadRes(Notification n) {
-        return new NotificationResDTO.NotificationReadRes(
-                n.getId(),
-                n.getType().name(),
-                n.isRead(),
-                n.getReadAt(),
-                parsePayload(n.getPayload())
-        );
-    }
-
-    private NotificationResDTO.NotificationItemRes toItemRes(Notification n) {
-        return new NotificationResDTO.NotificationItemRes(
-                n.getId(),
-                n.getType().name(),
-                n.getTitle(),
-                n.getMessage(),
-                n.isRead(),
-                n.getCreatedAt(),
-                parsePayload(n.getPayload())
-        );
-    }
-
-    private Map<String, Object> parsePayload(String payload) {
-        if (payload == null || payload.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(payload, new TypeReference<>() {
-            });
-        } catch (Exception e) {
-            return Map.of();
-        }
+        return notificationConverter.toNotificationReadRes(n);
     }
 
     private int clampSize(int size) {

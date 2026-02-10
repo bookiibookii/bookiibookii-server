@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.notification.service;
 
+import com.example.bookiibookii.domain.notification.converter.NotificationConverter;
 import com.example.bookiibookii.domain.notification.dto.KeywordReqDTO;
 import com.example.bookiibookii.domain.notification.dto.KeywordResDTO;
 import com.example.bookiibookii.domain.notification.entity.Keyword;
@@ -24,26 +25,15 @@ public class KeywordService {
 
     private final KeywordRepository keywordRepository;
     private final UserKeywordRepository userKeywordRepository;
+    private final NotificationConverter notificationConverter;
 
     @Transactional(readOnly = true)
     public KeywordResDTO.KeywordList getMyKeywords(User user, KeywordSort sort){
-
         List<UserKeyword> links = (sort == KeywordSort.ALPHABETICAL)
                 ? userKeywordRepository.findAllByUserOrderByAlphabetical(user)
                 : userKeywordRepository.findAllByUserOrderByLatest(user);
 
-        List<KeywordResDTO.KeywordItem> items = links.stream()
-                .map(uk -> KeywordResDTO.KeywordItem.builder()
-                        .keywordId(uk.getKeyword().getId())
-                        .content(uk.getKeyword().getContent())
-                        .build())
-                .toList();
-
-        return KeywordResDTO.KeywordList.builder()
-                .keywordSort(sort)
-                .keywordNumber(items.size())
-                .keywordList(items)
-                .build();
+        return notificationConverter.toKeywordListRes(links, sort); // 컨버터 사용
     }
 
     @Transactional
@@ -91,10 +81,7 @@ public class KeywordService {
             throw new KeywordException(KeywordErrorCode.DUPLICATE_USER_KEYWORD);
         }
 
-        return KeywordResDTO.KeywordItem.builder()
-                .keywordId(keyword.getId())
-                .content(keyword.getContent())
-                .build();
+        return notificationConverter.toKeywordItemRes(keyword);
     }
 
     @Transactional

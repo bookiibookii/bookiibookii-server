@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.notification.service;
 
+import com.example.bookiibookii.domain.notification.converter.NotificationConverter;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
@@ -22,6 +23,7 @@ public class KeywordNotificationService {
     private final UserKeywordRepository userKeywordRepository;
     private final NotificationRepository notificationRepository;
     private final NotificationFactory notificationFactory;
+    private final NotificationConverter notificationConverter;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void send(KeywordGroupCreatedEvent event) {

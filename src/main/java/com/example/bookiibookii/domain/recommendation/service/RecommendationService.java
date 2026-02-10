@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.recommendation.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.recommendation.converter.RecommendationConverter;
 import com.example.bookiibookii.domain.recommendation.dto.res.RecommendationResponseDTO;
 import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tag.enums.TagType;
@@ -31,6 +32,7 @@ public class RecommendationService {
     private final UserBookService userBookService;
     private final GroupsRepository groupsRepository;
     private final RedisUtil redisUtil;
+    private final RecommendationConverter recommendationConverter;
 
     // 캐시 키 접두사 상수
     private static final String REC_CACHE_KEY_PREFIX = "REC:GROUP:";
@@ -58,13 +60,11 @@ public class RecommendationService {
         }
 
         return matchedUsers.stream()
-                .map(user -> RecommendationResponseDTO.BookmateDto.builder()
-                        .userId(user.getId())
-                        .nickname(user.getNickName())
-                        .userImage(user.getUserImage())
-                        .matchedTags(displayTags)
-                        .recentBookTitle(userBookService.findRecentBookTitleByUserId(user.getId()))
-                        .build())
+                .map(user -> recommendationConverter.toBookmateDto(
+                        user,
+                        displayTags,
+                        userBookService.findRecentBookTitleByUserId(user.getId())
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -209,14 +209,7 @@ public class RecommendationService {
         }
 
         return candidateGroups.stream()
-                .map(this::toSuggestGroupDto)
+                .map(recommendationConverter::toRecommendedGroupDto) // 컨버터 사용
                 .collect(Collectors.toList());
-    }
-
-    private RecommendationResponseDTO.RecommendedGroupDto toSuggestGroupDto(Groups group) {
-        return RecommendationResponseDTO.RecommendedGroupDto.builder()
-                .groupId(group.getGroupId())
-                .bookTitle(group.getBook().getTitle())
-                .build();
     }
 }

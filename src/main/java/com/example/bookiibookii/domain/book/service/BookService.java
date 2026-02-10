@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.book.service;
 
-import com.example.bookiibookii.domain.book.config.AladinClient;
+import com.example.bookiibookii.domain.aladin.config.AladinClient;
 import com.example.bookiibookii.domain.book.converter.BookConverter;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
@@ -11,8 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor

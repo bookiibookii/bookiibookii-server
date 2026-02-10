@@ -1,5 +1,6 @@
-package com.example.bookiibookii.domain.book.dto.res;
+package com.example.bookiibookii.domain.aladin.dto.res;
 
+import com.example.bookiibookii.domain.book.dto.res.BookResDTO;
 import lombok.Builder;
 import lombok.Getter;
 

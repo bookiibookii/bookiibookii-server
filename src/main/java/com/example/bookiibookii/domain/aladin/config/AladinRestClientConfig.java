@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.book.config;
+package com.example.bookiibookii.domain.aladin.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

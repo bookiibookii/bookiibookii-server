@@ -1,7 +1,7 @@
-package com.example.bookiibookii.domain.book.controller;
+package com.example.bookiibookii.domain.aladin.controller;
 
-import com.example.bookiibookii.domain.book.dto.res.AladinSearchBooksResDTO;
-import com.example.bookiibookii.domain.book.service.AladinService;
+import com.example.bookiibookii.domain.aladin.dto.res.AladinSearchBooksResDTO;
+import com.example.bookiibookii.domain.aladin.service.AladinService;
 import com.example.bookiibookii.domain.book.dto.res.TempBookResDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;

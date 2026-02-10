@@ -40,7 +40,7 @@ public class GroupScheduler {
     private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 50 0 * * *", zone="Asia/Seoul")
+    @Scheduled(cron = "0 * * * * *", zone="Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         log.info("[Scheduler] 50분 임시 스케줄러");

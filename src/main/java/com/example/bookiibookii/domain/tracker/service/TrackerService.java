@@ -770,7 +770,7 @@ public class TrackerService {
         // 2. 현재 트래커의 주인(책을 받은 사람) 정보 가져오기
         Long currentOwnerUserId = tracker.getBookOwner().getUser().getId();
 
-        // 🟢 3. 권한 검증: 현재 주인(받은 사람)은 본인의 수령 사진을 확인할 수 없음
+        // 3. 권한 검증: 현재 주인(받은 사람)은 본인의 수령 사진을 확인할 수 없음
         // 즉, 반대편에 있는 사람(보낸 사람)이 확인 버튼을 눌러야 함
         if (currentOwnerUserId.equals(user.getId())) {
             throw new TrackerException(TrackerErrorCode.OWNER_CANNOT_VERIFY);

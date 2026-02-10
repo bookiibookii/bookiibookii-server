@@ -7,7 +7,6 @@ import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.exception.code.NotificationErrorCode;
 import com.example.bookiibookii.domain.notification.exception.NotificationException;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -16,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor

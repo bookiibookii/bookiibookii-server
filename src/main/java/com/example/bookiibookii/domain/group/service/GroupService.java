@@ -556,22 +556,8 @@ public class GroupService {
                     List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
                     boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
 
-                    return GroupResponseDTO.GroupSummaryDTO.builder()
-                            .groupId(group.getGroupId())
-                            .title(group.getBook().getTitle())
-                            .bookImage(group.getBook().getImage())
-                            .hostNickname(group.getHost().getNickName())
-                            .groupStatus(group.getGroupStatus().name())
-                            .currentCount(group.getMatchedMember().size())
-                            .maxCapacity(group.getMaxCapacity())
-                            .waitingCount(waitingCount)
-                            .isHot(isHot)
-                            .groupType(group.getGroupType().name())
-                            .tradeType(group.getTradeType().name())
-                            .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
-                            .tags(tags)
-                            .customTag(group.getCustomTag())
-                            .build();
+                    return groupConverter.toGroupSummaryDTO(group, waitingCount, tags,
+                            isHot, determinePictureBadge(group));
                 }).toList();
 
         // 6. 최종 검색 결과 DTO 조립 (총 건수 포함)

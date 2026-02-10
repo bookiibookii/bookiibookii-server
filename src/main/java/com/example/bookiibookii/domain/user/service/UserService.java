@@ -179,7 +179,6 @@ public class UserService {
         List<TagType> targetTypes = List.of(TagType.METHOD, TagType.VIBE);
         List<UserTag> currentUserTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
         // 누적도 -> 최신 등록 -> ID 순으로 태그 정렬 후 상위태그 추출
-        List<Tag> TopTags = userTagService.extractTopTags(currentUserTags, 3);
         List<String> topTagCodes = userTagService.extractTopTagCodes(currentUserTags, 3);
 
         List<UserBadge> userBadges = userBadgeRepository.findByUserAndCountGreaterThan(user, 0);

@@ -44,7 +44,7 @@ public class UserConverter {
         }
 
         // 배지 리스트 변환
-        List<UserResponseDTO.UserBadgeDTO> badgeList = userBadges.stream()
+        List<UserResponseDTO.UserBadgeDTO> badgeList = (userBadges == null ? List.<UserBadge>of() : userBadges).stream()
                 .map(ub -> UserResponseDTO.UserBadgeDTO.builder()
                         .userBadge(ub.getBadge().name())
                         .count(ub.getCount())
@@ -52,7 +52,7 @@ public class UserConverter {
                 .toList();
 
         // 그룹 리스트 변환
-        List<GroupResponseDTO.MypageGroupDto> groupList = targetGroups.stream()
+        List<GroupResponseDTO.MypageGroupDto> groupList = (targetGroups == null ? List.<Groups>of() : targetGroups).stream()
                 .map(this::toMypageGroupDto)
                 .collect(Collectors.toList());
 

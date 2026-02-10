@@ -26,7 +26,7 @@ public class ReviewConverter {
             Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, UserBook pub) {
 
         // 배지 정보 변환
-        List<GroupReviewResponseDTO.BadgeInfo> badges = (gr != null) ? gr.getBadges().stream()
+        List<GroupReviewResponseDTO.BadgeInfo> badges = (gr != null && gr.getBadges() != null) ? gr.getBadges().stream()
                 .map(b -> GroupReviewResponseDTO.BadgeInfo.builder()
                         .code(b.getBadge().name())
                         .description(b.getBadge().getDescription())

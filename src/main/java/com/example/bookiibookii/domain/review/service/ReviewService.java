@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +42,6 @@ public class ReviewService {
     private static final double RATING_MAX = 5.0;
     private static final int BOOK_COMMENT_MAX_LENGTH = 500;
     private static final int GROUP_COMMENT_MAX_LENGTH = 200;
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy. MM. dd.");
 
     private final UserBookRepository userBookRepository;
     private final TrackerRepository trackerRepository;

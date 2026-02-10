@@ -46,11 +46,11 @@ public interface AuthControllerDocs {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
-                    description = "Refresh Token이 없거나 유효하지 않음"
+                    description = "Refresh Token이 없거나 유효하지 않습니다."
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "403",
-                    description = "Refresh Token 만료"
+                    responseCode = "404",
+                    description = "Access Token을 찾을 수 없습니다."
             )
     })
     @PostMapping("/refresh")
@@ -72,14 +72,25 @@ public interface AuthControllerDocs {
     @PostMapping("/logout")
     ApiResponse<Void> logout(HttpServletRequest request);
 
+
     @Operation(
             summary = "회원탈퇴",
             description = "회원탈퇴 처리 API입니다."
     )
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "회원탈퇴 성공"
-    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "회원탈퇴 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Access Token이 불일치합니다."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Access Token을 찾을 수 없습니다."
+            )
+    })
     @DeleteMapping("/withdraw")
     ApiResponse<Void> withdraw(HttpServletRequest request);
 }

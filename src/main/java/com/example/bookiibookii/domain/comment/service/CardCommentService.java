@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.comment.service;
 
+import com.example.bookiibookii.domain.comment.converter.CommentConverter;
 import com.example.bookiibookii.domain.comment.dto.CardWriterDto;
 import com.example.bookiibookii.domain.comment.dto.req.CardCommentReqDTO;
 import com.example.bookiibookii.domain.comment.dto.res.CardCommentResDTO;
@@ -24,9 +25,7 @@ public class CardCommentService {
 
     private final CardRepository cardRepository;
     private final CardCommentRepository cardCommentRepository;
-    private final UserImageS3Service userImageS3Service;
-
-    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+    private final CommentConverter commentConverter;
 
     @Transactional
     public CardCommentResDTO.Create create(Long cardId, User user, CardCommentReqDTO.Create req) {
@@ -49,12 +48,11 @@ public class CardCommentService {
             throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
         }
 
-        var comments = cardCommentRepository.findAllByCardIdWithUserOrderByCreatedAtAsc(cardId).stream()
-                .map(this::toCommentDto)
+        var commentDtos = cardCommentRepository.findAllByCardIdWithUserOrderByCreatedAtAsc(cardId).stream()
+                .map(commentConverter::toCardCommentDto)
                 .toList();
-        long totalCount = comments.size();
 
-        return new CardCommentResDTO.ListResponse(totalCount, comments);
+        return new CardCommentResDTO.ListResponse(commentDtos.size(), commentDtos);
     }
 
     @Transactional
@@ -67,30 +65,5 @@ public class CardCommentService {
         }
 
         cardCommentRepository.delete(comment);
-    }
-
-    // converter
-    private CardCommentResDTO.Comment toCommentDto(CardComment c) {
-        return new CardCommentResDTO.Comment(
-                c.getId(),
-                c.getContent(),
-                toWriterDto(c.getUser()),
-                c.getCreatedAt()
-        );
-    }
-
-    private CardWriterDto toWriterDto(User u) {
-        String profileImageUrl = u.getUserImage() != null
-                ? userImageS3Service.generatePresignedGetUrl(
-                u.getUserImage().getS3Key(),
-                PRESIGNED_GET_URL_EXPIRATION_MINUTES
-        )
-                : null;
-
-        return CardWriterDto.builder()
-                .userId(u.getId())
-                .name(u.getNickName())
-                .profileImage(profileImageUrl)
-                .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.comment.service;
 
+import com.example.bookiibookii.domain.comment.converter.CommentConverter;
 import com.example.bookiibookii.domain.comment.dto.WriterDto;
 import com.example.bookiibookii.domain.comment.dto.res.CommentCreateResDTO;
 import com.example.bookiibookii.domain.comment.dto.res.CommentTreeResDTO;
@@ -38,9 +39,7 @@ public class CommentService {
     private final GroupsRepository groupRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
-    private final UserImageS3Service userImageS3Service;
-
-    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+    private final CommentConverter commentConverter;
 
     @Transactional
     public CommentCreateResDTO create(Long groupId, User user, CommentCreateReqDTO req) {
@@ -81,7 +80,7 @@ public class CommentService {
 
         eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), group.getHost().getId(), group.getGroupId()));
 
-        return toCreateResDTO(saved, writerRole);
+        return commentConverter.toCommentCreateResDTO(saved, writerRole);
     }
 
     // 그룹 페이지 내 모든 댓글 조회(대댓글 포함)
@@ -98,27 +97,7 @@ public class CommentService {
                         row -> toWriterRole(row.getRoleStatus()) // writerRow 내 RoleStatus를 WriteRole로 변환
                 ));
 
-        // 1) id -> dto 매핑 (writerRole은 Map에서 꺼내고 없으면 NONE)
-        Map<Long, CommentTreeResDTO> map = new LinkedHashMap<>();
-        for (Comment c : comments) {
-            Long userId = c.getUser().getId();
-            WriterRole writerRole = writerRoleMap.getOrDefault(userId, WriterRole.NONE);
-            map.put(c.getId(), toTreeDTO(c, writerRole));
-        }
-
-        // 2) 부모-자식 연결 + 루트 수집
-        List<CommentTreeResDTO> roots = new ArrayList<>();
-        for (CommentTreeResDTO dto : map.values()) {
-            if (dto.getParentId() == null) {
-                roots.add(dto);
-            } else {
-                CommentTreeResDTO parent = map.get(dto.getParentId());
-                if (parent != null) parent.addChild(dto);
-                else roots.add(dto);
-            }
-        }
-
-        return roots;
+        return commentConverter.toCommentTree(comments, writerRoleMap);
     }
 
     @Transactional
@@ -138,40 +117,5 @@ public class CommentService {
     private static WriterRole toWriterRole(RoleStatus roleStatus) {
         if (roleStatus == null) return WriterRole.NONE;
         return roleStatus == RoleStatus.HOST ? WriterRole.HOST : WriterRole.GUEST;
-    }
-
-    // converter
-    private CommentCreateResDTO toCreateResDTO(Comment c, WriterRole writerRole) {
-        return CommentCreateResDTO.builder()
-                .commentId(c.getId())
-                .groupId(c.getGroup().getGroupId())
-                .parentId(c.getParent() != null ? c.getParent().getId() : null)
-                .content(c.getContent())
-                .createdAt(c.getCreatedAt())
-                .writer(toWriterDto(c.getUser(), writerRole))
-                .build();
-    }
-
-    private CommentTreeResDTO toTreeDTO(Comment c, WriterRole writerRole) {
-        return CommentTreeResDTO.builder()
-                .id(c.getId())
-                .deleted(c.isDeleted())
-                .content(c.isDeleted() ? "삭제된 댓글입니다." : c.getContent())
-                .parentId(c.getParent() == null ? null : c.getParent().getId())
-                .createdAt(c.getCreatedAt())
-                .writer(toWriterDto(c.getUser(), writerRole))
-                .build();
-    }
-
-    private WriterDto toWriterDto(User u, WriterRole writerRole) {
-        String profileImageUrl = u.getUserImage() != null
-                ? userImageS3Service.generatePresignedGetUrl(u.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES)
-                : null;
-        return WriterDto.builder()
-                .userId(u.getId())
-                .name(u.getNickName())
-                .profileImage(profileImageUrl)
-                .role(writerRole)
-                .build();
     }
 }

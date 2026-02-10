@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.service;
 
+import com.example.bookiibookii.domain.group.converter.GroupConverter;
 import com.example.bookiibookii.domain.group.dto.res.MatchedMemberResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MatchedMemberService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupsRepository groupsRepository;
+    private final GroupConverter groupConverter;
 
     @Transactional
     public MatchedMemberResponseDTO.CompleteReadingResultDTO finishTogetherReading(Long userId, Long groupId) {
@@ -40,10 +42,6 @@ public class MatchedMemberService {
 
         matchedMember.completeReading();
 
-        return MatchedMemberResponseDTO.CompleteReadingResultDTO.builder()
-                .matchedMemberId(matchedMember.getId())
-                .currentReadingRate(matchedMember.getCurrentReadingRate())
-                .completedAt(matchedMember.getCompletedAt())
-                .build();
+        return groupConverter.toCompleteReadingResultDTO(matchedMember);
     }
 }

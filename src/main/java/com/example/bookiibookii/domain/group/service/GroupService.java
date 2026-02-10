@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
+import com.example.bookiibookii.domain.group.converter.GroupConverter;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.GroupTag;
@@ -52,7 +53,6 @@ import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DE
 @Transactional
 @RequiredArgsConstructor
 public class GroupService {
-
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final ApplicationRepository applicationRepository;
@@ -70,6 +70,7 @@ public class GroupService {
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
+    private final GroupConverter groupConverter;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -190,11 +191,7 @@ public class GroupService {
 
         publisher.publish(new KeywordGroupCreatedEvent(group.getGroupId(), texts, ids));
 
-        return GroupResponseDTO.CreateResultDTO.builder()
-                .groupId(savedGroup.getGroupId()) //
-                .groupStatus(savedGroup.getGroupStatus()) //
-                .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                .build();
+        return groupConverter.toCreateResultDTO(savedGroup);
     }
 
     private void validateCommonPolicy(GroupRequestDTO.CreateDTO request) {
@@ -374,63 +371,23 @@ public class GroupService {
     @Transactional(readOnly = true)
     public GroupResponseDTO.GroupDetailDTO getGroupDetail(Long groupId, Long userId) {
 
-        // 1. 그룹의 핵심 정보(도서, 호스트)를 한 번에 조회 (Fetch Join 활용으로 성능 최적화)
         Groups group = groupsRepository.findDetailById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        String persistedMeetPlace = null;
-        if (group.getTradeType() == TradeType.DIRECT) {
-            // findByGroup 대신 더 명확한 이름을 사용
-            persistedMeetPlace = meetingRepository.findFirstByGroupOrderByCreatedAtDesc(group)
-                    .map(Meeting::getMeetingPlace) // 엔티티 필드명이 meetingPlace이므로 정확함!
-                    .orElse(null);
-        }
+        String meetPlace = (group.getTradeType() == TradeType.DIRECT) ?
+                meetingRepository.findFirstByGroupOrderByCreatedAtDesc(group)
+                        .map(Meeting::getMeetingPlace).orElse(null) : null;
 
-        // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByReadingOrderAsc(group);
-
-        // 3. 현재 '대기 중'인 신청자 수를 카운트 (방장 버튼의 숫자 표시 및 HOT 배지 계산용)
         int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
-
-        // 4. 대기 인원이 정원의 3배 이상일 경우 'HOT' 배지 활성화 여부 판단
         boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
 
-        // 5. 기획서 UI에 맞춰 확정 멤버 정보와 빈 슬롯(EMPTY)을 혼합하여 참여자 목록 가공
-        List<GroupResponseDTO.ParticipantSlotDTO> participantSlots = buildParticipantSlots(group, matchedMembers, userId);
-
-        // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
+        // UI용 슬롯 및 버튼 상태 결정 (이 로직은 서비스 헬퍼로 유지)
+        List<GroupResponseDTO.ParticipantSlotDTO> slots = buildParticipantSlots(group, matchedMembers, userId);
         String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
 
-        List<String> groupTag = group.getGroupTags().stream().map(ut -> ut.getTag().getCode()).toList();
-
-
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
-        return GroupResponseDTO.GroupDetailDTO.builder()
-                .groupId(group.getGroupId())
-                .title(group.getBook().getTitle())
-                .groupComment(group.getGroupComment())
-                .groupStatus(group.getGroupStatus().name())
-                .isHost(group.getHost().getId().equals(userId))
-                .preferRegion(group.getPreferRegion())
-                .meetPlace(persistedMeetPlace)
-                .bookTitle(group.getBook().getTitle())
-                .bookImage(group.getBook().getImage())
-                .author(group.getBook().getAuthor())
-                .category(group.getBook().getCategory().label())
-                .readingPeriod(group.getReadingPeriod())
-                .matchedCount(matchedMembers.size())
-                .maxCapacity(group.getMaxCapacity())
-                .waitingCount(waitingCount)
-                .isHot(isHot)
-                .hostNickname(group.getHost().getNickName())
-                .hostProfileImage(userProfileImageUrl(group.getHost()))
-                .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
-                .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
-                .groupTags(groupTag)
-                .customTag(group.getCustomTag())
-                .participantSlots(participantSlots)
-                .buttonStatus(buttonStatus)
-                .build();
+        return groupConverter.toGroupDetailDTO(group, matchedMembers, waitingCount, isHot, slots, buttonStatus, meetPlace, userId);
     }
 
     private List<GroupResponseDTO.ParticipantSlotDTO> buildParticipantSlots(Groups group, List<MatchedMember> matchedMembers, Long userId) {
@@ -523,29 +480,8 @@ public class GroupService {
                 .map(group -> {
                     int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
                     List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
-                    boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
-
-                    return GroupResponseDTO.GroupSummaryDTO.builder()
-                            .groupId(group.getGroupId())
-                            .title(group.getBook().getTitle())
-                            .author(group.getBook().getAuthor())
-                            .genre(group.getBook().getCategory().label())
-                            .hostProfileImage(userProfileImageUrl(group.getHost()))
-                            .bookImage(group.getBook().getImage())
-                            .hostNickname(group.getHost().getNickName())
-                            .groupStatus(group.getGroupStatus().name())
-                            .currentCount(group.getMatchedMember().size()) // matchedMember는 메인 쿼리에서 fetchJoin 권장
-                            .maxCapacity(group.getMaxCapacity())
-                            .waitingCount(waitingCount)
-                            .isHot(isHot)
-                            .groupType(group.getGroupType().name())
-                            .tradeType(group.getTradeType().name())
-                            .pictureBadge(determinePictureBadge(group))
-                            .readingPeriod(group.getReadingPeriod())
-                            .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
-                            .tags(tags) // 미리 수집한 태그 리스트 주입
-                            .customTag(group.getCustomTag())
-                            .build();
+                    return groupConverter.toGroupSummaryDTO(group, waitingCount, tags,
+                            waitingCount >= (group.getMaxCapacity() * 3), determinePictureBadge(group));
                 }).toList();
 
         return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, groupsSlice.getNumber(), groupsSlice.hasNext());

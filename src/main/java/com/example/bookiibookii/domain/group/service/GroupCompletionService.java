@@ -29,7 +29,6 @@ public class GroupCompletionService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupReviewRepository groupReviewRepository; // 리뷰 레포지토리 추가
-    private final UserRepository userRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void forceCompleteSingleGroup(Long groupId) {

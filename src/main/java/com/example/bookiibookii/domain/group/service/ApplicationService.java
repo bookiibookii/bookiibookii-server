@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.service;
 
+import com.example.bookiibookii.domain.group.converter.GroupConverter;
 import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
@@ -49,6 +50,7 @@ public class ApplicationService {
     private final ApplicationEventPublisher eventPublisher;
     private final DomainEventPublisher publisher;
     private final UserBookService userBookService;
+    private final GroupConverter groupConverter;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -66,17 +68,14 @@ public class ApplicationService {
 
         // 4. 엔티티 리스트를 DTO 리스트로 변환
         List<ApplicationResponseDTO.ApplicationDetailDTO> detailDTOs = applications.stream()
-                .map(this::toDetailDTO)
+                .map(groupConverter::toApplicationDetailDTO)
                 .collect(Collectors.toList());
 
-        return ApplicationResponseDTO.ApplicationListDTO.builder()
-                .applicationList(detailDTOs)
-                .totalCount(detailDTOs.size())
-                .build();
+        return groupConverter.toApplicationListDTO(detailDTOs);
     }
 
     // 참가 수락 || 거절 로직
-    @Transactional(readOnly = false) // 쓰기 작업이므로 readOnly = false (기본값)로 덮어씌움
+    @Transactional
     public ApplicationResponseDTO.UpdateResultDTO updateApplicationStatus(Long applyId, Long userId, ApplicationStatus status)
     {
 
@@ -170,16 +169,11 @@ public class ApplicationService {
             ));
         }
 
-        return ApplicationResponseDTO.UpdateResultDTO.builder()
-                .applicationId(application.getApplicationId())
-                .status(application.getApplicationStatus())
-                .groupStatus(group.getGroupStatus())
-                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
-                .build();
+        return groupConverter.toUpdateResultDTO(application, group);
     }
 
     //참가신청 service
-    @Transactional(readOnly = false)
+    @Transactional
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
 
         //그룹 존재여부 확인
@@ -238,15 +232,11 @@ public class ApplicationService {
         // 알림 publish
         publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getBook().getTitle(), group.getHost().getId(), null, groupId) );
 
-        return ApplicationResponseDTO.JoinResultDTO.builder()
-                .applicationId(application.getApplicationId())
-                .status(application.getApplicationStatus().name())
-                .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                .build();
+        return groupConverter.toJoinResultDTO(application);
     }
 
     //참여 취소하기
-    @Transactional(readOnly = false)
+    @Transactional
     public ApplicationResponseDTO.CancelResultDTO cancelApplication (Long groupId, Long userId){
 
         // 그룹에 비관적 락을 먼저 걸고 조회
@@ -282,37 +272,6 @@ public class ApplicationService {
             group.updateStatus(GroupStatus.RECRUITING);
         }
 
-        return ApplicationResponseDTO.CancelResultDTO.builder()
-                .groupId(groupId)
-                .canceledAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
-                .build();
+        return groupConverter.toCancelResultDTO(groupId);
     }
-
-    private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
-        User guest = application.getGuest();
-
-        // 태그 이름만 String 리스트로 추출
-        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그의 코드를 추출
-        List<String> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
-                guest.getUserTags().stream()
-                        // 1. 점수(score) 높은 순서대로 정렬
-                        .sorted(Comparator.comparingInt(UserTag::getScore).reversed())
-                        // 2. 상위 3개만 자르기
-                        .limit(3)
-                        // 3. 태그의 이름(또는 코드) 꺼내기
-                        .map(ut -> ut.getTag().getCode())
-                        .toList();
-
-        return ApplicationResponseDTO.ApplicationDetailDTO.builder()
-                .applicationId(application.getApplicationId())
-                .user(guest.getId())
-                .name(guest.getNickName())
-                //.profileImageUrl(guest.getImageUrl()) //프로필 사진
-                .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                .tags(top3Tags)
-                .applyMsg(application.getApplyMsg())
-                .build();
-    }
-
-
 }

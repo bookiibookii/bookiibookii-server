@@ -240,7 +240,7 @@ public class CardService {
                                 .build());
                     } catch (DataIntegrityViolationException e) {
                         return cardStateRepository.findByUser_IdAndCard_Id(userId, cardId)
-                                .orElseThrow(() -> new CardException(CardErrorCode.CARD_NOT_FOUND));
+                                .orElseThrow(() -> new CardException(CardErrorCode.CARD_STATE_CONFLICT));
                     }
                 });
         if (state.isBookmarked()) {

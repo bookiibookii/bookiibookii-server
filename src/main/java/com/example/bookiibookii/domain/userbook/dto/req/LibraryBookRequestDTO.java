@@ -1,9 +1,8 @@
 package com.example.bookiibookii.domain.userbook.dto.req;
 
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 
 public class LibraryBookRequestDTO {

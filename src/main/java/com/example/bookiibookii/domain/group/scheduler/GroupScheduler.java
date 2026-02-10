@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 import static com.example.bookiibookii.domain.group.enums.GroupNotiType.*;
@@ -39,10 +40,10 @@ public class GroupScheduler {
     private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 0 0 * * *", zone="Asia/Seoul")
+    @Scheduled(cron = "0 30 0 * * *", zone="Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         List<Groups> targetGroups = groupsRepository.findGroupsToStart(today);
 
         for (Groups group : targetGroups) {

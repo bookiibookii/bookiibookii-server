@@ -2,11 +2,11 @@ package com.example.bookiibookii.domain.userbook.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.userbook.converter.UserBookConverter;
 import com.example.bookiibookii.domain.userbook.dto.CardImageUpdateResult;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardCreateResponseDTO;
-import com.example.bookiibookii.domain.userbook.dto.res.CardImageResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.CardListResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.GroupCardResponseDTO;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
@@ -53,6 +53,7 @@ public class CardService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final UserRepository userRepository;
     private final TrackerRepository trackerRepository;
+    private final UserBookConverter userBookConverter;
 
     // ========== 컨트롤러에서 직접 호출 (DTO 반환) ==========
 
@@ -125,7 +126,7 @@ public class CardService {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 
-        return buildCardCreateResponseDTO(savedCard, cardImage, presignedGetUrlExpirationMinutes);
+        return userBookConverter.toCardCreateResponseDTO(savedCard, cardImage, presignedGetUrlExpirationMinutes);
     }
 
     /**
@@ -155,7 +156,13 @@ public class CardService {
                 : cardStateRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
 
         List<GroupCardResponseDTO> cardDTOs = cards.stream()
-                .map(card -> buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, bookmarkedCardIds.contains(card.getId()), getCreatorNameSafely(card)))
+                .map(card -> userBookConverter.toGroupCardResponseDTO(
+                        card,
+                        card.getCardImage(),
+                        presignedGetUrlExpirationMinutes,
+                        bookTitle,
+                        bookmarkedCardIds.contains(card.getId()),
+                        getCreatorNameSafely(card)))
                 .toList();
 
         var trackerOpt = trackerRepository.findByGroupId(groupId);
@@ -185,13 +192,7 @@ public class CardService {
             }
         }
 
-        return CardListResponseDTO.builder()
-                .groupId(groupId)
-                .currentBookOwner(currentBookOwner)
-                .myComment(myComment)
-                .partnerComment(partnerComment)
-                .cards(cardDTOs)
-                .build();
+        return userBookConverter.toCardListResponse(groupId, currentBookOwner, myComment, partnerComment, cardDTOs);
     }
 
     /**
@@ -203,10 +204,15 @@ public class CardService {
         if (stateOpt.map(CardState::isHidden).orElse(false)) {
             throw new CardImageException(CardImageErrorCode.CARD_NOT_FOUND);
         }
-        CardImage cardImage = card.getCardImage();
-        String bookTitle = getBookTitleSafely(card);
-        boolean bookmarked = stateOpt.map(CardState::isBookmarked).orElse(false);
-        return buildGroupCardResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes, bookTitle, bookmarked, getCreatorNameSafely(card));
+
+        return userBookConverter.toGroupCardResponseDTO(
+                card,
+                card.getCardImage(),
+                presignedGetUrlExpirationMinutes,
+                getBookTitleSafely(card),
+                stateOpt.map(CardState::isBookmarked).orElse(false),
+                getCreatorNameSafely(card)
+        );
     }
 
     /**
@@ -219,7 +225,7 @@ public class CardService {
         if (cardImage == null) {
             cardImage = getCardImage(cardId);
         }
-        return buildCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes);
+        return userBookConverter.toCardCreateResponseDTO(card, cardImage, presignedGetUrlExpirationMinutes);
     }
 
     /**
@@ -401,44 +407,6 @@ public class CardService {
         return card;
     }
 
-    private CardCreateResponseDTO buildCardCreateResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes) {
-        CardImageResponseDTO cardImageResponseDTO = CardImageResponseDTO.builder()
-                .cardImageId(cardImage.getId())
-                .s3Key(cardImage.getS3Key())
-                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
-                .build();
-        return CardCreateResponseDTO.builder()
-                .cardId(card.getId())
-                .page(card.getPage())
-                .memo(card.getMemo())
-                .cardImage(cardImageResponseDTO)
-                .createdAt(card.getCreatedAt())
-                .build();
-    }
-
-    private GroupCardResponseDTO buildGroupCardResponseDTO(Card card, CardImage cardImage, int presignedGetUrlExpirationMinutes, String bookTitle, boolean isBookmarked, String creatorName) {
-        if (cardImage == null) {
-            throw new CardImageException(CardImageErrorCode.CARD_IMAGE_NOT_FOUND);
-        }
-        CardImageResponseDTO imageDto = CardImageResponseDTO.builder()
-                .cardImageId(cardImage.getId())
-                .s3Key(cardImage.getS3Key())
-                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
-                .build();
-        return GroupCardResponseDTO.builder()
-                .cardId(card.getId())
-                .page(card.getPage())
-                .memo(card.getMemo())
-                .cardImage(imageDto)
-                .createdAt(card.getCreatedAt())
-                .bookTitle(bookTitle)
-                .isBookmarked(isBookmarked)
-                .creatorName(creatorName)
-                .build();
-    }
-
-    // 북마크
-
     /**
      * 카드 북마크 토글. 조회 가능한 카드만 북마크 가능(소유자 또는 그룹 멤버).
      * @return 토글 후 북마크 여부 (true = 북마크됨, false = 북마크 해제됨)
@@ -470,11 +438,13 @@ public class CardService {
     public List<GroupCardResponseDTO> getMyBookmarkedCards(Long userId, int presignedGetUrlExpirationMinutes) {
         List<CardState> states = cardStateRepository.findByUser_IdAndBookmarkedTrueWithCardAndImageAndBookOrderByCreatedAtDesc(userId);
         return states.stream()
-                .map(cs -> {
-                    Card card = cs.getCard();
-                    String bookTitle = getBookTitleSafely(card);
-                    return buildGroupCardResponseDTO(card, card.getCardImage(), presignedGetUrlExpirationMinutes, bookTitle, true, getCreatorNameSafely(card));
-                })
+                .map(cs -> userBookConverter.toGroupCardResponseDTO(
+                        cs.getCard(),
+                        cs.getCard().getCardImage(),
+                        presignedGetUrlExpirationMinutes,
+                        getBookTitleSafely(cs.getCard()),
+                        true,
+                        getCreatorNameSafely(cs.getCard())))
                 .toList();
     }
 

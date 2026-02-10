@@ -2,7 +2,7 @@ package com.example.bookiibookii.domain.userbook.service;
 
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
-import com.example.bookiibookii.domain.user.service.UserImageS3Service;
+import com.example.bookiibookii.domain.userbook.converter.UserBookConverter;
 import com.example.bookiibookii.domain.userbook.dto.res.LibraryBookResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 public class LibraryService {
 
     private final UserBookRepository userBookRepository;
-    private final UserImageS3Service userImageS3Service;
     private final TrackerRepository trackerRepository;
+    private final UserBookConverter userBookConverter;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -50,59 +50,7 @@ public class LibraryService {
 
         if (userBooks.isEmpty()) return List.of();
 
-        List<Long> groupIds = userBooks.stream().map(ub -> ub.getGroup().getGroupId()).toList();
-
-        Map<Long, Tracker> trackerMap = trackerRepository.findByGroup_GroupIdIn(groupIds).stream()
-                .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t));
-
-        return userBooks.stream()
-                .map(ub -> toLibraryBookResponseDTO(ub, trackerMap.get(ub.getGroup().getGroupId())))
-                .toList();
-    }
-
-    private LibraryBookResponseDTO toLibraryBookResponseDTO(UserBook ub, Tracker tracker) {
-        if (ub.getGroup() == null || ub.getGroup().getBook() == null || ub.getGroup().getHost() == null) {
-            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
-        }
-
-        var group = ub.getGroup();
-        var book = group.getBook();
-        var host = group.getHost();
-
-        String hostProfileImageUrl = null;
-        if (host.getUserImage() != null) {
-            try {
-                hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
-                        host.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
-            } catch (Exception e) {
-                log.warn("호스트 프로필 이미지 Presigned URL 생성 실패", e);
-            }
-        }
-
-        LocalDate finalEndDate = null;
-        if (tracker != null && tracker.getEndDate() != null) {
-            finalEndDate = tracker.getEndDate().toLocalDate();
-        } else if (group.getStartDate() != null && group.getReadingPeriod() != null) {
-            finalEndDate = group.getStartDate().plusDays(group.getReadingPeriod());
-        }
-
-        return LibraryBookResponseDTO.builder()
-                .groupId(group.getGroupId())
-                .userBookId(ub.getId())
-                .bookId(book.getId())
-                .title(book.getTitle())
-                .author(book.getAuthor())
-                .image(book.getImage())
-                .hostId(host.getId())
-                .hostNickName(host.getNickName())
-                .hostProfileImageUrl(hostProfileImageUrl)
-                .groupType(group.getGroupType())
-                .startDate(group.getStartDate())
-                .endDate(finalEndDate)
-                .duration(group.getReadingPeriod())
-                .rating(ub.getRating())
-                .comment(ub.getComment())
-                .build();
+        return convertToLibraryDTOs(userBooks);
     }
 
     //서재검색
@@ -116,6 +64,13 @@ public class LibraryService {
 
         if (userBooks.isEmpty()) return List.of();
 
+        return convertToLibraryDTOs(userBooks);
+    }
+
+    /**
+     * 공통 변환 로직 (내부 헬퍼 메서드)
+     */
+    private List<LibraryBookResponseDTO> convertToLibraryDTOs(List<UserBook> userBooks) {
         List<Long> groupIds = userBooks.stream()
                 .map(ub -> ub.getGroup().getGroupId())
                 .toList();
@@ -124,7 +79,10 @@ public class LibraryService {
                 .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t));
 
         return userBooks.stream()
-                .map(ub -> toLibraryBookResponseDTO(ub, trackerMap.get(ub.getGroup().getGroupId())))
+                .map(ub -> userBookConverter.toLibraryBookResponseDTO(
+                        ub,
+                        trackerMap.get(ub.getGroup().getGroupId()),
+                        PRESIGNED_GET_URL_EXPIRATION_MINUTES))
                 .toList();
     }
 }

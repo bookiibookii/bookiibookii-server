@@ -1,0 +1,54 @@
+spring:
+  jackson:
+    time-zone: UTC
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    redis:
+      prefix: "prod:"
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      ssl:
+        enabled: true
+      timeout: 3s
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+
+jwt:
+  token:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration:
+      access: 1800000      # 30분
+      refresh: 1209600000  # 14일
+
+oauth:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+  kakao:
+    client-id: ${KAKAO_REST_API_KEY}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+
+aladin:
+  ttbkey: ${ALADIN_TTB_KEY}
+
+aws:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME}
+    region: ${AWS_REGION}
+
+server:
+  forward-headers-strategy: framework

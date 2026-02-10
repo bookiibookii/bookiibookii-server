@@ -18,6 +18,7 @@ public class TrackerDetailResponse {
     private LocalDateTime endDate;       // 반납 예정일
     private Integer extensionCount;      // 연장 횟수
     private Integer extensionDays;       // 연장 일수
+    private Integer readingPeriod;      // 그룹 독서 기간
     private Long trackerId;
 
     private DeliveryInfo deliveryInfo;

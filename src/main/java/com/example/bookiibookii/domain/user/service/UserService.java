@@ -128,8 +128,12 @@ public class UserService {
         // s3Key 형식: image/users/{userId}/{uuid} — 소유자 검증
         long keyUserId;
         try {
-            keyUserId = Long.parseLong(s3Key.split("/")[2]);
-        } catch (NumberFormatException e) {
+            String[] parts = s3Key.split("/");
+            if (parts.length < 3) {
+                throw new UserImageException(UserImageErrorCode.INVALID_S3_KEY_FORMAT);
+            }
+            keyUserId = Long.parseLong(parts[2]);
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             throw new UserImageException(UserImageErrorCode.INVALID_S3_KEY_FORMAT);
         }
         if (keyUserId != user.getId()) {
@@ -160,13 +164,13 @@ public class UserService {
                 if (userImageRepository.existsByS3Key(s3Key)) {
                     throw new UserImageException(UserImageErrorCode.DUPLICATE_S3_KEY);
                 }
-                throw new UserImageException(UserImageErrorCode.DUPLICATE_S3_KEY);
+                throw e;
             }
         }
     }
 
     // 유저 프로필 조회
-    @Transactional
+    @Transactional(readOnly = true)
     public UserResponseDTO.UserProfileResDTO getProfileInfo(Long userId, List<GroupStatus> targetGroupStatuses) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
@@ -273,7 +277,6 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        requireAvailableNickname(request.nickname());
         if (!request.nickname().equals(user.getNickName())) {
             requireAvailableNickname(request.nickname());
             user.updateName(request.nickname());

@@ -41,7 +41,7 @@ public class GroupScheduler {
     private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 45 2 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 47 2 * * *", zone = "Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         log.info("[Scheduler] firedAtKST={}", ZonedDateTime.now(ZoneId.of("Asia/Seoul")));

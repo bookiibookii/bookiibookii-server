@@ -41,7 +41,7 @@ public class GroupScheduler {
     private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 55 1 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 45 2 * * *", zone = "Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         log.info("[Scheduler] firedAtKST={}", ZonedDateTime.now(ZoneId.of("Asia/Seoul")));
@@ -52,6 +52,7 @@ public class GroupScheduler {
             long memberCount = matchedMemberRepository.countByGroup(group);
 
             if (memberCount >= 2) {
+                log.info("[Scheduler] memCount >=2");
                 group.updateStatus(GroupStatus.MATCHED);
                 //매칭 이벤트 발행
                 eventPublisher.publish(new GroupMatchedEvent(
@@ -60,14 +61,9 @@ public class GroupScheduler {
                         group.getStartDate(),
                         group.getMaxCapacity()
                 ));
-                // 매칭 성공 알람
-//                eventPublisher.publish(new GroupNotificationEvent(
-//                        MATCH_SUCCEEDED, group.getHost().getId(), group.getBook().getTitle(),
-//                        newMember.getUser().getId(), null, group.getGroupId()
-//                ));
-                // 대기자들 거절 알람
 
             } else {
+                log.info("[Scheduler] delete group");
                 group.markAsDELETED();
                 eventPublisher.publish(new GroupNotificationEvent(MATCH_EXPIRED, null, group.getBook().getTitle(), group.getHost().getId(), null, group.getGroupId()));
                 // 신청자 관리: 알림 발송을 위해 대기자 명단 먼저 추출

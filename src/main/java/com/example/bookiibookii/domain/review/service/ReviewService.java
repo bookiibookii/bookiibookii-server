@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.review.converter.ReviewConverter;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
@@ -50,6 +51,7 @@ public class ReviewService {
     private final GroupReviewRepository groupReviewRepository;
     private final UserBadgeRepository userBadgeRepository;
     private final GroupsRepository groupsRepository;
+    private final ReviewConverter reviewConverter;
 
     /**
      * 1. [함께 읽기] 리뷰 생성
@@ -225,16 +227,13 @@ public class ReviewService {
 
         // 3. Tracker / UserBook 배치 조회 (N+1 방지)
         List<Tracker> trackers = trackerRepository.findByGroup_GroupIdIn(groupIds);
-        Map<Long, Tracker> trackerByGroupId = trackers.stream()
+        Map<Long, Tracker> trackerByGroupId = trackerRepository.findByGroup_GroupIdIn(groupIds).stream()
                 .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t, (a, b) -> a));
 
-        List<UserBook> userBooksInGroups = userBookRepository.findByGroup_GroupIdInWithUserAndGroup(groupIds);
-        Map<String, UserBook> userBookByUserAndGroup = userBooksInGroups.stream()
+        Map<String, UserBook> userBookByUserAndGroup = userBookRepository.findByGroup_GroupIdInWithUserAndGroup(groupIds).stream()
                 .collect(Collectors.toMap(
                         ub -> ub.getUser().getId() + "_" + ub.getGroup().getGroupId(),
-                        ub -> ub,
-                        (a, b) -> a
-                ));
+                        ub -> ub, (a, b) -> a));
 
         // 4. 각 리뷰에 대해 맵에서 조회 후 DTO 생성
         List<GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO> reviewItems = partnerToMeReviews.stream()
@@ -243,52 +242,15 @@ public class ReviewService {
                     if (partnerMM == null) return null;
 
                     Groups group = partnerMM.getGroup();
-                    Long groupId = group.getGroupId();
-                    Long partnerUserId = partnerMM.getUser().getId();
+                    Tracker tracker = trackerByGroupId.get(group.getGroupId());
+                    UserBook partnerBookReview = userBookByUserAndGroup.get(partnerMM.getUser().getId() + "_" + group.getGroupId());
 
-                    Tracker tracker = trackerByGroupId.get(groupId);
-                    UserBook partnerBookReview = userBookByUserAndGroup.get(partnerUserId + "_" + groupId);
-
-                    return buildReviewItemDTO(group, tracker, partnerMM, gr, partnerBookReview);
+                    return reviewConverter.toMyReviewItemDTO(group, tracker, partnerMM, gr, partnerBookReview);
                 })
                 .filter(Objects::nonNull)
                 .toList();
 
-        return GroupReviewResponseDTO.GroupReviewDetailDTO.builder()
-                .reviews(reviewItems)
-                .build();
-    }
-
-    private GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO buildReviewItemDTO(
-            Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, UserBook pub) {
-
-        // 5. 뱃지 변환 로직
-        List<GroupReviewResponseDTO.BadgeInfo> badges = (gr != null) ? gr.getBadges().stream()
-                .map(b -> GroupReviewResponseDTO.BadgeInfo.builder()
-                        .code(b.getBadge().name())
-                        .description(b.getBadge().getDescription())
-                        .build())
-                .toList() : new ArrayList<>();
-
-        return GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO.builder()
-                .groupId(group.getGroupId())
-                .bookTitle(group.getBook().getTitle())
-                .bookImage(group.getBook().getImage())
-                .startDate(group.getStartDate().format(DATE_FMT))
-                // 6. finishedDate 처리
-                .finishedDate(tracker != null && tracker.getUpdatedAt() != null ?
-                        tracker.getUpdatedAt().format(DATE_FMT) : "진행중")
-                .partnerNickname(partnerMM != null ? partnerMM.getUser().getNickName() : "알 수 없음")
-                // 7. DTO 필드명과 일치시킴 (partnerBadges)
-                .partnerToMeRating(gr != null ? gr.getRating() : 0.0)
-                .partnerToMeComment(gr != null ? gr.getComment() : "평가가 없습니다.")
-                .partnerBadges(badges)
-                // 8. 상대방 책 리뷰 (pub.getComment() 사용)
-                .partnerBookRating(pub != null ? pub.getRating() : 0.0)
-                .partnerBookComment(pub != null ? pub.getComment() : "리뷰가 없습니다.")
-                .partnerBookReviewDate(pub != null && pub.getUpdatedAt() != null ?
-                        pub.getUpdatedAt().format(DATE_FMT) : null)
-                .build();
+        return reviewConverter.toGroupReviewDetailDTO(reviewItems);
     }
 }
 

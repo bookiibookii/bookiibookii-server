@@ -34,7 +34,7 @@ public class GroupController implements GroupControllerDocs {
     @PatchMapping("/{groupId}")
     public ApiResponse<GroupResponseDTO.UpdateResultDTO> updateGroup(
             @PathVariable(name = "groupId") Long groupId,
-            @AuthenticationPrincipal User host,
+            @AuthenticationPrincipal (expression = "user") User host,
             @RequestBody @Valid GroupRequestDTO.UpdateDTO request) { // @RequestBody와 @Valid 추가
 
         // 서비스에서 비관적 락(Pessimistic Lock)과 RECRUITING 상태 체크를 수행합니다.

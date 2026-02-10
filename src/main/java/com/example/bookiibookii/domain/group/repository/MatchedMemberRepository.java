@@ -105,4 +105,9 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     // 내가 게스트로 '참여 확정'되어 진행 중인 그룹 개수
     long countByUserIdAndRoleAndGroup_GroupStatusIn(Long userId, RoleStatus role, List<GroupStatus> statuses);
 
+    // 특정 그룹에서 아직 리뷰를 안 쓴 멤버 수 카운트
+    long countByGroup_GroupIdAndIsReviewWrittenFalse(Long groupId);
+
+    // 특정 그룹에서 리뷰 안 쓴 멤버 리스트 조회
+    List<MatchedMember> findAllByGroup_GroupIdAndIsReviewWrittenFalse(Long groupId);
 }

@@ -1,8 +1,10 @@
 package com.example.bookiibookii.domain.group.scheduler;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
@@ -11,6 +13,8 @@ import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 
 
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,6 +35,7 @@ public class GroupScheduler {
     private final ApplicationRepository applicationRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
+    private final UserRepository userRepository;
 
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
@@ -68,5 +73,36 @@ public class GroupScheduler {
             // 어떤 경우든 남은 대기자(Pending)는 일괄 거절 처리
             applicationRepository.updatePendingToRejectedByGroupId(group.getGroupId(), ApplicationStatus.REJECTED);
         }
+    }
+
+    @Scheduled(cron = "0 0 3 * * *")
+    @Transactional
+    public void forceCompleteGroups() {
+        log.info("[Scheduler] 리뷰 기간 만료 그룹 강제 종료 프로세스 시작");
+
+        LocalDate deadline = LocalDate.now().minusDays(3);
+        List<Groups> timeoutGroups = groupsRepository.findGroupsPastReviewDeadline(deadline);
+
+        for (Groups group : timeoutGroups) {
+            List<MatchedMember> lazyMembers = matchedMemberRepository
+                    .findAllByGroup_GroupIdAndIsReviewWrittenFalse(group.getGroupId());
+
+            for (MatchedMember mm : lazyMembers) {
+                if (group.getGroupType() == GroupType.RELAY) {
+                    matchedMemberRepository.findPartnerUserId(group.getGroupId(), mm.getUser().getId())
+                            .ifPresent(partnerId -> {
+                                User partner = userRepository.findById(partnerId).orElse(null);
+                                if (partner != null) {
+                                    partner.updateManner(3.0, 0);
+                                }
+                            });
+                }
+                mm.markReviewAsWritten();
+            }
+
+            group.updateStatus(GroupStatus.COMPLETED);
+        }
+
+        log.info("[Scheduler] 리뷰 기간 만료 그룹 강제 종료 프로세스 완료 (처리 대상: {}건)", timeoutGroups.size());
     }
 }

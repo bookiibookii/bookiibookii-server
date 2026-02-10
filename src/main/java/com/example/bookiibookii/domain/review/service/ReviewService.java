@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.review.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
@@ -65,6 +66,25 @@ public class ReviewService {
         }
 
         userBook.updateReview(request.rating(), request.comment());
+
+        // [추가] 1:N 그룹 자동 종료 트리거 로직
+        Groups group = userBook.getGroup();
+
+        if (group != null) {
+            // 4. 현재 유저의 MatchedMember '리뷰 작성 완료' 마킹
+            MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(group.getGroupId(), user.getId())
+                    .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+            matchedMember.markReviewAsWritten(); // isReviewWritten = true 처리
+
+            // 5. 이 그룹에 아직 리뷰를 안 쓴 사람이 남았는지 카운트
+            long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(group.getGroupId());
+
+            // 6. 만약 남은 사람이 0명(내가 마지막 작성자)이라면 그룹 전체 상태를 COMPLETED로 변경
+            if (remainingCount == 0) {
+                group.updateStatus(GroupStatus.COMPLETED);
+            }
+        }
     }
 
     /**
@@ -73,13 +93,11 @@ public class ReviewService {
      */
     @Transactional
     public void createRelayReview(Long userBookId, ReviewRequestDTO.RelayReviewDTO request, User user) {
-        // 2-1. 모든 평점 및 코멘트 검증
         validateRating(request.bookRating());
         validateRating(request.partnerRating());
         validateCommentLength(request.bookComment(), BOOK_COMMENT_MAX_LENGTH);
         validateCommentLength(request.partnerComment(), GROUP_COMMENT_MAX_LENGTH);
 
-        // 2-2. UserBook 조회 및 권한 확인
         UserBook userBook = userBookRepository.findById(userBookId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
         if (!userBook.getUser().getId().equals(user.getId())) {
@@ -92,19 +110,19 @@ public class ReviewService {
         }
         Long groupId = group.getGroupId();
 
-        // 2-3. 트래커 상태 확인 (RETURNED여야 최종 완료 가능)
         ensureTrackerReturned(groupId);
 
-        // 2-4. [책 리뷰] 업데이트
         userBook.updateReview(request.bookRating(), request.bookComment());
 
-        // 2-5. [상대방 리뷰] 생성 및 뱃지/매너점수 처리
         MatchedMember reviewer = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         if (groupReviewRepository.existsByGroupIdAndReviewerUserId(groupId, user.getId())) {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
+
+        // [추가] 1:1 유저 상태 완료 처리
+        reviewer.markReviewAsWritten(); // isReviewWritten = true
 
         Long partnerUserId = matchedMemberRepository.findPartnerUserId(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
@@ -122,7 +140,12 @@ public class ReviewService {
         processGroupReview(reviewed.getUser(), groupReview, request.badgeCodes(), request.partnerRating());
         groupReviewRepository.save(groupReview);
 
+        // [추가] 1:1 파트너 작성 여부 체크
+        long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(groupId);
 
+        if (remainingCount == 0) {
+            group.updateStatus(GroupStatus.COMPLETED);
+        }
     }
 
     /**

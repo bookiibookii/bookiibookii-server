@@ -20,6 +20,16 @@ public enum UserErrorCode implements BaseCode {
     INVALID_NICKNAME(HttpStatus.BAD_REQUEST,
             "USER400_1",
             "사용 불가능한 닉네임입니다.")
+    ,
+    NICKNAME_DUPLICATE(HttpStatus.BAD_REQUEST,
+            "USER400_2",
+            "이미 사용 중인 닉네임입니다."),
+    NICKNAME_BAD_WORD(HttpStatus.BAD_REQUEST,
+            "USER400_3",
+            "닉네임에 금칙어가 포함되어 있습니다."),
+    SOCIAL_USER_CREATE_RACE_CONDITION(HttpStatus.INTERNAL_SERVER_ERROR,
+            "USER500_1",
+            "소셜 사용자 생성 중 일시적인 충돌이 발생했습니다. 다시 시도해주세요.")
     ;
     private final HttpStatus status;
     private final String code;

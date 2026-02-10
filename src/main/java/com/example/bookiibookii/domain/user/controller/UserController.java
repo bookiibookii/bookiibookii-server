@@ -13,7 +13,8 @@ import com.example.bookiibookii.domain.user.service.UserService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -44,7 +45,9 @@ public class UserController implements UserControllerDocs{
     @Override
     @PostMapping("/api/users/name-validation")
     public ApiResponse<UserResponseDTO.NicknameValidationDTO> validateNickname(
-            @NotNull @RequestParam String nickname
+            @NotBlank(message = "닉네임은 필수 입력 사항입니다.")
+            @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
+            @RequestParam String nickname
     ) {
         NicknameStatus status = userService.checkNicknameStatus(nickname);
         return ApiResponse.onSuccess(

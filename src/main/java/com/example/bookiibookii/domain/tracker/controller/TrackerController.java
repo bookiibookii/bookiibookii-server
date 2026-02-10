@@ -158,13 +158,19 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/makeMeeting")
-    public ApiResponse<TrackerDetailResponse> updateMeeting(
-            @PathVariable Long groupId,
-            @RequestBody @Valid TrackerMeetingRequest request,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    public ApiResponse<TrackerMeetingResponse> updateMeeting( // 🟢 반환 타입 변경
+                                                              @PathVariable Long groupId,
+                                                              @RequestBody @Valid TrackerMeetingRequest request,
+                                                              @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     ) {
+        // 1. 약속 정보 업데이트 수행
         trackerService.updateMeeting(groupId, request, user);
-        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_MEETING_UPDATE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
+
+        // 2. 업데이트된 약속 상세 정보를 조회하여 반환
+        return ApiResponse.onSuccess(
+                TrackerSuccessCode.TRACKER_MEETING_UPDATE_OK,
+                trackerService.getMeetingDetailByGroupId(groupId, user) // 🟢 Meeting 정보 반환
+        );
     }
 
 

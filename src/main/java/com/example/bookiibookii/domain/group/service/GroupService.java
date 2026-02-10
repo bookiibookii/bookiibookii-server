@@ -153,7 +153,7 @@ public class GroupService {
             Meeting shippingMeeting = Meeting.builder()
                     .group(group)
                     .trackerStatus(TrackerStatus.SHIPPING_TO_GUEST)
-                    .meetingPlace(group.getHost().getMeetPlace())
+                    .meetingPlace(request.getMeetPlace())
                     .meetingTime(null)
                     .build();
 
@@ -161,7 +161,7 @@ public class GroupService {
             Meeting returnMeeting = Meeting.builder()
                     .group(group)
                     .trackerStatus(TrackerStatus.SHIPPING_TO_HOST)
-                    .meetingPlace(group.getHost().getMeetPlace())
+                    .meetingPlace(request.getMeetPlace())
                     .meetingTime(null)
                     .build();
 

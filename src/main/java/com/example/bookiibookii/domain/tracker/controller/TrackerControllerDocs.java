@@ -145,18 +145,28 @@ public interface TrackerControllerDocs {
 
     @Operation(
             summary = "직접 교환 약속 등록/수정",
-            description = "직접 교환 시 만날 장소와 시간을 등록합니다. " +
-                    "등록 시 트래커 상태가 SHIPPING_TO_GUEST(전달 시) 또는 SHIPPING_TO_HOST(반납 시)로 변경됩니다."
+            description = """
+            직접 교환 시 만날 장소와 시간을 등록하거나 수정합니다.
+            
+            - **최초 등록 시**: 트래커 상태가 `SHIPPING_TO_GUEST`(전달 시) 또는 `SHIPPING_TO_HOST`(반납 시)로 변경됩니다.
+            - **수정 시**: 이미 약속이 있는 경우 기존 정보를 업데이트하며, 상대방의 수락 여부(isConfirmed)가 초기화됩니다.
+            - **응답**: 수정된 약속의 상세 정보(`TrackerMeetingResponse`)를 반환합니다.
+            """
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "약속 등록/수정 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "약속 등록/수정 성공",
+                    content = @Content(schema = @Schema(implementation = TrackerMeetingResponse.class)) // 🟢 변경: MeetingResponse로 수정
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (도서 소유자만 가능)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "트래커 또는 약속 정보를 찾을 수 없음")
     })
     @PatchMapping("/{groupId}/tracker/makeMeeting")
-    ApiResponse<TrackerDetailResponse> updateMeeting(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody @Valid TrackerMeetingRequest request,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    ApiResponse<TrackerMeetingResponse> updateMeeting( // 🟢 반환 타입 변경
+                                                       @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+                                                       @RequestBody @Valid TrackerMeetingRequest request,
+                                                       @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(

@@ -33,8 +33,13 @@ public class GroupCompletionService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void forceCompleteSingleGroup(Long groupId) {
-        Groups group = groupsRepository.findById(groupId)
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if(group.getGroupStatus()!=GroupStatus.MATCHED){
+            log.info("MATCHED 상태가 아닌 그룹");
+            return;
+        }
 
         List<MatchedMember> lazyMembers = matchedMemberRepository
                 .findAllByGroup_GroupIdAndIsReviewWrittenFalse(groupId);

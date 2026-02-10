@@ -39,7 +39,7 @@ public class GroupScheduler {
     private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * *", zone="Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         LocalDate today = LocalDate.now();
@@ -77,7 +77,7 @@ public class GroupScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 0 3 * * *", zone="Asia/Seoul")
     public void forceCompleteGroups() {
         log.info("[Scheduler] 리뷰 기간 만료 그룹 강제 종료 프로세스 시작");
 

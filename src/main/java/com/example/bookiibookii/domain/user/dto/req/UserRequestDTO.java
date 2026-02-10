@@ -36,7 +36,9 @@ public class UserRequestDTO {
             @NotBlank
             @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String nickname,
-            // TODO : 프로필 이미지 업데이트
+
+            String s3Key,
+
             @NotBlank
             String receiverName,
             @NotBlank

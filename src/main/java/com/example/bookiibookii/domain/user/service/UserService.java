@@ -273,7 +273,10 @@ public class UserService {
         user.updateRegion(request.region());
         user.updateMeetPlace(request.meetPlace());
 
-        //TODO : 프로필 이미지 처리
+        if (request.s3Key() != null && !request.s3Key().isBlank()) {
+            saveOrUpdateUserImage(user, request.s3Key());
+        }
+
         Address address = addressRepository.findByUserId(userId).orElse(null);
 
         if (address == null) {

@@ -1,7 +1,6 @@
 spring:
-#  config:
-#    activate:
-#      on-profile: dev
+  jackson:
+    time-zone: UTC
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

@@ -157,7 +157,7 @@ public interface TrackerControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "약속 등록/수정 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerMeetingResponse.class)) // 🟢 변경: MeetingResponse로 수정
+                    content = @Content(schema = @Schema(implementation = TrackerMeetingResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (도서 소유자만 가능)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "트래커 또는 약속 정보를 찾을 수 없음")

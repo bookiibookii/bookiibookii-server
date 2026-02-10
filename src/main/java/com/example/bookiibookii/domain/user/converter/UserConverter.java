@@ -96,9 +96,6 @@ public class UserConverter {
                 .build();
     }
 
-    /**
-     * Tag 엔티티 리스트를 코드(String) 리스트로 변환
-     */
     public List<String> toTagCodeList(List<Tag> tags) {
         if (tags == null) return List.of();
         return tags.stream()

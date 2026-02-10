@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.support.service;
 
+import com.example.bookiibookii.domain.support.converter.SupportConverter;
 import com.example.bookiibookii.domain.support.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.domain.support.entity.Notice;
 import com.example.bookiibookii.domain.support.repository.NoticeRepository;
@@ -13,34 +14,22 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class NoticeService {
     private final NoticeRepository noticeRepository;
+    private final SupportConverter supportConverter;
 
     // 공지사항 리스트 조회
     public List<NoticeResponseDTO.NoticeListDTO> getNoticeList() {
-        return noticeRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(notice -> new NoticeResponseDTO.NoticeListDTO(
-                        notice.getId(),
-                        notice.getCreatedAt(),
-                        notice.getTitle(),
-                        notice.getSummary()
-                ))
-                .toList();
+        List<Notice> notices = noticeRepository.findAllByOrderByCreatedAtDesc();
+        return supportConverter.toNoticeListDTO(notices);
     }
 
     // 공지사항 상세 조회
-    @Transactional
     public NoticeResponseDTO.NoticeDetailDTO getNoticeDetail(Long noticeId) {
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
 
-        return new NoticeResponseDTO.NoticeDetailDTO(
-                notice.getId(),
-                notice.getTitle(),
-                notice.getContent(),
-                notice.getImage(),
-                notice.getCreatedAt()
-        );
+        return supportConverter.toNoticeDetailDTO(notice);
     }
 }

@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class UserService {
+    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+
     private final UserRepository userRepository;
     private final UserTagRepository userTagRepository;
     private final TagRepository tagRepository;
@@ -212,9 +214,15 @@ public class UserService {
         String addressValue = address != null ? address.getAddress() : null;
         String addressDetail = address != null ? address.getAddressDetail() : null;
 
+        String profileImageUrl = null;
+        if (user.getUserImage() != null) {
+            profileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                    user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        }
+
         return UserResponseDTO.UserProfileResDTO.builder()
-                // TODO : 프로필 이미지 조회
                 .userId(userId)
+                .profileImageUrl(profileImageUrl)
                 .nickname(user.getNickName())
                 .manner(user.getManner())
                 .topTags(topTagCodes)

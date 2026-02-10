@@ -124,8 +124,8 @@ public class TrackerConverter {
         if (group.getGroupType() == GroupType.RELAY) {
             // 게스트 프로필 이미지 Presigned GET URL 리스트 추출 (호스트 제외)
             List<String> guestProfileImageUrls = group.getMatchedMember().stream()
+                    .filter(mm -> !mm.getRole().equals(RoleStatus.HOST)) // 그룹 내 역할 기준으로 호스트 제외
                     .map(MatchedMember::getUser) // MatchedMember에서 User 추출
-                    .filter(user -> !user.getRole().equals(RoleStatus.HOST)) // 호스트는 제외
                     .map(user -> {
                         if (user.getUserImage() == null) {
                             return null;

@@ -265,7 +265,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (!user.getNickName().equals(request.nickname())) {
+        if (!request.nickname().equals(user.getNickName())) {
             requireAvailableNickname(request.nickname());
             user.updateName(request.nickname());
         }

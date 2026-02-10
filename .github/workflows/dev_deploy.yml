@@ -86,7 +86,7 @@ jobs:
           . "$ENV_FILE"
           set +a
           
-          nohup java -jar "$APP_JAR" > "$LOG_DIR/app.log" 2>&1 &
+          nohup java -Duser.timezone=UTC -jar "$APP_JAR" > "$LOG_DIR/app.log" 2>&1 &
           
           echo "DEPLOY DONE"
           EOF

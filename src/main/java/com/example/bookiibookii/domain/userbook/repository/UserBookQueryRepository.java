@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.repository;
 
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -27,7 +28,7 @@ public class UserBookQueryRepository {
                 ))
                 .from(userBook)
                 .join(userBook.group, groups)
-                .where(userBook.user.id.eq(userId))
+                .where(userBook.user.id.eq(userId).and(userBook.group.groupStatus.eq(GroupStatus.COMPLETED)))
                 .orderBy(userBook.updatedAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())

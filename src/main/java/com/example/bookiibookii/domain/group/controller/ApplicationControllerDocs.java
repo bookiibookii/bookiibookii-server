@@ -17,7 +17,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "Application", description = "그룹 및 신청 관리 API")
 public interface ApplicationControllerDocs {
-    @Operation(summary = "신청자 명단 조회 API", description = "방장이 그룹 신청자 목록을 조회합니다.")
+    @Operation(
+            summary = "신청자 명단 조회 API",
+            description = """
+                    방장이 그룹 신청자 목록을 조회합니다.
+                    - 응답의 applicationList 각 항목에 applicationId, user, name, profileImageUrl(신청자 프로필 이미지 Presigned GET URL), tags, createdAt, applyMsg가 포함됩니다.
+                    - profileImageUrl이 null이면 해당 신청자는 프로필 이미지를 등록하지 않은 경우입니다.
+                    """
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공입니다."),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_1", description = "그룹을 찾을 수 없습니다."),

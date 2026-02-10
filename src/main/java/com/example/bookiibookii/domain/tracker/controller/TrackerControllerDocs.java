@@ -110,17 +110,35 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "나의 트래커 전체 리스트 조회")
+    @Operation(
+            summary = "나의 트래커 전체 리스트 조회",
+            description = """
+            나의 모든 트래커(RELAY/TOGETHER)를 조회합니다.
+            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
+            """
+    )
     ApiResponse<List<TrackerListResponse>> getTrackerList(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "내가 호스트인 트래커 리스트 조회")
+    @Operation(
+            summary = "내가 호스트인 트래커 리스트 조회",
+            description = """
+            내가 호스트로 참여 중인 트래커 목록을 조회합니다.
+            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
+            """
+    )
     ApiResponse<List<TrackerListResponse>> getHostTrackers(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "내가 게스트인 트래커 리스트 조회")
+    @Operation(
+            summary = "내가 게스트인 트래커 리스트 조회",
+            description = """
+            내가 게스트로 참여 중인 트래커 목록을 조회합니다.
+            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
+            """
+    )
     ApiResponse<List<TrackerListResponse>> getGuestTrackers(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
@@ -145,18 +163,28 @@ public interface TrackerControllerDocs {
 
     @Operation(
             summary = "직접 교환 약속 등록/수정",
-            description = "직접 교환 시 만날 장소와 시간을 등록합니다. " +
-                    "등록 시 트래커 상태가 SHIPPING_TO_GUEST(전달 시) 또는 SHIPPING_TO_HOST(반납 시)로 변경됩니다."
+            description = """
+            직접 교환 시 만날 장소와 시간을 등록하거나 수정합니다.
+            
+            - **최초 등록 시**: 트래커 상태가 `SHIPPING_TO_GUEST`(전달 시) 또는 `SHIPPING_TO_HOST`(반납 시)로 변경됩니다.
+            - **수정 시**: 이미 약속이 있는 경우 기존 정보를 업데이트하며, 상대방의 수락 여부(isConfirmed)가 초기화됩니다.
+            - **응답**: 수정된 약속의 상세 정보(`TrackerMeetingResponse`)를 반환합니다.
+            """
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "약속 등록/수정 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "약속 등록/수정 성공",
+                    content = @Content(schema = @Schema(implementation = TrackerMeetingResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (도서 소유자만 가능)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "트래커 또는 약속 정보를 찾을 수 없음")
     })
     @PatchMapping("/{groupId}/tracker/makeMeeting")
-    ApiResponse<TrackerDetailResponse> updateMeeting(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody @Valid TrackerMeetingRequest request,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    ApiResponse<TrackerMeetingResponse> updateMeeting( // 🟢 반환 타입 변경
+                                                       @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+                                                       @RequestBody @Valid TrackerMeetingRequest request,
+                                                       @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(

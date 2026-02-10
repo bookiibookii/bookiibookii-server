@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.tracker.converter;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
@@ -13,12 +14,19 @@ import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.user.entity.Address;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class TrackerConverter {
+
+    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+
+    private final UserImageS3Service userImageS3Service;
 
 
     public TrackerDetailResponse toDetailResponse(Tracker tracker, Meeting latestMeeting,
@@ -69,7 +77,7 @@ public class TrackerConverter {
             } else {
                 // 약속 전이면 호스트가 설정한 기본 장소 노출
                 builder.meetingInfo(TrackerDetailResponse.MeetingInfo.builder()
-                        .meetingPlace(tracker.getGroup().getHost().getMeetPlace())
+                        .meetingPlace(tracker.getGroup().getPreferRegion())
                         .build());
             }
         }
@@ -114,17 +122,29 @@ public class TrackerConverter {
 
         // 4. 타입별 상세 데이터 매핑
         if (group.getGroupType() == GroupType.RELAY) {
-            // 게스트 프로필 이미지 리스트 추출 (호스트 제외)
-            List<String> guestImages = group.getMatchedMember().stream()
-                    .map(matched -> matched.getUser()) // MatchedMember에서 User 추출
-                    .filter(user -> !user.getRole().equals(RoleStatus.HOST)) // 호스트는 제외
-                    .map(user -> user.getUserImage() != null ? user.getUserImage().getS3Key() : null) // 이미지 경로 추출
+            // 게스트 프로필 이미지 Presigned GET URL 리스트 추출 (호스트 제외)
+            List<String> guestProfileImageUrls = group.getMatchedMember().stream()
+                    .filter(mm -> !mm.getRole().equals(RoleStatus.HOST)) // 그룹 내 역할 기준으로 호스트 제외
+                    .map(MatchedMember::getUser) // MatchedMember에서 User 추출
+                    .map(user -> {
+                        if (user.getUserImage() == null) {
+                            return null;
+                        }
+                        return userImageS3Service.generatePresignedGetUrl(
+                                user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+                    })
                     .toList();
+
+            String hostProfileImageUrl = null;
+            if (group.getHost().getUserImage() != null) {
+                hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                        group.getHost().getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+            }
 
             builder.relayDetail(TrackerListResponse.RelayDetail.builder()
                     .partnerNickname(targetNickname) // 서비스에서 조회한 현재 나의 파트너 닉네임
-                    .hostProfileImage(group.getHost().getUserImage() != null ? group.getHost().getUserImage().getS3Key() : null)
-                    .guestProfileImages(guestImages) // 위에서 추출한 게스트 이미지 리스트
+                    .hostProfileImageUrl(hostProfileImageUrl)
+                    .guestProfileImageUrls(guestProfileImageUrls) // 위에서 추출한 게스트 이미지 Presigned GET URL 리스트
                     .stepDates(stepDates)
                     .build());
         }

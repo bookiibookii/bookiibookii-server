@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.group.dto.res;
 
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,12 +29,15 @@ public class ApplicationResponseDTO {
     @Getter
     @Builder
     @AllArgsConstructor
+    @Schema(description = "신청자 한 명의 상세 정보")
     public static class ApplicationDetailDTO {
         private Long applicationId;
         private Long user;
         private String name;
-        //private String profileImageUrl; //유저 프로필 이미지
-        private List<String> tags; // "#메모환영", "#인사이트" 등?
+        @Schema(description = "신청자 프로필 이미지 표시용 Presigned GET URL. 미등록 시 null", example = "https://...")
+        private String profileImageUrl;
+        @Schema(description = "태그 코드 목록 (예: #메모환영, #인사이트)")
+        private List<String> tags;
         private String createdAt;
         private String applyMsg;
     }

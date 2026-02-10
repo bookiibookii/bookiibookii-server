@@ -222,7 +222,8 @@ public class TrackerService {
 
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
             // [직접 교환] 최신 약속 정보 조회
-            latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
+//            latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
+            latestMeeting = meetingRepository.findByGroupIdAndStatusNative(groupId, tracker.getTrackerStatus().toString()).orElse(null);
         } else if(tracker.getGroup().getTradeType() == TradeType.DELIVERY ) {
             // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
             partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
@@ -601,23 +602,34 @@ public class TrackerService {
     public TrackerMeetingResponse getMeetingDetailByGroupId(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
 
-        // 1. 현재 트래커 조회 (상태 확인을 위함)
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-          if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
-                 throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);}
+        if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
+        }
 
+        //  1. 현재 트래커 상태에 따라 조회해야 할 약속의 타겟 상태 결정
         TrackerStatus currentStatus = tracker.getTrackerStatus();
+        TrackerStatus targetStatus;
 
-        // 2. 현재 단계에 등록된 약속이 있는지 확인
-        return meetingRepository.findLatestByGroupIdNative(groupId)
+        // 전달 단계(호스트완료/전달중)일 때는 GUEST행 약속, 반납 단계(게스트완료/반납중)일 때는 HOST행 약속 조회
+        if (currentStatus == TrackerStatus.HOST_DONE || currentStatus == TrackerStatus.SHIPPING_TO_GUEST) {
+            targetStatus = TrackerStatus.SHIPPING_TO_GUEST;
+        } else if(currentStatus == TrackerStatus.GUEST_DONE || currentStatus == TrackerStatus.SHIPPING_TO_HOST){
+            targetStatus = TrackerStatus.SHIPPING_TO_HOST;
+        } else{
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        //  2. 특정 상태(targetStatus)와 일치하는 약속 조회
+        return meetingRepository.findByGroupIdAndStatusNative(groupId, targetStatus.name())
                 .map(meeting -> new TrackerMeetingResponse(
                         meeting.getMeetingTime(),
                         meeting.getMeetingPlace()
                 ))
                 .orElseGet(() -> {
-                    // 약속 테이블 자체가 비어있을 때만 호스트의 선호 장소 반환
+                    // 약속 데이터가 없을 경우 호스트의 선호 지역 반환
                     String defaultPlace = tracker.getGroup().getPreferRegion();
                     return new TrackerMeetingResponse(null, defaultPlace);
                 });
@@ -759,7 +771,7 @@ public class TrackerService {
         // 2. 현재 트래커의 주인(책을 받은 사람) 정보 가져오기
         Long currentOwnerUserId = tracker.getBookOwner().getUser().getId();
 
-        // 🟢 3. 권한 검증: 현재 주인(받은 사람)은 본인의 수령 사진을 확인할 수 없음
+        // 3. 권한 검증: 현재 주인(받은 사람)은 본인의 수령 사진을 확인할 수 없음
         // 즉, 반대편에 있는 사람(보낸 사람)이 확인 버튼을 눌러야 함
         if (currentOwnerUserId.equals(user.getId())) {
             throw new TrackerException(TrackerErrorCode.OWNER_CANNOT_VERIFY);

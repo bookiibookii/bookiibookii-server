@@ -126,7 +126,8 @@ public class Tracker extends BaseEntity {
     public void verifyReception() {
         // RECEIVED(받은 직후) 거나 GUEST_READING(읽는 중) 일 때 모두 확인 가능하도록 설정
         if (this.trackerStatus != TrackerStatus.RECEIVED &&
-                this.trackerStatus != TrackerStatus.GUEST_READING) {
+                this.trackerStatus != TrackerStatus.GUEST_READING &&
+                this.trackerStatus != TrackerStatus.RETURNED) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.isVerified = true;

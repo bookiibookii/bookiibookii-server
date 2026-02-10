@@ -1,8 +1,8 @@
-name: CI/CD Pipeline (develop)
+name: CI/CD Pipeline (main)
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment: dev
+    environment: prod
 
     steps:
       - name: Download build artifact
@@ -43,52 +43,53 @@ jobs:
           name: bookii-build
           path: build/libs/
 
-      - name: Deploy to EC2 (dev)
+      - name: Deploy to EC2 (prod)
         env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.PROD_EC2_SSH_KEY }}
+          EC2_USERNAME: ${{ secrets.PROD_EC2_USERNAME }}
+          EC2_HOST: ${{ secrets.PROD_EC2_HOST }}
         run: |
           set -e
-          
+
           printf '%s\n' "$EC2_SSH_KEY" > private_key.pem
           sed -i 's/\r$//' private_key.pem
           chmod 600 private_key.pem
-          
+
           jar_file=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
           if [ -z "$jar_file" ]; then
             echo "No jar file found in build/libs"
             exit 1
           fi
-          
+
           scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" \
-            "${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/dev/bookiiDev.jar"
-          
+            "${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/prod/bookiiProd.jar"
+
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
             "${EC2_USERNAME}@${EC2_HOST}" bash -se <<'EOF'
           set -e
           
-          APP_JAR="/home/${USER}/dev/bookiiDev.jar"
-          LOG_DIR="/home/${USER}/logs/dev"
-          ENV_FILE="/home/${USER}/dev/.env.dev"
-          
+          cleanup() { rm -f private_key.pem; }
+          trap cleanup EXIT
+
+          APP_JAR="/home/${USER}/prod/bookiiProd.jar"
+          LOG_DIR="/home/${USER}/logs/prod"
+          ENV_FILE="/home/${USER}/prod/.env.prod"
+
           mkdir -p "$LOG_DIR"
-          
+
           if [ ! -f "$ENV_FILE" ]; then
             echo "ENV file not found: $ENV_FILE"
             exit 1
           fi
-          
+
           pgrep -f "$APP_JAR" | xargs -r kill -15 || true
           sleep 10
-          
+
           set -a
           . "$ENV_FILE"
           set +a
-          
+
           nohup java -Duser.timezone=UTC -jar "$APP_JAR" > "$LOG_DIR/app.log" 2>&1 &
-          
+
           echo "DEPLOY DONE"
           EOF
-          
-          rm -f private_key.pem

@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.support.controller;
 
+import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
+import com.example.bookiibookii.domain.group.service.GroupService;
 import com.example.bookiibookii.domain.support.dto.req.ReportRequestDTO;
 import com.example.bookiibookii.domain.support.dto.res.ReportResponseDTO;
 import com.example.bookiibookii.domain.support.service.ReportService;
@@ -19,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReportController implements ReportControllerDocs {
     private final ReportService reportService;
+    private final GroupService groupService;
     // 신고하기 API
     @Override
     @PostMapping("/api/report")
@@ -39,4 +42,23 @@ public class ReportController implements ReportControllerDocs {
         List<ReportResponseDTO.ReportListDTO> result = reportService.getReportList(user.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
+
+
+    // 신고할 그룹 조회 API
+    @GetMapping("/my")
+    public ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        List<GroupResponseDTO.GroupSummaryResponse> result = groupService.getGroupSummary(user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    // 신고할 그룹멤버 조회 API
+    @GetMapping("/{groupId}/members")
+    public ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable(name = "groupId") Long groupId) {
+        List<GroupResponseDTO.GroupMemberResponse> result = groupService.getGroupMembers(groupId, user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
 }

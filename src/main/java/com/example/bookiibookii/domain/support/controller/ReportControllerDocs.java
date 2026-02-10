@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.support.controller;
 
+import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.support.dto.req.ReportRequestDTO;
 import com.example.bookiibookii.domain.support.dto.res.ReportResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
@@ -46,4 +48,23 @@ public interface ReportControllerDocs {
     })
     ApiResponse<List<ReportResponseDTO.ReportListDTO>> getReportList(@AuthenticationPrincipal(expression = "user") User user);
 
+
+    @Operation(summary = "신고할 그룹 조회 API (드롭다운 데이터)",
+            description = "신고하기 페이지에서 유저가 속해있는 현재 진행중(MATCHED) 상태의 그룹 데이터를 조회하는 API입니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
+    })
+    ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
+            @AuthenticationPrincipal User user
+    );
+
+    @Operation(summary = "신고할 멤버 조회 API (드롭다운 데이터)",
+            description = "신고하기 페이지에서 유저가 선택한 신고 그룹에 속해있는 멤버 데이터를 조회하는 API입니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_4", description = "해당 그룹의 멤버가 아닙니다.")
+    })
+    ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
+            @AuthenticationPrincipal User user, @PathVariable(name = "groupId") Long groupId
+    );
 }

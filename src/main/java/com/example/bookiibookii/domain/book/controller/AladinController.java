@@ -1,8 +1,8 @@
-package com.example.bookiibookii.domain.aladin.controller;
+package com.example.bookiibookii.domain.book.controller;
 
-import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
-import com.example.bookiibookii.domain.aladin.service.AladinService;
-import com.example.bookiibookii.domain.book.dto.TempBookResDTO;
+import com.example.bookiibookii.domain.book.dto.res.AladinSearchBooksResDTO;
+import com.example.bookiibookii.domain.book.service.AladinService;
+import com.example.bookiibookii.domain.book.dto.res.TempBookResDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import lombok.RequiredArgsConstructor;

@@ -110,17 +110,35 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "나의 트래커 전체 리스트 조회")
+    @Operation(
+            summary = "나의 트래커 전체 리스트 조회",
+            description = """
+            나의 모든 트래커(RELAY/TOGETHER)를 조회합니다.
+            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
+            """
+    )
     ApiResponse<List<TrackerListResponse>> getTrackerList(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "내가 호스트인 트래커 리스트 조회")
+    @Operation(
+            summary = "내가 호스트인 트래커 리스트 조회",
+            description = """
+            내가 호스트로 참여 중인 트래커 목록을 조회합니다.
+            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
+            """
+    )
     ApiResponse<List<TrackerListResponse>> getHostTrackers(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "내가 게스트인 트래커 리스트 조회")
+    @Operation(
+            summary = "내가 게스트인 트래커 리스트 조회",
+            description = """
+            내가 게스트로 참여 중인 트래커 목록을 조회합니다.
+            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
+            """
+    )
     ApiResponse<List<TrackerListResponse>> getGuestTrackers(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );

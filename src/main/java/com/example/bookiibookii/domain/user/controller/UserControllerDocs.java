@@ -104,7 +104,10 @@ public interface UserControllerDocs {
     @Operation(
             summary = "마이페이지 정보 수정 API",
             description = """
-            유저의 닉네임, 프로필 이미지, 주소 정보를 생성&업데이트합니다.
+            유저의 닉네임, 프로필 이미지, 주소 정보를 생성·업데이트합니다.
+
+            - **프로필 이미지 변경**: `POST /api/users/me/image/presigned-url` 로 Presigned PUT URL 발급 후, 발급된 presignedPutUrl로 S3에 업로드하고, 응답의 s3Key를 본 API 요청 body의 s3Key에 넣어 호출하세요. s3Key를 보내지 않으면 프로필 이미지는 변경되지 않습니다.
+            - s3Key 형식: image/users/{userId}/{uuid}
             """
     )
     @ApiResponses({

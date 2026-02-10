@@ -91,22 +91,5 @@ public class GroupController implements GroupControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 
-    // 신고할 그룹 조회 API
-    @GetMapping("/my")
-    public ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
-            @AuthenticationPrincipal(expression = "user") User user) {
-        List<GroupResponseDTO.GroupSummaryResponse> result = groupService.getGroupSummary(user.getId());
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
-    }
-
-    // 신고할 그룹멤버 조회 API
-    @GetMapping("/{groupId}/members")
-    public ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
-            @AuthenticationPrincipal(expression = "user") User user,
-            @PathVariable(name = "groupId") Long groupId) {
-        List<GroupResponseDTO.GroupMemberResponse> result = groupService.getGroupMembers(groupId, user.getId());
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
-    }
-
 
 }

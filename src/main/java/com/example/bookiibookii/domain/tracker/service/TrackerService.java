@@ -398,7 +398,7 @@ public class TrackerService {
     private void addDateIfPresent(List<String> dates, List<TrackerHistory> histories, TrackerStatus status, DateTimeFormatter formatter) {
         histories.stream()
                 .filter(h -> h.getTrackerStatus() == status)
-                .map(TrackerHistory::getStartDate) // 각 상태의 start_date
+                .map(BaseEntity::getCreatedAt)  // 생성 시점
                 .filter(Objects::nonNull)
                 .sorted() // 혹시 모를 중복 기록에 대비해 가장 빠른 날짜 선택
                 .findFirst()

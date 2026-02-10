@@ -33,7 +33,8 @@ public class TrackerConverter {
                 .startDate(tracker.getStartDate())
                 .endDate(tracker.getEndDate())
                 .extensionCount(tracker.getExtensionCount())
-                .extensionDays(tracker.getExtensionDays());
+                .extensionDays(tracker.getExtensionDays())
+                .readingPeriod(tracker.getGroup().getReadingPeriod());
 
         // 2. TradeType에 따른 분기 처리
         TradeType tradeType = tracker.getGroup().getTradeType();

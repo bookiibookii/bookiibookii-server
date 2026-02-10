@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.user.dto.res;
 
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.user.entity.UserImage;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
 import jakarta.validation.constraints.NotBlank;
@@ -14,7 +13,8 @@ public class UserResponseDTO {
     @Builder
     public record UserProfileResDTO  (
             Long userId,
-            UserImage userImage,
+            /** 프로필 이미지 표시용 Presigned GET URL. 없으면 null */
+            String profileImageUrl,
             String nickname,
             Double manner,
             List<String> topTags,

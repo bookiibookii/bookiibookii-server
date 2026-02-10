@@ -68,6 +68,9 @@ jobs:
             "${EC2_USERNAME}@${EC2_HOST}" bash -se <<'EOF'
           set -e
           
+          cleanup() { rm -f private_key.pem; }
+          trap cleanup EXIT
+          
           APP_JAR="/home/${USER}/dev/bookiiDev.jar"
           LOG_DIR="/home/${USER}/logs/dev"
           ENV_FILE="/home/${USER}/dev/.env.dev"
@@ -90,5 +93,3 @@ jobs:
           
           echo "DEPLOY DONE"
           EOF
-          
-          rm -f private_key.pem

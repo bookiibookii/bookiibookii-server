@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -62,9 +61,13 @@ public class LibraryService {
     }
 
     private LibraryBookResponseDTO toLibraryBookResponseDTO(UserBook ub, Tracker tracker) {
-        var group = Objects.requireNonNull(ub.getGroup(), "UserBook.group is null");
-        var book = Objects.requireNonNull(group.getBook(), "Group.book is null");
-        var host = Objects.requireNonNull(group.getHost(), "Group.host is null");
+        if (ub.getGroup() == null || ub.getGroup().getBook() == null || ub.getGroup().getHost() == null) {
+            throw new CardImageException(CardImageErrorCode.USER_BOOK_NOT_FOUND);
+        }
+
+        var group = ub.getGroup();
+        var book = group.getBook();
+        var host = group.getHost();
 
         String hostProfileImageUrl = null;
         if (host.getUserImage() != null) {

@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
-import com.example.bookiibookii.domain.tracker.controller.docs.TrackerApi;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
@@ -22,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/groups")
 @RequiredArgsConstructor
-public class TrackerController implements TrackerApi {
+public class TrackerController implements TrackerControllerDocs {
 
     private final TrackerService trackerService;
 

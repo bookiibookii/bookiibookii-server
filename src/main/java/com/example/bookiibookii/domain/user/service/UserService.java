@@ -70,7 +70,7 @@ public class UserService {
                     .orElseGet(() -> userRepository.save(User.createSocialUser(info, socialType)));
         } catch (DataIntegrityViolationException e) {
             return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
-                    .orElseThrow(() -> new RuntimeException("소셜 유저 생성 중 동시성 오류로 사용자 조회 실패"));
+                    .orElseThrow(() -> new UserException(UserErrorCode.SOCIAL_USER_CREATE_RACE_CONDITION));
         }
     }
 
@@ -95,9 +95,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (checkNicknameStatus(request.name()) != NicknameStatus.AVAILABLE) {
-            throw new UserException(UserErrorCode.INVALID_NICKNAME);
-        }
+        requireAvailableNickname(request.name());
         user.updateName(request.name());
 
         // 프로필 이미지(s3Key) 처리: 있으면 검증 후 UserImage 생성/갱신
@@ -267,10 +265,9 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (!user.getNickName().equals(request.nickname())) {
-            if (checkNicknameStatus(request.nickname()) != NicknameStatus.AVAILABLE) {
-                throw new UserException(UserErrorCode.INVALID_NICKNAME);
-            }
+        requireAvailableNickname(request.nickname());
+        if (!request.nickname().equals(user.getNickName())) {
+            requireAvailableNickname(request.nickname());
             user.updateName(request.nickname());
         }
         user.updateRegion(request.region());
@@ -297,6 +294,20 @@ public class UserService {
                     request.address(),
                     request.addressDetail()
             );
+        }
+    }
+
+    private void requireAvailableNickname(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            throw new UserException(UserErrorCode.INVALID_NICKNAME);
+        }
+
+        NicknameStatus status = checkNicknameStatus(nickname);
+        if (status == NicknameStatus.DUPLICATE) {
+            throw new UserException(UserErrorCode.NICKNAME_DUPLICATE);
+        }
+        if (status == NicknameStatus.BAD_WORD) {
+            throw new UserException(UserErrorCode.NICKNAME_BAD_WORD);
         }
     }
 }

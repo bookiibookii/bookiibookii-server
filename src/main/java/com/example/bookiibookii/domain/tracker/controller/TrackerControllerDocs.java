@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.tracker.controller.docs;
+package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
@@ -25,17 +25,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 @Tag(name = "Tracker", description = "도서 트래킹 관련 API (상태 조회 및 이력 관리)")
-public interface TrackerApi {
+public interface TrackerControllerDocs {
 
     @Operation(summary = "독서 완료 등록", description = "도서를 다 읽었을 때 호출합니다. 이후 배송 등록이 가능해집니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독서 완료 등록 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class)))
+                    content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "독서 완료 등록실패", content = @Content)
     })
     ApiResponse<TrackerDetailResponse> registerReadingDone(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
+    
 
     @Operation(summary = "배송 인증 사진 보기", description = "수령한 사람이 배송한 사람이 올린 배송 인증(SENDER_PROOF) 이미지를 조회합니다. Presigned GET URL을 반환하며, 같은 그룹 멤버만 조회 가능합니다.")
     @ApiResponses(value = {

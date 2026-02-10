@@ -6,12 +6,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
 public class UserRequestDTO {
     public record OnboardingReqDTO(
-            @NotNull
+            @NotBlank(message = "닉네임은 필수 입력 사항입니다.")
+            @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String name,
 
             @NotEmpty
@@ -27,11 +29,12 @@ public class UserRequestDTO {
             TagType type,
 
             @NotEmpty
-            List<String> value
+            List<@NotBlank(message = "태그 값은 비어 있을 수 없습니다.") String> value
     ){}
 
     public record MypageReqDTO (
             @NotBlank
+            @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String nickname,
             // TODO : 프로필 이미지 업데이트
             @NotBlank

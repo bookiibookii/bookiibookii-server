@@ -74,5 +74,4 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     // 특정 그룹의 모든 멤버가 가진 UserBook 목록 조회 (트래커 할당용)
     List<UserBook> findAllByGroup_GroupId(Long groupId);
 
-    List<UserBook> findAllByUserId(Long userId);
 }

@@ -47,10 +47,12 @@ public class LibraryService {
      */
     @Transactional(readOnly = true)
     public List<LibraryBookResponseDTO> getLibraryBooks(Long userId) {
-        List<UserBook> userBooks = userBookRepository.findAllByUserId(userId);
+        List<UserBook> userBooks = userBookRepository.findAllByUser_IdWithGroupAndBookAndHost(userId);
+
+        if (userBooks.isEmpty()) return List.of();
+
         List<Long> groupIds = userBooks.stream().map(ub -> ub.getGroup().getGroupId()).toList();
 
-        // 그룹 ID들로 트래커 맵 생성 (Map<GroupId, Tracker>)
         Map<Long, Tracker> trackerMap = trackerRepository.findByGroup_GroupIdIn(groupIds).stream()
                 .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t));
 
@@ -74,9 +76,12 @@ public class LibraryService {
             }
         }
 
-        LocalDate finalEndDate = (tracker != null && tracker.getEndDate() != null)
-                ? tracker.getEndDate().toLocalDate()
-                : group.getStartDate().plusDays(group.getReadingPeriod());
+        LocalDate finalEndDate = null;
+        if (tracker != null && tracker.getEndDate() != null) {
+            finalEndDate = tracker.getEndDate().toLocalDate();
+        } else if (group.getStartDate() != null && group.getReadingPeriod() != null) {
+            finalEndDate = group.getStartDate().plusDays(group.getReadingPeriod());
+        }
 
         return LibraryBookResponseDTO.builder()
                 .groupId(group.getGroupId())
@@ -100,15 +105,14 @@ public class LibraryService {
     //서재검색
     @Transactional(readOnly = true)
     public List<LibraryBookResponseDTO> searchLibraryBooks(Long userId, String keyword) {
-        // 1. 키워드가 없으면 전체 목록 조회
         if (keyword == null || keyword.isBlank()) {
             return getLibraryBooks(userId);
         }
 
-        // 2. 키워드로 검색된 UserBook 목록 조회
         List<UserBook> userBooks = userBookRepository.searchMyLibrary(userId, keyword);
 
-        // 검색 결과에 해당하는 그룹 ID들로 트래커 맵 생성
+        if (userBooks.isEmpty()) return List.of();
+
         List<Long> groupIds = userBooks.stream()
                 .map(ub -> ub.getGroup().getGroupId())
                 .toList();
@@ -116,7 +120,6 @@ public class LibraryService {
         Map<Long, Tracker> trackerMap = trackerRepository.findByGroup_GroupIdIn(groupIds).stream()
                 .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t));
 
-        // 3. 트래커 정보를 포함하여 DTO 변환 (기존 메서드 활용)
         return userBooks.stream()
                 .map(ub -> toLibraryBookResponseDTO(ub, trackerMap.get(ub.getGroup().getGroupId())))
                 .toList();

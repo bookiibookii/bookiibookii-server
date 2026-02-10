@@ -149,11 +149,11 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "트래킹 히스토리(이력) 조회")
+    /*@Operation(summary = "트래킹 히스토리(이력) 조회")
     ApiResponse<List<TrackerHistoryResponse>> getTrackerHistories(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
+    );*/
 
     @Operation(summary = "직접 교환 약속 상세 조회")
     ApiResponse<TrackerMeetingResponse> getMeetingDetail(

@@ -55,14 +55,14 @@ public class TrackerController implements TrackerControllerDocs {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_DETAIL_GET_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
     }
 
-    @Override
+    /*@Override
     @GetMapping("/{groupId}/tracker/histories")
     public ApiResponse<List<TrackerHistoryResponse>> getTrackerHistories(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_HISTORY_GET_OK, trackerService.getTrackerHistoriesByGroupId(groupId, user));
-    }
+    }*/
 
     @Override
     @GetMapping("/{groupId}/tracker/check/shipping")

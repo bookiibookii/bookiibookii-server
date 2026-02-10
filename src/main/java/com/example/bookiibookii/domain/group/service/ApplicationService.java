@@ -18,6 +18,7 @@ import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserTag;
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -49,6 +50,9 @@ public class ApplicationService {
     private final ApplicationEventPublisher eventPublisher;
     private final DomainEventPublisher publisher;
     private final UserBookService userBookService;
+    private final UserImageS3Service userImageS3Service;
+
+    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     // 신청 조회 로직
     public ApplicationResponseDTO.ApplicationListDTO getApplicantList(Long groupId, Long currentUserId) {
@@ -303,11 +307,17 @@ public class ApplicationService {
                         .map(ut -> ut.getTag().getCode())
                         .toList();
 
+        String profileImageUrl = null;
+        if (guest.getUserImage() != null) {
+            profileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                    guest.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        }
+
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
                 .user(guest.getId())
                 .name(guest.getNickName())
-                //.profileImageUrl(guest.getImageUrl()) //프로필 사진
+                .profileImageUrl(profileImageUrl)
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .tags(top3Tags)
                 .applyMsg(application.getApplyMsg())

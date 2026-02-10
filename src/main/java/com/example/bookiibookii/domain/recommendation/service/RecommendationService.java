@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.user.service.UserTagService;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
@@ -25,12 +26,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class RecommendationService {
+    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+
     private final UserTagService userTagService;
     private final UserRepository userRepository;
     private final UserTagRepository userTagRepository;
     private final UserBookService userBookService;
     private final GroupsRepository groupsRepository;
     private final RedisUtil redisUtil;
+    private final UserImageS3Service userImageS3Service;
 
     // 캐시 키 접두사 상수
     private static final String REC_CACHE_KEY_PREFIX = "REC:GROUP:";
@@ -58,13 +62,20 @@ public class RecommendationService {
         }
 
         return matchedUsers.stream()
-                .map(user -> RecommendationResponseDTO.BookmateDto.builder()
-                        .userId(user.getId())
-                        .nickname(user.getNickName())
-                        .userImage(user.getUserImage())
-                        .matchedTags(displayTags)
-                        .recentBookTitle(userBookService.findRecentBookTitleByUserId(user.getId()))
-                        .build())
+                .map(user -> {
+                    String profileImageUrl = null;
+                    if (user.getUserImage() != null) {
+                        profileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                                user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+                    }
+                    return RecommendationResponseDTO.BookmateDto.builder()
+                            .userId(user.getId())
+                            .nickname(user.getNickName())
+                            .profileImageUrl(profileImageUrl)
+                            .matchedTags(displayTags)
+                            .recentBookTitle(userBookService.findRecentBookTitleByUserId(user.getId()))
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 

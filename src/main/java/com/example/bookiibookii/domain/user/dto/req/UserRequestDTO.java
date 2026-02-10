@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.user.dto.req;
 
 import com.example.bookiibookii.domain.tag.enums.TagType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -37,6 +38,7 @@ public class UserRequestDTO {
             @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String nickname,
 
+            @Schema(description = "프로필 이미지 S3 키. Presigned URL로 업로드 후 받은 값. 미전달 시 프로필 이미지 변경 안 함.", example = "image/users/1/550e8400-e29b-41d4-a716-446655440000")
             String s3Key,
 
             @NotBlank

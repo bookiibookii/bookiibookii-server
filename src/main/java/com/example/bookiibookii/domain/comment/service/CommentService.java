@@ -170,7 +170,7 @@ public class CommentService {
         return WriterDto.builder()
                 .userId(u.getId())
                 .name(u.getNickName())
-                .profileImage(profileImageUrl)
+                .profileImageUrl(profileImageUrl)
                 .role(writerRole)
                 .build();
     }

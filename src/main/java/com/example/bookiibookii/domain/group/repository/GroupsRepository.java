@@ -66,7 +66,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             @Param("limit") int limit
     );
   
-    //그룹 상세 조회 (host, host.userImage fetch join으로 hostProfileImage N+1 방지)
+    //그룹 상세 조회 (host, host.userImage fetch join으로 hostProfileImageUrl N+1 방지)
     @Query("SELECT g FROM Groups g " +
             "JOIN FETCH g.book " +
             "JOIN FETCH g.host h " +

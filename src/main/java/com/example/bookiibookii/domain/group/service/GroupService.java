@@ -423,7 +423,7 @@ public class GroupService {
                 .waitingCount(waitingCount)
                 .isHot(isHot)
                 .hostNickname(group.getHost().getNickName())
-                .hostProfileImage(userProfileImageUrl(group.getHost()))
+                .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                 .groupTags(groupTag)
@@ -439,7 +439,7 @@ public class GroupService {
         for (MatchedMember mm : matchedMembers) {
             slots.add(GroupResponseDTO.ParticipantSlotDTO.builder()
                     .nickname(mm.getUser().getNickName())
-                    .profileImage(userProfileImageUrl(mm.getUser()))
+                    .profileImageUrl(userProfileImageUrl(mm.getUser()))
                     .role(mm.getRole().name())
                     .isMe(mm.getUser().getId().equals(userId))
                     .build());
@@ -530,7 +530,7 @@ public class GroupService {
                             .title(group.getBook().getTitle())
                             .author(group.getBook().getAuthor())
                             .genre(group.getBook().getCategory().label())
-                            .hostProfileImage(userProfileImageUrl(group.getHost()))
+                            .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
                             .bookImage(group.getBook().getImage())
                             .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
@@ -623,8 +623,11 @@ public class GroupService {
                     return GroupResponseDTO.GroupSummaryDTO.builder()
                             .groupId(group.getGroupId())
                             .title(group.getBook().getTitle())
+                            .author(group.getBook().getAuthor())
+                            .genre(group.getBook().getCategory().label())
                             .bookImage(group.getBook().getImage())
                             .hostNickname(group.getHost().getNickName())
+                            .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
                             .groupStatus(group.getGroupStatus().name())
                             .currentCount(group.getMatchedMember().size())
                             .maxCapacity(group.getMaxCapacity())
@@ -632,6 +635,8 @@ public class GroupService {
                             .isHot(isHot)
                             .groupType(group.getGroupType().name())
                             .tradeType(group.getTradeType().name())
+                            .readingPeriod(group.getReadingPeriod())
+                            .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
                             .tags(tags)
                             .customTag(group.getCustomTag())

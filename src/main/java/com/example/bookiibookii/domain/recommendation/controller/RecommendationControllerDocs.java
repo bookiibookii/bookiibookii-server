@@ -18,6 +18,7 @@ public interface RecommendationControllerDocs {
             summary = "부키메이트 추천 API",
             description = """
             상위 UserTag가 일치하면서, 그룹을 운영 중인 타 사용자를 최대 5명 추천합니다.
+            - 각 항목에 userId, nickname, profileImageUrl(프로필 이미지 Presigned GET URL, 미등록 시 null), matchedTags, recentBookTitle이 포함됩니다.
             """
     )
     @ApiResponses({

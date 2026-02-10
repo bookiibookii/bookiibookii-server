@@ -1,14 +1,12 @@
 package com.example.bookiibookii.domain.comment.service;
 
 import com.example.bookiibookii.domain.comment.converter.CommentConverter;
-import com.example.bookiibookii.domain.comment.dto.CardWriterDto;
 import com.example.bookiibookii.domain.comment.dto.req.CardCommentReqDTO;
 import com.example.bookiibookii.domain.comment.dto.res.CardCommentResDTO;
 import com.example.bookiibookii.domain.comment.entity.CardComment;
 import com.example.bookiibookii.domain.comment.exception.CommentException;
 import com.example.bookiibookii.domain.comment.exception.code.CommentErrorCode;
 import com.example.bookiibookii.domain.comment.repository.CardCommentRepository;
-import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.domain.userbook.exception.code.CardImageErrorCode;

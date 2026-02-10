@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.comment.service;
 
 import com.example.bookiibookii.domain.comment.converter.CommentConverter;
-import com.example.bookiibookii.domain.comment.dto.WriterDto;
 import com.example.bookiibookii.domain.comment.dto.res.CommentCreateResDTO;
 import com.example.bookiibookii.domain.comment.dto.res.CommentTreeResDTO;
 import com.example.bookiibookii.domain.comment.dto.req.CommentCreateReqDTO;
@@ -20,13 +19,10 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

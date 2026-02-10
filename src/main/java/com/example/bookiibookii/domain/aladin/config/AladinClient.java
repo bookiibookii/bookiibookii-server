@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.aladin.config;
 
+import com.example.bookiibookii.domain.aladin.exception.AladinException;
 import com.example.bookiibookii.domain.aladin.exception.code.AladinErrorCode;
-import com.example.bookiibookii.domain.book.exception.BookException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,7 +59,7 @@ public class AladinClient {
                 .body(AladinItemLookupResponse.class);
 
         if (raw.item() == null || raw.item().isEmpty()) {
-            throw new BookException(AladinErrorCode.ALADIN_NOT_FOUND);
+            throw new AladinException(AladinErrorCode.ALADIN_NOT_FOUND);
         }
         return raw.item().get(0);
     }

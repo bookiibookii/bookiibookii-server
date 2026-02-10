@@ -159,8 +159,8 @@ public class Tracker extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
-        // 실제 독서 종료 시점 기록
-        this.endDate = LocalDateTime.now();
+//        // 실제 독서 종료 시점 기록
+//        this.endDate = LocalDateTime.now();
     }
 
     public void extensionDays(int days, RoleStatus roleStatus) {

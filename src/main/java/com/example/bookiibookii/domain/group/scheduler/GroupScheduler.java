@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static com.example.bookiibookii.domain.group.enums.GroupNotiType.*;
@@ -40,10 +41,10 @@ public class GroupScheduler {
     private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 * * * * *", zone="Asia/Seoul")
+    @Scheduled(cron = "0 55 1 * * *", zone = "Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
-        log.info("[Scheduler] 50분 임시 스케줄러");
+        log.info("[Scheduler] firedAtKST={}", ZonedDateTime.now(ZoneId.of("Asia/Seoul")));
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         List<Groups> targetGroups = groupsRepository.findGroupsToStart(today);
 

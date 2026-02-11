@@ -92,8 +92,9 @@ public class CommentService {
         Comment saved = commentRepository.save(comment);
 
         Long notifyUserId = isSecret ? secretTargetUserId : group.getHost().getId();
-        eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), notifyUserId, group.getGroupId()));
-
+        if (!user.getId().equals(notifyUserId)) {
+            eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), notifyUserId, group.getGroupId()));
+        }
         return toCreateResDTO(saved, writerRole);
     }
 

@@ -174,7 +174,8 @@ public class TrackerConverter {
         TrackerStatus status = tracker.getTrackerStatus();
 
         // 1. 독서 중인 경우 (현재 날짜부터 종료 예정일까지 남은 일수)
-        if (status == TrackerStatus.HOST_READING || status == TrackerStatus.GUEST_READING) {
+        if (status == TrackerStatus.HOST_READING || status == TrackerStatus.GUEST_READING ||
+        status == TrackerStatus.HOST_EXTENSION || status == TrackerStatus.GUEST_EXTENSION) {
             if (tracker.getEndDate() == null) return 0;
             return (int) ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate());
         }

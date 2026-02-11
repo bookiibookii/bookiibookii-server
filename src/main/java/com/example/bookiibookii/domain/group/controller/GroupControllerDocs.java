@@ -21,7 +21,7 @@ import java.util.List;
 
 @Tag(name = "Group", description = "그룹 생성 및 관리 관련 API")
 public interface GroupControllerDocs {
-    @Operation(summary = "그룹 생성 API", description = "새로운 독서 그룹(이어읽기/함께읽기)을 생성합니다.")
+    @Operation(summary = "그룹 생성 API", description = "새로운 독서 그룹을 생성합니다. 직접교환(DIRECT)인 경우 지역 정보가 필수이며, 함께읽기(TOGETHER)는 최대 8명까지 가능합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_4", description = "도서 미선택"),

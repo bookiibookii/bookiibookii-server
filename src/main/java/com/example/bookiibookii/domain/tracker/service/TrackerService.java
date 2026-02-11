@@ -232,7 +232,9 @@ public class TrackerService {
 
                 List<TrackerStatus> shippingStatuses = List.of(
                         TrackerStatus.SHIPPING_TO_GUEST,
-                        TrackerStatus.SHIPPING_TO_HOST
+                        TrackerStatus.SHIPPING_TO_HOST,
+                        TrackerStatus.RECEIVED,
+                        TrackerStatus.RETURNED
                 );
 
                 latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingStatuses)

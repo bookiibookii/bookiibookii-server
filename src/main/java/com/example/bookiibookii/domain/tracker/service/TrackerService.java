@@ -486,6 +486,18 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
+        List<TrackerStatus> shippingStatuses = List.of(
+                TrackerStatus.SHIPPING_TO_GUEST,
+                TrackerStatus.SHIPPING_TO_HOST
+        );
+
+        TrackerHistory lastShippingHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingStatuses)
+                .orElse(null);
+
+        String deliveryCompany = (lastShippingHistory != null) ? lastShippingHistory.getDeliveryCompany() : null;
+        String trackingNumber = (lastShippingHistory != null) ? lastShippingHistory.getTrackingNumber() : null;
+
+
         // S3 수령 인증 이미지 검증
         String s3Key = request.s3Key();
         validateTrackerImageS3Key(s3Key);
@@ -497,7 +509,7 @@ public class TrackerService {
         TrackerHistory receiveHistory = tracker.createHistorySnapshot(
                 null,
                 bookOwner.getId(),
-                null, null
+                deliveryCompany, trackingNumber
         );
         trackerHistoryRepository.save(receiveHistory);
 

@@ -50,8 +50,8 @@ public interface CommentControllerDocs {
             summary = "그룹 댓글 삭제 api"
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "댓글 조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "댓글 조회 실패")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "댓글 삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "댓글 삭제 실패")
     })
     @DeleteMapping("/groups/{groupId}/comments/{commentId}")
     public ApiResponse<Void> deleteComment(

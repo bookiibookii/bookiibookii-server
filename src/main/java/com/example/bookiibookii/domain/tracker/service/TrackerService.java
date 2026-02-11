@@ -228,16 +228,16 @@ public class TrackerService {
             partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
 
             TrackerStatus currentStatus = tracker.getTrackerStatus();
-            if (currentStatus == TrackerStatus.SHIPPING_TO_GUEST || currentStatus == TrackerStatus.SHIPPING_TO_HOST) {
+            List<TrackerStatus> relevantStatuses = List.of(
+                    TrackerStatus.SHIPPING_TO_GUEST,
+                    TrackerStatus.SHIPPING_TO_HOST,
+                    TrackerStatus.RECEIVED,
+                    TrackerStatus.RETURNED
+            );
 
-                List<TrackerStatus> shippingStatuses = List.of(
-                        TrackerStatus.SHIPPING_TO_GUEST,
-                        TrackerStatus.SHIPPING_TO_HOST,
-                        TrackerStatus.RECEIVED,
-                        TrackerStatus.RETURNED
-                );
-
-                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingStatuses)
+            // 현재 트래커 상태가 위 리스트에 포함될 때만 히스토리 조회
+            if (relevantStatuses.contains(currentStatus)) {
+                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, relevantStatuses)
                         .orElse(null);
             }
         }

@@ -17,6 +17,8 @@ public class CardListResponseDTO {
     private String myComment;
     /** RELAY일 때만: 현재 주자(상대)의 UserBook 한줄평. 내가 주자면 null. null 허용 */
     private String partnerComment;
+    /** TOGETHER일 때만: 그룹 멤버들의 UserBook 한줄평 리스트. null 허용 */
+    private List<TogetherCommentDto> togetherComments;
     private List<GroupCardResponseDTO> cards; // 각 카드에 bookTitle, creatorName 등 포함
 
     @Getter
@@ -26,5 +28,15 @@ public class CardListResponseDTO {
     public static class CurrentBookOwnerDto {
         private Long matchedMemberId;
         private String nickname;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TogetherCommentDto {
+        private Long userId;
+        private String nickname;
+        private String comment;
     }
 }

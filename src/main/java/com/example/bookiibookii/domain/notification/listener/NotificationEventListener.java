@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.notification.service.KeywordNotificationS
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.service.TrackerNotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -22,21 +23,25 @@ public class NotificationEventListener {
     private final CommentNotificationService commentNotificationService;
     private final GroupNotificationService groupNotificationService;
 
+    @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleKeyword(KeywordGroupCreatedEvent event) {
         keywordNotificationService.send(event);
     }
 
+    @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleComment(CommentEvent event) {
         commentNotificationService.send(event);
     }
 
+    @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTracker(TrackerNotificationEvent event) {
         trackerNotificationService.send(event);
     }
 
+    @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleGroup(GroupNotificationEvent event) { groupNotificationService.send(event); }
 }

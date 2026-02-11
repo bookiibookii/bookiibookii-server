@@ -19,8 +19,8 @@ public class RecommendationResponseDTO {
     @Builder
     @Jacksonized
     public record RecommendedGroupDto  (
-            // TODO : 도서표지 이미지 추가
             Long groupId,
+            String bookImageUrl,
             String bookTitle
     ){}
 }

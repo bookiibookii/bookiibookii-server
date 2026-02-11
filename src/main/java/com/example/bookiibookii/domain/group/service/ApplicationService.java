@@ -84,38 +84,39 @@ public class ApplicationService {
     public ApplicationResponseDTO.UpdateResultDTO updateApplicationStatus(Long applyId, Long userId, ApplicationStatus status)
     {
 
-        // 1. 신청 내역 존재 여부 확인
+        // 1. 신청 내역 및 그룹 조회 (비관적 락 적용으로 Race Condition 방지)
         Application application = applicationRepository.findById(applyId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
-        // 그룹 조회를 할 때 락을 걸어 Race Condition 해결 (이 시점에 다른 쓰레드는 대기 상태가 됨)
         Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getGroupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 2. 권한 체크: 이 신청이 들어온 그룹의 방장이 요청자(userId)와 일치하는지 확인
-        if (!application.getGroup().getHost().getId().equals(userId)) {
+        // 2. 권한 및 상태 체크
+        if (!group.getHost().getId().equals(userId)) {
             throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
         }
 
-        //3. 이미 처리된 신청인지 확인
-        // 상태가 PENDING(대기 중)이 아닐 때 수락/거절을 시도하면 예외 발생
         if (application.getApplicationStatus() != ApplicationStatus.PENDING) {
             throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
-        // 알림 이벤트를 위한 book fetch join group 조회 추가
+        // 알림용 그룹 정보 조회 (Fetch Join)
         Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getGroupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 4. 수락(ACCEPTED) 시도 시 정원 초과 여부 사전 체크
+        // 3. 수락(ACCEPTED) 로직
         if (status == ApplicationStatus.ACCEPTED) {
-
+            // 현재 인원 체크 (호스트 포함 MatchedMember 수)
             long currentTotalCount = matchedMemberRepository.countByGroup(group);
 
             if (currentTotalCount >= group.getMaxCapacity()) {
                 throw new GroupException(GroupErrorCode.GROUP_FULL);
             }
 
+            // 신청서 수락 상태로 업데이트
+            application.updateStatus(ApplicationStatus.ACCEPTED);
+
+            // 확정 멤버(MatchedMember) 추가 (readingOrder는 현재 인원 + 1)
             MatchedMember newMember = MatchedMember.builder()
                     .group(group)
                     .user(application.getGuest())
@@ -125,33 +126,32 @@ public class ApplicationService {
                     .build();
             matchedMemberRepository.save(newMember);
 
-            // 서재(UserBook)에 추가
+            // 서재(UserBook) 추가
             userBookService.createForParticipation(application.getGuest(), group);
 
-            // 신청서 상태 업데이트
-            application.updateStatus(ApplicationStatus.ACCEPTED);
-
+            // 개별 수락 알림 발송
             publisher.publish(new GroupNotificationEvent(
                     MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(),
                     newMember.getUser().getId(), null, group.getGroupId()
             ));
 
-                if (currentTotalCount + 1 >= group.getMaxCapacity()) {
-                    group.updateStatus(GroupStatus.MATCHED);
+            // 그룹 상태 동기화 및 전이 판단
+            GroupStatus oldStatus = group.getGroupStatus();
+            long newTotalCount = currentTotalCount + 1; // 방금 추가된 멤버 포함
 
+            group.syncStatus(newTotalCount); // 엔티티의 통합 로직 호출
+
+            // 상태가 MATCHED로 변경되었을 경우에만 후속 작업 실행
+            if (oldStatus != GroupStatus.MATCHED && group.getGroupStatus() == GroupStatus.MATCHED) {
+                // 매칭 성공 이벤트 발행
                 eventPublisher.publishEvent(new GroupMatchedEvent(
-                        group.getGroupId(),
-                        group.getHost().getId(),
-                        group.getStartDate(),
-                        group.getMaxCapacity()
+                        group.getGroupId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
                 ));
 
-                List<Application> pendingApplications =
-                        applicationRepository.findAllPendingByGroupId(group.getGroupId());
-
+                // 나머지 대기자들 자동 거절 처리
+                List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
                 List<Long> autoRejectedReceiverIds = pendingApplications.stream()
                         .map(app -> app.getGuest().getId())
-                        .filter(id -> !id.equals(userId))   // host 제외
                         .distinct()
                         .toList();
 
@@ -159,15 +159,19 @@ public class ApplicationService {
                     pendingApp.updateStatus(ApplicationStatus.REJECTED);
                 }
 
-                publisher.publish(new GroupNotificationEvent(
-                        MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
-                        null, autoRejectedReceiverIds, group.getGroupId()
-                ));
+                // 자동 거절 알림 발송
+                if (!autoRejectedReceiverIds.isEmpty()) {
+                    publisher.publish(new GroupNotificationEvent(
+                            MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
+                            null, autoRejectedReceiverIds, group.getGroupId()
+                    ));
+                }
             }
 
-        } else {
+        }
+        // 4. 거절(REJECTED) 로직
+        else {
             application.updateStatus(ApplicationStatus.REJECTED);
-
             publisher.publish(new GroupNotificationEvent(
                     MATCH_REJECTED, userId, thisGroup.getBook().getTitle(),
                     application.getGuest().getId(), null, group.getGroupId()
@@ -282,9 +286,9 @@ public class ApplicationService {
 
         // 6. 인원 재계산 및 필요 시 모집 중(RECRUITING)으로 상태 복구
         long currentCount = matchedMemberRepository.countByGroup(group);
-        if (currentCount < group.getMaxCapacity()) {
-            group.updateStatus(GroupStatus.RECRUITING);
-        }
+
+        //통합 로직 호출 후 재계산
+        group.syncStatus(currentCount);
 
         return ApplicationResponseDTO.CancelResultDTO.builder()
                 .groupId(groupId)
@@ -323,6 +327,4 @@ public class ApplicationService {
                 .applyMsg(application.getApplyMsg())
                 .build();
     }
-
-
 }

@@ -46,39 +46,54 @@ public class GroupScheduler {
     public void autoProcessGroups() {
         log.info("[Scheduler] firedAtKST={}", ZonedDateTime.now(ZoneId.of("Asia/Seoul")));
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+
         List<Groups> targetGroups = groupsRepository.findGroupsToStart(today);
 
         for (Groups group : targetGroups) {
             long memberCount = matchedMemberRepository.countByGroup(group);
+            GroupStatus oldStatus = group.getGroupStatus();
 
-            if (memberCount >= 2) {
-                group.updateStatus(GroupStatus.MATCHED);
-                //매칭 이벤트 발행
+            // 통합 로직 호출: 오늘 날짜와 인원수로 상태 판단
+            group.syncStatus(memberCount);
+
+            // 1. 매칭 성공(MATCHED)으로 변한 경우
+            if (group.getGroupStatus() == GroupStatus.MATCHED && oldStatus != GroupStatus.MATCHED) {
+                // 매칭 이벤트 발행 (트래커 생성 등 후속 조치용)
                 eventPublisher.publish(new GroupMatchedEvent(
                         group.getGroupId(),
                         group.getHost().getId(),
                         group.getStartDate(),
                         group.getMaxCapacity()
                 ));
-                // 매칭 성공 알람
-//                eventPublisher.publish(new GroupNotificationEvent(
-//                        MATCH_SUCCEEDED, group.getHost().getId(), group.getBook().getTitle(),
-//                        newMember.getUser().getId(), null, group.getGroupId()
-//                ));
-                // 대기자들 거절 알람
-
-            } else {
-                group.markAsDELETED();
-                eventPublisher.publish(new GroupNotificationEvent(MATCH_EXPIRED, null, group.getBook().getTitle(), group.getHost().getId(), null, group.getGroupId()));
-                // 신청자 관리: 알림 발송을 위해 대기자 명단 먼저 추출
-                List<Long> rcvIds = applicationRepository.findPendingUserIdsByGroupId(group.getGroupId());
-                eventPublisher.publish(new GroupNotificationEvent(MATCH_AUTO_REJECTED, group.getHost().getId(), group.getBook().getTitle(), null, rcvIds, group.getGroupId()));
             }
 
-            // 어떤 경우든 남은 대기자(Pending)는 일괄 거절 처리
-            applicationRepository.updatePendingToRejectedByGroupId(group.getGroupId(), ApplicationStatus.REJECTED);
+            // 2. 그룹삭제(DELETED)로 변한 경우
+            else if (group.getGroupStatus() == GroupStatus.DELETED && oldStatus != GroupStatus.DELETED) {
+                // 호스트에게 매칭 실패(기간 만료) 알림 발송
+                eventPublisher.publish(new GroupNotificationEvent(
+                        MATCH_EXPIRED, null, group.getBook().getTitle(),
+                        group.getHost().getId(), null, group.getGroupId()
+                ));
+            }
+
+            // 3. 상태가 RECRUITING이 아니게 되었다면 (매칭됐든 폭파됐든), 대기자들 일괄 거절 처리
+            if (group.getGroupStatus() != GroupStatus.RECRUITING) {
+                List<Long> pendingUserIds = applicationRepository.findPendingUserIdsByGroupId(group.getGroupId());
+
+                if (!pendingUserIds.isEmpty()) {
+                    // 대기자들에게 자동 거절 알림 발송
+                    eventPublisher.publish(new GroupNotificationEvent(
+                            MATCH_AUTO_REJECTED, group.getHost().getId(), group.getBook().getTitle(),
+                            null, pendingUserIds, group.getGroupId()
+                    ));
+
+                    // DB 상태 일괄 업데이트
+                    applicationRepository.updatePendingToRejectedByGroupId(group.getGroupId(), ApplicationStatus.REJECTED);
+                }
+            }
         }
     }
+
 
     @Scheduled(cron = "0 0 3 * * *", zone="Asia/Seoul")
     public void forceCompleteGroups() {

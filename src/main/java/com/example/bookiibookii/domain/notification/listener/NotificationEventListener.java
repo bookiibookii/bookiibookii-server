@@ -43,5 +43,7 @@ public class NotificationEventListener {
 
     @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleGroup(GroupNotificationEvent event) { groupNotificationService.send(event); }
+    public void handleGroup(GroupNotificationEvent event) {
+        groupNotificationService.send(event);
+    }
 }

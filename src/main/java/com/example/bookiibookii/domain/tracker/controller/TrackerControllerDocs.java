@@ -173,8 +173,8 @@ public interface TrackerControllerDocs {
     @PatchMapping("/{groupId}/tracker/reception/verification")
     @Operation(summary = "상대방의 수령 인증 사진 확인 (승인)")
     ApiResponse<TrackerDetailResponseDTO> verifyPartnerReception(
-            @PathVariable Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
 

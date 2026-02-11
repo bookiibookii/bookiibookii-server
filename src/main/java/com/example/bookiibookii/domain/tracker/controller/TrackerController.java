@@ -1,8 +1,8 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageSuccessCode;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerSuccessCode;
@@ -27,60 +27,60 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @GetMapping("/me/trackers")
-    public ApiResponse<List<TrackerListResponse>> getTrackerList(
+    public ApiResponse<List<TrackerListResponseDTO>> getTrackerList(
             @AuthenticationPrincipal(expression = "user") User user) {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_LIST_GET_OK, trackerService.getTrackerList(user.getId()));
     }
 
     @Override
     @GetMapping("/me/trackers/host")
-    public ApiResponse<List<TrackerListResponse>> getHostTrackers(
+    public ApiResponse<List<TrackerListResponseDTO>> getHostTrackers(
             @AuthenticationPrincipal(expression = "user") User user) {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_HOST_LIST_GET_OK, trackerService.getHostTrackerList(user.getId()));
     }
 
     @Override
     @GetMapping("/me/trackers/guest")
-    public ApiResponse<List<TrackerListResponse>> getGuestTrackers(
+    public ApiResponse<List<TrackerListResponseDTO>> getGuestTrackers(
             @AuthenticationPrincipal(expression = "user") User user) {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_GUEST_LIST_GET_OK, trackerService.getGuestTrackerList(user.getId()));
     }
 
     @Override
     @GetMapping("/{groupId}/tracker")
-    public ApiResponse<TrackerDetailResponse> getTrackerDetail(
+    public ApiResponse<TrackerDetailResponseDTO> getTrackerDetail(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_DETAIL_GET_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
     }
 
-    @Override
+    /*@Override
     @GetMapping("/{groupId}/tracker/histories")
     public ApiResponse<List<TrackerHistoryResponse>> getTrackerHistories(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_HISTORY_GET_OK, trackerService.getTrackerHistoriesByGroupId(groupId, user));
-    }
+    }*/
 
     @Override
     @GetMapping("/{groupId}/tracker/check/shipping")
-    public ApiResponse<TrackerImageGetResponse> getShippingProofImageUrl(
+    public ApiResponse<TrackerImageGetResponseDTO> getShippingProofImageUrl(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        TrackerImageGetResponse response = trackerService.getShippingProofImageUrl(groupId, user);
+        TrackerImageGetResponseDTO response = trackerService.getShippingProofImageUrl(groupId, user);
         return ApiResponse.onSuccess(TrackerImageSuccessCode.TRACKING_IMAGE_FOUND, response);
     }
 
     @Override
     @GetMapping("/{groupId}/tracker/check/received")
-    public ApiResponse<TrackerImageGetResponse> getReceivedProofImageUrl(
+    public ApiResponse<TrackerImageGetResponseDTO> getReceivedProofImageUrl(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        TrackerImageGetResponse response = trackerService.getReceivedProofImageUrl(groupId, user);
+        TrackerImageGetResponseDTO response = trackerService.getReceivedProofImageUrl(groupId, user);
         return ApiResponse.onSuccess(TrackerImageSuccessCode.RECEIVED_IMAGE_FOUND, response);
     }
 
@@ -96,9 +96,9 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PostMapping("/{groupId}/tracker/shipping")
-    public ApiResponse<TrackerDetailResponse> registerShipping(
+    public ApiResponse<TrackerDetailResponseDTO> registerShipping(
             @PathVariable Long groupId,
-            @RequestBody @Valid TrackerShippingRequest request,
+            @RequestBody @Valid TrackerShippingRequestDTO request,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
         trackerService.registerShipping(groupId, request, user);
@@ -107,9 +107,9 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/receive")
-    public ApiResponse<TrackerDetailResponse> registerReceive(
+    public ApiResponse<TrackerDetailResponseDTO> registerReceive(
             @PathVariable Long groupId,
-            @RequestBody @Valid TrackerReceiveRequest request,
+            @RequestBody @Valid TrackerReceiveRequestDTO request,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
         trackerService.registerReceive(groupId, request, user);
@@ -118,7 +118,7 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/reading")
-    public ApiResponse<TrackerDetailResponse> registerReading(
+    public ApiResponse<TrackerDetailResponseDTO> registerReading(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
@@ -128,7 +128,7 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/extension")
-    public ApiResponse<TrackerDetailResponse> registerExtension(
+    public ApiResponse<TrackerDetailResponseDTO> registerExtension(
             @PathVariable Long groupId,
             @RequestParam(defaultValue = "3") int days,
             @AuthenticationPrincipal(expression = "user") User user
@@ -139,7 +139,7 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/done")
-    public ApiResponse<TrackerDetailResponse> registerReadingDone(
+    public ApiResponse<TrackerDetailResponseDTO> registerReadingDone(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
@@ -149,7 +149,7 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @GetMapping("/{groupId}/tracker/meeting")
-    public ApiResponse<TrackerMeetingResponse> getMeetingDetail(
+    public ApiResponse<TrackerMeetingResponseDTO> getMeetingDetail(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
@@ -158,10 +158,10 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/makeMeeting")
-    public ApiResponse<TrackerMeetingResponse> updateMeeting( // 🟢 반환 타입 변경
-                                                              @PathVariable Long groupId,
-                                                              @RequestBody @Valid TrackerMeetingRequest request,
-                                                              @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    public ApiResponse<TrackerMeetingResponseDTO> updateMeeting( // 🟢 반환 타입 변경
+                                                                 @PathVariable Long groupId,
+                                                                 @RequestBody @Valid TrackerMeetingRequestDTO request,
+                                                                 @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     ) {
         // 1. 약속 정보 업데이트 수행
         trackerService.updateMeeting(groupId, request, user);
@@ -176,7 +176,7 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/meeting/complete")
-    public ApiResponse<TrackerDetailResponse> completeMeeting(
+    public ApiResponse<TrackerDetailResponseDTO> completeMeeting(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
@@ -186,7 +186,7 @@ public class TrackerController implements TrackerControllerDocs {
 
     @Override
     @PatchMapping("/{groupId}/tracker/confirm-reception")
-    public ApiResponse<TrackerDetailResponse> verifyPartnerReception(
+    public ApiResponse<TrackerDetailResponseDTO> verifyPartnerReception(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {

@@ -26,11 +26,11 @@ public class AladinController {
     }
 
     // 테스트용 컨트롤러 - 해당 컨트롤러는 실제로 앱에서 사용 X
-    @GetMapping("/search/{isbn13}")
+    /*@GetMapping("/search/{isbn13}")
     public ApiResponse<TempBookResDTO> searchByISBN13(
             @PathVariable String isbn13
     ){
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK, aladinBookService.searchBookByISBN(isbn13) );
-    }
+    } */
 }

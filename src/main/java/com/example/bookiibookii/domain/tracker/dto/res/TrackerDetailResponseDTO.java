@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 @AllArgsConstructor
-public class TrackerDetailResponse {
+public class TrackerDetailResponseDTO {
     private String bookTitle;           // 책 제목
     private String partnerNickname;     // 파트너 닉네임
     private TrackerStatus trackerStatus; // 도서 상태

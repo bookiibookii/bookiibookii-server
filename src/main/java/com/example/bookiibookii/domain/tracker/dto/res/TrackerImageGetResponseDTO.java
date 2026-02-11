@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class TrackerImageGetResponse {
+public class TrackerImageGetResponseDTO {
     /** 인증 이미지 조회용 Presigned GET URL */
     private String presignedGetUrl;
 }

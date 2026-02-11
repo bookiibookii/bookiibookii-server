@@ -211,11 +211,12 @@ public class RecommendationService {
                 excludedIds.add(-1L);
             }
 
-            List<Groups> randomGroups = groupsRepository.findRandomGroupsExcluding(
-                    excludedIds,
-                    GroupStatus.RECRUITING.name(),
-                    candidateGroupsCount
-            );
+            List<Groups> randomGroups =
+                    groupsRepository.findRandomGroupsExcludingFetchBook(
+                            excludedIds,
+                            GroupStatus.RECRUITING,
+                            PageRequest.of(0, candidateGroupsCount)
+                    );
             candidateGroups.addAll(randomGroups);
         }
 
@@ -227,6 +228,7 @@ public class RecommendationService {
     private RecommendationResponseDTO.RecommendedGroupDto toSuggestGroupDto(Groups group) {
         return RecommendationResponseDTO.RecommendedGroupDto.builder()
                 .groupId(group.getGroupId())
+                .bookImageUrl(group.getBook().getImage())
                 .bookTitle(group.getBook().getTitle())
                 .build();
     }

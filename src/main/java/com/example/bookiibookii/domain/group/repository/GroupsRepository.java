@@ -55,15 +55,18 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     );
 
     // 랜덤 그룹 조회 (이미 뽑힌 그룹 제외)
-    @Query(value = "SELECT * FROM `groups` g " +
-            "WHERE g.group_id NOT IN :excludedIds " +
-            "AND g.group_status = :status " +
-            "ORDER BY RAND() " +
-            "LIMIT :limit", nativeQuery = true)
-    List<Groups> findRandomGroupsExcluding(
+    @Query("""
+      select g
+      from Groups g
+      join fetch g.book
+      where g.groupId not in :excludedIds
+        and g.groupStatus = :status
+      order by function('rand')
+    """)
+    List<Groups> findRandomGroupsExcludingFetchBook(
             @Param("excludedIds") List<Long> excludedIds,
-            @Param("status") String status,
-            @Param("limit") int limit
+            @Param("status") GroupStatus status,
+            Pageable pageable
     );
   
     //그룹 상세 조회 (host, host.userImage fetch join으로 hostProfileImageUrl N+1 방지)

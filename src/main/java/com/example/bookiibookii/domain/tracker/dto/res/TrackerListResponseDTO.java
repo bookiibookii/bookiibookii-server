@@ -9,7 +9,7 @@ import java.util.List;
 
 @Getter
 @Builder
-public class TrackerListResponse {
+public class TrackerListResponseDTO {
     // 공통 필드
     private Long groupId;
     private String groupType; // RELAY, TOGETHER

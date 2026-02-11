@@ -97,6 +97,7 @@ public class LibraryService {
                 .hostNickName(host.getNickName())
                 .hostProfileImageUrl(hostProfileImageUrl)
                 .groupType(group.getGroupType())
+                .groupStatus(group.getGroupStatus())
                 .startDate(group.getStartDate())
                 .endDate(finalEndDate)
                 .duration(group.getReadingPeriod())

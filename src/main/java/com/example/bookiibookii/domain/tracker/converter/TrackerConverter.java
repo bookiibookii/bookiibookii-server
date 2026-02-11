@@ -33,7 +33,7 @@ public class TrackerConverter {
                                                      Address partnerAddress, User partnerUser,
                                                      TrackerHistory latestHistory) {
         // 1. 공통 빌더 생성
-        TrackerDetailResponseDTO.TrackerDetailResponseBuilder builder = TrackerDetailResponseDTO.builder()
+        TrackerDetailResponseDTO.TrackerDetailResponseDTOBuilder builder = TrackerDetailResponseDTO.builder()
                 .trackerId(tracker.getId())
                 .bookTitle(tracker.getGroup().getBook().getTitle())
                 .partnerNickname(partnerUser.getNickName())
@@ -111,7 +111,7 @@ public class TrackerConverter {
         Book book = group.getBook();
 
         // 3. 최상위 공통 빌더 구성
-        TrackerListResponseDTO.TrackerListResponseBuilder builder = TrackerListResponseDTO.builder()
+        TrackerListResponseDTO.TrackerListResponseDTOBuilder builder = TrackerListResponseDTO.builder()
                 .groupId(group.getGroupId())
                 .groupType(groupType)
                 .bookTitle(book != null ? book.getTitle() : null)

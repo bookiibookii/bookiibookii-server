@@ -15,6 +15,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -95,7 +96,9 @@ public class Groups extends BaseEntity {
         this.groupStatus = status;
     }
 
-    public void markAsDELETED(){ this.groupStatus = GroupStatus.DELETED; }
+    public void markAsDELETED() {
+        this.groupStatus = GroupStatus.DELETED;
+    }
 
     // 태그 추가
     public void addGroupTag(Tag tag) {
@@ -106,5 +109,24 @@ public class Groups extends BaseEntity {
     // 태그 전체 삭제
     public void clearGroupTags() {
         this.groupTags.clear();
+    }
+
+    //그룹상태 계산
+    public void syncStatus(long totalMemberCount, LocalDate today) {
+        // 1. 이미 종료된 그룹은 건드리지 않음
+        if (this.groupStatus == GroupStatus.COMPLETED || this.groupStatus == GroupStatus.DELETED) {
+            return;
+        }
+
+        // 2. 시작일 도달 여부 체크 (최우선순위)
+        if (!today.isBefore(this.startDate)) {
+            // 오늘이 시작일이거나 지났다면: 2명 이상(호스트 포함)이면 MATCHED, 아니면 DELETED
+            this.groupStatus = (totalMemberCount >= 2) ? GroupStatus.MATCHED : GroupStatus.DELETED;
+        }
+        // 3. 아직 시작일 전인 경우 (모집 기간)
+        else {
+            // 정원이 찼으면 MATCHED, 아니면 RECRUITING (취소 시 복구까지 고려)
+            this.groupStatus = (totalMemberCount >= this.maxCapacity) ? GroupStatus.MATCHED : GroupStatus.RECRUITING;
+        }
     }
 }

@@ -41,7 +41,7 @@ public class GroupScheduler {
     private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 55 1 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 37 3 * * *", zone = "Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         log.info("[Scheduler] firedAtKST={}", ZonedDateTime.now(ZoneId.of("Asia/Seoul")));
@@ -71,7 +71,7 @@ public class GroupScheduler {
             else if (group.getGroupStatus() == GroupStatus.DELETED && oldStatus != GroupStatus.DELETED) {
                 // 호스트에게 매칭 실패(기간 만료) 알림 발송
                 eventPublisher.publish(new GroupNotificationEvent(
-                        MATCH_EXPIRED, null, group.getBook().getTitle(),
+                        MATCH_EXPIRED, group.getHost().getId(), group.getBook().getTitle(),
                         group.getHost().getId(), null, group.getGroupId()
                 ));
             }

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Schema(description = "직접 교환 약속 등록 및 수정 요청")
 public record TrackerMeetingRequestDTO(
 
-        @Schema(description = "교환 예정 일시", example = "2026-02-05T14:30:00")
+        @Schema(description = "교환 예정 일시 (분 단위까지)", example = "2026-02-05T14:30")
         @NotNull(message = "교환 일시는 필수 입력 사항입니다.")
         @Future(message = "약속 시간은 현재 시간보다 이후여야 합니다.") // 과거 시간 등록 방지
         @JsonFormat(

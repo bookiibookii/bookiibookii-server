@@ -54,7 +54,7 @@ public class GroupScheduler {
             GroupStatus oldStatus = group.getGroupStatus();
 
             // 통합 로직 호출: 오늘 날짜와 인원수로 상태 판단
-            group.syncStatus(memberCount);
+            group.syncStatus(memberCount, today);
 
             // 1. 매칭 성공(MATCHED)으로 변한 경우
             if (group.getGroupStatus() == GroupStatus.MATCHED && oldStatus != GroupStatus.MATCHED) {

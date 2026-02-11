@@ -30,7 +30,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,7 +49,6 @@ public class ApplicationService {
     private final GroupsRepository groupsRepository;
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final DomainEventPublisher publisher;
     private final UserBookService userBookService;
     private final UserImageS3Service userImageS3Service;
@@ -139,12 +140,13 @@ public class ApplicationService {
             GroupStatus oldStatus = group.getGroupStatus();
             long newTotalCount = currentTotalCount + 1; // 방금 추가된 멤버 포함
 
-            group.syncStatus(newTotalCount); // 엔티티의 통합 로직 호출
+            LocalDate seoulToday = LocalDate.now(ZoneId.of("Asia/Seoul"));
+            group.syncStatus(newTotalCount, seoulToday); // 엔티티의 통합 로직 호출
 
             // 상태가 MATCHED로 변경되었을 경우에만 후속 작업 실행
             if (oldStatus != GroupStatus.MATCHED && group.getGroupStatus() == GroupStatus.MATCHED) {
                 // 매칭 성공 이벤트 발행
-                eventPublisher.publishEvent(new GroupMatchedEvent(
+                publisher.publish(new GroupMatchedEvent(
                         group.getGroupId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
                 ));
 
@@ -288,7 +290,9 @@ public class ApplicationService {
         long currentCount = matchedMemberRepository.countByGroup(group);
 
         //통합 로직 호출 후 재계산
-        group.syncStatus(currentCount);
+
+        LocalDate seoulToday = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        group.syncStatus(currentCount, seoulToday);
 
         return ApplicationResponseDTO.CancelResultDTO.builder()
                 .groupId(groupId)

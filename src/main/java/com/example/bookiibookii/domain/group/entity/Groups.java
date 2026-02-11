@@ -112,13 +112,11 @@ public class Groups extends BaseEntity {
     }
 
     //그룹상태 계산
-    public void syncStatus(long totalMemberCount) {
+    public void syncStatus(long totalMemberCount, LocalDate today) {
         // 1. 이미 종료된 그룹은 건드리지 않음
         if (this.groupStatus == GroupStatus.COMPLETED || this.groupStatus == GroupStatus.DELETED) {
             return;
         }
-
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
         // 2. 시작일 도달 여부 체크 (최우선순위)
         if (!today.isBefore(this.startDate)) {

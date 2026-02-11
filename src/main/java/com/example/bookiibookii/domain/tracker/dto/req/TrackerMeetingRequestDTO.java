@@ -15,7 +15,7 @@ public record TrackerMeetingRequestDTO(
         @Future(message = "약속 시간은 현재 시간보다 이후여야 합니다.") // 과거 시간 등록 방지
         @JsonFormat(
                 shape = JsonFormat.Shape.STRING,
-                pattern = "yyyy-MM-dd'T'HH:mm:ss"
+                pattern = "yyyy-MM-dd'T'HH:mm:ss[X]"
         )
         LocalDateTime meetingTime,
 

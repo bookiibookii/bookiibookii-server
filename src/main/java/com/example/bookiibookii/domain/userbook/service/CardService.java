@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.userbook.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.userbook.dto.CardImageUpdateResult;
 import com.example.bookiibookii.domain.userbook.dto.req.CardCreateRequestDTO;
 import com.example.bookiibookii.domain.userbook.dto.req.CardUpdateRequestDTO;
@@ -170,6 +171,8 @@ public class CardService {
 
         String myComment = null;
         String partnerComment = null;
+        List<CardListResponseDTO.TogetherCommentDto> togetherComments = null;
+        
         if (group.getGroupType() == GroupType.RELAY) {
             myComment = userBookRepository.findByUser_IdAndGroup_GroupId(userId, groupId)
                     .map(ub -> ub.getComment())
@@ -183,6 +186,26 @@ public class CardService {
                         .map(ub -> ub.getComment())
                         .orElse(null);
             }
+        } else if (group.getGroupType() == GroupType.TOGETHER) {
+            // 함께읽기일 때 그룹의 모든 멤버들의 comment 조회
+            List<MatchedMember> members = 
+                    matchedMemberRepository.findAllByGroup_GroupId(groupId);
+            togetherComments = members.stream()
+                    .map(member -> {
+                        Long memberUserId = member.getUser().getId();
+                        String nickname = member.getUser().getNickName() != null 
+                                ? member.getUser().getNickName() 
+                                : "";
+                        String comment = userBookRepository.findByUser_IdAndGroup_GroupId(memberUserId, groupId)
+                                .map(ub -> ub.getComment())
+                                .orElse(null);
+                        return CardListResponseDTO.TogetherCommentDto.builder()
+                                .userId(memberUserId)
+                                .nickname(nickname)
+                                .comment(comment)
+                                .build();
+                    })
+                    .toList();
         }
 
         return CardListResponseDTO.builder()
@@ -190,6 +213,7 @@ public class CardService {
                 .currentBookOwner(currentBookOwner)
                 .myComment(myComment)
                 .partnerComment(partnerComment)
+                .togetherComments(togetherComments)
                 .cards(cardDTOs)
                 .build();
     }

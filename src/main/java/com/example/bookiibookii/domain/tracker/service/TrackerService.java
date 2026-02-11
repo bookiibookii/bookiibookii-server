@@ -14,14 +14,14 @@ import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponse;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponse;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
@@ -39,7 +39,6 @@ import com.example.bookiibookii.domain.tracker.repository.TrackerImageRepository
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.Address;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
-import com.example.bookiibookii.domain.userbook.entity.Card;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
@@ -101,7 +100,7 @@ public class TrackerService {
      * 배송 인증 사진 보기. 수령한 사람(나)이 배송한 사람이 올린 SENDER_PROOF 이미지를 조회.
      * 같은 그룹 멤버만 조회 가능.
      */
-    public TrackerImageGetResponse getShippingProofImageUrl(Long groupId, User user) {
+    public TrackerImageGetResponseDTO getShippingProofImageUrl(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
         MatchedMember myMatchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
@@ -114,14 +113,14 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
 
         String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(senderProof.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
-        return TrackerImageGetResponse.builder().presignedGetUrl(presignedGetUrl).build();
+        return TrackerImageGetResponseDTO.builder().presignedGetUrl(presignedGetUrl).build();
     }
 
     /**
      * 수령 인증 사진 보기. 배송한 사람(나)이 수령한 사람이 올린 RECEIVER_PROOF 이미지를 조회.
      * 같은 그룹 멤버만 조회 가능.
      */
-    public TrackerImageGetResponse getReceivedProofImageUrl(Long groupId, User user) {
+    public TrackerImageGetResponseDTO getReceivedProofImageUrl(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
         MatchedMember myMatchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
@@ -143,7 +142,7 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
 
         String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(receiverProof.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
-        return TrackerImageGetResponse.builder().presignedGetUrl(presignedGetUrl).build();
+        return TrackerImageGetResponseDTO.builder().presignedGetUrl(presignedGetUrl).build();
     }
 
 
@@ -205,7 +204,7 @@ public class TrackerService {
 
     //트래커 상세 조회
     @Transactional(readOnly = true)
-    public TrackerDetailResponse getTrackerDetailByGroupId(Long groupId, User user) {
+    public TrackerDetailResponseDTO getTrackerDetailByGroupId(Long groupId, User user) {
         // 1. 권한 검증 및 트래커 조회
         validateGroupMember(groupId, user.getId());
         Tracker tracker = trackerRepository.findByGroupId(groupId)
@@ -265,7 +264,7 @@ public class TrackerService {
 
     // 트래커 히스토리 조회
     @Transactional(readOnly = true)
-    public List<TrackerHistoryResponse> getTrackerHistoriesByGroupId(Long groupId, User user) {
+    public List<TrackerHistoryResponseDTO> getTrackerHistoriesByGroupId(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
 
         // 1. 해당 그룹의 모든 히스토리 조회
@@ -303,27 +302,27 @@ public class TrackerService {
     // 트래커 리스트 조회
     // 1. 전체 조회
     @Transactional(readOnly = true)
-    public List<TrackerListResponse> getTrackerList(Long userId) {
+    public List<TrackerListResponseDTO> getTrackerList(Long userId) {
         List<Tracker> trackers = trackerRepository.findAllByUserIdWithDetails(userId);
         return convertToResponseList(trackers, userId);
     }
 
     // 2. 내가 호스트인 리스트 조회
     @Transactional(readOnly = true)
-    public List<TrackerListResponse> getHostTrackerList(Long userId) {
+    public List<TrackerListResponseDTO> getHostTrackerList(Long userId) {
         List<Tracker> trackers = trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.HOST);
         return convertToResponseList(trackers, userId);
     }
 
     // 3.  내가 게스트인 리스트 조회
     @Transactional(readOnly = true)
-    public List<TrackerListResponse> getGuestTrackerList(Long userId) {
+    public List<TrackerListResponseDTO> getGuestTrackerList(Long userId) {
         List<Tracker> trackers = trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.GUEST);
         return convertToResponseList(trackers, userId);
     }
 
     // 공통 변환 로직
-    private List<TrackerListResponse> convertToResponseList(List<Tracker> trackers, Long userId) {
+    private List<TrackerListResponseDTO> convertToResponseList(List<Tracker> trackers, Long userId) {
         return trackers.stream()
                 .map(tracker -> {
                     Groups group = tracker.getGroup();
@@ -409,7 +408,7 @@ public class TrackerService {
 
     // 배송 등록
     @Transactional
-    public void registerShipping(Long groupId, TrackerShippingRequest request, User user) {
+    public void registerShipping(Long groupId, TrackerShippingRequestDTO request, User user) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
@@ -476,7 +475,7 @@ public class TrackerService {
 
     //수령 완료
     @Transactional
-    public void registerReceive(Long groupId, TrackerReceiveRequest request, User user) {
+    public void registerReceive(Long groupId, TrackerReceiveRequestDTO request, User user) {
         // 1. 트래커 조회
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
@@ -599,7 +598,7 @@ public class TrackerService {
     }
 
     // 약속 상세 조회 (현재 트래커 상태에 맞는 약속 조회)
-    public TrackerMeetingResponse getMeetingDetailByGroupId(Long groupId, User user) {
+    public TrackerMeetingResponseDTO getMeetingDetailByGroupId(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
 
         Tracker tracker = trackerRepository.findByGroupId(groupId)
@@ -624,21 +623,21 @@ public class TrackerService {
 
         //  2. 특정 상태(targetStatus)와 일치하는 약속 조회
         return meetingRepository.findByGroupIdAndStatusNative(groupId, targetStatus.name())
-                .map(meeting -> new TrackerMeetingResponse(
+                .map(meeting -> new TrackerMeetingResponseDTO(
                         meeting.getMeetingTime(),
                         meeting.getMeetingPlace()
                 ))
                 .orElseGet(() -> {
                     // 약속 데이터가 없을 경우 호스트의 선호 지역 반환
                     String defaultPlace = tracker.getGroup().getPreferRegion();
-                    return new TrackerMeetingResponse(null, defaultPlace);
+                    return new TrackerMeetingResponseDTO(null, defaultPlace);
                 });
     }
 
 
     //약속 정보 업데이트
     @Transactional
-    public void updateMeeting(Long groupId, TrackerMeetingRequest request, User user) {
+    public void updateMeeting(Long groupId, TrackerMeetingRequestDTO request, User user) {
         meetingRepository.flush();
         // 1. 트래커 조회 및 권한 검증
         Tracker tracker = trackerRepository.findByGroupId(groupId)

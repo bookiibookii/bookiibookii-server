@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Schema(description = "직접 교환 약속 등록 및 수정 요청")
-public record TrackerMeetingRequest(
+public record TrackerMeetingRequestDTO(
 
         @Schema(description = "교환 예정 일시", example = "2026-02-05T14:30:00")
         @NotNull(message = "교환 일시는 필수 입력 사항입니다.")

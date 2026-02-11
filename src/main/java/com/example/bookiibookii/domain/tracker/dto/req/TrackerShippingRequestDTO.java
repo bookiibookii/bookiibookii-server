@@ -2,7 +2,7 @@ package com.example.bookiibookii.domain.tracker.dto.req;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record TrackerShippingRequest(
+public record TrackerShippingRequestDTO(
         @NotBlank(message = "택배사는 필수 입력입니다.")
         String deliveryCompany,
 

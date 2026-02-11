@@ -1,8 +1,8 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequest;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequest;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequest;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
@@ -30,10 +30,10 @@ public interface TrackerControllerDocs {
     @Operation(summary = "독서 완료 등록", description = "도서를 다 읽었을 때 호출합니다. 이후 배송 등록이 가능해집니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독서 완료 등록 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class))),
+                    content = @Content(schema = @Schema(implementation = TrackerDetailResponseDTO.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "독서 완료 등록실패", content = @Content)
     })
-    ApiResponse<TrackerDetailResponse> registerReadingDone(
+    ApiResponse<TrackerDetailResponseDTO> registerReadingDone(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
@@ -45,7 +45,7 @@ public interface TrackerControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "배송 인증 이미지 없음", content = @Content)
     })
     @GetMapping("/{groupId}/tracker/check/shipping")
-    ApiResponse<TrackerImageGetResponse> getShippingProofImageUrl(
+    ApiResponse<TrackerImageGetResponseDTO> getShippingProofImageUrl(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
@@ -56,7 +56,7 @@ public interface TrackerControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "수령 인증 이미지 없음", content = @Content)
     })
     @GetMapping("/{groupId}/tracker/check/received")
-    ApiResponse<TrackerImageGetResponse> getReceivedProofImageUrl(
+    ApiResponse<TrackerImageGetResponseDTO> getReceivedProofImageUrl(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
@@ -79,9 +79,9 @@ public interface TrackerControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "배송 등록 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 입력값(s3Key 형식/중복/S3 미존재)", content = @Content)
     })
-    ApiResponse<TrackerDetailResponse> registerShipping(
+    ApiResponse<TrackerDetailResponseDTO> registerShipping(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody @Valid TrackerShippingRequest request,
+            @RequestBody @Valid TrackerShippingRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
@@ -91,20 +91,20 @@ public interface TrackerControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수령 완료 처리 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 입력값(s3Key 형식/중복/S3 미존재)", content = @Content)
     })
-    ApiResponse<TrackerDetailResponse> registerReceive(
+    ApiResponse<TrackerDetailResponseDTO> registerReceive(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody @Valid TrackerReceiveRequest request,
+            @RequestBody @Valid TrackerReceiveRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(summary = "독서 시작 등록", description = "도서 수령 후 실제 독서를 시작할 때 호출합니다.")
-    ApiResponse<TrackerDetailResponse> registerReading(
+    ApiResponse<TrackerDetailResponseDTO> registerReading(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(summary = "독서 기간 연장 신청", description = "현재 주자의 독서 기간을 연장합니다. (최대 1회 가능)")
-    ApiResponse<TrackerDetailResponse> registerExtension(
+    ApiResponse<TrackerDetailResponseDTO> registerExtension(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(description = "연장할 일수", example = "3") @RequestParam(defaultValue = "3") int days,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
@@ -117,7 +117,7 @@ public interface TrackerControllerDocs {
             - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
             """
     )
-    ApiResponse<List<TrackerListResponse>> getTrackerList(
+    ApiResponse<List<TrackerListResponseDTO>> getTrackerList(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
@@ -128,7 +128,7 @@ public interface TrackerControllerDocs {
             - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
             """
     )
-    ApiResponse<List<TrackerListResponse>> getHostTrackers(
+    ApiResponse<List<TrackerListResponseDTO>> getHostTrackers(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
@@ -139,12 +139,12 @@ public interface TrackerControllerDocs {
             - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
             """
     )
-    ApiResponse<List<TrackerListResponse>> getGuestTrackers(
+    ApiResponse<List<TrackerListResponseDTO>> getGuestTrackers(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(summary = "트래킹 상세 현황 조회")
-    ApiResponse<TrackerDetailResponse> getTrackerDetail(
+    ApiResponse<TrackerDetailResponseDTO> getTrackerDetail(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
@@ -156,7 +156,7 @@ public interface TrackerControllerDocs {
     );*/
 
     @Operation(summary = "직접 교환 약속 상세 조회")
-    ApiResponse<TrackerMeetingResponse> getMeetingDetail(
+    ApiResponse<TrackerMeetingResponseDTO> getMeetingDetail(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
@@ -175,16 +175,16 @@ public interface TrackerControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "약속 등록/수정 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerMeetingResponse.class))
+                    content = @Content(schema = @Schema(implementation = TrackerMeetingResponseDTO.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음 (도서 소유자만 가능)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "트래커 또는 약속 정보를 찾을 수 없음")
     })
     @PatchMapping("/{groupId}/tracker/makeMeeting")
-    ApiResponse<TrackerMeetingResponse> updateMeeting( // 🟢 반환 타입 변경
-                                                       @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-                                                       @RequestBody @Valid TrackerMeetingRequest request,
-                                                       @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    ApiResponse<TrackerMeetingResponseDTO> updateMeeting( // 🟢 반환 타입 변경
+                                                          @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+                                                          @RequestBody @Valid TrackerMeetingRequestDTO request,
+                                                          @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(
@@ -194,16 +194,16 @@ public interface TrackerControllerDocs {
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "교환 확인 처리 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerDetailResponse.class)))
+                    content = @Content(schema = @Schema(implementation = TrackerDetailResponseDTO.class)))
     })
     @PatchMapping("/{groupId}/tracker/meeting/complete")
-    ApiResponse<TrackerDetailResponse> completeMeeting(
+    ApiResponse<TrackerDetailResponseDTO> completeMeeting(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(summary = "상대방의 수령 인증 사진 확인 (승인)")
-    ApiResponse<TrackerDetailResponse> verifyPartnerReception(
+    ApiResponse<TrackerDetailResponseDTO> verifyPartnerReception(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     );

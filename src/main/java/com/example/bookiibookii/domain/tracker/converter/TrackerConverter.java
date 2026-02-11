@@ -7,9 +7,9 @@ import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponse;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponse;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponse;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
 import com.example.bookiibookii.domain.user.entity.Address;
@@ -29,11 +29,11 @@ public class TrackerConverter {
     private final UserImageS3Service userImageS3Service;
 
 
-    public TrackerDetailResponse toDetailResponse(Tracker tracker, Meeting latestMeeting,
-                                                  Address partnerAddress, User partnerUser,
-                                                  TrackerHistory latestHistory) {
+    public TrackerDetailResponseDTO toDetailResponse(Tracker tracker, Meeting latestMeeting,
+                                                     Address partnerAddress, User partnerUser,
+                                                     TrackerHistory latestHistory) {
         // 1. 공통 빌더 생성
-        TrackerDetailResponse.TrackerDetailResponseBuilder builder = TrackerDetailResponse.builder()
+        TrackerDetailResponseDTO.TrackerDetailResponseBuilder builder = TrackerDetailResponseDTO.builder()
                 .trackerId(tracker.getId())
                 .bookTitle(tracker.getGroup().getBook().getTitle())
                 .partnerNickname(partnerUser.getNickName())
@@ -50,7 +50,7 @@ public class TrackerConverter {
         if (tradeType == TradeType.DELIVERY) {
             if (partnerAddress != null) {
                 // DeliveryInfo 빌더 생성
-                TrackerDetailResponse.DeliveryInfo.DeliveryInfoBuilder deliveryBuilder = TrackerDetailResponse.DeliveryInfo.builder()
+                TrackerDetailResponseDTO.DeliveryInfo.DeliveryInfoBuilder deliveryBuilder = TrackerDetailResponseDTO.DeliveryInfo.builder()
                         .receiverName(partnerAddress.getReceiverName())
                         .receiverPhone(partnerAddress.getPhone())
                         .receiverAddress(String.format("[%s] %s %s",
@@ -70,13 +70,13 @@ public class TrackerConverter {
         } else if (tradeType == TradeType.DIRECT) {
             // 직접 교환일 경우: 최신 약속 정보 세팅
             if (latestMeeting != null) {
-                builder.meetingInfo(TrackerDetailResponse.MeetingInfo.builder()
+                builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
                         .meetingTime(latestMeeting.getMeetingTime())
                         .meetingPlace(latestMeeting.getMeetingPlace())
                         .build());
             } else {
                 // 약속 전이면 호스트가 설정한 기본 장소 노출
-                builder.meetingInfo(TrackerDetailResponse.MeetingInfo.builder()
+                builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
                         .meetingPlace(tracker.getGroup().getPreferRegion())
                         .build());
             }
@@ -86,8 +86,8 @@ public class TrackerConverter {
     }
 
 
-    public TrackerHistoryResponse toHistoryResponse(TrackerHistory history, Long senderUserId, Long receiverUserId) {
-        return TrackerHistoryResponse.builder()
+    public TrackerHistoryResponseDTO toHistoryResponse(TrackerHistory history, Long senderUserId, Long receiverUserId) {
+        return TrackerHistoryResponseDTO.builder()
                 .trackerId(history.getTracker().getId())
                 .groupId(history.getTracker().getGroup().getGroupId())
                 // Service에서 조회해서 넘겨준 유저의 진짜 ID
@@ -102,16 +102,16 @@ public class TrackerConverter {
                 .build();
     }
 
-    public TrackerListResponse toListResponse(Tracker tracker, Groups group,
-                                              String targetNickname, List<String> stepDates,
-                                              Integer myRate, Integer groupRate) {
+    public TrackerListResponseDTO toListResponse(Tracker tracker, Groups group,
+                                                 String targetNickname, List<String> stepDates,
+                                                 Integer myRate, Integer groupRate) {
 
         String groupType = group.getGroupType().toString();
 
         Book book = group.getBook();
 
         // 3. 최상위 공통 빌더 구성
-        TrackerListResponse.TrackerListResponseBuilder builder = TrackerListResponse.builder()
+        TrackerListResponseDTO.TrackerListResponseBuilder builder = TrackerListResponseDTO.builder()
                 .groupId(group.getGroupId())
                 .groupType(groupType)
                 .bookTitle(book != null ? book.getTitle() : null)
@@ -141,7 +141,7 @@ public class TrackerConverter {
                         group.getHost().getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
             }
 
-            builder.relayDetail(TrackerListResponse.RelayDetail.builder()
+            builder.relayDetail(TrackerListResponseDTO.RelayDetail.builder()
                     .partnerNickname(targetNickname) // 서비스에서 조회한 현재 나의 파트너 닉네임
                     .hostProfileImageUrl(hostProfileImageUrl)
                     .guestProfileImageUrls(guestProfileImageUrls) // 위에서 추출한 게스트 이미지 Presigned GET URL 리스트
@@ -149,7 +149,7 @@ public class TrackerConverter {
                     .build());
         }
         else if (group.getGroupType() == GroupType.TOGETHER) {
-            builder.togetherDetail(TrackerListResponse.TogetherDetail.builder()
+            builder.togetherDetail(TrackerListResponseDTO.TogetherDetail.builder()
                     .hostNickname(group.getHost().getNickName())
                     .participantCount(group.getMatchedMember().size())
                     .myReadingRate(myRate)

@@ -1,10 +1,8 @@
 package com.example.bookiibookii.domain.group.scheduler;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
@@ -13,9 +11,6 @@ import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.service.GroupCompletionService;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 
-
-import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -38,10 +33,9 @@ public class GroupScheduler {
     private final ApplicationRepository applicationRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
-    private final UserRepository userRepository;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 37 3 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 53 4 * * *", zone = "Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         log.info("[Scheduler] firedAtKST={}", ZonedDateTime.now(ZoneId.of("Asia/Seoul")));
@@ -64,6 +58,13 @@ public class GroupScheduler {
                         group.getHost().getId(),
                         group.getStartDate(),
                         group.getMaxCapacity()
+                ));
+                // 매칭 성공 알림 발행
+                List<Long> memberIds = matchedMemberRepository.findUserIdsByGroupId(group.getGroupId());
+
+                eventPublisher.publish(new GroupNotificationEvent(
+                        MATCH_SUCCEEDED, group.getHost().getId(), group.getBook().getTitle(),
+                        null, memberIds, group.getGroupId()
                 ));
             }
 

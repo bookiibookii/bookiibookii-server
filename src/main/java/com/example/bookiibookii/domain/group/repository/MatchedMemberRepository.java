@@ -110,4 +110,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
 
     // 특정 그룹에서 리뷰 안 쓴 멤버 리스트 조회
     List<MatchedMember> findAllByGroup_GroupIdAndIsReviewWrittenFalse(Long groupId);
+
+    @Query("select mm.user.id from MatchedMember mm where mm.group.groupId = :groupId")
+    List<Long> findUserIdsByGroupId(@Param("groupId") Long groupId);
 }

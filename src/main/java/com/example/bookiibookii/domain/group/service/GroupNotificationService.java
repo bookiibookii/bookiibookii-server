@@ -7,8 +7,6 @@ import com.example.bookiibookii.domain.notification.repository.NotificationRepos
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
-import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
-import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +31,7 @@ public class GroupNotificationService {
 
         // 알림 필드 공통 조회 : actor 닉네임, 그룹(책 포함)
         String actorNickname = userRepository.findNickNameById(event.actorId())
-                .orElseThrow(()-> new UserException(UserErrorCode.NOT_FOUND));
+                .orElse("알 수 없음");
 
         String bookTitle = event.bookTitle();
 

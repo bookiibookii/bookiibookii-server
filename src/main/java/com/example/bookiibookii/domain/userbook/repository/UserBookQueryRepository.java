@@ -28,7 +28,7 @@ public class UserBookQueryRepository {
                 ))
                 .from(userBook)
                 .join(userBook.group, groups)
-                .where(userBook.user.id.eq(userId).and(userBook.group.groupStatus.eq(GroupStatus.COMPLETED)))
+                .where(userBook.user.id.eq(userId), (userBook.group.groupStatus.eq(GroupStatus.COMPLETED)))
                 .orderBy(userBook.updatedAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())

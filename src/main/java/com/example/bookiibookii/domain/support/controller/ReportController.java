@@ -55,7 +55,7 @@ public class ReportController implements ReportControllerDocs {
 
     // 신고할 그룹멤버 조회 API
     @Override
-    @GetMapping("/api/report/{groupid}/members")
+    @GetMapping("/api/report/{groupId}/members")
     public ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
             @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable(name = "groupId") Long groupId) {

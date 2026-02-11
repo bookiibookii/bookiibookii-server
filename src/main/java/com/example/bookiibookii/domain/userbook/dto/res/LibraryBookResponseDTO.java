@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.userbook.dto.res;
 
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,7 @@ public class LibraryBookResponseDTO {
     private String hostNickName;        // 호스트 닉네임
     private String hostProfileImageUrl;  // presigned GET URL
     private GroupType groupType;         // group.groupType (TOGETHER, RELAY)
+    private GroupStatus groupStatus;    // RECRUITING, MATCHED, COMPLETED, DELETED
     private LocalDate startDate;        // group.startDate (시작일)
     private LocalDate endDate;             // 그룹 종료일자
     private Integer duration;            // group.readingPeriod (독서 기간, 일)

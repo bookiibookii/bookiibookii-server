@@ -45,7 +45,8 @@ public class ReportController implements ReportControllerDocs {
 
 
     // 신고할 그룹 조회 API
-    @GetMapping("/my")
+    @Override
+    @GetMapping("/api/report/groups/my")
     public ApiResponse<List<GroupResponseDTO.GroupSummaryResponse>> getGroupSummary(
             @AuthenticationPrincipal(expression = "user") User user) {
         List<GroupResponseDTO.GroupSummaryResponse> result = groupService.getGroupSummary(user.getId());
@@ -53,7 +54,8 @@ public class ReportController implements ReportControllerDocs {
     }
 
     // 신고할 그룹멤버 조회 API
-    @GetMapping("/{groupId}/members")
+    @Override
+    @GetMapping("/api/report/{groupid}/members")
     public ApiResponse<List<GroupResponseDTO.GroupMemberResponse>> getGroupMembers(
             @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable(name = "groupId") Long groupId) {

@@ -227,8 +227,7 @@ public class TrackerService {
             // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
             partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
 
-            TrackerStatus currentStatus = tracker.getTrackerStatus();
-            List<TrackerStatus> relevantStatuses = List.of(
+            List<TrackerStatus> shippingHistoryStatuses = List.of(
                     TrackerStatus.SHIPPING_TO_GUEST,
                     TrackerStatus.SHIPPING_TO_HOST,
                     TrackerStatus.RECEIVED,
@@ -236,8 +235,11 @@ public class TrackerService {
             );
 
             // 현재 트래커 상태가 위 리스트에 포함될 때만 히스토리 조회
-            if (relevantStatuses.contains(currentStatus)) {
-                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, relevantStatuses)
+            TrackerStatus currentStatus = tracker.getTrackerStatus();
+
+            if (shippingHistoryStatuses.contains(currentStatus) || currentStatus == TrackerStatus.GUEST_READING) {
+                // 가장 최근의 배송/수령 히스토리를 가져옵니다.
+                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingHistoryStatuses)
                         .orElse(null);
             }
         }

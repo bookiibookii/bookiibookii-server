@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class TrackerHistoryResponse {
+public class TrackerHistoryResponseDTO {
     private Long trackerId;
     private Long groupId;
     private Long senderUserId;

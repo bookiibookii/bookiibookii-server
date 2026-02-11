@@ -71,24 +71,37 @@ public class CommentService {
             }
         }
 
+        boolean isSecret = req.isSecret();
+        if (isSecret && parent == null) {
+            throw new CommentException(CommentErrorCode.SECRET_REPLY_ONLY);
+        }
+
+        Long secretTargetUserId = null;
+        if (isSecret) {
+            secretTargetUserId = parent.getUser().getId();
+        }
+
         Comment comment = Comment.builder()
                 .content(req.getContent())
                 .user(user)
                 .group(group)
                 .parent(parent)
+                .secret(isSecret)
+                .secretTargetUserId(secretTargetUserId)
                 .build();
         Comment saved = commentRepository.save(comment);
 
-        eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), group.getHost().getId(), group.getGroupId()));
-
+        Long notifyUserId = isSecret ? secretTargetUserId : group.getHost().getId();
+        if (!user.getId().equals(notifyUserId)) {
+            eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), notifyUserId, group.getGroupId()));
+        }
         return toCreateResDTO(saved, writerRole);
     }
 
     // 그룹 페이지 내 모든 댓글 조회(대댓글 포함)
     @Transactional(readOnly = true)
-    public List<CommentTreeResDTO> getTree(Long groupId) {
-        List<Comment> comments =
-                commentRepository.findAllByGroupIdWithUserOrderByCreatedAtAsc(groupId);
+    public List<CommentTreeResDTO> getTree(Long groupId, Long viewerId) {
+        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewerId);
 
         // 그룹 멤버 역할 전체 로드 (user_id, mm.RoleStatus 가져옴)
         Map<Long, WriterRole> writerRoleMap = matchedMemberRepository.findWriterRowsByGroupId(groupId)

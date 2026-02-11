@@ -33,9 +33,10 @@ public class CommentController implements CommentControllerDocs{
 
     @GetMapping("/groups/{groupId}/comments")
     public ApiResponse<List<CommentTreeResDTO>> getGroupComments(
-            @PathVariable Long groupId
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
     ) {
-        List<CommentTreeResDTO> result = commentService.getTree(groupId);
+        List<CommentTreeResDTO> result = commentService.getTree(groupId, user.getId());
         return ApiResponse.onSuccess(CommentSuccessCode.COMMENT_FOUND_OK, result);
     }
 

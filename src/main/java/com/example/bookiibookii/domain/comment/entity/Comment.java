@@ -28,6 +28,12 @@ public class Comment extends BaseEntity {
     @Column(name = "deleted", nullable = false)
     private boolean deleted;
 
+    @Column(name = "secret", nullable = false)
+    private boolean secret;
+
+    @Column(name = "secret_target_user_id")
+    private Long secretTargetUserId;
+
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

@@ -11,15 +11,6 @@ import java.util.Optional;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     @Query("""
-        select c
-        from Comment c
-        join fetch c.user u
-        where c.group.groupId = :groupId
-        order by c.createdAt asc
-    """)
-    List<Comment> findAllByGroupIdWithUserOrderByCreatedAtAsc(@Param("groupId") Long groupId);
-
-    @Query("""
     select c
     from Comment c
     join fetch c.user u
@@ -28,5 +19,16 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     Optional<Comment> findByIdAndGroupIdWithUser(@Param("commentId") Long commentId,
                                                  @Param("groupId") Long groupId);
 
-    boolean existsByParent_Id(Long parentId);
+    @Query("""
+    select c from Comment c
+    join fetch c.user u
+    where c.group.groupId = :groupId
+    and (
+        c.secret = false
+        or (c.secret = true and (c.user.id = :viewerId or c.secretTargetUserId = :viewerId))
+    )
+    order by c.createdAt asc
+    """)
+    List<Comment> findVisibleTree(@Param("groupId") Long groupId,
+                                  @Param("viewerId") Long viewerId);
 }

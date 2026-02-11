@@ -23,7 +23,7 @@ public class GroupRequestDTO {
         @Pattern(regexp = "^[0-9]{13}$", message = "ISBN13은 숫자 13자리여야 합니다.")
         private String isbn13;          // 대상 도서 ID
         @Schema(description = "모집 인원 (TOGETHER 타입일 때 ~8명)", example = "2")
-        @Max(8g)
+        @Max(8)
         private Integer maxCapacity;   // TOGETHER일 때 인원수
         @Schema(description = "독서 시작 날짜 (오늘 이후)", example = "2026-02-20")
         private LocalDate startDate;

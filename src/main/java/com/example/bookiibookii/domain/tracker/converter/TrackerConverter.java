@@ -12,12 +12,16 @@ import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponseDTO
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
+import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.user.entity.Address;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Component
@@ -32,6 +36,9 @@ public class TrackerConverter {
     public TrackerDetailResponseDTO toDetailResponse(Tracker tracker, Meeting latestMeeting,
                                                      Address partnerAddress, User partnerUser,
                                                      TrackerHistory latestHistory) {
+
+        int remainingDays = calculateRemainingDays(tracker, latestMeeting);
+
         // 1. 공통 빌더 생성
         TrackerDetailResponseDTO.TrackerDetailResponseDTOBuilder builder = TrackerDetailResponseDTO.builder()
                 .trackerId(tracker.getId())
@@ -42,7 +49,8 @@ public class TrackerConverter {
                 .endDate(tracker.getEndDate())
                 .extensionCount(tracker.getExtensionCount())
                 .extensionDays(tracker.getExtensionDays())
-                .readingPeriod(tracker.getGroup().getReadingPeriod());
+                .readingPeriod(tracker.getGroup().getReadingPeriod())
+                .remainingDays(remainingDays);
 
         // 2. TradeType에 따른 분기 처리
         TradeType tradeType = tracker.getGroup().getTradeType();
@@ -158,5 +166,38 @@ public class TrackerConverter {
         }
 
         return builder.build();
+    }
+
+    public int calculateRemainingDays(Tracker tracker, Meeting latestMeeting) {
+        //  '현재 날짜'를 기준으로 비교
+        LocalDate today = LocalDate.now();
+        TrackerStatus status = tracker.getTrackerStatus();
+
+        // 1. 독서 중인 경우 (현재 날짜부터 종료 예정일까지 남은 일수)
+        if (status == TrackerStatus.HOST_READING || status == TrackerStatus.GUEST_READING ||
+        status == TrackerStatus.HOST_EXTENSION || status == TrackerStatus.GUEST_EXTENSION) {
+            if (tracker.getEndDate() == null) return 0;
+            return (int) ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate());
+        }
+
+        // 2. 직접 교환 약속이 있는 경우 (오늘부터 약속 날짜까지)
+        if ((status == TrackerStatus.SHIPPING_TO_GUEST || status == TrackerStatus.SHIPPING_TO_HOST)
+                && latestMeeting != null && latestMeeting.getMeetingTime() != null) {
+            return (int) ChronoUnit.DAYS.between(today, latestMeeting.getMeetingTime().toLocalDate());
+        }
+
+        // 3. 3일 제한이 있는 상태들
+        List<TrackerStatus> threeDayLimitStatuses = List.of(
+                TrackerStatus.HOST_DONE, TrackerStatus.RECEIVED,
+                TrackerStatus.GUEST_DONE, TrackerStatus.RETURNED
+        );
+
+        if (threeDayLimitStatuses.contains(status)) {
+            LocalDateTime baseTime = tracker.getUpdatedAt() != null ? tracker.getUpdatedAt() : LocalDateTime.now();
+            LocalDate deadline = baseTime.plusDays(3).toLocalDate();
+            return (int) ChronoUnit.DAYS.between(today, deadline);
+        }
+
+        return 0;
     }
 }

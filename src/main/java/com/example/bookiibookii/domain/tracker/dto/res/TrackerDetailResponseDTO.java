@@ -20,6 +20,7 @@ public class TrackerDetailResponseDTO {
     private Integer extensionDays;       // 연장 일수
     private Integer readingPeriod;      // 그룹 독서 기간
     private Long trackerId;
+    private Integer remainingDays;
 
     private DeliveryInfo deliveryInfo;
 

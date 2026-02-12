@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.notification.entity;
 
+import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,7 +19,7 @@ import lombok.*;
                 @UniqueConstraint(name = "uk_keyword_normalized", columnNames = "normalized_content")
         }
 )
-public class Keyword {
+public class Keyword extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.notification.entity;
 
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,7 +16,7 @@ import lombok.*;
                 @UniqueConstraint(name = "uk_user_keyword", columnNames = {"user_id", "keyword_id"})
         }
 )
-public class UserKeyword {
+public class UserKeyword extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

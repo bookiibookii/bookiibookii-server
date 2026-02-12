@@ -88,7 +88,7 @@ public class GroupService {
         long hostingCount = groupsRepository.countByHostIdAndGroupStatusIn(host.getId(), activeStatuses);
 
         //카운트 개수 3개 이상이면 그룹생성 제한
-        if (hostingCount >= 300) {
+        if (hostingCount >= 3) {
             throw new GroupException(GroupErrorCode.HOST_MAX_LIMIT_EXCEEDED);
         }
 
@@ -204,9 +204,9 @@ public class GroupService {
         }
 
         // 시작 날짜는 오늘 이후(내일부터) 선택 가능
-        //if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
-          //  throw new GroupException(GroupErrorCode.INVALID_START_DATE);
-        //}
+        if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
+            throw new GroupException(GroupErrorCode.INVALID_START_DATE);
+        }
 
         // 독서 기간 최소 3일 ~ 최대 30일
         if (request.getReadingPeriod() == null || request.getReadingPeriod() < 3 || request.getReadingPeriod() > 30) {

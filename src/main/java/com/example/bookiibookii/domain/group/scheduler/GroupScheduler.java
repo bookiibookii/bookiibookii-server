@@ -35,7 +35,7 @@ public class GroupScheduler {
     private final DomainEventPublisher eventPublisher;
     private final GroupCompletionService groupCompletionService;
 
-    @Scheduled(cron = "0 53 4 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     @Transactional
     public void autoProcessGroups() {
         log.info("[Scheduler] firedAtKST={}", ZonedDateTime.now(ZoneId.of("Asia/Seoul")));

@@ -45,12 +45,11 @@ public class RecommendationService {
         List<UserTag> currentUserTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
         // 누적도 -> 최신 등록 -> ID 순으로 태그 정렬 후 상위태그 추출
         List<Tag> myTopTags = userTagService.extractTopTags(currentUserTags, 2);
-
         List<User> matchedUsers;
         List<String> displayTags;
 
         // 태그 개수에 따른 분기 처리
-        if (myTopTags.isEmpty()) {                  // 태그 0개 : 태그 0개 유저 or 랜덤 매칭
+        if (currentUserTags.size() < 1 || myTopTags.isEmpty() || myTopTags.size() < 1) { // 태그 0개 : 태그 0개 유저 or 랜덤 매칭
             displayTags = Collections.emptyList();
             matchedUsers = findForNoTagUser(userId, targetTypes);
         } else if (myTopTags.size() == 1) {         // 태그 1개 (포함 관계 매칭)
@@ -59,6 +58,10 @@ public class RecommendationService {
         } else {                                    // 태그 2개 이상 (완전 일치 매칭)
             displayTags = myTopTags.stream().map(Tag::getCode).toList();
             matchedUsers = findForTwoTagUser(userId, myTopTags, targetTypes);
+        }
+
+        if (matchedUsers.isEmpty()) {
+            return Collections.emptyList();
         }
 
         return matchedUsers.stream()

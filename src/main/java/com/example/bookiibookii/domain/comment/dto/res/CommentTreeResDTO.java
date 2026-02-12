@@ -13,6 +13,7 @@ import java.util.List;
 public class CommentTreeResDTO {
     private Long id;
     private boolean deleted;
+    private boolean secret;
     private String content;
     private Long parentId;
     private WriterDto writer;

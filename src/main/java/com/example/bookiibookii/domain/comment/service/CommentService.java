@@ -169,6 +169,7 @@ public class CommentService {
         return CommentTreeResDTO.builder()
                 .id(c.getId())
                 .deleted(c.isDeleted())
+                .secret(c.isSecret())
                 .content(c.isDeleted() ? "삭제된 댓글입니다." : c.getContent())
                 .parentId(c.getParent() == null ? null : c.getParent().getId())
                 .createdAt(c.getCreatedAt())

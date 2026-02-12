@@ -5,17 +5,13 @@ import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tag.entity.Tag;
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 

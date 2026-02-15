@@ -35,6 +35,14 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
             NoticeRequestDTO.UpdateNoticeDTO request
     ) {
         adminNoticeService.updateNotice(noticeId, request);
-        return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, null);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
+
+    // 공지사항 삭제
+    @DeleteMapping("/{noticeId}")
+    public ApiResponse<Void> deleteNotice(@PathVariable Long noticeId) {
+        adminNoticeService.deleteNotice(noticeId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
+    }
+
 }

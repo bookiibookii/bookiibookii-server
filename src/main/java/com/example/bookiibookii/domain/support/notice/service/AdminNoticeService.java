@@ -52,4 +52,11 @@ public class AdminNoticeService {
             notice.updateImage(request.image());
         }
     }
+
+    public void deleteNotice(Long noticeId) {
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND));
+
+        noticeRepository.deleteById(noticeId);
+    }
 }

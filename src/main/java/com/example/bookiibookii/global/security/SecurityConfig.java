@@ -19,6 +19,7 @@ public class SecurityConfig {
     private static final String[] PERMIT_URLS = {
             "/",
             "/health",
+            "/error",
 
             "/v3/api-docs/**",
             "/swagger-ui/**",

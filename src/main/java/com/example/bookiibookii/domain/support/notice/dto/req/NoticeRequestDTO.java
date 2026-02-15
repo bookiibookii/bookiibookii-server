@@ -1,14 +1,21 @@
 package com.example.bookiibookii.domain.support.notice.dto.req;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 public class NoticeRequestDTO {
     public record CreateNoticeDTO(
-            @NotNull
+            @NotBlank(message = "제목은 필수 입력 사항입니다.")
             String title,
-            @NotNull
+            @NotBlank(message = "내용은 필수 입력 사항입니다.")
             String content,
             String summary,
             String image
-    ){}
+    ) {}
+
+    public record UpdateNoticeDTO(
+            String title,
+            String content,
+            String summary,
+            String image
+    ) {}
 }

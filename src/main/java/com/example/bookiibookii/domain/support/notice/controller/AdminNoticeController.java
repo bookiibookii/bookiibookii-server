@@ -27,4 +27,14 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
         adminNoticeService.createNotice(user.getId(), request);
         return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, null);
     }
+
+    // 공지사항 수정
+    @PatchMapping("/{noticeId}")
+    public ApiResponse<Void> updateNotice(
+            @PathVariable Long noticeId,
+            NoticeRequestDTO.UpdateNoticeDTO request
+    ) {
+        adminNoticeService.updateNotice(noticeId, request);
+        return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, null);
+    }
 }

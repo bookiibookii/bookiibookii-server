@@ -2,6 +2,8 @@ package com.example.bookiibookii.domain.support.notice.service;
 
 import com.example.bookiibookii.domain.support.notice.dto.req.NoticeRequestDTO;
 import com.example.bookiibookii.domain.support.notice.entity.Notice;
+import com.example.bookiibookii.domain.support.notice.exception.NoticeException;
+import com.example.bookiibookii.domain.support.notice.exception.code.NoticeErrorCode;
 import com.example.bookiibookii.domain.support.notice.repository.NoticeRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
@@ -31,5 +33,23 @@ public class AdminNoticeService {
                 .build();
 
         noticeRepository.save(notice);
+    }
+
+    public void updateNotice(Long noticeId, NoticeRequestDTO.UpdateNoticeDTO request) {
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND));
+
+        if (request.title() != null) {
+            notice.updateTitle(request.title());
+        }
+        if (request.content() != null) {
+            notice.updateContent(request.content());
+        }
+        if (request.summary() != null) {
+            notice.updateSummary(request.summary());
+        }
+        if (request.image() != null) {
+            notice.updateImage(request.image());
+        }
     }
 }

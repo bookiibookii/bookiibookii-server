@@ -1,6 +1,6 @@
-package com.example.bookiibookii.domain.support.controller;
+package com.example.bookiibookii.domain.support.notice.controller;
 
-import com.example.bookiibookii.domain.support.dto.res.NoticeResponseDTO;
+import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

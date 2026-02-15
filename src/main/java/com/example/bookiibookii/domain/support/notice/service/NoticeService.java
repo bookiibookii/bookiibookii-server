@@ -1,8 +1,8 @@
-package com.example.bookiibookii.domain.support.service;
+package com.example.bookiibookii.domain.support.notice.service;
 
-import com.example.bookiibookii.domain.support.dto.res.NoticeResponseDTO;
-import com.example.bookiibookii.domain.support.entity.Notice;
-import com.example.bookiibookii.domain.support.repository.NoticeRepository;
+import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
+import com.example.bookiibookii.domain.support.notice.entity.Notice;
+import com.example.bookiibookii.domain.support.notice.repository.NoticeRepository;
 import com.example.bookiibookii.global.apiPayload.code.GeneralErrorCode;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.support.dto.res;
+package com.example.bookiibookii.domain.support.notice.dto.res;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 

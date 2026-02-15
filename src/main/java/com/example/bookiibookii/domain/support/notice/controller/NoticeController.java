@@ -1,7 +1,7 @@
-package com.example.bookiibookii.domain.support.controller;
+package com.example.bookiibookii.domain.support.notice.controller;
 
-import com.example.bookiibookii.domain.support.dto.res.NoticeResponseDTO;
-import com.example.bookiibookii.domain.support.service.NoticeService;
+import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
+import com.example.bookiibookii.domain.support.notice.service.NoticeService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import lombok.RequiredArgsConstructor;

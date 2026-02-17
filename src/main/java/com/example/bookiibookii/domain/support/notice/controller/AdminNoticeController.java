@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.support.notice.service.AdminNoticeService
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,7 +24,7 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
     @PostMapping
     public ApiResponse<Void> createNotice(
             @AuthenticationPrincipal(expression = "user") User user,
-            NoticeRequestDTO.CreateNoticeDTO request) {
+            @Valid @RequestBody NoticeRequestDTO.CreateNoticeDTO request) {
         adminNoticeService.createNotice(user.getId(), request);
         return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, null);
     }
@@ -32,7 +33,7 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
     @PatchMapping("/{noticeId}")
     public ApiResponse<Void> updateNotice(
             @PathVariable Long noticeId,
-            NoticeRequestDTO.UpdateNoticeDTO request
+            @RequestBody NoticeRequestDTO.UpdateNoticeDTO request
     ) {
         adminNoticeService.updateNotice(noticeId, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);

@@ -6,8 +6,10 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "Admin Notice", description = "관리자용 공지 관련 API")
 public interface AdminNoticeControllerDocs {
@@ -20,7 +22,7 @@ public interface AdminNoticeControllerDocs {
     })
     ApiResponse<Void> createNotice(
             @AuthenticationPrincipal(expression = "user") User user,
-            NoticeRequestDTO.CreateNoticeDTO request);
+            @Valid @RequestBody NoticeRequestDTO.CreateNoticeDTO request);
 
     @Operation(
             summary = "공지 수정 API",
@@ -28,11 +30,11 @@ public interface AdminNoticeControllerDocs {
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "공지 수정 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "NOTICE401_1", description = "공지글을 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "NOTICE404_1", description = "공지글을 찾을 수 없습니다."),
     })
     ApiResponse<Void> updateNotice(
             @PathVariable Long noticeId,
-            NoticeRequestDTO.UpdateNoticeDTO request);
+            @RequestBody NoticeRequestDTO.UpdateNoticeDTO request);
 
     @Operation(
             summary = "공지 삭제 API",
@@ -40,7 +42,7 @@ public interface AdminNoticeControllerDocs {
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "공지 삭제 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "NOTICE401_1", description = "공지글을 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "NOTICE404_1", description = "공지글을 찾을 수 없습니다."),
     })
     ApiResponse<Void> deleteNotice(@PathVariable Long noticeId);
 }

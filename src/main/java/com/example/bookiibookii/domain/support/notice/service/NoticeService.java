@@ -39,7 +39,6 @@ public class NoticeService {
                 notice.getId(),
                 notice.getTitle(),
                 notice.getContent(),
-                notice.getImage(),
                 notice.getCreatedAt()
         );
     }

@@ -29,9 +29,6 @@ public class Notice extends BaseEntity {
     @Column(name = "content", length = 2000, nullable = false)
     private String content;
 
-    @Column(name = "image")
-    private String image;
-
     public void updateTitle(String title) {
         this.title = title;
     }
@@ -40,8 +37,5 @@ public class Notice extends BaseEntity {
     }
     public void updateSummary(String summary) {
         this.summary = summary;
-    }
-    public void updateImage(String image) {
-        this.image = image;
     }
 }

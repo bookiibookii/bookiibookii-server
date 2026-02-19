@@ -29,7 +29,6 @@ public class AdminNoticeService {
                 .title(request.title())
                 .content(request.content())
                 .summary(request.summary())
-                .image(request.image())
                 .build();
 
         noticeRepository.save(notice);
@@ -47,9 +46,6 @@ public class AdminNoticeService {
         }
         if (request.summary() != null) {
             notice.updateSummary(request.summary());
-        }
-        if (request.image() != null) {
-            notice.updateImage(request.image());
         }
     }
 

@@ -8,14 +8,12 @@ public class NoticeRequestDTO {
             String title,
             @NotBlank(message = "내용은 필수 입력 사항입니다.")
             String content,
-            String summary,
-            String image
+            String summary
     ) {}
 
     public record UpdateNoticeDTO(
             String title,
             String content,
-            String summary,
-            String image
+            String summary
     ) {}
 }

@@ -9,7 +9,6 @@ public class NoticeResponseDTO {
             Long id,
             String title,
             String content,
-            String image,
             @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             LocalDateTime createdAt
     ) {}

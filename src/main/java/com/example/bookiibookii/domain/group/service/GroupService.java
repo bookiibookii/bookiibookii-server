@@ -87,8 +87,9 @@ public class GroupService {
         //활성화 된 그룹개수 카운트
         long hostingCount = groupsRepository.countByHostIdAndGroupStatusIn(host.getId(), activeStatuses);
 
-        //카운트 개수 3개 이상이면 그룹생성 제한
-        if (hostingCount >= 3) {
+        // 카운트 개수 3개 이상이면 그룹생성 제한
+        // 데모데이 테스트용으로 최대 개수 300개로 수정
+        if (hostingCount >= 300) {
             throw new GroupException(GroupErrorCode.HOST_MAX_LIMIT_EXCEEDED);
         }
 

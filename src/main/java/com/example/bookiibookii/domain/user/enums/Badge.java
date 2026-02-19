@@ -10,7 +10,8 @@ public enum Badge {
     INSIGHTFUL("책에 대한 인사이트가 넘쳐요"),
     FAST_SHIPPING("책을 빠르게 보내줬어요"),
     FUNNY("코멘트가 재미있어요"),
-    CLEAN_CONDITION("책을 깨끗하고 깔끔하게 읽어요");
+    CLEAN_CONDITION("책을 깨끗하고 깔끔하게 읽어요"),
+    PUNCTUAL("약속을 잘 지켜요");
 
     private final String description;
 

@@ -61,9 +61,11 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
       join fetch g.book
       where g.groupId not in :excludedIds
         and g.groupStatus = :status
+        and g.host.id != :userId
       order by function('rand')
     """)
     List<Groups> findRandomGroupsExcludingFetchBook(
+            @Param("userId") Long userId,
             @Param("excludedIds") List<Long> excludedIds,
             @Param("status") GroupStatus status,
             Pageable pageable

@@ -216,6 +216,7 @@ public class RecommendationService {
 
             List<Groups> randomGroups =
                     groupsRepository.findRandomGroupsExcludingFetchBook(
+                            userId,
                             excludedIds,
                             GroupStatus.RECRUITING,
                             PageRequest.of(0, candidateGroupsCount)

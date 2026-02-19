@@ -1,6 +1,8 @@
 package com.example.bookiibookii.domain.support.inquiry.repository;
 
 import com.example.bookiibookii.domain.support.inquiry.entity.Inquiry;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,5 +21,5 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     // [관리자용] 전체 문의 내역 조회 (최신순 + 페치 조인)
     @EntityGraph(attributePaths = {"user"})
     @Query("SELECT i FROM Inquiry i ORDER BY i.createdAt DESC")
-    List<Inquiry> findAllOrderByCreatedAtDesc();
+    Page<Inquiry> findAllOrderByCreatedAtDesc(Pageable pageable);
 }

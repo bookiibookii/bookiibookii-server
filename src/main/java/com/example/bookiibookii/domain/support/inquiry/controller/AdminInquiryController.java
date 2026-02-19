@@ -7,6 +7,10 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -25,8 +29,11 @@ public class AdminInquiryController implements AdminInquiryControllerDocs {
     // 모든 문의 리스트 조회
     @Override
     @GetMapping
-    public ApiResponse<List<InquiryResponseDTO.InquiryListDTO>> getAllInquiries() {
-        List<InquiryResponseDTO.InquiryListDTO> result = adminInquiryService.getAllInquiries();
+    public ApiResponse<Page<InquiryResponseDTO.InquiryListDTO>> getAllInquiries(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable
+    ) {
+        Page<InquiryResponseDTO.InquiryListDTO> result = adminInquiryService.getAllInquiries(pageable);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 

@@ -8,6 +8,8 @@ import com.example.bookiibookii.domain.support.inquiry.exception.InquiryExceptio
 import com.example.bookiibookii.domain.support.inquiry.exception.code.InquiryErrorCode;
 import com.example.bookiibookii.domain.support.inquiry.repository.InquiryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +25,13 @@ public class AdminInquiryService {
     /**
      * 전체 문의 리스트 조회
      */
-    public List<InquiryResponseDTO.InquiryListDTO> getAllInquiries() {
-        List<Inquiry> inquiries = inquiryRepository.findAllOrderByCreatedAtDesc();
+    @Transactional(readOnly = true)
+    public Page<InquiryResponseDTO.InquiryListDTO> getAllInquiries(Pageable pageable) {
+        // 1. 엔티티 페이지 조회
+        Page<Inquiry> inquiryPage = inquiryRepository.findAllOrderByCreatedAtDesc(pageable);
 
-        return InquiryConverter.toInquiryListDTOList(inquiries);
+        // 2. Page.map()을 사용하여 내부 엔티티들을 DTO로 변환
+        return inquiryPage.map(InquiryConverter::toInquiryListDTO);
     }
 
     /**

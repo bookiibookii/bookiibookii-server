@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.support.enums;
+package com.example.bookiibookii.domain.support.report.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

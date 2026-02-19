@@ -39,4 +39,14 @@ public class Inquiry extends BaseEntity {
     private String adminReply;
 
     private LocalDateTime resolvedAt;
+
+
+    /**
+     * 관리자 답변 등록 및 상태 변경
+     */
+    public void updateAnswer(String adminReply) {
+        this.adminReply = adminReply;
+        this.supportStatus = SupportStatus.RESOLVED;
+        this.resolvedAt = LocalDateTime.now();
+    }
 }

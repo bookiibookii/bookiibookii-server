@@ -2,12 +2,14 @@ package com.example.bookiibookii.domain.support.inquiry.dto.res;
 
 import com.example.bookiibookii.domain.support.inquiry.enums.SupportStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 
 public class InquiryResponseDTO {
     public record InquiryListDTO(
             Long inquiryId,
+            Long userId,
             String nickname,
             @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDateTime createdAt,
@@ -18,4 +20,7 @@ public class InquiryResponseDTO {
             @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDateTime resolvedAt
     ){}
+
+
+
 }

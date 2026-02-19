@@ -1,8 +1,8 @@
-package com.example.bookiibookii.domain.support.entity;
+package com.example.bookiibookii.domain.support.report.entity;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.support.enums.SupportStatus;
-import com.example.bookiibookii.domain.support.enums.ReportType;
+import com.example.bookiibookii.domain.support.inquiry.enums.SupportStatus;
+import com.example.bookiibookii.domain.support.report.enums.ReportType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;

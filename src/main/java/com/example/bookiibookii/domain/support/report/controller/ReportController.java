@@ -1,10 +1,10 @@
-package com.example.bookiibookii.domain.support.controller;
+package com.example.bookiibookii.domain.support.report.controller;
 
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.service.GroupService;
-import com.example.bookiibookii.domain.support.dto.req.ReportRequestDTO;
-import com.example.bookiibookii.domain.support.dto.res.ReportResponseDTO;
-import com.example.bookiibookii.domain.support.service.ReportService;
+import com.example.bookiibookii.domain.support.report.dto.req.ReportRequestDTO;
+import com.example.bookiibookii.domain.support.report.dto.res.ReportResponseDTO;
+import com.example.bookiibookii.domain.support.report.service.ReportService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;

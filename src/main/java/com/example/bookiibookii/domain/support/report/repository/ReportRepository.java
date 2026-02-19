@@ -1,6 +1,6 @@
-package com.example.bookiibookii.domain.support.repository;
+package com.example.bookiibookii.domain.support.report.repository;
 
-import com.example.bookiibookii.domain.support.entity.Report;
+import com.example.bookiibookii.domain.support.report.entity.Report;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

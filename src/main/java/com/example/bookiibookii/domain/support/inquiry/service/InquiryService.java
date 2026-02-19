@@ -1,9 +1,9 @@
-package com.example.bookiibookii.domain.support.service;
+package com.example.bookiibookii.domain.support.inquiry.service;
 
-import com.example.bookiibookii.domain.support.dto.req.InquiryRequestDTO;
-import com.example.bookiibookii.domain.support.dto.res.InquiryResponseDTO;
-import com.example.bookiibookii.domain.support.entity.Inquiry;
-import com.example.bookiibookii.domain.support.repository.InquiryRepository;
+import com.example.bookiibookii.domain.support.inquiry.dto.req.InquiryRequestDTO;
+import com.example.bookiibookii.domain.support.inquiry.dto.res.InquiryResponseDTO;
+import com.example.bookiibookii.domain.support.inquiry.entity.Inquiry;
+import com.example.bookiibookii.domain.support.inquiry.repository.InquiryRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

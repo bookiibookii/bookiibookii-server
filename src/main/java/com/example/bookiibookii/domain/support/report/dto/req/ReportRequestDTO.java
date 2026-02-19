@@ -1,6 +1,6 @@
-package com.example.bookiibookii.domain.support.dto.req;
+package com.example.bookiibookii.domain.support.report.dto.req;
 
-import com.example.bookiibookii.domain.support.enums.ReportType;
+import com.example.bookiibookii.domain.support.report.enums.ReportType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

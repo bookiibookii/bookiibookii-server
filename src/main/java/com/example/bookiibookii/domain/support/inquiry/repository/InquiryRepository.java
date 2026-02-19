@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
@@ -22,4 +23,8 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     @EntityGraph(attributePaths = {"user"})
     @Query("SELECT i FROM Inquiry i ORDER BY i.createdAt DESC")
     Page<Inquiry> findAllOrderByCreatedAtDesc(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user"})
+    @Query("SELECT i FROM Inquiry i WHERE i.id = :id")
+    Optional<Inquiry> findById(@Param("id") Long id);
 }

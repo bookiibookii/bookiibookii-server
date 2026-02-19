@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springdoc.core.annotations.ParameterObject;
 
 import java.util.List;
 
@@ -21,7 +22,7 @@ public interface AdminInquiryControllerDocs {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")
     })
-    ApiResponse<Page<InquiryResponseDTO.InquiryListDTO>> getAllInquiries(Pageable pageable);
+    ApiResponse<Page<InquiryResponseDTO.InquiryListDTO>> getAllInquiries(@ParameterObject Pageable pageable);
 
     @Operation(summary = "문의 상세 조회 API", description = "특정 문의의 상세 내용을 조회합니다.")
     @ApiResponses({

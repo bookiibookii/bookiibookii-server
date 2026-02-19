@@ -1,5 +1,6 @@
 package com.example.bookiibookii.global.auth.dto.res;
 
+import com.example.bookiibookii.domain.user.enums.Role;
 import lombok.Builder;
 
 public class AuthResponseDTO {
@@ -15,6 +16,7 @@ public class AuthResponseDTO {
             String accessToken,
             String refreshToken,
             Long userId,
-            Boolean onboardingDone
+            Boolean onboardingDone,
+            Role role
     ){}
 }

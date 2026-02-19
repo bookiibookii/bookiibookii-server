@@ -80,6 +80,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .userId(userId)
                 .onboardingDone(user.getNickName() != null)
+                .role(user.getRole())
                 .build();
     }
 

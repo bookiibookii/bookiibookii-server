@@ -11,7 +11,13 @@ import java.util.List;
 
 @Repository
 public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
+    // [유저용] 내 문의 내역 조회 (기존 유지)
     @EntityGraph(attributePaths = {"user"})
     @Query("SELECT i FROM Inquiry i WHERE i.user.id = :userId ORDER BY i.createdAt DESC")
     List<Inquiry> findAllByUserId(@Param("userId") Long userId);
+
+    // [관리자용] 전체 문의 내역 조회 (최신순 + 페치 조인)
+    @EntityGraph(attributePaths = {"user"})
+    @Query("SELECT i FROM Inquiry i ORDER BY i.createdAt DESC")
+    List<Inquiry> findAllOrderByCreatedAtDesc();
 }

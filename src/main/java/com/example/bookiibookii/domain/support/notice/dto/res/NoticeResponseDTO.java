@@ -19,4 +19,10 @@ public class NoticeResponseDTO {
             String title,
             String summary
     ) {}
+
+    public record AdminNoticeListDTO(
+            Long id,
+            LocalDateTime createdAt,
+            String title
+    ) {}
 }

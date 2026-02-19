@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.support.notice.service;
 
 import com.example.bookiibookii.domain.support.notice.dto.req.NoticeRequestDTO;
+import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.domain.support.notice.entity.Notice;
 import com.example.bookiibookii.domain.support.notice.exception.NoticeException;
 import com.example.bookiibookii.domain.support.notice.exception.code.NoticeErrorCode;
@@ -13,12 +14,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AdminNoticeService {
     private final UserRepository userRepository;
     private final NoticeRepository noticeRepository;
+
+    public List<NoticeResponseDTO.AdminNoticeListDTO> getNoticeList() {
+        return noticeRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(notice -> new NoticeResponseDTO.AdminNoticeListDTO(
+                        notice.getId(),
+                        notice.getCreatedAt(),
+                        notice.getTitle()
+                ))
+                .toList();
+    }
 
     public void createNotice(Long userId, NoticeRequestDTO.CreateNoticeDTO request) {
         User user = userRepository.findById(userId)

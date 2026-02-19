@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.support.notice.controller;
 
 import com.example.bookiibookii.domain.support.notice.dto.req.NoticeRequestDTO;
+import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.domain.support.notice.service.AdminNoticeService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -12,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Validated
 @RestController
 @RequiredArgsConstructor
@@ -19,6 +22,12 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')") // 클래스 레벨에 선언하여 모든 메서드에 관리자 권한 강제
 public class AdminNoticeController implements AdminNoticeControllerDocs {
     private final AdminNoticeService adminNoticeService;
+
+    // 공지사항 전체 목록 조회
+    @GetMapping
+    public ApiResponse<List<NoticeResponseDTO.AdminNoticeListDTO>> getNoticeList() {
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, adminNoticeService.getNoticeList());
+    }
 
     // 공지사항 등록
     @PostMapping

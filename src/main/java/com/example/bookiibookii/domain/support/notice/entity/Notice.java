@@ -1,6 +1,5 @@
-package com.example.bookiibookii.domain.support.entity;
+package com.example.bookiibookii.domain.support.notice.entity;
 
-import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,6 +29,13 @@ public class Notice extends BaseEntity {
     @Column(name = "content", length = 2000, nullable = false)
     private String content;
 
-    @Column(name = "image")
-    private String image;
+    public void updateTitle(String title) {
+        this.title = title;
+    }
+    public void updateContent(String content) {
+        this.content = content;
+    }
+    public void updateSummary(String summary) {
+        this.summary = summary;
+    }
 }

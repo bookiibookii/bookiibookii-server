@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.support.dto.res;
+package com.example.bookiibookii.domain.support.notice.dto.res;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -9,7 +9,6 @@ public class NoticeResponseDTO {
             Long id,
             String title,
             String content,
-            String image,
             @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             LocalDateTime createdAt
     ) {}

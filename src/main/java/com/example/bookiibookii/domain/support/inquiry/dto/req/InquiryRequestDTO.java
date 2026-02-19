@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.support.dto.req;
+package com.example.bookiibookii.domain.support.inquiry.dto.req;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

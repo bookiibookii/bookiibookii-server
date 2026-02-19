@@ -1,6 +1,6 @@
-package com.example.bookiibookii.domain.support.dto.res;
+package com.example.bookiibookii.domain.support.inquiry.dto.res;
 
-import com.example.bookiibookii.domain.support.enums.SupportStatus;
+import com.example.bookiibookii.domain.support.inquiry.enums.SupportStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;

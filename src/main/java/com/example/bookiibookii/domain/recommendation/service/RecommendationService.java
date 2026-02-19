@@ -165,7 +165,7 @@ public class RecommendationService {
                 redisUtil.set(
                         cacheKey,
                         candidateDtos.toArray(new RecommendationResponseDTO.RecommendedGroupDto[0]), // List -> Array 변환
-                        60
+                        1
                 );
             }
         }

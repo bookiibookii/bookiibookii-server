@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.tag.enums.TagType;
@@ -198,7 +199,7 @@ public class UserService {
 
         // 그룹 조회 (모집중, 진행중)
         List<Groups> targetGroups = matchedMemberRepository.findMyActiveGroups(
-                userId, targetGroupStatuses //List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED)
+                userId, targetGroupStatuses, RoleStatus.HOST
         );
         List<GroupResponseDTO.MypageGroupDto> groupList = targetGroups.stream()
                 .map(this::toMypageGroupDto)

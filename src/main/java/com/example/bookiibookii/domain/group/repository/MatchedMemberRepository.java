@@ -92,11 +92,12 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
             "JOIN FETCH g.book " +          // 책 정보 필요
             "LEFT JOIN FETCH g.groupTags gt " + // 태그 정보 필요
             "LEFT JOIN FETCH gt.tag " +
-            "WHERE mm.user.id = :userId " +
+            "WHERE mm.user.id = :userId AND mm.role = :roleStatus " +
             "AND g.groupStatus IN :statuses")
     List<Groups> findMyActiveGroups(
             @Param("userId") Long userId,
-            @Param("statuses") List<GroupStatus> statuses
+            @Param("statuses") List<GroupStatus> statuses,
+            RoleStatus roleStatus
     );
 
     // 참여했던 전체 그룹 중 특정 타입(RELAY, TOGETHER) 개수 조회

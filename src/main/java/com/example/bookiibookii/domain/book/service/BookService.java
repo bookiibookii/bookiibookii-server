@@ -19,6 +19,7 @@ public class BookService {
     private final BookRepository bookRepository;
     private final AladinClient aladinClient;
     private final BookCategoryMapper bookCategoryMapper;
+    private final BookAuthorMapper bookAuthorMapper;
 
     // Transactional 수정 필요 (save에만 걸리게끔)
     @Transactional
@@ -38,7 +39,7 @@ public class BookService {
                     Book book = Book.builder()
                             .isbn13(item.isbn13())
                             .title(item.title())
-                            .author(item.author())
+                            .author(bookAuthorMapper.mapFirstWriterOnly(item.author()))
                             .publisher(item.publisher())
                             .image(item.cover())
                             .totalPages(item.itemPage())

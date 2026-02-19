@@ -23,8 +23,8 @@ import java.util.List;
 @Transactional
 public class ReportService {
     private final ReportRepository reportRepository;
-    private final GroupsRepository groupRepository; // 그룹 조회용
-    private final UserRepository userRepository;   // 대상 유저 확인용
+    private final GroupsRepository groupRepository;
+    private final UserRepository userRepository;
 
     public void createReport(User user, ReportRequestDTO.CreateReportDTO request) {
         Groups group = groupRepository.findById(request.groupId())

@@ -21,4 +21,32 @@ public class ReportResponseDTO {
             @JsonFormat(pattern = "yyyy.MM.dd")
             LocalDateTime resolvedAt
     ) {}
+
+    public record AdminReportListDTO(
+            Long reportId,
+            String reporterNickname,
+            String targetNickname,
+            String groupName,
+            ReportType reportType,
+            SupportStatus supportStatus,
+            @JsonFormat(pattern = "yyyy.MM.dd")
+            LocalDateTime resolvedAt
+    ) {}
+
+    // 신고 내역 조회 DTO
+    public record AdminReportDetailDTO(
+            Long reportId,
+            String reporterNickname,
+            String targetNickname,
+            String groupName,
+            ReportType reportType,
+            String content,
+            @JsonFormat(pattern = "yyyy.MM.dd hh:mm")
+            LocalDateTime createdAt, // 신고 날짜
+            SupportStatus supportStatus,
+            String adminReply,
+            String adminMemo,
+            @JsonFormat(pattern = "yyyy.MM.dd")
+            LocalDateTime resolvedAt
+    ) {}
 }

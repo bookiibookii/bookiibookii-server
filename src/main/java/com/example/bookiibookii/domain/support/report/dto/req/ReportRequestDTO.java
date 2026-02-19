@@ -19,4 +19,10 @@ public class ReportRequestDTO {
             @Size(max = 1000, message = "내용은 1000자 이내로 입력해주세요.")
             String content
     ) {}
+
+    // 신고 처리 DTO
+    public record ProcessReportDTO(
+            String adminReply,
+            String adminMemo
+    ) {}
 }

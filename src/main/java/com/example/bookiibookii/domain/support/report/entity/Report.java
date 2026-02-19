@@ -48,5 +48,15 @@ public class Report extends BaseEntity {
     @Column(name = "admin_reply", length = 1000)
     private String adminReply;
 
+    @Column(name = "admin_memo", length = 1000)
+    private String adminMemo;
+
     private LocalDateTime resolvedAt;
+
+    public void resolveReport(String adminReply, String adminMemo) {
+        this.supportStatus = SupportStatus.RESOLVED;
+        this.adminReply = adminReply;
+        this.adminMemo = adminMemo;
+        this.resolvedAt = LocalDateTime.now();
+    }
 }

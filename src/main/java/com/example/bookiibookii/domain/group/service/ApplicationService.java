@@ -211,7 +211,8 @@ public class ApplicationService {
         long pendingApplyCount = applicationRepository.countByGuestIdAndApplicationStatus(userId, ApplicationStatus.PENDING);
 
         //그룹 신청 3개 이상인 경우
-        if (matchedGuestCount + pendingApplyCount >= 3) {
+        //demoday 대비 그룹참여 제한 300 설정
+        if (matchedGuestCount + pendingApplyCount >= 300) {
             throw new GroupException(GroupErrorCode.GUEST_MAX_LIMIT_EXCEEDED);
         }
 

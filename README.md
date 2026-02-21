@@ -1,15 +1,50 @@
-# bookiibookii-server
+# 부키부키 서버팀 README
+<img width="7680" height="4320" alt="배너2" src="https://github.com/user-attachments/assets/bd0d766f-fce3-45df-ab09-5defda749bb1" />
+
+<br><br>
+
+## 🔎 About the Project
+![x배너 (1)](https://github.com/user-attachments/assets/40112447-e22d-4cb8-b611-8395f2274232)
+> design by loverlikewater@gmail.com / @aoree.lim
+
+<br>
+
+## 🤝 Team
+| 강예손 | 박성진 | 박현서 | 인석진 | 한태빈 |
+|:------:|:------:|:------:|:------:|:------:|
+| <img width="179" height="179" alt="강예손" src="https://github.com/user-attachments/assets/6340e5ca-d41a-4769-aed8-cf0a7fc8e252" /> | <img src="이미지주소" width="120"/> | <img src="이미지주소" width="120"/> | <img src="이미지주소" width="120"/> |
+| [@kangyeson](https://github.com/kangyeson) | [@macboy5](https://github.com/macboy5) | [@gyeonseo](https://github.com/yc3697) | [@sjinssun](https://github.com/sjinssun) | [@taebin2](https://github.com/taebin2) |
+
+<br/>
+
+## 🛠️ Server Architecture
+<img width="872" height="585" alt="서버아키텍처" src="https://github.com/user-attachments/assets/2f707c63-5eb5-41ad-9522-77cda4711288" />
+
+
+<br><br>
+
+## ☁️ ERD
+<img width="3160" height="2432" alt="ERD" src="https://github.com/user-attachments/assets/87a2c9d5-f45c-45c6-ad67-393277843032" />
+
+<br><br>
 
 ## 🛠 Tech Stack
+**Language**: Java 17<br/>
+**Framework**: Spring Boot 4.0.1, Spring MVC<br/>
+**Data**: Spring Data JPA, QueryDSL (Type-safe Query)<br/>
+**Security**: Spring Security, JWT (Role-based Access Control)<br/>
 
-**Language** : Java 17<br>
-**Framework** : Spring Boot, Spring MVC<br>
-**Data** : Spring Data JPA (Hibernate), QueryDSL<br>
-**Database** : MySQL<br>
-**AWS S3** : 협의 필요<br>
-**배포 환경** : 협의 필요
+- **Infrastructure & Storage**
+  - **Database**: MySQL (AWS RDS - Logical Schema Separation)<br/>
+  - **Cache**: Redis (AWS ElastiCache - Namespace Isolation)<br/>
+  - **Storage**: AWS S3 (Presigned URL Architecture)<br/>
+  - **Computing**: AWS EC2 (Environment Separation: Dev / Prod)<br/>
+  - **Network**: AWS ALB (Host-based Routing), Route 53, ACM (HTTPS)<br/>
 
----
+- **DevOps**
+  - **CI/CD**: GitHub Actions, SSH Deploy
+
+<br>
 
 ## 🌿 Branch Strategy
 - `main` : 배포용(CI/CD) 브랜치
@@ -20,7 +55,7 @@
 > feat/#1-kakao-login<br>
 > mod/#15-mypage-dto
 
----
+<br>
 
 ## 📖 Pull Request Convention
 **[type] 이슈 제목**
@@ -28,7 +63,7 @@
 - PR 생성 시 24시간 이내에 확인을 요합니다.
 - develop 브랜치로의 병합은 최소 1명 이상의 리뷰어 승인(Approve) 이 필요합니다.
 
----
+<br>
 
 ## 📖 Commit Convention
 **[type] #Issue Number 제목(작업 내용)**

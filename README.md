@@ -13,7 +13,7 @@
 | 강예손 | 박성진 | 박현서 | 인석진 | 한태빈 |
 |:------:|:------:|:------:|:------:|:------:|
 | <img width="179" height="179" alt="강예손" src="https://github.com/user-attachments/assets/6340e5ca-d41a-4769-aed8-cf0a7fc8e252" /> | <img width="179" height="179" alt="박성진" src="https://avatars.githubusercontent.com/u/106302098?v=4" /> | <img src="이미지주소" width="120"/> | <img src="이미지주소" width="120"/> |
-| [@kangyeson](https://github.com/kangyeson) | [@macboy5](https://github.com/macboy5) | [@gyeonseo](https://github.com/yc3697) | [@sjinssun](https://github.com/sjinssun) | [@taebin2](https://github.com/taebin2) |
+| [@kangyeson](https://github.com/kangyeson) | [@macboy5](https://github.com/macboy5) | [@gyeonseo]([https://github.com/gyeonseo]) | [@sjinssun](https://github.com/sjinssun) | [@taebin2](https://github.com/taebin2) |
 
 <br/>
 

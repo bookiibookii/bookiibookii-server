@@ -12,7 +12,21 @@
 ## 🤝 Team
 | 강예손 | 박성진 | 박현서 | 인석진 | 한태빈 |
 |:------:|:------:|:------:|:------:|:------:|
-| <img width="179" height="179" alt="강예손" src="https://github.com/user-attachments/assets/6340e5ca-d41a-4769-aed8-cf0a7fc8e252" /> | <img src="이미지주소" width="120"/> | <img src="이미지주소" width="120"/> | <img src="이미지주소" width="120"/> |
+| <img width="179" height="179" alt="강예손" src="https://github.com/user-attachments/assets/6340e5ca-d41a-4769-aed8-cf0a7fc8e252" /> | <img width="179" height="179" alt="박성진 부키부키 서버팀 README
+<img width="7680" height="4320" alt="배너2" src="https://github.com/user-attachments/assets/bd0d766f-fce3-45df-ab09-5defda749bb1" />
+
+<br><br>
+
+## 🔎 About the Project
+![x배너 (1)](https://github.com/user-attachments/assets/40112447-e22d-4cb8-b611-8395f2274232)
+> design by loverlikewater@gmail.com / @aoree.lim
+
+<br>
+
+## 🤝 Team
+| 강예손 | 박성진 | 박현서 | 인석진 | 한태빈 |
+|:------:|:------:|:------:|:------:|:------:|
+| <img width="179" height="179" alt="강예손" src="https://github.com/user-attachments/assets/6340e5ca-d41a-4769-aed8-cf0a7fc8e252" /> | <img width="179" height="179" alt="박성진" src="https://github.com/user-attachments/assets/6340e5ca-d41a-4769-aed8-cf0a7fc8e252" /> | <img src="이미지주소" width="120"/> | <img src="이미지주소" width="120"/> |
 | [@kangyeson](https://github.com/kangyeson) | [@macboy5](https://github.com/macboy5) | [@gyeonseo](https://github.com/yc3697) | [@sjinssun](https://github.com/sjinssun) | [@taebin2](https://github.com/taebin2) |
 
 <br/>

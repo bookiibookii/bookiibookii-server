@@ -1,4 +1,4 @@
-package com.example.bookiibookii.global.util;
+package com.example.bookiibookii.global.health;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -9,4 +9,7 @@ public class HealthController {
     public String health() {
         return "ok";
     }
+
+    @GetMapping("/")
+    public String root() { return "ok"; }
 }

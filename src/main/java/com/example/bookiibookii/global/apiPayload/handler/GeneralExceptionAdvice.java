@@ -5,11 +5,13 @@ import com.example.bookiibookii.global.apiPayload.code.BaseCode;
 import com.example.bookiibookii.global.apiPayload.code.GeneralErrorCode;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 
@@ -67,5 +69,12 @@ public class GeneralExceptionAdvice {
                         code,
                         errors
                 ));
+    }
+
+    // 존재하지 않는 리소스 요청은 DEBUG 레벨로 로깅
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<?> handleNoResourceFound(NoResourceFoundException e) {
+        log.debug("Resource not found: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not Found");
     }
 }

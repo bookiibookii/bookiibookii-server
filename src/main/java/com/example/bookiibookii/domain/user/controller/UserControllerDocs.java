@@ -74,6 +74,25 @@ public interface UserControllerDocs {
     })
     ApiResponse<Void> createUserOnboarding(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.OnboardingReqDTO request);
 
+
+    // api/onboarding-skip
+    @Operation(
+            summary = "온보딩 스킵 상태 저장 API",
+            description = """
+            스플래시 온보딩 스킵 시 상태를 저장합니다.
+            onboarding_status
+            - NEW : 스플래시 온보딩 이전 상태
+            - SPLASH_DONE : 스플래시 온보딩 완료 or 스킵 상태 -> 필수 정보 입력 페이지로 바로 이동
+            - COMPLETED : 정보 입력 후 확인 버튼 클릭 완료 -> 메인 홈 화면으로 진입
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "온보딩 상태 저장 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "온보딩 상태 저장 실패")
+    })
+    ApiResponse<Void> updateOnboardingStatus(@AuthenticationPrincipal User user);
+
+
     // api/mypage
     @Operation(
             summary = "마이페이지 조회 API",

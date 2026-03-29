@@ -15,6 +15,7 @@ import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
+import com.example.bookiibookii.domain.user.enums.OnboardingStatus;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
@@ -119,6 +120,17 @@ public class UserService {
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);
+
+        user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
+    }
+
+    // 온보딩 스킵 상태로 업데이트
+    @Transactional
+    public void updateOnboardingStatus(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        user.updateOnboardingStatus(OnboardingStatus.SPLASH_DOME);
     }
 
     private void saveOrUpdateUserImage(User user, String s3Key) {

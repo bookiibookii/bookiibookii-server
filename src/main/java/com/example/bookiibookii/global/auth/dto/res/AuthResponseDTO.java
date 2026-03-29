@@ -16,7 +16,7 @@ public class AuthResponseDTO {
             String accessToken,
             String refreshToken,
             Long userId,
-            Boolean onboardingDone,
+            String onboardingStatus,
             Role role
     ){}
 }

@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.user.entity;
 
+import com.example.bookiibookii.domain.user.enums.OnboardingStatus;
 import com.example.bookiibookii.domain.user.enums.Role;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
@@ -77,6 +78,13 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private UserImage userImage;
 
+    @Column(name = "introduction")
+    private String introduction;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "onboarding_status", nullable = false)
+    @Builder.Default
+    private OnboardingStatus onboardingStatus = OnboardingStatus.NEW;
 
     // 소셜 로그인 유저 생성
     public static User createSocialUser(
@@ -99,6 +107,7 @@ public class User extends BaseEntity {
     public void updateName(String name) { this.nickName = name; }
     public void updateRegion(String region) { this.region = region; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
+    public void updateOnboardingStatus(OnboardingStatus status) { this.onboardingStatus = status; }
 
     public void updateManner(double rating) {
         double scoreChange = calculateRatingScore(rating);

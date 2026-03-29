@@ -21,7 +21,6 @@ public class UserResponseDTO {
             Integer completeBook,
             Integer relayGroup,
             Integer togetherGroup,
-            List<UserBadgeDTO> userBadges,
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<UserBookResponseDTO.MypageBookDto> books,
             String receiverName,
@@ -31,12 +30,6 @@ public class UserResponseDTO {
             String addressDetail,
             String region,
             String meetPlace
-    ){}
-
-    @Builder
-    public record UserBadgeDTO  (
-            String userBadge,
-            Integer count
     ){}
 
     @Builder

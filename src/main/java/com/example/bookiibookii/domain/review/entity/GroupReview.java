@@ -1,13 +1,9 @@
 package com.example.bookiibookii.domain.review.entity;
 
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.user.enums.Badge;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(
@@ -47,16 +43,4 @@ public class GroupReview extends BaseEntity {
 
     @Column(name = "comment", length = 200)
     private String comment;
-
-    @Builder.Default
-    @OneToMany(mappedBy = "groupReview", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GroupReviewBadge> badges = new ArrayList<>();
-
-    public void addBadge(Badge badge) {
-        boolean exists = this.badges.stream()
-                .anyMatch(grb -> grb.getBadge() == badge);
-        if (!exists) {
-            this.badges.add(GroupReviewBadge.of(this, badge));
-        }
-    }
 }

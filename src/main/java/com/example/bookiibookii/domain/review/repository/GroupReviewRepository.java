@@ -48,7 +48,7 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
 
     /**
      * 특정 유저가 reviewed인 리뷰 중, 지정한 그룹 타입만 조회 (이어읽기 리뷰 히스토리용).
-     * reviewer, group, book, user, badges 를 JOIN FETCH 로 한 번에 로드하여 N+1 방지.
+     * reviewer, group, book, user 를 JOIN FETCH 로 한 번에 로드하여 N+1 방지.
      *
      * @param reviewedUserId 리뷰를 받은 유저 ID
      * @param groupType     그룹 타입 (RELAY 등)
@@ -61,7 +61,6 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
         JOIN FETCH reviewer.group g
         JOIN FETCH reviewer.user
         JOIN FETCH g.book
-        LEFT JOIN FETCH gr.badges
         JOIN gr.reviewed mm
         WHERE mm.user.id = :reviewedUserId
           AND g.groupType = :groupType

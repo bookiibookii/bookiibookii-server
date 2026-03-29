@@ -10,9 +10,7 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
 import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
-import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +27,6 @@ public class GroupCompletionService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupReviewRepository groupReviewRepository; // 리뷰 레포지토리 추가
-    private final UserRepository userRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void forceCompleteSingleGroup(Long groupId) {
@@ -55,7 +52,7 @@ public class GroupCompletionService {
 
                             if (partnerMM != null) {
                                 // 2. 파트너 매너 점수 업데이트 (User 엔티티)
-                                partnerMM.getUser().updateManner(3.0, 0);
+                                partnerMM.getUser().updateManner(3.0);
 
                                 // 3. 기본 리뷰 생성 (수정된 메서드 호출)
                                 createDefaultReview(mm, partnerMM);

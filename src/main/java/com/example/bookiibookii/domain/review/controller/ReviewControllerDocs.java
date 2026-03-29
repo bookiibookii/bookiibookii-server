@@ -45,7 +45,7 @@ public interface ReviewControllerDocs {
             
             - 경로: /api/reviews/relay/{userBookId}
             - 조건: 그룹 멤버이며 트래커가 RETURNED 상태여야 합니다. 한 번만 작성 가능.
-            - 데이터: 책 평점/코멘트(500자), 파트너 평점/코멘트(200자), 배지 리스트 전달
+            - 데이터: 책 평점/코멘트(500자), 파트너 평점/코멘트(200자) 전달
             """
     )
     @ApiResponses({

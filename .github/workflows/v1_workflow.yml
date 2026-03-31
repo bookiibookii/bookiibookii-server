@@ -43,13 +43,14 @@ jobs:
           name: bookii-build
           path: build/libs/
 
-      - name: Deploy to EC2 (dev)
+      - name: Deploy to EC2 (v1)
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
           set -e
+          trap 'rm -f private_key.pem' EXIT
           
           printf '%s\n' "$EC2_SSH_KEY" > private_key.pem
           sed -i 's/\r$//' private_key.pem
@@ -68,10 +69,8 @@ jobs:
             "${EC2_USERNAME}@${EC2_HOST}" bash -se <<'EOF'
           set -e
           
-          cleanup() { rm -f private_key.pem; }
-          trap cleanup EXIT
-          
-          APP_JAR="/home/${USER}/v1/bookiiV1.jar"
+          V1_JAR="/home/${USER}/v1/bookiiV1.jar"
+          DEV_JAR="/home/${USER}/dev/bookiiDev.jar"
           LOG_DIR="/home/${USER}/logs/v1"
           ENV_FILE="/home/${USER}/v1/.env.v1"
           
@@ -90,7 +89,7 @@ jobs:
           . "$ENV_FILE"
           set +a
           
-          nohup java -Duser.timezone=UTC -jar "$APP_JAR" > "$LOG_DIR/app.log" 2>&1 &
+          nohup java -Duser.timezone=UTC -jar "$V1_JAR" > "$LOG_DIR/app.log" 2>&1 &
           
           echo "DEPLOY DONE"
           EOF

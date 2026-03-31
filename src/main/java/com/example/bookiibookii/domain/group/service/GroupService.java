@@ -240,15 +240,6 @@ public class GroupService {
                 throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
             }
         }
-
-        // 택배 교환(DELIVERY) 시: 등록된 배송지(Address) 존재 여부 확인
-        if (request.getTradeType() == TradeType.DELIVERY) {
-            // addressRepository를 통해 해당 유저의 주소가 등록되어 있는지 확인
-            boolean hasAddress = addressRepository.existsByUserId(host.getId());
-            if (!hasAddress) {
-                throw new GroupException(GroupErrorCode.ADDRESS_NOT_FOUND);
-            }
-        }
     }
 
 
@@ -556,9 +547,6 @@ public class GroupService {
     private String determinePictureBadge(Groups group) {
         // '함께읽기' 타입이면 그대로 배지 노출
         if (group.getGroupType() == GroupType.TOGETHER) return "함께읽기";
-
-        // '이어읽기' 중 '택배'면 택배 노출
-        if (group.getTradeType() == TradeType.DELIVERY) return "택배";
 
         // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
         String region = group.getPreferRegion();

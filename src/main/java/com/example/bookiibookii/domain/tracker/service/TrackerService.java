@@ -205,47 +205,24 @@ public class TrackerService {
     //트래커 상세 조회
     @Transactional(readOnly = true)
     public TrackerDetailResponseDTO getTrackerDetailByGroupId(Long groupId, User user) {
-        // 1. 권한 검증 및 트래커 조회
         validateGroupMember(groupId, user.getId());
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-           // 2. 1:1 파트너(상대방) 정보 조회
         MatchedMember partnerMember = findPartnerForRelay(groupId, user.getId());
         User partnerUser = partnerMember.getUser();
 
-        // 3. TradeType에 따라 필요한 추가 데이터 수집
+        // v1: 배송 관련 변수(partnerAddress, latestHistory)는 더 이상 필요 없습니다.
         Meeting latestMeeting = null;
-        Address partnerAddress = null;
-        TrackerHistory latestHistory = null;
 
+        // 직거래(DIRECT)일 때만 약속 정보를 조회합니다.
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
-            // [직접 교환] 최신 약속 정보 조회
-//            latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
             latestMeeting = meetingRepository.findByGroupIdAndStatusNative(groupId, tracker.getTrackerStatus().toString()).orElse(null);
-        } else if(tracker.getGroup().getTradeType() == TradeType.DELIVERY ) {
-            // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
-            partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
-
-            List<TrackerStatus> shippingHistoryStatuses = List.of(
-                    TrackerStatus.SHIPPING_TO_GUEST,
-                    TrackerStatus.SHIPPING_TO_HOST,
-                    TrackerStatus.RECEIVED,
-                    TrackerStatus.RETURNED
-            );
-
-            // 현재 트래커 상태가 위 리스트에 포함될 때만 히스토리 조회
-            TrackerStatus currentStatus = tracker.getTrackerStatus();
-
-            if (shippingHistoryStatuses.contains(currentStatus) || currentStatus == TrackerStatus.GUEST_READING) {
-                // 가장 최근의 배송/수령 히스토리를 가져옵니다.
-                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingHistoryStatuses)
-                        .orElse(null);
-            }
         }
 
-        // 4. 수집된 모든 정보를 컨버터에 전달
-        return trackerConverter.toDetailResponse(tracker, latestMeeting, partnerAddress, partnerUser, latestHistory);
+        // 컨버터 호출 시 partnerAddress와 latestHistory 자리에 null을 넘깁니다.
+        // (나중에 TrackerConverter에서도 이 파라미터들을 제거하면 더 좋습니다.)
+        return trackerConverter.toDetailResponse(tracker, latestMeeting, null, partnerUser, null);
     }
 
     /**

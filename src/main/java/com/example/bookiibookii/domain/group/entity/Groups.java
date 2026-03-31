@@ -63,7 +63,7 @@ public class Groups extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "trade_type")
-    private TradeType tradeType;//DIRECT, DELIVERY
+    private TradeType tradeType;//DIRECT, NONE
 
     @Column(name = "prefer_region")
     private String preferRegion;

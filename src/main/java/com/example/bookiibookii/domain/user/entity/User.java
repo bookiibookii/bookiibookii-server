@@ -100,12 +100,11 @@ public class User extends BaseEntity {
     public void updateRegion(String region) { this.region = region; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
 
-    public void updateManner(double rating, int tagCount) {
+    public void updateManner(double rating) {
         double scoreChange = calculateRatingScore(rating);
-        double bonusScore = tagCount * 0.1; // 태그 보너스 (+0.1 per tag)
 
         double currentManner = (this.manner != null) ? this.manner : 36.5;
-        double newManner = currentManner + scoreChange + bonusScore;
+        double newManner = currentManner + scoreChange;
 
         // 상한 및 하한선 적용 (0.0 ~ 100.0)
         this.manner = Math.max(0.0, Math.min(100.0, Math.round(newManner * 10) / 10.0));

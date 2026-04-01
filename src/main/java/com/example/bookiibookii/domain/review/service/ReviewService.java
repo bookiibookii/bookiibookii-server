@@ -18,9 +18,6 @@ import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserBadge;
-import com.example.bookiibookii.domain.user.enums.Badge;
-import com.example.bookiibookii.domain.user.repository.UserBadgeRepository;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +45,6 @@ public class ReviewService {
     private final TrackerRepository trackerRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupReviewRepository groupReviewRepository;
-    private final UserBadgeRepository userBadgeRepository;
     private final GroupsRepository groupsRepository;
 
     /**
@@ -148,7 +144,7 @@ public class ReviewService {
                 .comment(request.partnerComment())
                 .build();
 
-        processGroupReview(reviewed.getUser(), groupReview, request.badgeCodes(), request.partnerRating());
+        processGroupReview(reviewed.getUser(), request.partnerRating());
         groupReviewRepository.save(groupReview);
 
         // [핵심] 락이 걸린 상태에서 전원 완료 여부 체크
@@ -160,18 +156,10 @@ public class ReviewService {
     }
 
     /**
-     * 그룹 리뷰(파트너 리뷰) 저장 시 뱃지 부여 및 매너 온도 업데이트 처리
+     * 그룹 리뷰(파트너 리뷰) 저장 시 매너 온도 업데이트 처리
      */
-    private void processGroupReview(User targetUser, GroupReview groupReview, List<Badge> badgeCodes, Double rating) {
-        int badgeCount = 0;
-        if (badgeCodes != null && !badgeCodes.isEmpty()) {
-            badgeCount = badgeCodes.size();
-            for (Badge badge : badgeCodes) {
-                groupReview.addBadge(badge);
-                increaseUserBadgeCount(targetUser, badge);
-            }
-        }
-        targetUser.updateManner(rating, badgeCount);
+    private void processGroupReview(User targetUser, Double rating) {
+        targetUser.updateManner(rating);
     }
 
     private void validateRating(Double rating) {
@@ -195,18 +183,6 @@ public class ReviewService {
 
         return tracker;
     }
-
-    private void increaseUserBadgeCount(User user, Badge badge) {
-        UserBadge userBadge = userBadgeRepository.findByUserAndBadge(user, badge)
-                .orElseGet(() -> userBadgeRepository.save(UserBadge.builder()
-                        .user(user)
-                        .badge(badge)
-                        .count(0)
-                        .build()));
-        userBadge.increaseCount();
-        userBadgeRepository.save(userBadge);
-    }
-
 
     @Transactional(readOnly = true)
     public GroupReviewResponseDTO.GroupReviewDetailDTO getMyRelayReviewHistory(User user) {
@@ -262,14 +238,6 @@ public class ReviewService {
     private GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO buildReviewItemDTO(
             Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, UserBook pub) {
 
-        // 5. 뱃지 변환 로직
-        List<GroupReviewResponseDTO.BadgeInfo> badges = (gr != null) ? gr.getBadges().stream()
-                .map(b -> GroupReviewResponseDTO.BadgeInfo.builder()
-                        .code(b.getBadge().name())
-                        .description(b.getBadge().getDescription())
-                        .build())
-                .toList() : new ArrayList<>();
-
         return GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO.builder()
                 .groupId(group.getGroupId())
                 .bookTitle(group.getBook().getTitle())
@@ -279,10 +247,9 @@ public class ReviewService {
                 .finishedDate(tracker != null && tracker.getUpdatedAt() != null ?
                         tracker.getUpdatedAt().format(DATE_FMT) : "진행중")
                 .partnerNickname(partnerMM != null ? partnerMM.getUser().getNickName() : "알 수 없음")
-                // 7. DTO 필드명과 일치시킴 (partnerBadges)
+                // 7. DTO 필드명과 일치시킴
                 .partnerToMeRating(gr != null ? gr.getRating() : 0.0)
                 .partnerToMeComment(gr != null ? gr.getComment() : "평가가 없습니다.")
-                .partnerBadges(badges)
                 // 8. 상대방 책 리뷰 (pub.getComment() 사용)
                 .partnerBookRating(pub != null ? pub.getRating() : 0.0)
                 .partnerBookComment(pub != null ? pub.getComment() : "리뷰가 없습니다.")

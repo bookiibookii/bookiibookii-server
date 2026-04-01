@@ -1,12 +1,10 @@
 package com.example.bookiibookii.domain.review.dto.res;
 
-import com.example.bookiibookii.domain.user.enums.Badge;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -36,7 +34,6 @@ public class GroupReviewResponseDTO {
             // 상대방이 '나'에게 남긴 매너 평가 (GroupReview)
             private Double partnerToMeRating;    // 나에게 준 매너 점수
             private String partnerToMeComment;   // 나에게 남긴 말
-            private List<BadgeInfo> partnerBadges;// 나에게 준 뱃지 리스트
 
             // 상대방이 '책'에 대해 남긴 리뷰 (Partner's UserBook)
             private Double partnerBookRating;    // 상대가 책에 준 별점
@@ -44,12 +41,5 @@ public class GroupReviewResponseDTO {
             private String partnerBookReviewDate; // 상대가 책 리뷰를 쓴 날짜
 
         }
-    }
-
-    @Builder
-    @Getter
-    public static class BadgeInfo {
-        private String code;
-        private String description;
     }
 }

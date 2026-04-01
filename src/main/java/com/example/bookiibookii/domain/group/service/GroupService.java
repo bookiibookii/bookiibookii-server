@@ -172,11 +172,10 @@ public class GroupService {
 
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
-                .group(savedGroup)           // 엔티티의 private Groups group;
-                .user(host)                // 엔티티의 private User user;
-                .role(RoleStatus.HOST)       // 엔티티의 RoleStatus 타입 사용
-                .readingOrder(1)             // 엔티티의 private Integer readingOrder;
-                .currentReadingRate(0)      // 초기 독서율 0으로 세팅
+                .group(savedGroup)
+                .user(host)
+                .role(RoleStatus.HOST)
+                .currentReadingRate(0)
                 .build();
 
         matchedMemberRepository.save(hostMember);
@@ -238,15 +237,6 @@ public class GroupService {
             // host 프로필이 비어있어도 request에 값이 있다면 통과
             if (request.getPreferRegion() == null || request.getMeetPlace() == null) {
                 throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
-            }
-        }
-
-        // 택배 교환(DELIVERY) 시: 등록된 배송지(Address) 존재 여부 확인
-        if (request.getTradeType() == TradeType.DELIVERY) {
-            // addressRepository를 통해 해당 유저의 주소가 등록되어 있는지 확인
-            boolean hasAddress = addressRepository.existsByUserId(host.getId());
-            if (!hasAddress) {
-                throw new GroupException(GroupErrorCode.ADDRESS_NOT_FOUND);
             }
         }
     }
@@ -388,9 +378,7 @@ public class GroupService {
         }
 
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
-        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByReadingOrderAsc(group);
-
-        // 3. 현재 '대기 중'인 신청자 수를 카운트 (방장 버튼의 숫자 표시 및 HOT 배지 계산용)
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByCreatedAtAsc(group);
         int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
 
         // 4. 대기 인원이 정원의 3배 이상일 경우 'HOT' 배지 활성화 여부 판단
@@ -556,9 +544,6 @@ public class GroupService {
     private String determinePictureBadge(Groups group) {
         // '함께읽기' 타입이면 그대로 배지 노출
         if (group.getGroupType() == GroupType.TOGETHER) return "함께읽기";
-
-        // '이어읽기' 중 '택배'면 택배 노출
-        if (group.getTradeType() == TradeType.DELIVERY) return "택배";
 
         // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
         String region = group.getPreferRegion();

@@ -159,8 +159,8 @@ public class TrackerService {
         Groups group = groupsRepository.findById(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 3. 첫 번째 주자(호스트, 순서 1번)의 MatchedMember 조회
-        MatchedMember firstOwner = matchedMemberRepository.findByGroupAndOrder(event.groupId(), 1)
+        // 3. 첫 번째 주자(호스트)의 MatchedMember 조회
+        MatchedMember firstOwner = matchedMemberRepository.findFirstByGroup_GroupIdOrderByCreatedAtAsc(event.groupId())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.FIRST_MEMBER_NOT_FOUND));
 
         TrackerStatus trackerStatus;
@@ -205,47 +205,24 @@ public class TrackerService {
     //트래커 상세 조회
     @Transactional(readOnly = true)
     public TrackerDetailResponseDTO getTrackerDetailByGroupId(Long groupId, User user) {
-        // 1. 권한 검증 및 트래커 조회
         validateGroupMember(groupId, user.getId());
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-           // 2. 1:1 파트너(상대방) 정보 조회
         MatchedMember partnerMember = findPartnerForRelay(groupId, user.getId());
         User partnerUser = partnerMember.getUser();
 
-        // 3. TradeType에 따라 필요한 추가 데이터 수집
+        // v1: 배송 관련 변수(partnerAddress, latestHistory)는 더 이상 필요 없습니다.
         Meeting latestMeeting = null;
-        Address partnerAddress = null;
-        TrackerHistory latestHistory = null;
 
+        // 직거래(DIRECT)일 때만 약속 정보를 조회합니다.
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
-            // [직접 교환] 최신 약속 정보 조회
-//            latestMeeting = meetingRepository.findLatestByGroupIdNative(groupId).orElse(null);
             latestMeeting = meetingRepository.findByGroupIdAndStatusNative(groupId, tracker.getTrackerStatus().toString()).orElse(null);
-        } else if(tracker.getGroup().getTradeType() == TradeType.DELIVERY ) {
-            // [배송] 상대방 주소 및 최신 히스토리(송장번호 등) 조회
-            partnerAddress = addressRepository.findByUserId(partnerUser.getId()).orElse(null);
-
-            List<TrackerStatus> shippingHistoryStatuses = List.of(
-                    TrackerStatus.SHIPPING_TO_GUEST,
-                    TrackerStatus.SHIPPING_TO_HOST,
-                    TrackerStatus.RECEIVED,
-                    TrackerStatus.RETURNED
-            );
-
-            // 현재 트래커 상태가 위 리스트에 포함될 때만 히스토리 조회
-            TrackerStatus currentStatus = tracker.getTrackerStatus();
-
-            if (shippingHistoryStatuses.contains(currentStatus) || currentStatus == TrackerStatus.GUEST_READING) {
-                // 가장 최근의 배송/수령 히스토리를 가져옵니다.
-                latestHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingHistoryStatuses)
-                        .orElse(null);
-            }
         }
 
-        // 4. 수집된 모든 정보를 컨버터에 전달
-        return trackerConverter.toDetailResponse(tracker, latestMeeting, partnerAddress, partnerUser, latestHistory);
+        // 컨버터 호출 시 partnerAddress와 latestHistory 자리에 null을 넘깁니다.
+        // (나중에 TrackerConverter에서도 이 파라미터들을 제거하면 더 좋습니다.)
+        return trackerConverter.toDetailResponse(tracker, latestMeeting, null, partnerUser, null);
     }
 
     /**
@@ -429,13 +406,8 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
-        int totalCapacity = tracker.getGroup().getMaxCapacity();
-        // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
-        int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
-
         // 다음 주자(receiver) 조회
-        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+        MatchedMember nextOwner = findNextMember(groupId, bookOwner.getId());
 
         // 엔티티에 판단 위임 (위에 작성한 메서드 호출)
         tracker.updateShippingStatus(bookOwner, nextOwner);
@@ -704,11 +676,7 @@ public class TrackerService {
         meetingRepository.saveAndFlush(meeting);
 
         if (isDoneStatus) {
-            int totalCapacity = tracker.getGroup().getMaxCapacity();
-            int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
-
-            MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
-                    .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+            MatchedMember nextOwner = findNextMember(groupId, bookOwner.getId());
 
             TrackerHistory meetingHistory = tracker.createHistorySnapshot(
                     bookOwner.getId(),
@@ -754,11 +722,7 @@ public class TrackerService {
     private void processStatusTransition(Tracker tracker) {
         MatchedMember currentOwner = tracker.getBookOwner();
         Long groupId = tracker.getGroup().getGroupId();
-        int totalCapacity = tracker.getGroup().getMaxCapacity();
-
-        int nextOrder = (currentOwner.getReadingOrder() % totalCapacity) + 1;
-        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+        MatchedMember nextOwner = findNextMember(groupId, currentOwner.getId());
 
         TrackerStatus nextStatus = (currentOwner.getRole() == RoleStatus.HOST)
                 ? TrackerStatus.RECEIVED : TrackerStatus.RETURNED;
@@ -802,6 +766,17 @@ public class TrackerService {
 
         // 5. 엔티티 메서드 호출 (isVerified = true)
         tracker.verifyReception();
+    }
+
+    // 현재 멤버의 다음 주자를 createdAt 순서 기준으로 조회 (순환)
+    private MatchedMember findNextMember(Long groupId, Long currentMemberId) {
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_GroupIdOrderByCreatedAtAsc(groupId);
+        for (int i = 0; i < members.size(); i++) {
+            if (members.get(i).getId().equals(currentMemberId)) {
+                return members.get((i + 1) % members.size());
+            }
+        }
+        throw new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND);
     }
 
 }

@@ -15,28 +15,16 @@ import java.util.Optional;
 
 
 public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Long> {
-
-//    @Query("SELECT mm FROM MatchedMember mm " +
-//            "JOIN FETCH mm.group g " +
-//            "JOIN FETCH g.tracker t " +  // g.getTracker()를 탐색하는 방식
-//            "WHERE mm.user.id = :userId")
-//    List<MatchedMember> findAllByUserIdWithTracker(@Param("userId") Long userId);
-
-    @Query("SELECT mm FROM MatchedMember mm " +
-            "JOIN FETCH mm.group g " +
-            "WHERE g.groupId = :groupId AND mm.readingOrder = :readingOrder")
-    Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("readingOrder") int readingOrder);
-
     //현재까지의 참여맴버 수
     long countByGroup(Groups groups);
 
-    //참여맴버 리스트(읽는 순서대로 정렬) - User, UserImage fetch join으로 N+1 방지
+    //참여맴버 리스트(참여 시간 순서대로 정렬) - User, UserImage fetch join으로 N+1 방지
     @Query("SELECT mm FROM MatchedMember mm " +
             "JOIN FETCH mm.user u " +
             "LEFT JOIN FETCH u.userImage " +
             "WHERE mm.group = :group " +
-            "ORDER BY mm.readingOrder ASC")
-    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(@Param("group") Groups group);
+            "ORDER BY mm.createdAt ASC")
+    List<MatchedMember> findAllByGroupOrderByCreatedAtAsc(@Param("group") Groups group);
     //참여 취소를 위한 조회 메서드
     Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
 
@@ -59,6 +47,12 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     List<WriterRow> findWriterRowsByGroupId(@Param("groupId") Long groupId);
 
     List<MatchedMember> findAllByGroup_GroupId(Long groupId);
+
+    // 참여 시간 순 정렬 (TrackerService에서 순서 계산용)
+    List<MatchedMember> findAllByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);
+
+    // 가장 먼저 참여한 멤버 조회 (호스트)
+    Optional<MatchedMember> findFirstByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);
 
 
     interface WriterRow {

@@ -39,8 +39,8 @@ public class GroupRequestDTO {
         private String customTag;
         @Schema(description = "그룹 타입 (RELAY: 이어읽기, TOGETHER: 함께읽기)", example = "TOGETHER")
         private GroupType groupType;   // RELAY, TOGETHER
-        @Schema(description = "교환 방식 (DELIVERY: 택배, DIRECT: 직거래, NONE: 함께읽기 시)", example = "DIRECT")
-        private TradeType tradeType;   // DELIVERY, DIRECT
+        @Schema(description = "교환 방식 (DIRECT: 직거래, NONE: 함께읽기 시)", example = "DIRECT")
+        private TradeType tradeType;   // DIRECT, NONE
         @Schema(description = "선호 지역 (직거래 시 필수)", example = "서울 동작구 상도동")
         private String preferRegion;
         @Schema(description = "상세 만남 장소 (직거래 시)", example = "상도역 1번 출구 스타벅스")
@@ -68,7 +68,7 @@ public class GroupRequestDTO {
     public record FilterDTO(
             @Schema(description = "그룹 타입 필터 ", example = "[\"TOGETHER\"]")
             List<GroupType> groupTypes,
-            @Schema(description = "거래 방식 필터 ", example = "[\"DELIVERY\", \"DIRECT\"]")
+            @Schema(description = "거래 방식 필터 ", example = "[\"DIRECT\"]")
             List<TradeType> tradeTypes,
             @Schema(description = "장소 필터 (지역 이름 리스트)", example = "[\"동작구\", \"관악구\"]")
             List<String> meetPlace,

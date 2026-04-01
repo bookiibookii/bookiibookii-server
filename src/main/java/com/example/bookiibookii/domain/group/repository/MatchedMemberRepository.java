@@ -36,7 +36,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
             "LEFT JOIN FETCH u.userImage " +
             "WHERE mm.group = :group " +
             "ORDER BY mm.matchedOrder ASC")
-    List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(@Param("group") Groups group);
+    List<MatchedMember> findAllByGroupOrderByMatchedOrderAsc(@Param("group") Groups group);
     //참여 취소를 위한 조회 메서드
     Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
 

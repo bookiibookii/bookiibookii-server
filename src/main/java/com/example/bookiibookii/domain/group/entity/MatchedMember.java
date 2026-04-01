@@ -34,9 +34,6 @@ public class MatchedMember extends BaseEntity {
     @Column(name = "role")
     private RoleStatus role;
 
-    @Column(name = "matched_order", nullable = false)
-    private Integer matchedOrder; // 1, 2, 3... 순서 저장
-
     @Column(name = "current_reading_rate", nullable = false)
     private Integer currentReadingRate = 0;
 

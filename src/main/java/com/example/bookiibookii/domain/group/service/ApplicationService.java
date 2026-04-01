@@ -117,12 +117,11 @@ public class ApplicationService {
             // 신청서 수락 상태로 업데이트
             application.updateStatus(ApplicationStatus.ACCEPTED);
 
-            // 확정 멤버(MatchedMember) 추가 (readingOrder는 현재 인원 + 1)
+            // 확정 멤버(MatchedMember) 추가
             MatchedMember newMember = MatchedMember.builder()
                     .group(group)
                     .user(application.getGuest())
                     .role(RoleStatus.GUEST)
-                    .matchedOrder((int) currentTotalCount + 1)
                     .currentReadingRate(0)
                     .build();
             matchedMemberRepository.save(newMember);

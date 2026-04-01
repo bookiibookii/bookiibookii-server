@@ -159,8 +159,8 @@ public class TrackerService {
         Groups group = groupsRepository.findById(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 3. 첫 번째 주자(호스트, 순서 1번)의 MatchedMember 조회
-        MatchedMember firstOwner = matchedMemberRepository.findByGroupAndOrder(event.groupId(), 1)
+        // 3. 첫 번째 주자(호스트)의 MatchedMember 조회
+        MatchedMember firstOwner = matchedMemberRepository.findFirstByGroup_GroupIdOrderByCreatedAtAsc(event.groupId())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.FIRST_MEMBER_NOT_FOUND));
 
         TrackerStatus trackerStatus;
@@ -406,13 +406,8 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
         }
 
-        int totalCapacity = tracker.getGroup().getMaxCapacity();
-        // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
-        int nextOrder = (bookOwner.getMatchedOrder() % totalCapacity) + 1;
-
         // 다음 주자(receiver) 조회
-        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+        MatchedMember nextOwner = findNextMember(groupId, bookOwner.getId());
 
         // 엔티티에 판단 위임 (위에 작성한 메서드 호출)
         tracker.updateShippingStatus(bookOwner, nextOwner);
@@ -681,11 +676,7 @@ public class TrackerService {
         meetingRepository.saveAndFlush(meeting);
 
         if (isDoneStatus) {
-            int totalCapacity = tracker.getGroup().getMaxCapacity();
-            int nextOrder = (bookOwner.getMatchedOrder() % totalCapacity) + 1;
-
-            MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
-                    .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+            MatchedMember nextOwner = findNextMember(groupId, bookOwner.getId());
 
             TrackerHistory meetingHistory = tracker.createHistorySnapshot(
                     bookOwner.getId(),
@@ -731,11 +722,7 @@ public class TrackerService {
     private void processStatusTransition(Tracker tracker) {
         MatchedMember currentOwner = tracker.getBookOwner();
         Long groupId = tracker.getGroup().getGroupId();
-        int totalCapacity = tracker.getGroup().getMaxCapacity();
-
-        int nextOrder = (currentOwner.getMatchedOrder() % totalCapacity) + 1;
-        MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
+        MatchedMember nextOwner = findNextMember(groupId, currentOwner.getId());
 
         TrackerStatus nextStatus = (currentOwner.getRole() == RoleStatus.HOST)
                 ? TrackerStatus.RECEIVED : TrackerStatus.RETURNED;
@@ -779,6 +766,17 @@ public class TrackerService {
 
         // 5. 엔티티 메서드 호출 (isVerified = true)
         tracker.verifyReception();
+    }
+
+    // 현재 멤버의 다음 주자를 createdAt 순서 기준으로 조회 (순환)
+    private MatchedMember findNextMember(Long groupId, Long currentMemberId) {
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_GroupIdOrderByCreatedAtAsc(groupId);
+        for (int i = 0; i < members.size(); i++) {
+            if (members.get(i).getId().equals(currentMemberId)) {
+                return members.get((i + 1) % members.size());
+            }
+        }
+        throw new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND);
     }
 
 }

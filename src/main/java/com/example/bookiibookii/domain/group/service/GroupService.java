@@ -172,11 +172,10 @@ public class GroupService {
 
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
-                .group(savedGroup)           // 엔티티의 private Groups group;
-                .user(host)                // 엔티티의 private User user;
-                .role(RoleStatus.HOST)       // 엔티티의 RoleStatus 타입 사용
-                .matchedOrder(1)             // 엔티티의 private Integer readingOrder;
-                .currentReadingRate(0)      // 초기 독서율 0으로 세팅
+                .group(savedGroup)
+                .user(host)
+                .role(RoleStatus.HOST)
+                .currentReadingRate(0)
                 .build();
 
         matchedMemberRepository.save(hostMember);
@@ -379,7 +378,7 @@ public class GroupService {
         }
 
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
-        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByMatchedOrderAsc(group);
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByCreatedAtAsc(group);
         int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
 
         // 4. 대기 인원이 정원의 3배 이상일 경우 'HOT' 배지 활성화 여부 판단

@@ -408,7 +408,7 @@ public class TrackerService {
 
         int totalCapacity = tracker.getGroup().getMaxCapacity();
         // 다음 순서 계산 (예: 4명일 때 1->2->3->4->1)
-        int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
+        int nextOrder = (bookOwner.getMatchedOrder() % totalCapacity) + 1;
 
         // 다음 주자(receiver) 조회
         MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
@@ -682,7 +682,7 @@ public class TrackerService {
 
         if (isDoneStatus) {
             int totalCapacity = tracker.getGroup().getMaxCapacity();
-            int nextOrder = (bookOwner.getReadingOrder() % totalCapacity) + 1;
+            int nextOrder = (bookOwner.getMatchedOrder() % totalCapacity) + 1;
 
             MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
                     .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
@@ -733,7 +733,7 @@ public class TrackerService {
         Long groupId = tracker.getGroup().getGroupId();
         int totalCapacity = tracker.getGroup().getMaxCapacity();
 
-        int nextOrder = (currentOwner.getReadingOrder() % totalCapacity) + 1;
+        int nextOrder = (currentOwner.getMatchedOrder() % totalCapacity) + 1;
         MatchedMember nextOwner = matchedMemberRepository.findByGroupAndOrder(groupId, nextOrder)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND));
 

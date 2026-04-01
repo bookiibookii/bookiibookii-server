@@ -24,7 +24,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
 
     @Query("SELECT mm FROM MatchedMember mm " +
             "JOIN FETCH mm.group g " +
-            "WHERE g.groupId = :groupId AND mm.readingOrder = :readingOrder")
+            "WHERE g.groupId = :groupId AND mm.matchedOrder = :matchedOrder")
     Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("readingOrder") int readingOrder);
 
     //현재까지의 참여맴버 수
@@ -35,7 +35,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
             "JOIN FETCH mm.user u " +
             "LEFT JOIN FETCH u.userImage " +
             "WHERE mm.group = :group " +
-            "ORDER BY mm.readingOrder ASC")
+            "ORDER BY mm.matchedOrder ASC")
     List<MatchedMember> findAllByGroupOrderByReadingOrderAsc(@Param("group") Groups group);
     //참여 취소를 위한 조회 메서드
     Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);

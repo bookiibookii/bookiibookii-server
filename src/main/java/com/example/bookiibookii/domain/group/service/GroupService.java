@@ -175,7 +175,7 @@ public class GroupService {
                 .group(savedGroup)           // 엔티티의 private Groups group;
                 .user(host)                // 엔티티의 private User user;
                 .role(RoleStatus.HOST)       // 엔티티의 RoleStatus 타입 사용
-                .readingOrder(1)             // 엔티티의 private Integer readingOrder;
+                .matchedOrder(1)             // 엔티티의 private Integer readingOrder;
                 .currentReadingRate(0)      // 초기 독서율 0으로 세팅
                 .build();
 

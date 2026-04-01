@@ -25,7 +25,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     @Query("SELECT mm FROM MatchedMember mm " +
             "JOIN FETCH mm.group g " +
             "WHERE g.groupId = :groupId AND mm.matchedOrder = :matchedOrder")
-    Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("readingOrder") int readingOrder);
+    Optional<MatchedMember> findByGroupAndOrder(@Param("groupId") Long groupId, @Param("matchedOrder") int matchedOrder);
 
     //현재까지의 참여맴버 수
     long countByGroup(Groups groups);

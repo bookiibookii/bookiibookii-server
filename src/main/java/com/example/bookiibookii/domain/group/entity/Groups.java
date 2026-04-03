@@ -10,6 +10,7 @@ import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -98,10 +99,12 @@ public class Groups extends BaseEntity {
     private List<Meeting> meetings = new ArrayList<>();
 
     @Builder.Default
+    @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupRule> groupRules = new ArrayList<>();
 
     @Builder.Default
+    @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupMission> groupMissions = new ArrayList<>();
 

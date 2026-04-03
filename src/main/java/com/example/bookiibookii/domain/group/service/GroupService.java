@@ -4,10 +4,8 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.group.entity.GroupTag;
-import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.entity.*;
+
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -127,8 +125,11 @@ public class GroupService {
                 .customTag(request.getCustomTag())
                 .groupType(request.getGroupType())
                 .tradeType(finalTradeType)
-                .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
-                .preferRegion(request.getPreferRegion()) //선호장소 저장
+                .groupStatus(GroupStatus.RECRUITING)
+                .preferRegion(request.getPreferRegion())
+                .groupName(request.getGroupName())
+                .hasMission(request.getHasMission())
+                .missionCount(request.getMissionCount())
                 .build();
 
         // 5. 독서 태그 저장 로직
@@ -146,6 +147,26 @@ public class GroupService {
         }
 
         Groups savedGroup = groupsRepository.save(group);
+
+        // TOGETHER 타입 전용: 규칙/미션 저장
+        if (request.getGroupType() == GroupType.TOGETHER) {
+            if (request.getRules() != null) {
+                request.getRules().forEach(ruleContent ->
+                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, ruleContent)));
+            }
+            if (Boolean.TRUE.equals(request.getHasMission()) && request.getMissions() != null) {
+                request.getMissions().forEach(missionContent ->
+                        savedGroup.getGroupMissions().add(GroupMission.create(savedGroup, missionContent)));
+            }
+        }
+
+        // RELAY + DIRECT 타입: 규칙 저장
+        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
+            if (request.getRules() != null) {
+                request.getRules().forEach(ruleContent ->
+                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, ruleContent)));
+            }
+        }
 
         // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
         if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
@@ -203,13 +224,17 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.BOOK_NOT_SELECTED);
         }
 
-        // 시작 날짜는 오늘 이후(내일부터) 선택 가능
-        if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
+        // 시작 날짜는 내일 이후 ~ 2주 이내
+        LocalDate today = LocalDate.now();
+        if (request.getStartDate() == null
+                || !request.getStartDate().isAfter(today)
+                || request.getStartDate().isAfter(today.plusWeeks(2))) {
             throw new GroupException(GroupErrorCode.INVALID_START_DATE);
         }
 
-        // 독서 기간 최소 3일 ~ 최대 30일
-        if (request.getReadingPeriod() == null || request.getReadingPeriod() < 3 || request.getReadingPeriod() > 30) {
+
+        // 독서 기간 7, 14, 21, 28일 중 택1
+        if (request.getReadingPeriod() == null || !List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
             throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
         }
 
@@ -238,6 +263,10 @@ public class GroupService {
             if (request.getPreferRegion() == null || request.getMeetPlace() == null) {
                 throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
             }
+            // 직접 교환 시 규칙 1~5개 필수
+            if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
         }
     }
 
@@ -248,6 +277,26 @@ public class GroupService {
         // 방장 포함 인원수는 최소 2명에서 최대 8명까지
         if (request.getMaxCapacity() == null || request.getMaxCapacity() < 2 || request.getMaxCapacity() > 8) {
             throw new GroupException(GroupErrorCode.INVALID_GROUP_CAPACITY);
+        }
+
+        // 그룹명 필수
+        if (request.getGroupName() == null || request.getGroupName().isBlank()) {
+            throw new GroupException(GroupErrorCode.GROUP_NAME_REQUIRED);
+        }
+
+        // 규칙 1~5개 필수
+        if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
+            throw new GroupException(GroupErrorCode.INVALID_RULES);
+        }
+
+        // 미션 참여 시 missionCount 1~5 필수, missions 0~5개
+        if (Boolean.TRUE.equals(request.getHasMission())) {
+            if (request.getMissionCount() == null || request.getMissionCount() < 1 || request.getMissionCount() > 5) {
+                throw new GroupException(GroupErrorCode.INVALID_MISSION_COUNT);
+            }
+            if (request.getMissions() != null && request.getMissions().size() > 5) {
+                throw new GroupException(GroupErrorCode.INVALID_MISSIONS);
+            }
         }
     }
 
@@ -280,8 +329,7 @@ public class GroupService {
         }
 
         if (request.getReadingPeriod() != null) {
-            // 독서 기간 최소 3일 ~ 최대 30일
-            if (request.getReadingPeriod() < 3 || request.getReadingPeriod() > 30) {
+            if (!List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
                 throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
             }
             group.setReadingPeriod(request.getReadingPeriod());
@@ -419,6 +467,11 @@ public class GroupService {
                 .customTag(group.getCustomTag())
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
+                .groupName(group.getGroupName())
+                .hasMission(group.getHasMission())
+                .missionCount(group.getMissionCount())
+                .rules(group.getGroupRules().stream().map(GroupRule::getRuleContent).toList())
+                .missions(group.getGroupMissions().stream().map(GroupMission::getMissionContent).toList())
                 .build();
     }
 

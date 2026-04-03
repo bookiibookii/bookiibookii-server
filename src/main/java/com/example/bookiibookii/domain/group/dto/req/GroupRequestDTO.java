@@ -22,14 +22,13 @@ public class GroupRequestDTO {
         @NotBlank(message = "ISBN은 필수 입력 사항입니다.")
         @Pattern(regexp = "^[0-9]{13}$", message = "ISBN13은 숫자 13자리여야 합니다.")
         private String isbn13;          // 대상 도서 ID
-        @Schema(description = "모집 인원 (TOGETHER 타입일 때 ~8명)", example = "2")
+        @Schema(description = "모집 인원 (2~8명)", example = "4")
+        @Min(2)
         @Max(8)
-        private Integer maxCapacity;   // TOGETHER일 때 인원수
+        private Integer maxCapacity;
         @Schema(description = "독서 시작 날짜 (오늘 이후)", example = "2026-02-20")
         private LocalDate startDate;
-        @Schema(description = "독서 기간 (일 단위, 3~30일)", example = "14")
-        @Min(3)
-        @Max(30)
+        @Schema(description = "독서 기간 (7, 14, 21, 28일 중 택1)", example = "14")
         private Integer readingPeriod;
         @Schema(description = "그룹 소개글 (최대 500자)", example = "숭실대 근처에서 같이 경제 서적 읽으실 분 구해요!")
         @Size(max = 500)
@@ -47,6 +46,22 @@ public class GroupRequestDTO {
         private String meetPlace;
         @Schema(description = "선택된 태그 리스트 (장르, 분위기 등)")
         private List<GroupRequestDTO.TagSettingDTO> tags;
+
+        // TOGETHER 타입 전용
+        @Schema(description = "그룹명 (TOGETHER 타입 필수)", example = "같이 읽어요")
+        private String groupName;
+        @Schema(description = "미션 참여 여부 (TOGETHER 타입)", example = "true")
+        private Boolean hasMission;
+        @Schema(description = "총 미션 개수 1~5 (hasMission=true일 때)", example = "3")
+        @Min(1)
+        @Max(5)
+        private Integer missionCount;
+        @Schema(description = "규칙 리스트 (1~5개, TOGETHER 타입 필수)", example = "[\"지각 금지\", \"독후감 필수\"]")
+        @Size(min = 1, max = 5)
+        private List<String> rules;
+        @Schema(description = "사전 미션 리스트 (0~5개, TOGETHER 타입)", example = "[\"챕터 1 요약\"]")
+        @Size(max = 5)
+        private List<String> missions;
     }
 
     @Getter

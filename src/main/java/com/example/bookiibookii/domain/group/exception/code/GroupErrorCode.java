@@ -36,6 +36,10 @@ public enum GroupErrorCode implements BaseCode {
     GUEST_MAX_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "GROUP400_17", "그룹은 3개까지 신청할 수 있습니다."),
     HOST_MAX_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "GROUP400_18", "그룹은 3개까지 생성 할 수 있습니다."),
     INVALID_GROUP_STATUS(HttpStatus.BAD_REQUEST, "GROUP400_19", "그룹상태가 진행중이 아닙니다."),
+    GROUP_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_20", "그룹명을 입력해야 합니다."),
+    INVALID_RULES(HttpStatus.BAD_REQUEST, "GROUP400_21", "규칙은 1개 이상 5개 이하로 입력해야 합니다."),
+    INVALID_MISSION_COUNT(HttpStatus.BAD_REQUEST, "GROUP400_22", "미션 개수는 1~5개 사이여야 합니다."),
+    INVALID_MISSIONS(HttpStatus.BAD_REQUEST, "GROUP400_23", "사전 미션은 최대 5개까지 입력할 수 있습니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),

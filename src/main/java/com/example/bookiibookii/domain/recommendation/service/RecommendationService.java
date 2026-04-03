@@ -4,8 +4,6 @@ import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.recommendation.dto.res.RecommendationResponseDTO;
-import com.example.bookiibookii.domain.tag.entity.Tag;
-import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -35,7 +33,7 @@ public class RecommendationService {
     private final GroupsRepository groupsRepository;
     private final RedisUtil redisUtil;
     private final UserImageS3Service userImageS3Service;
-
+/*
     // 캐시 키 접두사 상수
     private static final String REC_CACHE_KEY_PREFIX = "REC:GROUP:";
 
@@ -235,5 +233,5 @@ public class RecommendationService {
                 .bookImageUrl(group.getBook().getImage())
                 .bookTitle(group.getBook().getTitle())
                 .build();
-    }
+    } */
 }

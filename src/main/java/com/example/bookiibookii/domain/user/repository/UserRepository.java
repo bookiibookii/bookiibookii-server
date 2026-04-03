@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.user.repository;
 
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.tag.enums.TagType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -45,7 +44,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     """)
     int deleteWithdrawnUsersBefore(@Param("deleteBefore") LocalDateTime deleteBefore);
 
-
+    /*
     // 태그 기반 매칭 후보 조회
     @Query("SELECT DISTINCT u FROM User u " +
             "JOIN FETCH u.userTags ut " +
@@ -79,6 +78,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("targetTypes") List<TagType> targetTypes,
             @Param("status") GroupStatus status
     );
+    */
 
     // 랜덤 유저 1명 조회 ('모집 중'그룹의 호스트 유저)
     @Query(value = "SELECT * FROM users u " +

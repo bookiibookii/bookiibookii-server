@@ -1,11 +1,9 @@
 package com.example.bookiibookii.domain.user.entity;
 
-import com.example.bookiibookii.domain.tag.entity.Tag;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
 
 @Entity
 @Builder
@@ -22,12 +20,12 @@ public class UserTag extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private Tag tag;
 
     @Column(name = "score", nullable = false)
-    private Integer score; // METHOD, VIBE Type의 tag별 누적도
+    private Integer score; // tag별 누적도
 
     public static UserTag create(User user, Tag tag) {
         return UserTag.builder()

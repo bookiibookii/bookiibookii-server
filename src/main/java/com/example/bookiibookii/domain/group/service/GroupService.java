@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.group.entity.GroupTag;
+import com.example.bookiibookii.domain.group.entity.GroupRule;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
@@ -13,17 +13,13 @@ import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.*;
-import com.example.bookiibookii.domain.tag.entity.Tag;
-import com.example.bookiibookii.domain.tag.enums.TagType;
-import com.example.bookiibookii.domain.tag.exception.TagException;
-import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
-import com.example.bookiibookii.domain.tag.repository.TagRepository;
 import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.AddressRepository;
@@ -59,14 +55,12 @@ public class GroupService {
     private final BookService bookService;
     private final GroupQueryRepository groupQueryRepository;
     private final UserTagRepository userTagRepository;
-    private final TagRepository tagRepository;
     private final KeywordMatchService keywordMatchService;
     private final DomainEventPublisher publisher;
-    private final GroupTagRepository groupTagRepository;
+    private final GroupRuleRepository groupRuleRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
     private final UserBookService userBookService;
-    private final AddressRepository addressRepository;
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
@@ -124,24 +118,18 @@ public class GroupService {
                 .startDate(request.getStartDate())
                 .readingPeriod(request.getReadingPeriod())
                 .groupComment(request.getGroupComment())
-                .customTag(request.getCustomTag())
                 .groupType(request.getGroupType())
                 .tradeType(finalTradeType)
                 .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
                 .preferRegion(request.getPreferRegion()) //선호장소 저장
                 .build();
 
-        // 5. 독서 태그 저장 로직
-        if (request.getTags() != null && !request.getTags().isEmpty()) {
-            for (GroupRequestDTO.TagSettingDTO tagDto : request.getTags()) {
-                TagType type = tagDto.type();
-                List<String> codes = tagDto.value();
-                List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
-
-                if (tags.size() != codes.size()) {
-                    throw new TagException(TagErrorCode.INVALID_TAG_CODE);
-                }
-                tags.forEach(group::addGroupTag);
+        // 5. 독서 규칙 저장 로직
+        if (request.getRules() != null && !request.getRules().isEmpty()) {
+            for (GroupRequestDTO.RuleSettingDTO ruleDto : request.getRules()) {
+                Tag tag = ruleDto.tag();
+                String rule_content = ruleDto.rule_content();
+                group.addGroupRule(tag, rule_content);
             }
         }
 
@@ -298,24 +286,13 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
-        // 커스텀 태그 수정
-        if(request.getCustomTag() != null){
-            group.setCustomTag(request.getCustomTag());
-        }
-
-        //독서 태그 수정
-        if (request.getTags() != null) {
-            group.clearGroupTags();
-            for (GroupRequestDTO.TagSettingDTO tagDto : request.getTags()) {
-                TagType type = tagDto.type();
-                List<String> codes = tagDto.value();
-
-                List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
-
-                if (tags.size() != codes.size()) {
-                    throw new TagException(TagErrorCode.INVALID_TAG_CODE);
-                }
-                tags.forEach(group::addGroupTag);
+        // 룰 수정
+        if (request.getRules() != null) {
+            group.clearGroupRules();
+            for (GroupRequestDTO.RuleSettingDTO tagDto : request.getRules()) {
+                Tag tag = tagDto.tag();
+                String rule_content = tagDto.rule_content();
+                group.addGroupRule(tag, rule_content);
             }
         }
 
@@ -390,7 +367,7 @@ public class GroupService {
         // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
         String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
 
-        List<String> groupTag = group.getGroupTags().stream().map(ut -> ut.getTag().getCode()).toList();
+        List<String> groupRule = group.getGroupRules().stream().map(ut -> ut.getRuleContent()).toList();
 
 
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
@@ -415,8 +392,7 @@ public class GroupService {
                 .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
-                .groupTags(groupTag)
-                .customTag(group.getCustomTag())
+                .groupRules(groupRule)
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
                 .build();
@@ -482,12 +458,12 @@ public class GroupService {
     public GroupResponseDTO.GroupSliceResponseDTO getGroupList(User user, GroupRequestDTO.FilterDTO filter) {
         PageRequest pageable = PageRequest.of(filter.page(), filter.size());
 
-        // 1. 추천 로직용 태그 ID 수집
-        List<Long> userTagIds = (user != null) ?
-                userTagRepository.findAllByUser(user).stream().map(ut -> ut.getTag().getId()).toList() : new ArrayList<>();
+        // 1. 추천 로직용 태그 수집
+        List<Tag> userTags = (user != null) ?
+                userTagRepository.findAllByUser(user).stream().map(ut -> ut.getTag()).toList() : new ArrayList<>();
 
         // 2. 메인 그룹 리스트 조회 (1번 쿼리)
-        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTagIds, pageable);
+        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTags, pageable);
         List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getGroupId).toList();
 
         if (groupIds.isEmpty()) {
@@ -498,20 +474,10 @@ public class GroupService {
         Map<Long, Integer> waitingCountMap = applicationRepository.countPendingByGroupIds(groupIds).stream()
                 .collect(Collectors.toMap(row -> (Long) row[0], row -> ((Long) row[1]).intValue()));
 
-        // 4. [N+1 해결 2] 그룹별 태그 목록 배치 조회 (3번 쿼리)
-        // yml을 못 만지므로 직접 In 절 쿼리로 태그를 땡겨옵니다.
-        List<GroupTag> allGroupTags = groupTagRepository.findAllByGroupIdIn(groupIds);
-        Map<Long, List<String>> tagListMap = allGroupTags.stream()
-                .collect(Collectors.groupingBy(
-                        gt -> gt.getGroup().getGroupId(),
-                        Collectors.mapping(gt -> gt.getTag().getCode(), Collectors.toList())
-                ));
-
         // 5. DTO 변환 (메모리상의 Map에서 데이터를 매핑)
         List<GroupResponseDTO.GroupSummaryDTO> dtoList = groupsSlice.stream()
                 .map(group -> {
                     int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
-                    List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
                     boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
 
                     return GroupResponseDTO.GroupSummaryDTO.builder()
@@ -532,8 +498,6 @@ public class GroupService {
                             .pictureBadge(determinePictureBadge(group))
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
-                            .tags(tags) // 미리 수집한 태그 리스트 주입
-                            .customTag(group.getCustomTag())
                             .build();
                 }).toList();
 
@@ -591,19 +555,10 @@ public class GroupService {
                         row -> ((Long) row[1]).intValue()
                 ));
 
-        // 4. [N+1 해결 2] 검색된 그룹들의 태그 목록 일괄 조회
-        List<GroupTag> allGroupTags = groupTagRepository.findAllByGroupIdIn(groupIds);
-        Map<Long, List<String>> tagListMap = allGroupTags.stream()
-                .collect(Collectors.groupingBy(
-                        gt -> gt.getGroup().getGroupId(),
-                        Collectors.mapping(gt -> gt.getTag().getCode(), Collectors.toList())
-                ));
-
         // 5. 엔티티 -> GroupSummaryDTO 변환 (기존 리스트 조회와 동일한 카드 포맷)
         List<GroupResponseDTO.GroupSummaryDTO> dtoList = content.stream()
                 .map(group -> {
                     int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
-                    List<String> tags = tagListMap.getOrDefault(group.getGroupId(), new ArrayList<>());
                     boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
 
                     return GroupResponseDTO.GroupSummaryDTO.builder()
@@ -624,8 +579,6 @@ public class GroupService {
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
-                            .tags(tags)
-                            .customTag(group.getCustomTag())
                             .build();
                 }).toList();
 

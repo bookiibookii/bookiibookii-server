@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
-import com.example.bookiibookii.domain.tag.enums.TagType;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -34,9 +34,6 @@ public class GroupRequestDTO {
         @Schema(description = "그룹 소개글 (최대 500자)", example = "숭실대 근처에서 같이 경제 서적 읽으실 분 구해요!")
         @Size(max = 500)
         private String groupComment;
-        @Schema(description = "방장이 설정하는 커스텀 태그 (최대 8자)", example = "상도동")
-        @Size(max = 8)
-        private String customTag;
         @Schema(description = "그룹 타입 (RELAY: 이어읽기, TOGETHER: 함께읽기)", example = "TOGETHER")
         private GroupType groupType;   // RELAY, TOGETHER
         @Schema(description = "교환 방식 (DIRECT: 직거래, NONE: 함께읽기 시)", example = "DIRECT")
@@ -45,8 +42,8 @@ public class GroupRequestDTO {
         private String preferRegion;
         @Schema(description = "상세 만남 장소 (직거래 시)", example = "상도역 1번 출구 스타벅스")
         private String meetPlace;
-        @Schema(description = "선택된 태그 리스트 (장르, 분위기 등)")
-        private List<GroupRequestDTO.TagSettingDTO> tags;
+        @Schema(description = "그룹 규칙")
+        private List<GroupRequestDTO.RuleSettingDTO> rules;
     }
 
     @Getter
@@ -57,12 +54,9 @@ public class GroupRequestDTO {
         private Integer readingPeriod;
         @Schema(description = "수정할 소개글", example = "내용을 조금 수정했습니다. 끝까지 함께하실 분!")
         private String groupComment;
-        @Schema(description = "수정할 커스텀 태그", example = "열공모드")
-        @Size(max = 8)
-        private String customTag;
-        @Schema(description = "수정할 태그 리스트")
+        @Schema(description = "수정할 규칙 리스트")
         @Valid
-        private List<GroupRequestDTO.TagSettingDTO> tags;
+        private List<GroupRequestDTO.RuleSettingDTO> rules;
     }
 
     public record FilterDTO(
@@ -82,13 +76,11 @@ public class GroupRequestDTO {
             @Positive int size
             ) {}
 
-    public record TagSettingDTO (
-            @Schema(description = "태그 타입 (GENRE: 장르, MOOD: 분위기 등)", example = "MOOD")
-            @NotNull
-            TagType type,
-            @Schema(description = "선택된 태그 코드 리스트", example = "[\"SERIOUS\"]")
-            @NotEmpty
-            List<String> value
+    public record RuleSettingDTO (
+            @Schema(description = "규칙 태그 타입 (MEMO, POSTIT 등)", example = "MEMO")
+            Tag tag,
+            @Schema(description = "규칙 내용")
+            String rule_content
     ){}
 
     public record SearchDTO(

@@ -4,8 +4,8 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
-import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -54,9 +54,6 @@ public class Groups extends BaseEntity {
     @Column(name = "group_comment", length = 200)
     private String groupComment;
 
-    @Column(name = "custom_tag", length = 8)
-    private String customTag;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "group_type")
     private GroupType groupType; //RELAY, TOGETHER
@@ -78,7 +75,7 @@ public class Groups extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GroupTag> groupTags = new ArrayList<>();
+    private List<GroupRule> groupRules = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
@@ -96,15 +93,15 @@ public class Groups extends BaseEntity {
         this.groupStatus = GroupStatus.DELETED;
     }
 
-    // 태그 추가
-    public void addGroupTag(Tag tag) {
-        GroupTag groupTag = GroupTag.create(this, tag);
-        this.groupTags.add(groupTag);
+    // 룰 추가
+    public void addGroupRule(Tag tag, String ruleContent) {
+        GroupRule groupRule = GroupRule.create(this, tag, ruleContent);
+        this.groupRules.add(groupRule);
     }
 
-    // 태그 전체 삭제
-    public void clearGroupTags() {
-        this.groupTags.clear();
+    // 룰 전체 삭제
+    public void clearGroupRules() {
+        this.groupRules.clear();
     }
 
     //그룹상태 계산

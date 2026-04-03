@@ -128,8 +128,6 @@ public class GroupService {
                 .groupStatus(GroupStatus.RECRUITING)
                 .preferRegion(request.getPreferRegion())
                 .groupName(request.getGroupName())
-                .hasMission(request.getHasMission())
-                .missionCount(request.getMissionCount())
                 .build();
 
         // 5. 독서 태그 저장 로직
@@ -148,15 +146,11 @@ public class GroupService {
 
         Groups savedGroup = groupsRepository.save(group);
 
-        // TOGETHER 타입 전용: 규칙/미션 저장
+        // TOGETHER 타입 전용: 규칙 저장
         if (request.getGroupType() == GroupType.TOGETHER) {
             if (request.getRules() != null) {
                 request.getRules().forEach(ruleContent ->
                         savedGroup.getGroupRules().add(GroupRule.create(savedGroup, ruleContent)));
-            }
-            if (Boolean.TRUE.equals(request.getHasMission()) && request.getMissions() != null) {
-                request.getMissions().forEach(missionContent ->
-                        savedGroup.getGroupMissions().add(GroupMission.create(savedGroup, missionContent)));
             }
         }
 
@@ -289,15 +283,6 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.INVALID_RULES);
         }
 
-        // 미션 참여 시 missionCount 1~5 필수, missions 0~5개
-        if (Boolean.TRUE.equals(request.getHasMission())) {
-            if (request.getMissionCount() == null || request.getMissionCount() < 1 || request.getMissionCount() > 5) {
-                throw new GroupException(GroupErrorCode.INVALID_MISSION_COUNT);
-            }
-            if (request.getMissions() != null && request.getMissions().size() > 5) {
-                throw new GroupException(GroupErrorCode.INVALID_MISSIONS);
-            }
-        }
     }
 
     //그룹수정 service
@@ -468,10 +453,7 @@ public class GroupService {
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
                 .groupName(group.getGroupName())
-                .hasMission(group.getHasMission())
-                .missionCount(group.getMissionCount())
                 .rules(group.getGroupRules().stream().map(GroupRule::getRuleContent).toList())
-                .missions(group.getGroupMissions().stream().map(GroupMission::getMissionContent).toList())
                 .build();
     }
 

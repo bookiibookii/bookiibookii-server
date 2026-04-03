@@ -72,12 +72,6 @@ public class Groups extends BaseEntity {
     @Column(name = "group_name")
     private String groupName;
 
-    @Column(name = "has_mission")
-    private Boolean hasMission;
-
-    @Column(name = "mission_count")
-    private Integer missionCount;
-
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();
@@ -102,11 +96,6 @@ public class Groups extends BaseEntity {
     @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupRule> groupRules = new ArrayList<>();
-
-    @Builder.Default
-    @BatchSize(size = 10)
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GroupMission> groupMissions = new ArrayList<>();
 
     public void updateStatus(GroupStatus status) {
         this.groupStatus = status;

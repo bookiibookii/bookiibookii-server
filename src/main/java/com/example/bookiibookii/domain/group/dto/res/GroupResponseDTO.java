@@ -80,10 +80,7 @@ public class GroupResponseDTO {
 
         // 6. TOGETHER 타입 전용
         private String groupName;
-        private Boolean hasMission;
-        private Integer missionCount;
         private List<String> rules;
-        private List<String> missions;
 
 
         // 예: 정원 4명 중 2명 참여 시 -> [방장, 게스트1, EMPTY, EMPTY] 순서로 구성

@@ -50,18 +50,9 @@ public class GroupRequestDTO {
         // TOGETHER 타입 전용
         @Schema(description = "그룹명 (TOGETHER 타입 필수)", example = "같이 읽어요")
         private String groupName;
-        @Schema(description = "미션 참여 여부 (TOGETHER 타입)", example = "true")
-        private Boolean hasMission;
-        @Schema(description = "총 미션 개수 1~5 (hasMission=true일 때)", example = "3")
-        @Min(1)
-        @Max(5)
-        private Integer missionCount;
         @Schema(description = "규칙 리스트 (1~5개, TOGETHER 타입 필수)", example = "[\"지각 금지\", \"독후감 필수\"]")
         @Size(min = 1, max = 5)
         private List<String> rules;
-        @Schema(description = "사전 미션 리스트 (0~5개, TOGETHER 타입)", example = "[\"챕터 1 요약\"]")
-        @Size(max = 5)
-        private List<String> missions;
     }
 
     @Getter

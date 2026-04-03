@@ -43,6 +43,7 @@ public class GroupRequestDTO {
         @Schema(description = "상세 만남 장소 (직거래 시)", example = "상도역 1번 출구 스타벅스")
         private String meetPlace;
         @Schema(description = "그룹 규칙")
+        @Valid
         private List<GroupRequestDTO.RuleSettingDTO> rules;
     }
 

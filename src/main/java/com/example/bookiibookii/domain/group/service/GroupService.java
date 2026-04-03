@@ -57,7 +57,6 @@ public class GroupService {
     private final UserTagRepository userTagRepository;
     private final KeywordMatchService keywordMatchService;
     private final DomainEventPublisher publisher;
-    private final GroupRuleRepository groupRuleRepository;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
     private final UserBookService userBookService;

@@ -100,8 +100,8 @@ public class UserService {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        List<UserTag> userTags = new ArrayList<>();
-        request.tags().forEach(tag -> userTags.add(UserTag.create(user, tag)));
+        List<UserTag> userTags = request.tags().stream()
+                        .distinct().map(tag -> UserTag.create(user, tag)).toList();
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);

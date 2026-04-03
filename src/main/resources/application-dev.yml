@@ -32,7 +32,7 @@ jwt:
   token:
     secret-key: ${JWT_SECRET_KEY}
     expiration:
-      access: 1209600000   # 데모데이 테스트용으로 만료시간 임시 14일 -> 30분 (1800000)으로 수정 필요
+      access: 1800000   # 데모데이 테스트용으로 만료시간 임시 14일 -> 30분 (1800000)으로 수정 필요
       refresh: 1209600000  # 14일
 
 oauth:

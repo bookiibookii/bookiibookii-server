@@ -4,7 +4,6 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.group.entity.GroupRule;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
@@ -122,15 +121,6 @@ public class GroupService {
                 .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
                 .preferRegion(request.getPreferRegion()) //선호장소 저장
                 .build();
-
-        // 5. 독서 규칙 저장 로직
-        if (request.getRules() != null && !request.getRules().isEmpty()) {
-            for (GroupRequestDTO.RuleSettingDTO ruleDto : request.getRules()) {
-                Tag tag = ruleDto.tag();
-                String rule_content = ruleDto.rule_content();
-                group.addGroupRule(tag, rule_content);
-            }
-        }
 
         Groups savedGroup = groupsRepository.save(group);
 
@@ -285,16 +275,6 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
-        // 룰 수정
-        if (request.getRules() != null) {
-            group.clearGroupRules();
-            for (GroupRequestDTO.RuleSettingDTO tagDto : request.getRules()) {
-                Tag tag = tagDto.tag();
-                String rule_content = tagDto.rule_content();
-                group.addGroupRule(tag, rule_content);
-            }
-        }
-
         return GroupResponseDTO.UpdateResultDTO.builder()
                 .groupId(group.getGroupId())
                 .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
@@ -366,8 +346,6 @@ public class GroupService {
         // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
         String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
 
-        List<String> groupRule = group.getGroupRules().stream().map(ut -> ut.getRuleContent()).toList();
-
 
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
@@ -391,7 +369,6 @@ public class GroupService {
                 .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
                 .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
-                .groupRules(groupRule)
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
                 .build();

@@ -74,10 +74,6 @@ public class Groups extends BaseEntity {
     private List<MatchedMember> matchedMember = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GroupRule> groupRules = new ArrayList<>();
-
-    @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<UserBook> userBooks = new ArrayList<>();
 
@@ -91,17 +87,6 @@ public class Groups extends BaseEntity {
 
     public void markAsDELETED() {
         this.groupStatus = GroupStatus.DELETED;
-    }
-
-    // 룰 추가
-    public void addGroupRule(Tag tag, String ruleContent) {
-        GroupRule groupRule = GroupRule.create(this, tag, ruleContent);
-        this.groupRules.add(groupRule);
-    }
-
-    // 룰 전체 삭제
-    public void clearGroupRules() {
-        this.groupRules.clear();
     }
 
     //그룹상태 계산

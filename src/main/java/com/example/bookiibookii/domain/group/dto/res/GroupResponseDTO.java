@@ -71,7 +71,6 @@ public class GroupResponseDTO {
         // 4. 호스트 정보 및 규칙
         private String hostNickname;
         private String hostProfileImageUrl;  // 프로필 이미지 Presigned GET URL
-        private List<String> groupRules;
 
         // 5. 그룹 소개 및 참여 멤버 슬롯
         private String groupComment;   // 그룹 소개글

@@ -4,9 +4,7 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.entity.*;
 import com.example.bookiibookii.domain.group.enums.*;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -118,11 +116,28 @@ public class GroupService {
                 .groupComment(request.getGroupComment())
                 .groupType(request.getGroupType())
                 .tradeType(finalTradeType)
-                .groupStatus(GroupStatus.RECRUITING) // 초기 상태는 모집 중
-                .preferRegion(request.getPreferRegion()) //선호장소 저장
+                .groupStatus(GroupStatus.RECRUITING)
+                .preferRegion(request.getPreferRegion())
+                .groupName(request.getGroupName())
                 .build();
 
         Groups savedGroup = groupsRepository.save(group);
+
+        // TOGETHER 타입 전용: 규칙 저장
+        if (request.getGroupType() == GroupType.TOGETHER) {
+            if (request.getRules() != null) {
+                request.getRules().forEach(ruleContent ->
+                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, ruleContent)));
+            }
+        }
+
+        // RELAY + DIRECT 타입: 규칙 저장
+        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
+            if (request.getRules() != null) {
+                request.getRules().forEach(ruleContent ->
+                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, ruleContent)));
+            }
+        }
 
         // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
         if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
@@ -180,13 +195,17 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.BOOK_NOT_SELECTED);
         }
 
-        // 시작 날짜는 오늘 이후(내일부터) 선택 가능
-        if (request.getStartDate() == null || !request.getStartDate().isAfter(LocalDate.now())) {
+        // 시작 날짜는 내일 이후 ~ 2주 이내
+        LocalDate today = LocalDate.now();
+        if (request.getStartDate() == null
+                || !request.getStartDate().isAfter(today)
+                || request.getStartDate().isAfter(today.plusWeeks(2))) {
             throw new GroupException(GroupErrorCode.INVALID_START_DATE);
         }
 
-        // 독서 기간 최소 3일 ~ 최대 30일
-        if (request.getReadingPeriod() == null || request.getReadingPeriod() < 3 || request.getReadingPeriod() > 30) {
+
+        // 독서 기간 7, 14, 21, 28일 중 택1
+        if (request.getReadingPeriod() == null || !List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
             throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
         }
 
@@ -215,6 +234,18 @@ public class GroupService {
             if (request.getPreferRegion() == null || request.getMeetPlace() == null) {
                 throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
             }
+            // 직접 교환 시 규칙 1~5개 필수
+            if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            for (String rule : request.getRules()) {
+                if (rule == null || rule.isBlank()) {
+                    throw new GroupException(GroupErrorCode.INVALID_RULES);
+                }
+                if (badWordService.containsBadWord(rule)) {
+                    throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+                }
+            }
         }
     }
 
@@ -226,6 +257,28 @@ public class GroupService {
         if (request.getMaxCapacity() == null || request.getMaxCapacity() < 2 || request.getMaxCapacity() > 8) {
             throw new GroupException(GroupErrorCode.INVALID_GROUP_CAPACITY);
         }
+
+        // 그룹명 필수
+        if (request.getGroupName() == null || request.getGroupName().isBlank()) {
+            throw new GroupException(GroupErrorCode.GROUP_NAME_REQUIRED);
+        }
+        if (badWordService.containsBadWord(request.getGroupName())) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+        }
+
+        // 규칙 1~5개 필수
+        if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
+            throw new GroupException(GroupErrorCode.INVALID_RULES);
+        }
+        for (String rule : request.getRules()) {
+            if (rule == null || rule.isBlank()) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            if (badWordService.containsBadWord(rule)) {
+                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+            }
+        }
+
     }
 
     //그룹수정 service
@@ -257,8 +310,7 @@ public class GroupService {
         }
 
         if (request.getReadingPeriod() != null) {
-            // 독서 기간 최소 3일 ~ 최대 30일
-            if (request.getReadingPeriod() < 3 || request.getReadingPeriod() > 30) {
+            if (!List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
                 throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
             }
             group.setReadingPeriod(request.getReadingPeriod());
@@ -275,6 +327,26 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
+        // 규칙 수정 (TOGETHER 또는 RELAY+DIRECT 타입)
+        boolean isRuleGroup = group.getGroupType() == GroupType.TOGETHER
+                || (group.getGroupType() == GroupType.RELAY && group.getTradeType() == TradeType.DIRECT);
+        if (request.getRules() != null && isRuleGroup) {
+            if (request.getRules().isEmpty() || request.getRules().size() > 5) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            for (String rule : request.getRules()) {
+                if (rule == null || rule.isBlank()) {
+                    throw new GroupException(GroupErrorCode.INVALID_RULES);
+                }
+                if (badWordService.containsBadWord(rule)) {
+                    throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+                }
+            }
+            group.getGroupRules().clear();
+            request.getRules().forEach(ruleContent ->
+                    group.getGroupRules().add(GroupRule.create(group, ruleContent)));
+        }
+      
         return GroupResponseDTO.UpdateResultDTO.builder()
                 .groupId(group.getGroupId())
                 .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
@@ -371,6 +443,8 @@ public class GroupService {
                 .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
+                .groupName(group.getGroupName())
+                .rules(group.getGroupRules().stream().map(GroupRule::getRuleContent).toList())
                 .build();
     }
 

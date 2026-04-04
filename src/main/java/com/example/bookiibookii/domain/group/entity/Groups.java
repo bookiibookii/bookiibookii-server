@@ -10,6 +10,7 @@ import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -65,6 +66,9 @@ public class Groups extends BaseEntity {
     @Column(name = "prefer_region")
     private String preferRegion;
 
+    @Column(name = "group_name")
+    private String groupName;
+
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();
@@ -80,6 +84,11 @@ public class Groups extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Meeting> meetings = new ArrayList<>();
+
+    @Builder.Default
+    @BatchSize(size = 10)
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GroupRule> groupRules = new ArrayList<>();
 
     public void updateStatus(GroupStatus status) {
         this.groupStatus = status;

@@ -25,7 +25,8 @@ public class UserRequestDTO {
             String s3Key,
 
             @Size(max = 7, message = "대표 도서는 최대 7권까지 설정 가능합니다.")
-            List<BookReqDTO.UserPickReqDTO> userPicks,
+            @Valid
+            List<BookReqDTO.UserPickISBN> userPicks,
 
             String introduction,
 

@@ -105,7 +105,7 @@ public class UserService {
 
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-        addUserPicks(user, request.userPicks());
+        replaceUserPicks(user, request.userPicks());
         user.updateIntroduction(request.introduction());
         user.updateRegion(request.region());
 
@@ -116,15 +116,24 @@ public class UserService {
     }
 
     // 유저 픽 책 추가
-    private void addUserPicks(User user, List<BookReqDTO.UserPickReqDTO> picks) {
-        if (picks == null || picks.isEmpty()) return;
+    private void replaceUserPicks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
+        List<String> distinctIsbns = isbnList.stream()
+                .filter(Objects::nonNull)
+                .map(BookReqDTO.UserPickISBN::isbn13)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
 
-        List<UserPick> newPicks = picks.stream()
-                .map(pick -> bookService.getOrCreateByIsbn13(pick.isbn13()))
+        userPickRepository.deleteAllByUser(user);
+
+        if (distinctIsbns.isEmpty()) return;
+
+        List<UserPick> picks = distinctIsbns.stream()
+                .map(bookService::getOrCreateByIsbn13)
                 .map(book -> UserPick.create(user, book))
                 .toList();
 
-        userPickRepository.saveAll(newPicks);
+        userPickRepository.saveAll(picks);
     }
 
     // 온보딩 스킵 상태로 업데이트
@@ -133,7 +142,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        user.updateOnboardingStatus(OnboardingStatus.SPLASH_DOME);
+        user.updateOnboardingStatus(OnboardingStatus.SPLASH_DONE);
     }
 
     private void saveOrUpdateUserImage(User user, String s3Key) {

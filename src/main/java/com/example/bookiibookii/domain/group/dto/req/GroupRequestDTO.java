@@ -69,6 +69,9 @@ public class GroupRequestDTO {
         @Schema(description = "수정할 태그 리스트")
         @Valid
         private List<GroupRequestDTO.TagSettingDTO> tags;
+        @Schema(description = "수정할 규칙 리스트 (1~5개, TOGETHER/직접교환 타입)", example = "[\"지각 금지\", \"독후감 필수\"]")
+        @Size(min = 1, max = 5)
+        private List<String> rules;
     }
 
     public record FilterDTO(

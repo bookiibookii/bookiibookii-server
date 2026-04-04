@@ -250,7 +250,7 @@ public class GroupService {
     }
 
     //1:1 relay 읽기 정책
-    private void validateRelayPolicy(User host, GroupRequestDTO.CreateDTO request) {
+    private void validateR3elayPolicy(User host, GroupRequestDTO.CreateDTO request) {
         // 직접 교환 시 유저 엔티티의 지역/상세장소 정보 필수
         if (request.getTradeType() == TradeType.DIRECT) {
             // host 프로필이 비어있어도 request에 값이 있다면 통과
@@ -350,6 +350,18 @@ public class GroupService {
                 }
                 tags.forEach(group::addGroupTag);
             }
+        }
+
+        // 규칙 수정 (TOGETHER 또는 RELAY+DIRECT 타입)
+        boolean isRuleGroup = group.getGroupType() == GroupType.TOGETHER
+                || (group.getGroupType() == GroupType.RELAY && group.getTradeType() == TradeType.DIRECT);
+        if (request.getRules() != null && isRuleGroup) {
+            if (request.getRules().isEmpty() || request.getRules().size() > 5) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            group.getGroupRules().clear();
+            request.getRules().forEach(ruleContent ->
+                    group.getGroupRules().add(GroupRule.create(group, ruleContent)));
         }
 
         return GroupResponseDTO.UpdateResultDTO.builder()

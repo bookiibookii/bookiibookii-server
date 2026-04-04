@@ -250,7 +250,7 @@ public class GroupService {
     }
 
     //1:1 relay 읽기 정책
-    private void validateR3elayPolicy(User host, GroupRequestDTO.CreateDTO request) {
+    private void validateRelayPolicy(User host, GroupRequestDTO.CreateDTO request) {
         // 직접 교환 시 유저 엔티티의 지역/상세장소 정보 필수
         if (request.getTradeType() == TradeType.DIRECT) {
             // host 프로필이 비어있어도 request에 값이 있다면 통과
@@ -260,6 +260,14 @@ public class GroupService {
             // 직접 교환 시 규칙 1~5개 필수
             if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            for (String rule : request.getRules()) {
+                if (rule == null || rule.isBlank()) {
+                    throw new GroupException(GroupErrorCode.INVALID_RULES);
+                }
+                if (badWordService.containsBadWord(rule)) {
+                    throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+                }
             }
         }
     }
@@ -277,10 +285,21 @@ public class GroupService {
         if (request.getGroupName() == null || request.getGroupName().isBlank()) {
             throw new GroupException(GroupErrorCode.GROUP_NAME_REQUIRED);
         }
+        if (badWordService.containsBadWord(request.getGroupName())) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+        }
 
         // 규칙 1~5개 필수
         if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
             throw new GroupException(GroupErrorCode.INVALID_RULES);
+        }
+        for (String rule : request.getRules()) {
+            if (rule == null || rule.isBlank()) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            if (badWordService.containsBadWord(rule)) {
+                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+            }
         }
 
     }

@@ -24,6 +24,9 @@ public class GroupRule extends BaseEntity {
     @Column(name = "rule_content", nullable = false)
     private String ruleContent;
 
+    @Column(name = "group_tag")
+    private String groupTag;
+
     public static GroupRule create(Groups group, String ruleContent) {
         return GroupRule.builder()
                 .group(group)

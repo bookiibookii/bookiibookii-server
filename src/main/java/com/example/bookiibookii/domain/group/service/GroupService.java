@@ -378,6 +378,14 @@ public class GroupService {
             if (request.getRules().isEmpty() || request.getRules().size() > 5) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
             }
+            for (String rule : request.getRules()) {
+                if (rule == null || rule.isBlank()) {
+                    throw new GroupException(GroupErrorCode.INVALID_RULES);
+                }
+                if (badWordService.containsBadWord(rule)) {
+                    throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+                }
+            }
             group.getGroupRules().clear();
             request.getRules().forEach(ruleContent ->
                     group.getGroupRules().add(GroupRule.create(group, ruleContent)));

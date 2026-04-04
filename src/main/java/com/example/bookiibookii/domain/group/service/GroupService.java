@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
+import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.*;
@@ -430,7 +431,7 @@ public class GroupService {
                 .buttonStatus(buttonStatus)
                 .groupName(group.getGroupName())
                 .rules(group.getGroupRules().stream()
-                        .map(r -> new GroupResponseDTO.RuleDTO(r.getRuleContent(), r.getTag()))
+                        .map(r -> new RuleDTO(r.getRuleContent(), r.getTag()))
                         .toList())
                 .build();
     }

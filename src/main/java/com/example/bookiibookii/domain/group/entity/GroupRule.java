@@ -26,7 +26,7 @@ public class GroupRule extends BaseEntity {
     private String ruleContent;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tag")
+    @Column(name = "tag", nullable = false)
     private Tag tag;
 
     public static GroupRule create(Groups group, String ruleContent, Tag tag) {

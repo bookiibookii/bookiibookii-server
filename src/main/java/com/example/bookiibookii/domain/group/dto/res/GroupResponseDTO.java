@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.group.dto.res;
 
+import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -134,8 +134,6 @@ public class GroupResponseDTO {
             int currentPage,
             boolean hasNext
     ) {}
-    public record RuleDTO(String ruleContent, Tag tag) {}
-
     // 드롭다운용 그룹 데이터 (신고하기 API의 신고그룹 조회)
     @Builder
     public record GroupSummaryResponse(

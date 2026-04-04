@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.user.service;
 
 import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
+import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
@@ -105,7 +106,7 @@ public class UserService {
 
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-        replaceUserPickBooks(user, request.userPickBooks());
+        addUserPickBooks(user, request.userPickBooks());
         user.updateIntroduction(request.introduction());
         user.updateRegion(request.region());
 
@@ -116,7 +117,7 @@ public class UserService {
     }
 
     // 유저 픽 책 추가
-    private void replaceUserPickBooks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
+    private void addUserPickBooks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
         List<String> distinctIsbns = isbnList.stream()
                 .filter(Objects::nonNull)
                 .map(BookReqDTO.UserPickISBN::isbn13)
@@ -134,6 +135,49 @@ public class UserService {
                 .toList();
 
         userPickBookRepository.saveAll(picks);
+    }
+
+    private void replaceUserPickBooks(User user, List<BookReqDTO.UserPickISBN> picks) {
+        List<BookReqDTO.UserPickISBN> safePicks =
+                picks == null ? List.of() : picks;
+
+        List<String> distinctIsbns = safePicks.stream()
+                .map(BookReqDTO.UserPickISBN::isbn13)
+                .filter(isbn -> isbn != null && !isbn.isBlank()).distinct().toList();
+
+        if (distinctIsbns.size() > 7) {
+            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
+        }
+
+        List<UserPickBook> existingPickBooks = userPickBookRepository.findByUser(user);
+
+        // 기존 bookId set
+        Set<Long> existingBookIds = existingPickBooks.stream()
+                .map(up -> up.getBook().getId())
+                .collect(Collectors.toSet());
+
+        // 새 book 목록
+        List<Book> books = distinctIsbns.stream()
+                .map(bookService::getOrCreateByIsbn13)
+                .toList();
+
+        Set<Long> newBookIds = books.stream()
+                .map(Book::getId)
+                .collect(Collectors.toSet());
+
+        // 삭제 대상
+        List<UserPickBook> toDelete = existingPickBooks.stream()
+                .filter(up -> !newBookIds.contains(up.getBook().getId()))
+                .toList();
+
+        // 추가 대상
+        List<UserPickBook> toAdd = books.stream()
+                .filter(book -> !existingBookIds.contains(book.getId()))
+                .map(book -> UserPickBook.create(user, book))
+                .toList();
+
+        userPickBookRepository.deleteAll(toDelete);
+        userPickBookRepository.saveAll(toAdd);
     }
 
     // 온보딩 스킵 상태로 업데이트
@@ -199,11 +243,13 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        // Top Tag 3개 조회
-        List<UserTag> currentUserTags = userTagRepository.findByUserId(userId);
-        // 누적도 -> 최신 등록 순으로 태그 정렬 후 상위태그 추출
-        List<Tag> TopTags = userTagService.extractTopTags(currentUserTags, 3);
-
+        Tag TopTags = null;
+        if(user.getTagVisible()) {
+            // Top Tag 3개 조회
+            List<UserTag> currentUserTags = userTagRepository.findByUserId(userId);
+            // 누적도 -> 최신 등록 순으로 태그 정렬 후 상위태그 1개 추출
+            TopTags = userTagService.extractTopTags(currentUserTags);
+        }
 
         // 완독 수 (로직에 따라 조건 추가 가능)
         Long completeBookCount = userBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
@@ -239,10 +285,14 @@ public class UserService {
                     user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         }
 
+        // UserPickBook 조회
+        List<UserResponseDTO.UserPickBookDto> userPickBooks = userPickBookRepository.findUserPickBooks(userId);
+
         return UserResponseDTO.UserProfileResDTO.builder()
                 .userId(userId)
                 .profileImageUrl(profileImageUrl)
                 .nickname(user.getNickName())
+                .introduction(user.getIntroduction())
                 .manner(user.getManner())
                 .topTags(TopTags)
                 .completeBook(completeBookCount.intValue())
@@ -250,6 +300,7 @@ public class UserService {
                 .togetherGroup(togetherCount.intValue())
                 .groups(groupList)
                 .books(recentBooks)
+                .userPickBooks(userPickBooks)
                 .receiverName(receiverName)
                 .phone(phone)
                 .zipCode(zipCode)
@@ -291,12 +342,16 @@ public class UserService {
             requireAvailableNickname(request.nickname());
             user.updateName(request.nickname());
         }
+        user.updateIntroduction(request.introduction());
         user.updateRegion(request.region());
         user.updateMeetPlace(request.meetPlace());
+        user.updateTagVisible(request.tagVisible());
 
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());
         }
+
+        replaceUserPickBooks(user, request.userPickBooks());
 
         Address address = addressRepository.findByUserId(userId).orElse(null);
 

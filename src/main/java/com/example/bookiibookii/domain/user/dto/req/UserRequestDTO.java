@@ -39,6 +39,7 @@ public class UserRequestDTO {
             @NotBlank
             @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String nickname,
+            String introduction,
 
             @Schema(description = "프로필 이미지 S3 키. Presigned URL로 업로드 후 받은 값. 미전달 시 프로필 이미지 변경 안 함.", example = "image/users/1/550e8400-e29b-41d4-a716-446655440000")
             String s3Key,
@@ -55,6 +56,8 @@ public class UserRequestDTO {
             @NotBlank
             String addressDetail,
             String meetPlace,
-            String region
+            String region,
+            Boolean tagVisible,
+            List<BookReqDTO.UserPickISBN> userPickBooks
     ){}
 }

@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.user.service;
 
+import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
+import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
@@ -29,9 +31,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +51,8 @@ public class UserService {
     private final AddressRepository addressRepository;
     private final UserBookQueryRepository userBookQueryRepository;
     private final BadWordService badWordService;
+    private final UserPickRepository userPickRepository;
+    private final BookService bookService;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -101,13 +103,26 @@ public class UserService {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        List<UserTag> userTags = request.tags().stream()
-                        .distinct().map(tag -> UserTag.create(user, tag)).toList();
+        List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
+
+        addUserPicks(user, request.userPicks());
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);
 
         user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
+    }
+
+    // 유저 픽 책 추가
+    private void addUserPicks(User user, List<BookReqDTO.UserPickReqDTO> picks) {
+        if (picks == null || picks.isEmpty()) return;
+
+        List<UserPick> newPicks = picks.stream()
+                .map(pick -> bookService.getOrCreateByIsbn13(pick.isbn13()))
+                .map(book -> UserPick.create(user, book))
+                .toList();
+
+        userPickRepository.saveAll(newPicks);
     }
 
     // 온보딩 스킵 상태로 업데이트

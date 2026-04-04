@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.book.dto;
+package com.example.bookiibookii.domain.book.dto.res;
 
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import lombok.Builder;

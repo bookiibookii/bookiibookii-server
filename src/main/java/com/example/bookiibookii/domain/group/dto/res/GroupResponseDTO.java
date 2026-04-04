@@ -78,6 +78,10 @@ public class GroupResponseDTO {
         // 5. 그룹 소개 및 참여 멤버 슬롯
         private String groupComment;   // 그룹 소개글
 
+        // 6. TOGETHER 타입 전용
+        private String groupName;
+        private List<String> rules;
+
 
         // 예: 정원 4명 중 2명 참여 시 -> [방장, 게스트1, EMPTY, EMPTY] 순서로 구성
         private List<ParticipantSlotDTO> participantSlots;

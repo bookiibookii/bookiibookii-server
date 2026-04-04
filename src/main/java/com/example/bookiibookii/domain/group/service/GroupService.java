@@ -239,7 +239,7 @@ public class GroupService {
             if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
             }
-            for (GroupRequestDTO.RuleDTO rule : request.getRules()) {
+            for (RuleDTO rule : request.getRules()) {
                 validateRule(rule);
             }
         }
@@ -266,7 +266,7 @@ public class GroupService {
         if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
             throw new GroupException(GroupErrorCode.INVALID_RULES);
         }
-        for (GroupRequestDTO.RuleDTO rule : request.getRules()) {
+        for (RuleDTO rule : request.getRules()) {
             validateRule(rule);
         }
 
@@ -325,7 +325,7 @@ public class GroupService {
             if (request.getRules().isEmpty() || request.getRules().size() > 5) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
             }
-            for (GroupRequestDTO.RuleDTO rule : request.getRules()) {
+            for (RuleDTO rule : request.getRules()) {
                 validateRule(rule);
             }
             group.getGroupRules().clear();
@@ -431,7 +431,7 @@ public class GroupService {
                 .buttonStatus(buttonStatus)
                 .groupName(group.getGroupName())
                 .rules(group.getGroupRules().stream()
-                        .map(r -> new RuleDTO(r.getRuleContent(), r.getTag()))
+                        .map(r -> new RuleDTO(r.getTag(), r.getRuleContent()))
                         .toList())
                 .build();
     }
@@ -491,7 +491,7 @@ public class GroupService {
         return "APPLY";
     }
 
-    private void validateRule(GroupRequestDTO.RuleDTO rule) {
+    private void validateRule(RuleDTO rule) {
         if (rule.tag() == Tag.CUSTOM) {
             if (rule.content() == null || rule.content().isBlank()) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
@@ -502,7 +502,7 @@ public class GroupService {
         }
     }
 
-    private String resolveRuleContent(GroupRequestDTO.RuleDTO rule) {
+    private String resolveRuleContent(RuleDTO rule) {
         if (rule.tag() == Tag.CUSTOM) {
             return rule.content();
         }

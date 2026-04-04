@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.entity;
 
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,13 +25,15 @@ public class GroupRule extends BaseEntity {
     @Column(name = "rule_content", nullable = false)
     private String ruleContent;
 
-    @Column(name = "group_tag")
-    private String groupTag;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tag")
+    private Tag tag;
 
-    public static GroupRule create(Groups group, String ruleContent) {
+    public static GroupRule create(Groups group, String ruleContent, Tag tag) {
         return GroupRule.builder()
                 .group(group)
                 .ruleContent(ruleContent)
+                .tag(tag)
                 .build();
     }
 }

@@ -126,16 +126,16 @@ public class GroupService {
         // TOGETHER 타입 전용: 규칙 저장
         if (request.getGroupType() == GroupType.TOGETHER) {
             if (request.getRules() != null) {
-                request.getRules().forEach(ruleContent ->
-                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, ruleContent)));
+                request.getRules().forEach(rule ->
+                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
             }
         }
 
         // RELAY + DIRECT 타입: 규칙 저장
         if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
             if (request.getRules() != null) {
-                request.getRules().forEach(ruleContent ->
-                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, ruleContent)));
+                request.getRules().forEach(rule ->
+                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
             }
         }
 
@@ -238,13 +238,8 @@ public class GroupService {
             if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
             }
-            for (String rule : request.getRules()) {
-                if (rule == null || rule.isBlank()) {
-                    throw new GroupException(GroupErrorCode.INVALID_RULES);
-                }
-                if (badWordService.containsBadWord(rule)) {
-                    throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
-                }
+            for (GroupRequestDTO.RuleDTO rule : request.getRules()) {
+                validateRule(rule);
             }
         }
     }
@@ -270,13 +265,8 @@ public class GroupService {
         if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
             throw new GroupException(GroupErrorCode.INVALID_RULES);
         }
-        for (String rule : request.getRules()) {
-            if (rule == null || rule.isBlank()) {
-                throw new GroupException(GroupErrorCode.INVALID_RULES);
-            }
-            if (badWordService.containsBadWord(rule)) {
-                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
-            }
+        for (GroupRequestDTO.RuleDTO rule : request.getRules()) {
+            validateRule(rule);
         }
 
     }
@@ -334,17 +324,12 @@ public class GroupService {
             if (request.getRules().isEmpty() || request.getRules().size() > 5) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
             }
-            for (String rule : request.getRules()) {
-                if (rule == null || rule.isBlank()) {
-                    throw new GroupException(GroupErrorCode.INVALID_RULES);
-                }
-                if (badWordService.containsBadWord(rule)) {
-                    throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
-                }
+            for (GroupRequestDTO.RuleDTO rule : request.getRules()) {
+                validateRule(rule);
             }
             group.getGroupRules().clear();
-            request.getRules().forEach(ruleContent ->
-                    group.getGroupRules().add(GroupRule.create(group, ruleContent)));
+            request.getRules().forEach(rule ->
+                    group.getGroupRules().add(GroupRule.create(group, resolveRuleContent(rule), rule.tag())));
         }
       
         return GroupResponseDTO.UpdateResultDTO.builder()
@@ -444,7 +429,9 @@ public class GroupService {
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)
                 .groupName(group.getGroupName())
-                .rules(group.getGroupRules().stream().map(GroupRule::getRuleContent).toList())
+                .rules(group.getGroupRules().stream()
+                        .map(r -> new GroupResponseDTO.RuleDTO(r.getRuleContent(), r.getTag()))
+                        .toList())
                 .build();
     }
 
@@ -501,6 +488,24 @@ public class GroupService {
         }
 
         return "APPLY";
+    }
+
+    private void validateRule(GroupRequestDTO.RuleDTO rule) {
+        if (rule.tag() == Tag.CUSTOM) {
+            if (rule.content() == null || rule.content().isBlank()) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            if (badWordService.containsBadWord(rule.content())) {
+                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+            }
+        }
+    }
+
+    private String resolveRuleContent(GroupRequestDTO.RuleDTO rule) {
+        if (rule.tag() == Tag.CUSTOM) {
+            return rule.content();
+        }
+        return rule.tag().getDefaultContent();
     }
 
     // 그룹 목록 조회 (필터링 + 추천순)

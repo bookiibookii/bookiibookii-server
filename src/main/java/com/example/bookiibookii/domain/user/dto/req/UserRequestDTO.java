@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.user.dto.req;
 
+import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
 import com.example.bookiibookii.domain.user.enums.Tag;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -21,7 +22,17 @@ public class UserRequestDTO {
             List<Tag> tags,
 
             /** 이미지 업로드 후 받은 s3Key. 없으면 null (프로필 이미지 선택 안 함) */
-            String s3Key
+            String s3Key,
+
+            @Size(max = 7, message = "대표 도서는 최대 7권까지 설정 가능합니다.")
+            @Valid
+            List<BookReqDTO.UserPickISBN> userPickBooks,
+
+            String introduction,
+
+            // TODO : 집, 회사, 교환장소 등 상세주소(위치좌표)를 위치 테이블에 저장하여 좌표 기준 인접 km 계산가능하도록 로직 수정 필요
+            // 임의로 시+군+구 합친 위치를 string으로 저장
+            String region
     ){}
 
     public record MypageReqDTO (

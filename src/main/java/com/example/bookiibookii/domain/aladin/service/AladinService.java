@@ -2,7 +2,7 @@ package com.example.bookiibookii.domain.aladin.service;
 
 import com.example.bookiibookii.domain.aladin.config.AladinClient;
 import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
-import com.example.bookiibookii.domain.book.dto.BookResDTO;
+import com.example.bookiibookii.domain.book.dto.res.BookResDTO;
 import com.example.bookiibookii.domain.book.service.BookAuthorMapper;
 import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
 import lombok.RequiredArgsConstructor;

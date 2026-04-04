@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.user.service;
 
+import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
+import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
@@ -10,6 +12,7 @@ import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
+import com.example.bookiibookii.domain.user.enums.OnboardingStatus;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.enums.Tag;
@@ -28,9 +31,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,6 +51,8 @@ public class UserService {
     private final AddressRepository addressRepository;
     private final UserBookQueryRepository userBookQueryRepository;
     private final BadWordService badWordService;
+    private final UserPickBookRepository userPickBookRepository;
+    private final BookService bookService;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -100,11 +103,46 @@ public class UserService {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        List<UserTag> userTags = request.tags().stream()
-                        .distinct().map(tag -> UserTag.create(user, tag)).toList();
+        List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
+
+        replaceUserPickBooks(user, request.userPickBooks());
+        user.updateIntroduction(request.introduction());
+        user.updateRegion(request.region());
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);
+
+        user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
+    }
+
+    // 유저 픽 책 추가
+    private void replaceUserPickBooks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
+        List<String> distinctIsbns = isbnList.stream()
+                .filter(Objects::nonNull)
+                .map(BookReqDTO.UserPickISBN::isbn13)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        userPickBookRepository.deleteAllByUser(user);
+
+        if (distinctIsbns.isEmpty()) return;
+
+        List<UserPickBook> picks = distinctIsbns.stream()
+                .map(bookService::getOrCreateByIsbn13)
+                .map(book -> UserPickBook.create(user, book))
+                .toList();
+
+        userPickBookRepository.saveAll(picks);
+    }
+
+    // 온보딩 스킵 상태로 업데이트
+    @Transactional
+    public void completeSplashOnboarding(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        user.updateOnboardingStatus(OnboardingStatus.SPLASH_DONE);
     }
 
     private void saveOrUpdateUserImage(User user, String s3Key) {

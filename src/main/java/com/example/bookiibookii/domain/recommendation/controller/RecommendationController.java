@@ -22,16 +22,17 @@ import java.util.List;
 public class RecommendationController implements RecommendationControllerDocs{
     private final RecommendationService recommendationService;
 
+
     // 사용자 태그 기반 부키메이트 추천 API
     @Override
     @GetMapping("/bookmates")
     public ApiResponse<List<RecommendationResponseDTO.BookmateDto>> recommendBookmates(
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        List<RecommendationResponseDTO.BookmateDto> result =
-                recommendationService.findRecommendBookmates(user.getId());
+//        List<RecommendationResponseDTO.BookmateDto> result =
+//                recommendationService.findRecommendBookmates(user.getId());
 
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
 
     // 사용자 태그 기반 그룹 추천 API
@@ -40,9 +41,9 @@ public class RecommendationController implements RecommendationControllerDocs{
             @AuthenticationPrincipal(expression = "user") User user,
             @RequestParam(value = "refresh", defaultValue = "false") boolean isRefresh
     ) {
-        List<RecommendationResponseDTO.RecommendedGroupDto> result =
-                recommendationService.findRecommendGroups(user.getId(), isRefresh);
+//        List<RecommendationResponseDTO.RecommendedGroupDto> result =
+//                recommendationService.findRecommendGroups(user.getId(), isRefresh);
 
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
 }

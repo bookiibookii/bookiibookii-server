@@ -2,9 +2,8 @@ package com.example.bookiibookii.domain.user.dto.res;
 
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.Builder;
 
 import java.util.List;
@@ -17,7 +16,7 @@ public class UserResponseDTO {
             String profileImageUrl,
             String nickname,
             Double manner,
-            List<String> topTags,
+            List<Tag> topTags,
             Integer completeBook,
             Integer relayGroup,
             Integer togetherGroup,

@@ -41,19 +41,6 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     Optional<Groups> findByIdForUpdate(@Param("groupId") Long groupId);
 
 
-    // UserTag와 GroupTag 일치도가 높은 그룹 조회
-    @Query("SELECT g FROM Groups g " +
-            "JOIN g.groupTags gt " +
-            "WHERE gt.tag.id IN :tagIds " +
-            "AND g.groupStatus = :status " +
-            "GROUP BY g " +
-            "ORDER BY COUNT(gt) DESC")
-    List<Groups> findGroupsByTagMatching(
-            @Param("tagIds") List<Long> tagIds,
-            @Param("status") GroupStatus status,
-            Pageable pageable
-    );
-
     // 랜덤 그룹 조회 (이미 뽑힌 그룹 제외)
     @Query("""
       select g

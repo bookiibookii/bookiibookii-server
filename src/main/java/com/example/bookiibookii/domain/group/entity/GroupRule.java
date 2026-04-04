@@ -1,32 +1,36 @@
 package com.example.bookiibookii.domain.group.entity;
 
-import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Builder
+@Table(name = "group_rule")
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class GroupTag extends BaseEntity {
+public class GroupRule extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "rule_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
+    @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id", nullable = false)
-    private Tag tag;
+    @Column(name = "rule_content", nullable = false)
+    private String ruleContent;
 
-    public static GroupTag create(Groups group, Tag tag) {
-        return GroupTag.builder()
+    @Column(name = "group_tag")
+    private String groupTag;
+
+    public static GroupRule create(Groups group, String ruleContent) {
+        return GroupRule.builder()
                 .group(group)
-                .tag(tag)
+                .ruleContent(ruleContent)
                 .build();
     }
 }

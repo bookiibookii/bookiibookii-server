@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.user.service;
 
-import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.user.entity.UserTag;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +24,6 @@ public class UserTagService {
                 .sorted(
                         Comparator.comparing(UserTag::getScore).reversed() // 점수순
                                 .thenComparing(UserTag::getUpdatedAt, Comparator.reverseOrder()) // 최신 날짜순
-                                .thenComparing(ut -> ut.getTag().getId()) // ID순
                 )
                 .limit(limit)
                 .map(UserTag::getTag)

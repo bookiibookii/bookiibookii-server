@@ -52,38 +52,17 @@ public class TrackerConverter {
                 .readingPeriod(tracker.getGroup().getReadingPeriod())
                 .remainingDays(remainingDays);
 
-        // 2. TradeType에 따른 분기 처리
-        TradeType tradeType = tracker.getGroup().getTradeType();
-
-        if (tradeType == TradeType.DELIVERY) {
-            if (partnerAddress != null) {
-                // DeliveryInfo 빌더 생성
-                TrackerDetailResponseDTO.DeliveryInfo.DeliveryInfoBuilder deliveryBuilder = TrackerDetailResponseDTO.DeliveryInfo.builder()
-                        .receiverName(partnerAddress.getReceiverName())
-                        .receiverPhone(partnerAddress.getPhone())
-                        .receiverAddress(String.format("[%s] %s %s",
-                                partnerAddress.getZipCode(),
-                                partnerAddress.getAddress(),
-                                partnerAddress.getAddressDetail()))
-                        .isVerified(tracker.getIsVerified());
-
-                // 운송 정보 추출
-                if (latestHistory != null) {
-                    deliveryBuilder.deliveryCompany(latestHistory.getDeliveryCompany())
-                            .trackingNumber(latestHistory.getTrackingNumber());
-                }
-
-                builder.deliveryInfo(deliveryBuilder.build());
-            }
-        } else if (tradeType == TradeType.DIRECT) {
-            // 직접 교환일 경우: 최신 약속 정보 세팅
+        // 2. 직접 교환(DIRECT)에 따른 정보 세팅
+        // v1에서는 DELIVERY 타입을 지원하지 않으므로 DIRECT 관련 로직만 유지합니다.
+        if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
             if (latestMeeting != null) {
+                // 약속이 잡힌 경우: 약속 시간과 장소 노출
                 builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
                         .meetingTime(latestMeeting.getMeetingTime())
                         .meetingPlace(latestMeeting.getMeetingPlace())
                         .build());
             } else {
-                // 약속 전이면 호스트가 설정한 기본 장소 노출
+                // 약속 전인 경우: 호스트가 설정한 선호 지역(기본 장소) 노출
                 builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
                         .meetingPlace(tracker.getGroup().getPreferRegion())
                         .build());

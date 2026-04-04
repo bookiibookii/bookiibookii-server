@@ -4,12 +4,13 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
-import com.example.bookiibookii.domain.tag.entity.Tag;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -54,19 +55,19 @@ public class Groups extends BaseEntity {
     @Column(name = "group_comment", length = 200)
     private String groupComment;
 
-    @Column(name = "custom_tag", length = 8)
-    private String customTag;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "group_type")
     private GroupType groupType; //RELAY, TOGETHER
 
     @Enumerated(EnumType.STRING)
     @Column(name = "trade_type")
-    private TradeType tradeType;//DIRECT, DELIVERY
+    private TradeType tradeType;//DIRECT, NONE
 
     @Column(name = "prefer_region")
     private String preferRegion;
+
+    @Column(name = "group_name")
+    private String groupName;
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
@@ -77,10 +78,6 @@ public class Groups extends BaseEntity {
     private List<MatchedMember> matchedMember = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GroupTag> groupTags = new ArrayList<>();
-
-    @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<UserBook> userBooks = new ArrayList<>();
 
@@ -88,23 +85,17 @@ public class Groups extends BaseEntity {
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Meeting> meetings = new ArrayList<>();
 
+    @Builder.Default
+    @BatchSize(size = 10)
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GroupRule> groupRules = new ArrayList<>();
+
     public void updateStatus(GroupStatus status) {
         this.groupStatus = status;
     }
 
     public void markAsDELETED() {
         this.groupStatus = GroupStatus.DELETED;
-    }
-
-    // 태그 추가
-    public void addGroupTag(Tag tag) {
-        GroupTag groupTag = GroupTag.create(this, tag);
-        this.groupTags.add(groupTag);
-    }
-
-    // 태그 전체 삭제
-    public void clearGroupTags() {
-        this.groupTags.clear();
     }
 
     //그룹상태 계산

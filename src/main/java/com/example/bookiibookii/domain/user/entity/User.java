@@ -107,6 +107,7 @@ public class User extends BaseEntity {
     public void updateName(String name) { this.nickName = name; }
     public void updateRegion(String region) { this.region = region; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
+    public void updateIntroduction(String introduction) { this.introduction = introduction; }
     public void updateOnboardingStatus(OnboardingStatus status) { this.onboardingStatus = status; }
 
     public void updateManner(double rating) {

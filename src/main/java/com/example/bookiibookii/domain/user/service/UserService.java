@@ -106,6 +106,8 @@ public class UserService {
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
         addUserPicks(user, request.userPicks());
+        user.updateIntroduction(request.introduction());
+        user.updateRegion(request.region());
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);

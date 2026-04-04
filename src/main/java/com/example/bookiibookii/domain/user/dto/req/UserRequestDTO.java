@@ -26,7 +26,7 @@ public class UserRequestDTO {
 
             @Size(max = 7, message = "대표 도서는 최대 7권까지 설정 가능합니다.")
             @Valid
-            List<BookReqDTO.UserPickISBN> userPicks,
+            List<BookReqDTO.UserPickISBN> userPickBooks,
 
             String introduction,
 

@@ -51,7 +51,7 @@ public class UserService {
     private final AddressRepository addressRepository;
     private final UserBookQueryRepository userBookQueryRepository;
     private final BadWordService badWordService;
-    private final UserPickRepository userPickRepository;
+    private final UserPickBookRepository userPickBookRepository;
     private final BookService bookService;
 
     // 소셜 유저 조회 or 생성
@@ -105,7 +105,7 @@ public class UserService {
 
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-        replaceUserPicks(user, request.userPicks());
+        replaceUserPickBooks(user, request.userPickBooks());
         user.updateIntroduction(request.introduction());
         user.updateRegion(request.region());
 
@@ -116,7 +116,7 @@ public class UserService {
     }
 
     // 유저 픽 책 추가
-    private void replaceUserPicks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
+    private void replaceUserPickBooks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
         List<String> distinctIsbns = isbnList.stream()
                 .filter(Objects::nonNull)
                 .map(BookReqDTO.UserPickISBN::isbn13)
@@ -124,16 +124,16 @@ public class UserService {
                 .distinct()
                 .toList();
 
-        userPickRepository.deleteAllByUser(user);
+        userPickBookRepository.deleteAllByUser(user);
 
         if (distinctIsbns.isEmpty()) return;
 
-        List<UserPick> picks = distinctIsbns.stream()
+        List<UserPickBook> picks = distinctIsbns.stream()
                 .map(bookService::getOrCreateByIsbn13)
-                .map(book -> UserPick.create(user, book))
+                .map(book -> UserPickBook.create(user, book))
                 .toList();
 
-        userPickRepository.saveAll(picks);
+        userPickBookRepository.saveAll(picks);
     }
 
     // 온보딩 스킵 상태로 업데이트

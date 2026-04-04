@@ -11,12 +11,12 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Table(
-        name = "user_pick",
+        name = "user_pickbook",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"user_id", "book_id"})
         }
 )
-public class UserPick extends BaseEntity {
+public class UserPickBook extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_pick_id")
@@ -30,8 +30,8 @@ public class UserPick extends BaseEntity {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
-    public static UserPick create(User user, Book book) {
-        return UserPick.builder()
+    public static UserPickBook create(User user, Book book) {
+        return UserPickBook.builder()
                 .user(user)
                 .book(book)
                 .build();

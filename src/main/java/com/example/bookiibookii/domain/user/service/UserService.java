@@ -129,7 +129,7 @@ public class UserService {
 
     // 온보딩 스킵 상태로 업데이트
     @Transactional
-    public void updateOnboardingStatus(Long userId) {
+    public void completeSplashOnboarding(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 

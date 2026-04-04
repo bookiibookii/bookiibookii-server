@@ -79,7 +79,7 @@ public class AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(userId)
-                .onboardingStatus(user.getOnboardingStatus().toString())
+                .onboardingStatus(user.getOnboardingStatus())
                 .role(user.getRole())
                 .build();
     }

@@ -70,10 +70,10 @@ public class UserController implements UserControllerDocs{
     // 스플래시 온보딩 스킵 (온보딩 상태 변경)
     @Override
     @PatchMapping("/api/onboarding-skip")
-    public ApiResponse<Void> updateOnboardingStatus(
+    public ApiResponse<Void> completeSplashOnboarding(
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        userService.updateOnboardingStatus(user.getId());
+        userService.completeSplashOnboarding(user.getId());
         return ApiResponse.onSuccess(UserSuccessCode.ONBOARDING_SUCCESS, null);
     }
 

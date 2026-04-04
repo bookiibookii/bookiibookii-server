@@ -90,7 +90,7 @@ public interface UserControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "온보딩 상태 저장 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "온보딩 상태 저장 실패")
     })
-    ApiResponse<Void> updateOnboardingStatus(@AuthenticationPrincipal User user);
+    ApiResponse<Void> completeSplashOnboarding(@AuthenticationPrincipal User user);
 
 
     // api/mypage

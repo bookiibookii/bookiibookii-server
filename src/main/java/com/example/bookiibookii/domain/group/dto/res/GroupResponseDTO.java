@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.group.dto.res;
 
-import com.example.bookiibookii.domain.group.entity.GroupTag;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -69,11 +68,9 @@ public class GroupResponseDTO {
         private String createdAt;
         private String startDate;
 
-        // 4. 호스트 정보 및 태그
+        // 4. 호스트 정보 및 규칙
         private String hostNickname;
         private String hostProfileImageUrl;  // 프로필 이미지 Presigned GET URL
-        private List<String> groupTags;
-        private String customTag;
 
         // 5. 그룹 소개 및 참여 멤버 슬롯
         private String groupComment;   // 그룹 소개글
@@ -112,8 +109,6 @@ public class GroupResponseDTO {
             String bookImage,
             String hostNickname,
             String hostProfileImageUrl,  // 프로필 이미지 Presigned GET URL
-            List<String> tags,
-            String customTag,
             String groupStatus,
             int currentCount,
             int maxCapacity,

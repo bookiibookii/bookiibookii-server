@@ -18,6 +18,7 @@ import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserTag;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -304,15 +305,15 @@ public class ApplicationService {
         User guest = application.getGuest();
 
         // 태그 이름만 String 리스트로 추출
-        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그의 코드를 추출
-        List<String> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
+        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그를 추출
+        List<Tag> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
                 guest.getUserTags().stream()
                         // 1. 점수(score) 높은 순서대로 정렬
                         .sorted(Comparator.comparingInt(UserTag::getScore).reversed())
                         // 2. 상위 3개만 자르기
                         .limit(3)
-                        // 3. 태그의 이름(또는 코드) 꺼내기
-                        .map(ut -> ut.getTag().getCode())
+                        // 3. 태그 꺼내기
+                        .map(ut -> ut.getTag())
                         .toList();
 
         String profileImageUrl = null;

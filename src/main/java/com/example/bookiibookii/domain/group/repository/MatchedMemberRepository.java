@@ -84,8 +84,6 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     @Query("SELECT DISTINCT g FROM MatchedMember mm " +
             "JOIN mm.group g " +
             "JOIN FETCH g.book " +          // 책 정보 필요
-            "LEFT JOIN FETCH g.groupTags gt " + // 태그 정보 필요
-            "LEFT JOIN FETCH gt.tag " +
             "WHERE mm.user.id = :userId AND mm.role = :roleStatus " +
             "AND g.groupStatus IN :statuses")
     List<Groups> findMyActiveGroups(

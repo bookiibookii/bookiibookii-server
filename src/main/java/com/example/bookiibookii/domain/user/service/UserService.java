@@ -6,17 +6,13 @@ import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.tag.entity.Tag;
-import com.example.bookiibookii.domain.tag.enums.TagType;
-import com.example.bookiibookii.domain.tag.exception.TagException;
-import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
-import com.example.bookiibookii.domain.tag.repository.TagRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -45,7 +41,6 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserTagRepository userTagRepository;
-    private final TagRepository tagRepository;
     private final UserImageRepository userImageRepository;
     private final UserImageValidationService userImageValidationService;
     private final UserImageS3Service userImageS3Service;
@@ -105,17 +100,8 @@ public class UserService {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        List<UserTag> userTags = new ArrayList<>();
-        for (UserRequestDTO.TagSettingDTO tagDto : request.tags()) {
-            TagType type = tagDto.type();
-            List<String> codes = tagDto.value();
-            List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
-
-            if (tags.size() != codes.size()) {
-                throw new TagException(TagErrorCode.INVALID_TAG_CODE);
-            }
-            tags.forEach(tag -> userTags.add(UserTag.create(user, tag)));
-        }
+        List<UserTag> userTags = request.tags().stream()
+                        .distinct().map(tag -> UserTag.create(user, tag)).toList();
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);
@@ -176,11 +162,9 @@ public class UserService {
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         // Top Tag 3개 조회
-        List<TagType> targetTypes = List.of(TagType.METHOD, TagType.VIBE);
-        List<UserTag> currentUserTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
-        // 누적도 -> 최신 등록 -> ID 순으로 태그 정렬 후 상위태그 추출
+        List<UserTag> currentUserTags = userTagRepository.findByUserId(userId);
+        // 누적도 -> 최신 등록 순으로 태그 정렬 후 상위태그 추출
         List<Tag> TopTags = userTagService.extractTopTags(currentUserTags, 3);
-        List<String> topTagCodes = TopTags.stream().map(ut -> ut.getCode()).toList();
 
 
         // 완독 수 (로직에 따라 조건 추가 가능)
@@ -222,7 +206,7 @@ public class UserService {
                 .profileImageUrl(profileImageUrl)
                 .nickname(user.getNickName())
                 .manner(user.getManner())
-                .topTags(topTagCodes)
+                .topTags(TopTags)
                 .completeBook(completeBookCount.intValue())
                 .relayGroup(relayCount.intValue())
                 .togetherGroup(togetherCount.intValue())
@@ -241,9 +225,6 @@ public class UserService {
     // 그룹 엔티티 -> 마이페이지용 DTO 변환 메서드
     private GroupResponseDTO.MypageGroupDto toMypageGroupDto(Groups group) {
         String genre = group.getBook().getCategory().name();
-        List<String> displayTags = group.getGroupTags().stream()
-                .map(gt -> gt.getTag().getCode())
-                .toList();
         String author = group.getBook().getAuthor();
 
         return GroupResponseDTO.MypageGroupDto.builder()
@@ -252,7 +233,6 @@ public class UserService {
                 .auth(author)
                 .genre(genre)
                 .groupStatus(group.getGroupStatus())
-                .groupTags(displayTags)
                 .build();
     }
 

@@ -7,6 +7,7 @@ import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.user.enums.Tag;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -21,9 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.example.bookiibookii.domain.book.entity.QBook.book;
-import static com.example.bookiibookii.domain.group.entity.QGroupTag.groupTag;
 import static com.example.bookiibookii.domain.group.entity.QGroups.groups;
-import static com.example.bookiibookii.domain.tag.entity.QTag.tag;
 import static com.example.bookiibookii.domain.user.entity.QUser.user;
 
 @Repository
@@ -32,13 +31,12 @@ public class GroupQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, List<Long> userTagIds, Pageable pageable) {
+    public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, List<Tag> userTags, Pageable pageable) {
 
         List<Groups> content = queryFactory
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin() // 도서 정보 페치 조인
                 .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
-                .leftJoin(groups.groupTags, groupTag) // 추천 점수 계산을 위해 조인 (fetchJoin 아님)
                 .where(
                         inGroupTypes(filter.groupTypes()),
                         inTradeTypes(filter.tradeTypes()),
@@ -47,7 +45,7 @@ public class GroupQueryRepository {
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
                 .groupBy(groups.groupId)
-                .orderBy(getSortOrder(filter.sort(), userTagIds))
+                .orderBy(getSortOrder(filter.sort(), userTags))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
                 .fetch();
@@ -62,19 +60,19 @@ public class GroupQueryRepository {
     }
 
     // 정렬 조건 생성 (추천순/인기순/최신순)
-    private OrderSpecifier<?>[] getSortOrder(GroupSortType sort, List<Long> userTagIds) {
+    private OrderSpecifier<?>[] getSortOrder(GroupSortType sort, List<Tag> userTags) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
         GroupSortType sortType = (sort != null) ? sort : GroupSortType.LATEST;
 
         // 추천순(usertag 기반 누적 추천?) 고도화 필요(현재 책 카테고리만 적용)
-        if (GroupSortType.RECOMMEND == sortType && userTagIds != null && !userTagIds.isEmpty()) {
-            NumberExpression<Long> matchCount = new CaseBuilder()
-                    .when(groupTag.tag.id.in(userTagIds)).then(1L)
-                    .otherwise(0L)
-                    .sum();
-            orders.add(new OrderSpecifier<>(Order.DESC, matchCount));
-        }
+//        if (GroupSortType.RECOMMEND == sortType && userTags != null && !userTags.isEmpty()) {
+//            NumberExpression<Long> matchCount = new CaseBuilder()
+//                    .when(groups.groupRules.in(userTags)).then(1L)
+//                    .otherwise(0L)
+//                    .sum();
+//            orders.add(new OrderSpecifier<>(Order.DESC, matchCount));
+//        }
 
         // 2순위: 인기순(신청자 수)
         if (GroupSortType.POPULAR == sortType) {
@@ -124,8 +122,6 @@ public class GroupQueryRepository {
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin()
                 .join(groups.host, user).fetchJoin()
-                .leftJoin(groups.groupTags, groupTag)
-                .leftJoin(groupTag.tag, tag)
                 .where(
                         searchwordContains(searchword),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
@@ -141,8 +137,6 @@ public class GroupQueryRepository {
                 .select(groups.countDistinct())
                 .from(groups)
                 .join(groups.book, book)
-                .leftJoin(groups.groupTags, groupTag)
-                .leftJoin(groupTag.tag, tag)
                 .where(searchwordContains(searchword), groups.groupStatus.eq(GroupStatus.RECRUITING))
                 .fetchOne();
 
@@ -153,9 +147,7 @@ public class GroupQueryRepository {
         if (searchword == null || searchword.isBlank()) return null;
 
         return book.title.containsIgnoreCase(searchword)
-                .or(book.author.containsIgnoreCase(searchword))
-                .or(tag.code.containsIgnoreCase(searchword))
-                .or(groups.customTag.containsIgnoreCase(searchword));
+                .or(book.author.containsIgnoreCase(searchword));
 
     }
 

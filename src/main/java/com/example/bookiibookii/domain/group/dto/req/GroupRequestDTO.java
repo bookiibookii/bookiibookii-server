@@ -47,6 +47,13 @@ public class GroupRequestDTO {
         @Size(min = 1, max = 5)
         @Valid
         private List<@NotNull RuleDTO> rules;
+
+        @Schema(description = "비공개 여부 (기본값: false)", example = "true")
+        private Boolean isPrivate = false;
+
+        @Schema(description = "비공개 비밀번호 (숫자 4자리, isPrivate=true 시 필수)", example = "1234")
+        @Pattern(regexp = "^[0-9]{4}$", message = "비밀번호는 숫자 4자리여야 합니다.")
+        private String password;
     }
 
     @Getter
@@ -61,6 +68,13 @@ public class GroupRequestDTO {
         @Size(min = 1, max = 5)
         @Valid
         private List<@NotNull RuleDTO> rules;
+
+        @Schema(description = "비공개 여부 변경 (null이면 변경 없음)")
+        private Boolean isPrivate;
+
+        @Schema(description = "변경할 비밀번호 (숫자 4자리, 변경 시에만 입력)", example = "5678")
+        @Pattern(regexp = "^[0-9]{4}$", message = "비밀번호는 숫자 4자리여야 합니다.")
+        private String password;
     }
 
     public record FilterDTO(

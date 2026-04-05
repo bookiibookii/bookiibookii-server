@@ -70,6 +70,13 @@ public class Groups extends BaseEntity {
     private String groupName;
 
     @Builder.Default
+    @Column(name = "is_private", nullable = false)
+    private Boolean isPrivate = false;
+
+    @Column(name = "password")
+    private String password;
+
+    @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<Application> applications = new ArrayList<>();
 

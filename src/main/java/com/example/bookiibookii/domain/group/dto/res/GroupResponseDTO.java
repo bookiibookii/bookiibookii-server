@@ -88,6 +88,9 @@ public class GroupResponseDTO {
         // APPLY(신청하기), CANCEL(취소하기), MANAGE(요청관리), TRACKER(트래커보기), FULL(인원마감)
         private String buttonStatus;
 
+        // 7. 비공개 여부
+        private Boolean isPrivate;
+
     }
 
     @Builder
@@ -119,7 +122,8 @@ public class GroupResponseDTO {
             String tradeType,
             Integer readingPeriod,
             String startDate,
-            String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
+            String pictureBadge, //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
+            boolean isPrivate
     ) {}
 
     public record GroupSliceResponseDTO(

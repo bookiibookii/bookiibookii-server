@@ -28,6 +28,7 @@ import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +62,7 @@ public class GroupService {
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
+    private final PasswordEncoder passwordEncoder;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -107,7 +109,17 @@ public class GroupService {
             finalTradeType = TradeType.NONE;
         }
 
-        // 4. Groups 엔티티 빌드 (ID 기반 연관관계 매핑)
+        // 4. 비공개 그룹 비밀번호 처리
+        boolean isPrivate = Boolean.TRUE.equals(request.getIsPrivate());
+        String hashedPassword = null;
+        if (isPrivate) {
+            if (request.getPassword() == null) {
+                throw new GroupException(GroupErrorCode.PASSWORD_REQUIRED);
+            }
+            hashedPassword = passwordEncoder.encode(request.getPassword());
+        }
+
+        // 5. Groups 엔티티 빌드 (ID 기반 연관관계 매핑)
         Groups group = Groups.builder()
                 .book(book)
                 .host(host)
@@ -120,6 +132,8 @@ public class GroupService {
                 .groupStatus(GroupStatus.RECRUITING)
                 .preferRegion(request.getPreferRegion())
                 .groupName(request.getGroupName())
+                .isPrivate(isPrivate)
+                .password(hashedPassword)
                 .build();
 
         Groups savedGroup = groupsRepository.save(group);
@@ -332,7 +346,24 @@ public class GroupService {
             request.getRules().forEach(rule ->
                     group.getGroupRules().add(GroupRule.create(group, resolveRuleContent(rule), rule.tag())));
         }
-      
+
+        // 비공개 여부 및 비밀번호 수정
+        if (request.getIsPrivate() != null) {
+            if (Boolean.TRUE.equals(request.getIsPrivate())) {
+                if (request.getPassword() != null) {
+                    group.setPassword(passwordEncoder.encode(request.getPassword()));
+                } else if (group.getPassword() == null) {
+                    // 공개→비공개 전환인데 기존 비밀번호도 없는 경우
+                    throw new GroupException(GroupErrorCode.PASSWORD_REQUIRED);
+                }
+                group.setIsPrivate(true);
+            } else {
+                // 비공개→공개 전환: 비밀번호 초기화
+                group.setIsPrivate(false);
+                group.setPassword(null);
+            }
+        }
+
         return GroupResponseDTO.UpdateResultDTO.builder()
                 .groupId(group.getGroupId())
                 .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
@@ -377,11 +408,24 @@ public class GroupService {
 
     //그룹조회
     @Transactional(readOnly = true)
-    public GroupResponseDTO.GroupDetailDTO getGroupDetail(Long groupId, Long userId) {
+    public GroupResponseDTO.GroupDetailDTO getGroupDetail(Long groupId, Long userId, String groupPassword) {
 
         // 1. 그룹의 핵심 정보(도서, 호스트)를 한 번에 조회 (Fetch Join 활용으로 성능 최적화)
         Groups group = groupsRepository.findDetailById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        // 2. 비공개 그룹 접근 제어: 비그룹원은 비밀번호 검증 필요
+        if (Boolean.TRUE.equals(group.getIsPrivate())) {
+            boolean isMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+            if (!isMember) {
+                if (groupPassword == null) {
+                    throw new GroupException(GroupErrorCode.PRIVATE_GROUP_ACCESS_REQUIRED);
+                }
+                if (!passwordEncoder.matches(groupPassword, group.getPassword())) {
+                    throw new GroupException(GroupErrorCode.WRONG_GROUP_PASSWORD);
+                }
+            }
+        }
 
         String persistedMeetPlace = null;
         if (group.getTradeType() == TradeType.DIRECT) {
@@ -433,6 +477,7 @@ public class GroupService {
                 .rules(group.getGroupRules().stream()
                         .map(r -> new RuleDTO(r.getTag(), r.getRuleContent()))
                         .toList())
+                .isPrivate(group.getIsPrivate())
                 .build();
     }
 
@@ -554,6 +599,7 @@ public class GroupService {
                             .pictureBadge(determinePictureBadge(group))
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
+                            .isPrivate(Boolean.TRUE.equals(group.getIsPrivate()))
                             .build();
                 }).toList();
 
@@ -635,6 +681,7 @@ public class GroupService {
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
+                            .isPrivate(Boolean.TRUE.equals(group.getIsPrivate()))
                             .build();
                 }).toList();
 

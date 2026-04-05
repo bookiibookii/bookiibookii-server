@@ -1,10 +1,20 @@
 package com.example.bookiibookii.domain.user.enums;
 
 public enum Tag {
-    MEMO,   // 펜으로 밑줄을 긋고 메모
-    POSTIT, // 포스트잇이나 인덱스를 활용
-    PHOTO,  // 사진 or 독서카드
-    NO_IDEA,   // 온보딩 태그 : 아직 잘 모르겠어요
-    All_ROUNDER, // 어떤 방식이든 환영
-    CUSTOM // 그룹 태그 : 커스텀 규칙
+    MEMO("책에 직접 코멘트를 남겨요!"),
+    POSTIT("직접 메모 대신 포스트잇이나 인덱스를 활용해요!"),
+    PHOTO("직접 메모 대신 사진으로 기록해요!"),
+    All_ROUNDER("어떤 방식이든 좋아요!"),
+    NO_IDEA("아직 잘 모르겠어요."),  // 온보딩 전용
+    CUSTOM(null);                    // 그룹 규칙 직접입력
+
+    private final String defaultContent;
+
+    Tag(String defaultContent) {
+        this.defaultContent = defaultContent;
+    }
+
+    public String getDefaultContent() {
+        return defaultContent;
+    }
 }

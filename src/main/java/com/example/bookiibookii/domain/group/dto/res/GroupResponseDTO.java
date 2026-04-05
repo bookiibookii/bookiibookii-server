@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.dto.res;
 
+import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -77,7 +78,7 @@ public class GroupResponseDTO {
 
         // 6. TOGETHER 타입 전용
         private String groupName;
-        private List<String> rules;
+        private List<RuleDTO> rules;
 
 
         // 예: 정원 4명 중 2명 참여 시 -> [방장, 게스트1, EMPTY, EMPTY] 순서로 구성

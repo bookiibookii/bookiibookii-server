@@ -1,17 +1,16 @@
 package com.example.bookiibookii.domain.group.dto.req;
 
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
+import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 public class GroupRequestDTO {
@@ -44,9 +43,10 @@ public class GroupRequestDTO {
         // TOGETHER 타입 전용
         @Schema(description = "그룹명 (TOGETHER 타입 필수)", example = "같이 읽어요")
         private String groupName;
-        @Schema(description = "규칙 리스트 (1~5개, TOGETHER 타입 필수)", example = "[\"지각 금지\", \"독후감 필수\"]")
+        @Schema(description = "규칙 리스트 (1~5개, TOGETHER 타입 필수)")
         @Size(min = 1, max = 5)
-        private List<String> rules;
+        @Valid
+        private List<@NotNull RuleDTO> rules;
     }
 
     @Getter
@@ -57,9 +57,10 @@ public class GroupRequestDTO {
         private Integer readingPeriod;
         @Schema(description = "수정할 소개글", example = "내용을 조금 수정했습니다. 끝까지 함께하실 분!")
         private String groupComment;
-        @Schema(description = "수정할 규칙 리스트 (1~5개, TOGETHER/직접교환 타입)", example = "[\"지각 금지\", \"독후감 필수\"]")
+        @Schema(description = "수정할 규칙 리스트 (1~5개, TOGETHER/직접교환 타입)")
         @Size(min = 1, max = 5)
-        private List<String> rules;
+        @Valid
+        private List<@NotNull RuleDTO> rules;
     }
 
     public record FilterDTO(
@@ -81,18 +82,18 @@ public class GroupRequestDTO {
 
     public record SearchDTO(
             @NotBlank(message = "검색어를 입력해주세요.")
-            @Schema(description = "검색어", example = "자바") // 예시 단어 설정
+            @Schema(description = "검색어", example = "자바")
             String keyword,
 
             @Schema(description = "정렬 방식", defaultValue = "LATEST")
             GroupSortType sort,
 
             @Min(0)
-            @Schema(description = "페이지 번호", defaultValue = "0") // 스웨거 기본값 설정
+            @Schema(description = "페이지 번호", defaultValue = "0")
             Integer page,
 
             @Positive
-            @Schema(description = "페이지 크기", defaultValue = "10") // 스웨거 기본값 설정
+            @Schema(description = "페이지 크기", defaultValue = "10")
             Integer size
     ){
         public SearchDTO {
@@ -101,5 +102,3 @@ public class GroupRequestDTO {
             if (sort == null) sort = GroupSortType.LATEST;
         }}
 }
-
-

@@ -25,7 +25,6 @@ import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

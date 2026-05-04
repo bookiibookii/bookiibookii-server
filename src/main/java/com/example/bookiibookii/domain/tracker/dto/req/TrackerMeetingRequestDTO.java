@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.time.LocalDateTime;
 
 @Schema(description = "직접 교환 약속 등록 및 수정 요청")
@@ -30,6 +32,7 @@ public record TrackerMeetingRequestDTO(
         String addressDetail,
 
         @Schema(description = "우편번호", example = "06232")
+        @Size(max = 5, message = "우편번호는 5자리입니다.")
         String zipCode
 
 ) {}

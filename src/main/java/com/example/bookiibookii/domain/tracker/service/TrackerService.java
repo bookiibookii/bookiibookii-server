@@ -163,14 +163,7 @@ public class TrackerService {
         MatchedMember firstOwner = matchedMemberRepository.findFirstByGroup_GroupIdOrderByCreatedAtAsc(event.groupId())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.FIRST_MEMBER_NOT_FOUND));
 
-        TrackerStatus trackerStatus;
-        if(group.getGroupType() == GroupType.TOGETHER){
-            trackerStatus = TrackerStatus.TOGETHER;
-        }else if(group.getGroupType() == GroupType.RELAY){
-            trackerStatus = TrackerStatus.READY;
-        }else {
-            throw new GroupException(GroupErrorCode.INVALID_GROUP_TYPE);
-        }
+        TrackerStatus trackerStatus = TrackerStatus.READY;
 
         // 4. 트래커 초기 빌드
         Tracker tracker = Tracker.builder()
@@ -310,16 +303,7 @@ public class TrackerService {
                     List<String> stepDates = buildStepDates(tracker);
                     String targetNickname = findTargetNickName(tracker, userId);
 
-                    Integer myRate = 0;
-                    Integer groupRate = 0;
-
-
-                    if (group.getGroupType() == GroupType.TOGETHER) {
-                        myRate = calculateUserReadingRate(userId, group);
-                        groupRate = calculateGroupAverageRate(group);
-                    }
-
-                    return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, myRate, groupRate);
+                    return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, 0, 0);
                 })
                 .collect(Collectors.toList());
     }

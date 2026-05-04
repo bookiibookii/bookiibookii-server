@@ -209,7 +209,6 @@ public class UserService {
         Long completeBookCount = userBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
         // 참여한 그룹 수 (타입별)
         Long relayCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.RELAY);
-        Long togetherCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.TOGETHER);
 
         // 그룹 조회 (모집중, 진행중)
         List<Groups> targetGroups = matchedMemberRepository.findMyActiveGroups(
@@ -247,7 +246,6 @@ public class UserService {
                 .topTags(TopTags)
                 .completeBook(completeBookCount.intValue())
                 .relayGroup(relayCount.intValue())
-                .togetherGroup(togetherCount.intValue())
                 .groups(groupList)
                 .books(recentBooks)
                 .receiverName(receiverName)

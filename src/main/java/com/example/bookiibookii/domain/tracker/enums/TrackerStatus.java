@@ -26,10 +26,7 @@ public enum TrackerStatus {
     GUEST_DONE("게스트독서완료"),
     SHIPPING_TO_HOST("회수중"),
     RETURNED("회수완료"),
-    COMPLETED("릴레이종료"),
-
-    //함께 읽기
-    TOGETHER("함께읽기")
+    COMPLETED("릴레이종료")
 
     ;
 

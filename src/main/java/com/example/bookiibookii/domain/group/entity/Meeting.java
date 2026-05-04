@@ -39,10 +39,6 @@ public class Meeting extends BaseEntity {
     private LocalDateTime meetingTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tracker_status", nullable = false)
-    private TrackerStatus trackerStatus;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "host_confirmation_status", nullable = false)
     @Builder.Default
     private ConfirmationStatus hostConfirmationStatus = ConfirmationStatus.PENDING;

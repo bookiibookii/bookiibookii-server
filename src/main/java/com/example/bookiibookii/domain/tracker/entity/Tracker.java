@@ -131,7 +131,11 @@ public class Tracker extends BaseEntity {
         if (this.extensionCount >= 1) {
             throw new TrackerException(TrackerErrorCode.EXTENSION_LIMIT_EXCEEDED);
         }
-        if (this.endDate != null) {
+
+        if( this.endDate == null){
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+        else {
             this.endDate = this.endDate.plusDays(days);
         }
         this.extensionCount += 1;

@@ -21,10 +21,6 @@ public class GroupRequestDTO {
         @NotBlank(message = "ISBN은 필수 입력 사항입니다.")
         @Pattern(regexp = "^[0-9]{13}$", message = "ISBN13은 숫자 13자리여야 합니다.")
         private String isbn13;          // 대상 도서 ID
-        @Schema(description = "모집 인원 (2~8명)", example = "4")
-        @Min(2)
-        @Max(8)
-        private Integer maxCapacity;
         @Schema(description = "독서 시작 날짜 (오늘 이후)", example = "2026-02-20")
         private LocalDate startDate;
         @Schema(description = "독서 기간 (7, 14, 21, 28일 중 택1)", example = "14")
@@ -32,8 +28,10 @@ public class GroupRequestDTO {
         @Schema(description = "그룹 소개글 (최대 500자)", example = "숭실대 근처에서 같이 경제 서적 읽으실 분 구해요!")
         @Size(max = 500)
         private String groupComment;
+        @NotNull(message = "그룹 타입은 필수입니다.")
         @Schema(description = "그룹 타입 (RELAY: 이어읽기)", example = "RELAY")
         private GroupType groupType;
+        @NotNull(message = "교환 방식은 필수입니다.")
         @Schema(description = "교환 방식 (DIRECT: 직거래, DELIVERY: 택배 교환)", example = "DIRECT")
         private TradeType tradeType;
         @Schema(description = "선호 지역 (직거래 시 필수)", example = "서울 동작구 상도동")

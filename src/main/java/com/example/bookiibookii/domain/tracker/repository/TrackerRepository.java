@@ -2,7 +2,9 @@ package com.example.bookiibookii.domain.tracker.repository;
 
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,6 +17,10 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 
     @Query("SELECT t FROM Tracker t WHERE t.group.groupId = :groupId")
     Optional<Tracker> findByGroupId(@Param("groupId") Long groupId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Tracker t WHERE t.group.groupId = :groupId")
+    Optional<Tracker> findByGroupIdForUpdate(@Param("groupId") Long groupId);
 
     boolean existsByGroup_GroupId(Long groupId);
 

@@ -30,8 +30,6 @@ public interface DeliveryRepository extends JpaRepository<Delivery, String> {
 
     boolean existsByTrackerAndDeliveryStatus(Tracker tracker, DeliveryStatus status);
 
-    @Query("SELECT COUNT(d) > 0 FROM Delivery d WHERE d.tracker = :tracker AND d.sender.id = :senderId " +
-            "AND d.deliveryStatus = 'SHIPPING'")
-    boolean existsShippingBySender(@Param("tracker") Tracker tracker, @Param("senderId") Long senderId);
+    boolean existsByTrackerAndSenderIdAndDeliveryStatus(Tracker tracker, Long senderId, DeliveryStatus status);
 
 }

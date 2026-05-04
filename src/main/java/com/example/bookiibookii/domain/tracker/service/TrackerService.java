@@ -177,12 +177,10 @@ public class TrackerService {
 
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
-                    .trackerStatus(TrackerStatus.EXCHANGING)
                     .location(defaultLocation)
                     .build());
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
-                    .trackerStatus(TrackerStatus.RETURNING)
                     .location(defaultLocation)
                     .build());
         }
@@ -400,7 +398,7 @@ public class TrackerService {
 
     @Transactional
     public void registerShipping(Long groupId, TrackerShippingRequestDTO request, User user) {
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
+        Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
@@ -411,7 +409,7 @@ public class TrackerService {
             if (me.getReadingStatus() != ReadingStatus.REVIEW_DONE) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
-            if (deliveryRepository.existsShippingBySender(tracker, me.getId())) {
+            if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
             if (status == TrackerStatus.READ_DONE) {
@@ -421,7 +419,7 @@ public class TrackerService {
             if (me.getReadingStatus() != ReadingStatus.REVIEW_DONE_2) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
-            if (deliveryRepository.existsShippingBySender(tracker, me.getId())) {
+            if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
             if (status == TrackerStatus.READ_DONE_2) {

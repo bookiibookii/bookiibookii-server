@@ -55,7 +55,6 @@ public class Tracker extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.trackerStatus = TrackerStatus.READING;
-        this.startDate = LocalDateTime.now();
     }
 
     // EXCHANGED → READING_2 (첫 멤버가 2차 읽기 시작)

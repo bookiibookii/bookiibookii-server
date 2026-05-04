@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
@@ -15,7 +16,9 @@ import com.example.bookiibookii.domain.review.exception.ReviewException;
 import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
@@ -23,6 +26,8 @@ import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.REVIEW_DONE_CONFIRMED;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -46,6 +51,7 @@ public class ReviewService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupReviewRepository groupReviewRepository;
     private final GroupsRepository groupsRepository;
+    private final DomainEventPublisher publisher;
 
     /**
      * 1. [함께 읽기] 리뷰 생성
@@ -85,7 +91,64 @@ public class ReviewService {
     }
 
     /**
-     * 2. [릴레이] 통합 리뷰 생성
+     * 2. [릴레이 중간] 책 리뷰 생성 (1차/2차 독서 후, 교환·반납 전)
+     * 책 리뷰를 저장하고 ReadingStatus를 REVIEW_DONE/REVIEW_DONE_2로 전환합니다.
+     * 양측 모두 완료되면 TrackerStatus가 READ_DONE/READ_DONE_2로 자동 전환됩니다.
+     */
+    @Transactional
+    public void createMidRelayBookReview(Long userBookId, ReviewRequestDTO.BookReviewDTO request, User user) {
+        validateRating(request.bookRating());
+        validateCommentLength(request.bookComment(), BOOK_COMMENT_MAX_LENGTH);
+
+        UserBook userBook = userBookRepository.findById(userBookId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
+        if (!userBook.getUser().getId().equals(user.getId())) {
+            throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
+        }
+
+        Long groupId = userBook.getGroup().getGroupId();
+
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
+
+        TrackerStatus trackerStatus = tracker.getTrackerStatus();
+        if (trackerStatus != TrackerStatus.READING && trackerStatus != TrackerStatus.READING_2) {
+            throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 단계가 아님
+        }
+
+        MatchedMember me = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+        Long partnerUserId = matchedMemberRepository.findPartnerUserId(groupId, user.getId())
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
+        MatchedMember partner = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
+
+        userBook.updateReview(request.bookRating(), request.bookComment());
+
+        if (trackerStatus == TrackerStatus.READING) {
+            if (me.getReadingStatus() != ReadingStatus.READ_DONE) {
+                throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 미완료
+            }
+            me.updateReadingStatus(ReadingStatus.REVIEW_DONE);
+            if (partner.getReadingStatus() == ReadingStatus.REVIEW_DONE) {
+                tracker.completeFirstReading(); // READING → READ_DONE
+            }
+        } else {
+            if (me.getReadingStatus() != ReadingStatus.READ_DONE_2) {
+                throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 미완료
+            }
+            me.updateReadingStatus(ReadingStatus.REVIEW_DONE_2);
+            if (partner.getReadingStatus() == ReadingStatus.REVIEW_DONE_2) {
+                tracker.completeSecondReading(); // READING_2 → READ_DONE_2
+            }
+        }
+
+        publisher.publish(new TrackerNotificationEvent(REVIEW_DONE_CONFIRMED, user.getId(), groupId, null));
+    }
+
+    /**
+     * 3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후)
      * 책 리뷰(UserBook)와 상대방 리뷰(GroupReview)를 한 번에 저장하고 트래커를 종료합니다.
      */
     @Transactional
@@ -177,7 +240,7 @@ public class ReviewService {
     private Tracker ensureTrackerReturned(Long groupId) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
-        if (tracker.getTrackerStatus() != TrackerStatus.RETURNED) {
+        if (tracker.getTrackerStatus() != TrackerStatus.COMPLETED) {
             throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED);
         }
 

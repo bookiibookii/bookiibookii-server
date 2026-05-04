@@ -119,15 +119,6 @@ public class TrackerController implements TrackerControllerDocs {
 
 
 
-    public ApiResponse<TrackerDetailResponseDTO> verifyPartnerReception(
-            @PathVariable Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        trackerService.verifyPartnerReception(groupId, user);
-        // 승인 후 최신 트래커 상세 정보를 반환합니다.
-        return ApiResponse.onSuccess(TrackerSuccessCode.RECEPTION_VERIFIED,trackerService.getTrackerDetailByGroupId(groupId, user)
-        );
-    }
 
 
     // --- 독서 단계 관련 ---
@@ -159,6 +150,7 @@ public class TrackerController implements TrackerControllerDocs {
         trackerService.registerReadingDone(groupId, user);
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_DONE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
     }
+
 
     // --- 직접 교환(Meeting) 관련 ---
     public ApiResponse<TrackerMeetingResponseDTO> getMeetingDetail(

@@ -131,7 +131,7 @@ public interface TrackerControllerDocs {
     );
 
     @PatchMapping("/{groupId}/tracker/done")
-    @Operation(summary = "독서 완료 등록", description = "도서를 다 읽었을 때 호출합니다. 이후 배송 등록이 가능해집니다.")
+    @Operation(summary = "독서 완료 등록", description = "도서를 다 읽었을 때 호출합니다. 이후 후기 작성이 가능해집니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독서 완료 등록 성공",
                     content = @Content(schema = @Schema(implementation = TrackerDetailResponseDTO.class))),
@@ -169,14 +169,6 @@ public interface TrackerControllerDocs {
             @RequestBody @Valid TrackerReceiveRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
-
-    @PatchMapping("/{groupId}/tracker/reception/verification")
-    @Operation(summary = "상대방의 수령 인증 사진 확인 (승인)")
-    ApiResponse<TrackerDetailResponseDTO> verifyPartnerReception(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
 
     // --- 4. 직접 교환(Meeting) 관련 ---
     @GetMapping("/{groupId}/tracker/meetings")

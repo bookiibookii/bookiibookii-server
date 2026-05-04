@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.group.repository;
 
-import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,17 +15,12 @@ import java.util.Optional;
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
-// 그룹 ID를 기반으로 가장 최근에 생성된(Id가 큰) 약속 1건을 조회
-    @Query(value = "SELECT * FROM meeting WHERE group_id = :groupId ORDER BY meeting_id DESC LIMIT 1", nativeQuery = true)
-    Optional<Meeting> findLatestByGroupIdNative(@Param("groupId") Long groupId);
-
-    @Query(value = "SELECT * FROM meeting WHERE group_id = :groupId AND tracker_status = :status LIMIT 1", nativeQuery = true)
-    Optional<Meeting> findByGroupIdAndStatusNative(@Param("groupId") Long groupId, @Param("status") String status);
+    @Query(value = "SELECT * FROM meeting WHERE tracker_id = :trackerId AND tracker_status = :status LIMIT 1", nativeQuery = true)
+    Optional<Meeting> findByTrackerIdAndStatusNative(@Param("trackerId") Long trackerId, @Param("status") String status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT m FROM Meeting m WHERE m.group.groupId = :groupId AND m.trackerStatus = :status")
-    Optional<Meeting> findByGroupWithLock(@Param("groupId") Long groupId, @Param("status") TrackerStatus status);
+    @Query("SELECT m FROM Meeting m WHERE m.tracker.id = :trackerId AND m.trackerStatus = :status")
+    Optional<Meeting> findByTrackerWithLock(@Param("trackerId") Long trackerId, @Param("status") TrackerStatus status);
 
-    // 그룹에 속한 미팅 중 가장 최근에 생성된 1건을 가져옵니다.
-    Optional<Meeting> findFirstByGroupOrderByCreatedAtDesc(Groups group);
+    Optional<Meeting> findFirstByTrackerOrderByCreatedAtDesc(Tracker tracker);
 }

@@ -89,10 +89,6 @@ public class Groups extends BaseEntity {
     private List<UserBook> userBooks = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Meeting> meetings = new ArrayList<>();
-
-    @Builder.Default
     @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GroupRule> groupRules = new ArrayList<>();

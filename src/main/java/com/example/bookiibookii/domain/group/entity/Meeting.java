@@ -1,12 +1,13 @@
 package com.example.bookiibookii.domain.group.entity;
 
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.group.enums.ConfirmationStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 
@@ -14,8 +15,8 @@ import java.time.LocalDateTime;
         name = "meeting",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_group_status",
-                        columnNames = {"group_id", "tracker_status"}
+                        name = "uk_tracker_status",
+                        columnNames = {"tracker_id", "tracker_status"}
                 )
         }
 )
@@ -31,42 +32,49 @@ public class Meeting extends BaseEntity {
     private Long meetingId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id", nullable = false)
-    private Groups group;
+    @JoinColumn(name = "tracker_id", nullable = false)
+    private Tracker tracker;
 
-    @Column(name = "meeting_time") // 초기에는 null, 트래커 단계에서 업데이트
+    @Column(name = "meeting_time")
     private LocalDateTime meetingTime;
-
-    @Column(name = "meeting_place", nullable = false)
-    private String meetingPlace;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tracker_status", nullable = false)
     private TrackerStatus trackerStatus;
 
-    @Column(name = "host_confirmed", nullable = false)
-    private boolean hostConfirmed = false;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "host_confirmation_status", nullable = false)
+    @Builder.Default
+    private ConfirmationStatus hostConfirmationStatus = ConfirmationStatus.PENDING;
 
-    @Column(name = "guest_confirmed", nullable = false)
-    private boolean guestConfirmed = false;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "guest_confirmation_status", nullable = false)
+    @Builder.Default
+    private ConfirmationStatus guestConfirmationStatus = ConfirmationStatus.PENDING;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
 
     public void confirm(RoleStatus role) {
-        if (role == RoleStatus.HOST) this.hostConfirmed = true;
-        if (role == RoleStatus.GUEST) this.guestConfirmed = true;
-    }
-    public boolean isFullyConfirmed() {
-        return hostConfirmed && guestConfirmed;
+        if (role == RoleStatus.HOST) this.hostConfirmationStatus = ConfirmationStatus.CONFIRMED;
+        if (role == RoleStatus.GUEST) this.guestConfirmationStatus = ConfirmationStatus.CONFIRMED;
     }
 
-    // 트래커 도메인에서 약속을 확정할 때 사용할 업데이트 메서드
-    public void setMeetingDetails(String place, LocalDateTime time) {
-        this.meetingPlace = place;
+    public boolean isFullyConfirmed() {
+        return hostConfirmationStatus == ConfirmationStatus.CONFIRMED &&
+                guestConfirmationStatus == ConfirmationStatus.CONFIRMED;
+    }
+
+    public void setMeetingDetails(Location location, LocalDateTime time) {
+        this.location = location;
         this.meetingTime = time;
     }
 
     public void resetConfirmation() {
-        this.hostConfirmed = false;
-        this.guestConfirmed = false;
+        this.hostConfirmationStatus = ConfirmationStatus.PENDING;
+        this.guestConfirmationStatus = ConfirmationStatus.PENDING;
         this.meetingTime = null;
+        this.location = null;
     }
 }

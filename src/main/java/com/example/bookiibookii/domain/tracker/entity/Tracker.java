@@ -1,8 +1,6 @@
 package com.example.bookiibookii.domain.tracker.entity;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
@@ -40,191 +38,104 @@ public class Tracker extends BaseEntity {
     private LocalDateTime endDate;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer extensionCount = 0;
-    @Column(nullable = false)
-    private Integer extensionDays = 0;
 
     @Column(nullable = false)
     @Builder.Default
-    private Boolean isVerified = false;
+    private Integer extensionDays = 0;
 
-    // 현재 주자를 지목하는 1:1 관계
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "matchedmember_id", nullable = false)
-    private MatchedMember bookOwner;
-
-    // 히스토리와의 1:N 관계
+    @Builder.Default
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
-    private List<TrackerHistory> histories = new ArrayList<>();
+    private List<Delivery> deliveries = new ArrayList<>();
 
-    public TrackerHistory createHistorySnapshot(Long senderId, Long receiverId, String company,
-                                        String number) {
-        return TrackerHistory.builder()
-                .tracker(this)
-                .senderMatchedMemberId(senderId)
-                .receiverMatchedMemberId(receiverId)
-                .trackerStatus(this.trackerStatus) // 변경 전 현재 상태
-                .startDate(this.startDate)
-                .endDate(this.endDate)
-                .deliveryCompany(company)
-                .trackingNumber(number)
-                .build();
-    }
-
-    public void updateShippingStatus(MatchedMember bookOwner, MatchedMember nextOwner) {
-
-        if (this.trackerStatus != TrackerStatus.HOST_DONE &&
-                this.trackerStatus != TrackerStatus.GUEST_DONE &&
-                this.trackerStatus != TrackerStatus.READ_DONE) {
+    // READY → READING (첫 멤버가 읽기 시작)
+    public void startFirstReading() {
+        if (this.trackerStatus != TrackerStatus.READY) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
-        // 1. 방장이 게스트에게 보내는 경우 (HOST -> GUEST)
-        if (bookOwner.getRole() == RoleStatus.HOST) {
-            this.trackerStatus = TrackerStatus.SHIPPING_TO_GUEST;
-            //알람
-        }
-        // 2. 마지막 게스트가 호스트에게 보내는 경우 (GUEST -> HOST)
-        // 다음 주자의 역할이 HOST라면 마지막 게스트가 보낸 것으로 판단
-        else if (nextOwner.getRole() == RoleStatus.HOST) {
-            this.trackerStatus = TrackerStatus.SHIPPING_TO_HOST;
-        }
-        // 3. 게스트가 게스트에게 보내는 경우 (GUEST -> GUEST)
-        else {
-            this.trackerStatus = TrackerStatus.SHIPPING;
-        }
-
-        // 배송 등록 시점 기록
+        this.trackerStatus = TrackerStatus.READING;
         this.startDate = LocalDateTime.now();
-
-        this.endDate = null;
-
-        // 공통 업데이트: 현재 관리 주자를 다음 사람으로 변경
-        this.bookOwner = nextOwner;
     }
 
-    public void updateReceiveStatus() {
-        if (this.trackerStatus == TrackerStatus.SHIPPING_TO_HOST) {
-            this.trackerStatus = TrackerStatus.RETURNED; // 호스트가 돌려받음
-            this.isVerified = false;
-        } else if (this.trackerStatus == TrackerStatus.SHIPPING_TO_GUEST || this.trackerStatus == TrackerStatus.SHIPPING) {
-            this.trackerStatus = TrackerStatus.RECEIVED; // 게스트가 전달받음
-            this.isVerified = false;
-        } else {
+    // EXCHANGED → READING_2 (첫 멤버가 2차 읽기 시작)
+    public void startSecondReading() {
+        if (this.trackerStatus != TrackerStatus.EXCHANGED) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
-        // 수령 시점 기록
-        this.endDate = LocalDateTime.now();
-
-        // 기간 연장 횟수, 일수 초기화.
-        this.extensionDays = 0;
-        this.extensionCount = 0;
-
+        this.trackerStatus = TrackerStatus.READING_2;
     }
 
-    public void verifyReception() {
-        // RECEIVED(받은 직후) 거나 GUEST_READING(읽는 중) 일 때 모두 확인 가능하도록 설정
-        if (this.trackerStatus != TrackerStatus.RECEIVED &&
-                this.trackerStatus != TrackerStatus.GUEST_READING &&
-                this.trackerStatus != TrackerStatus.RETURNED) {
+    // 양측 REVIEW_DONE → READ_DONE
+    public void completeFirstReading() {
+        if (this.trackerStatus != TrackerStatus.READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.isVerified = true;
+        this.trackerStatus = TrackerStatus.READ_DONE;
     }
 
-    public void startReading() {
-        if (this.trackerStatus == TrackerStatus.RECEIVED) {
-            this.trackerStatus = TrackerStatus.GUEST_READING;
-            // 독서 시작 시점으로 타이머 리셋
-            this.startDate = LocalDateTime.now();
-            // 독서 종료 시점 = 독서 시작 시점 + 그룹 독서 기간.
-            int readingPeriod = this.group.getReadingPeriod();
-            this.endDate = this.startDate.plusDays(readingPeriod);
-        } else if (this.trackerStatus == TrackerStatus.READY) {
-            this.trackerStatus = TrackerStatus.HOST_READING;
-        } else {
+    // 양측 REVIEW_DONE_2 → READ_DONE_2
+    public void completeSecondReading() {
+        if (this.trackerStatus != TrackerStatus.READING_2) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
+        this.trackerStatus = TrackerStatus.READ_DONE_2;
     }
 
-    public void completeReading() {
-        if (this.trackerStatus == TrackerStatus.GUEST_READING || this.trackerStatus == TrackerStatus.GUEST_EXTENSION) {
-            this.trackerStatus = TrackerStatus.GUEST_DONE;
-        } else if (this.trackerStatus == TrackerStatus.HOST_READING || this.trackerStatus == TrackerStatus.HOST_EXTENSION) {
-            this.trackerStatus = TrackerStatus.HOST_DONE;
-        } else if(this.trackerStatus == TrackerStatus.READING || this.trackerStatus == TrackerStatus.EXTENSION) {
-            this.trackerStatus = TrackerStatus.READ_DONE;
-        }  else{
+    // READ_DONE → EXCHANGING (첫 배송 등록 시)
+    public void startExchanging() {
+        if (this.trackerStatus != TrackerStatus.READ_DONE) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
-//        // 실제 독서 종료 시점 기록
-//        this.endDate = LocalDateTime.now();
+        this.trackerStatus = TrackerStatus.EXCHANGING;
     }
 
-    public void extensionDays(int days, RoleStatus roleStatus) {
-        if(days <= 0){
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);
-        }
-
-        if(this.trackerStatus != TrackerStatus.HOST_READING &&
-        this.trackerStatus != TrackerStatus.GUEST_READING &&
-        this.trackerStatus != TrackerStatus.READING){
+    // EXCHANGING → EXCHANGED (양측 수령 완료)
+    public void completeExchange() {
+        if (this.trackerStatus != TrackerStatus.EXCHANGING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
-        // 1. 최대 연장 횟수 초과 체크( 현재는 최대 한번만 연장 가능)
-        if (this.extensionCount >= 1) {
-            throw new TrackerException(TrackerErrorCode.EXTENSION_LIMIT_EXCEEDED);
-        }
-
-        // 2. 마감일(endDate) 연장
-        this.endDate = this.endDate.plusDays(days);
-
-        // 3. 연장 정보 업데이트
-        if(roleStatus.equals(RoleStatus.GUEST)){
-            this.trackerStatus = TrackerStatus.GUEST_EXTENSION;
-        }else if(roleStatus.equals(RoleStatus.HOST)){
-            this.trackerStatus = TrackerStatus.HOST_EXTENSION;
-        }
-        this.extensionCount += 1;
-        this.extensionDays += days; // 총 연장된 전체 일수 누적
+        this.trackerStatus = TrackerStatus.EXCHANGED;
     }
 
+    // READ_DONE_2 → RETURNING (첫 반납 배송 등록 시)
+    public void startReturning() {
+        if (this.trackerStatus != TrackerStatus.READ_DONE_2) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+        this.trackerStatus = TrackerStatus.RETURNING;
+    }
+
+    // RETURNING → COMPLETED (양측 반납 수령 완료)
     public void completeRelay() {
-        if (this.trackerStatus != TrackerStatus.RETURNED) {
+        if (this.trackerStatus != TrackerStatus.RETURNING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.trackerStatus = TrackerStatus.COMPLETED;
         this.endDate = LocalDateTime.now();
     }
 
-
     public void updateStatus(TrackerStatus newStatus) {
-        if (newStatus == null) {
+        if (newStatus == null || this.trackerStatus == TrackerStatus.COMPLETED) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-
-        if (this.trackerStatus == TrackerStatus.COMPLETED) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-
         this.trackerStatus = newStatus;
     }
 
-    public void completeTrade(MatchedMember nextOwner, TrackerStatus nextStatus) {
-
-        if (nextOwner==null || nextStatus == null) {
+    public void extensionDays(int days) {
+        if (days <= 0) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);
+        }
+        if (this.trackerStatus != TrackerStatus.READING && this.trackerStatus != TrackerStatus.READING_2) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.bookOwner = nextOwner;
-        this.trackerStatus = nextStatus;
-        // 새로운 주자가 책을 받았으니 독서 기간 재설정 및 연장 횟수 초기화
-        this.startDate = LocalDateTime.now();
-        this.endDate = null;
-        this.extensionCount = 0;
-        this.extensionDays = 0;
+        if (this.extensionCount >= 1) {
+            throw new TrackerException(TrackerErrorCode.EXTENSION_LIMIT_EXCEEDED);
+        }
+        if (this.endDate != null) {
+            this.endDate = this.endDate.plusDays(days);
+        }
+        this.extensionCount += 1;
+        this.extensionDays += days;
     }
 }

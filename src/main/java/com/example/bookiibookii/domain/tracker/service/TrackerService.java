@@ -114,7 +114,7 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         Delivery shippingDelivery = deliveryRepository
-                .findLatestShippingToReceiver(tracker, me.getId())
+                .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
 
         TrackingImage image = trackingImageRepository
@@ -134,7 +134,7 @@ public class TrackerService {
 
         // 내가 보낸 배송이 RETURNED 되었을 때 수령인이 올린 이미지(최신)를 반환
         Delivery myReturnedDelivery = deliveryRepository
-                .findLatestReturnedBySender(tracker, me.getId())
+                .findTopByTrackerAndSenderIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.RETURNED)
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
 
         TrackingImage image = trackingImageRepository
@@ -466,7 +466,7 @@ public class TrackerService {
         }
 
         Delivery shippingDelivery = deliveryRepository
-                .findLatestShippingToReceiver(tracker, me.getId())
+                .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS));
 
         validateTrackerImageS3Key(request.s3Key());

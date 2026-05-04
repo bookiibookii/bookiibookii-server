@@ -22,23 +22,11 @@ public interface DeliveryRepository extends JpaRepository<Delivery, String> {
     @Query("SELECT d FROM Delivery d WHERE d.tracker.group.groupId = :groupId ORDER BY d.createdAt DESC")
     List<Delivery> findAllByGroupIdOrderByCreatedAtDesc(@Param("groupId") Long groupId);
 
-    @Query("SELECT d FROM Delivery d WHERE d.tracker = :tracker AND d.receiver.id = :receiverId " +
-            "AND d.deliveryStatus = 'SHIPPING' ORDER BY d.createdAt DESC")
-    Optional<Delivery> findLatestShippingToReceiver(
-            @Param("tracker") Tracker tracker,
-            @Param("receiverId") Long receiverId);
+    Optional<Delivery> findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(
+            Tracker tracker, Long receiverId, DeliveryStatus status);
 
-    @Query("SELECT d FROM Delivery d WHERE d.tracker = :tracker AND d.sender.id = :senderId " +
-            "AND d.deliveryStatus = 'SHIPPING' ORDER BY d.createdAt DESC")
-    Optional<Delivery> findLatestShippingBySender(
-            @Param("tracker") Tracker tracker,
-            @Param("senderId") Long senderId);
-
-    @Query("SELECT d FROM Delivery d WHERE d.tracker = :tracker AND d.sender.id = :senderId " +
-            "AND d.deliveryStatus = 'RETURNED' ORDER BY d.createdAt DESC")
-    Optional<Delivery> findLatestReturnedBySender(
-            @Param("tracker") Tracker tracker,
-            @Param("senderId") Long senderId);
+    Optional<Delivery> findTopByTrackerAndSenderIdAndDeliveryStatusOrderByCreatedAtDesc(
+            Tracker tracker, Long senderId, DeliveryStatus status);
 
     boolean existsByTrackerAndDeliveryStatus(Tracker tracker, DeliveryStatus status);
 

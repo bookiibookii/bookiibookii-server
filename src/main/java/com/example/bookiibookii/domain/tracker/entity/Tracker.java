@@ -8,10 +8,17 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.AuditOverride;
+import org.hibernate.envers.NotAudited;
+import org.hibernate.envers.RelationTargetAuditMode;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Audited
+@AuditOverride(forClass = BaseEntity.class)
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -24,6 +31,7 @@ public class Tracker extends BaseEntity {
     @Column(name = "tracker_id")
     private Long id;
 
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
@@ -35,7 +43,11 @@ public class Tracker extends BaseEntity {
     @Column(nullable = false)
     private LocalDateTime startDate;
 
-    private LocalDateTime endDate;
+    private LocalDateTime endDate;       // 예정 종료일 (그룹 설정 + 연장 반영)
+
+    private LocalDateTime startedAt;     // 실제 독서 시작 시각
+
+    private LocalDateTime completedAt;   // 실제 완료 시각
 
     @Column(nullable = false)
     @Builder.Default
@@ -45,6 +57,7 @@ public class Tracker extends BaseEntity {
     @Builder.Default
     private Integer extensionDays = 0;
 
+    @NotAudited
     @Builder.Default
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
     private List<Delivery> deliveries = new ArrayList<>();
@@ -55,6 +68,7 @@ public class Tracker extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.trackerStatus = TrackerStatus.READING;
+        this.startedAt = LocalDateTime.now();
     }
 
     // EXCHANGED → READING_2 (첫 멤버가 2차 읽기 시작)
@@ -111,7 +125,7 @@ public class Tracker extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.trackerStatus = TrackerStatus.COMPLETED;
-        this.endDate = LocalDateTime.now();
+        this.completedAt = LocalDateTime.now();
     }
 
     public void extensionDays(int days) {

@@ -19,7 +19,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     Optional<Meeting> findByTrackerIdAndStatusNative(@Param("trackerId") Long trackerId, @Param("status") String status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT m FROM Meeting m WHERE m.tracker.id = :trackerId AND m.trackerStatus = :status")
+    @Query("SELECT m FROM Meeting m WHERE m.tracker.id = :trackerId AND m.tracker.trackerStatus = :status")
     Optional<Meeting> findByTrackerWithLock(@Param("trackerId") Long trackerId, @Param("status") TrackerStatus status);
 
     Optional<Meeting> findFirstByTrackerOrderByCreatedAtDesc(Tracker tracker);

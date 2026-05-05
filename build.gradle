@@ -63,6 +63,9 @@ dependencies {
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // Hibernate Envers (tracker audit/history)
+    implementation 'org.hibernate.orm:hibernate-envers'
+
     // 아호-코라식 알고리즘
     implementation 'org.ahocorasick:ahocorasick:0.6.3'
 }

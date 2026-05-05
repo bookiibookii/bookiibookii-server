@@ -42,6 +42,8 @@ public class TrackerConverter {
                 .trackerStatus(tracker.getTrackerStatus())
                 .startDate(tracker.getStartDate())
                 .endDate(tracker.getEndDate())
+                .startedAt(tracker.getStartedAt())
+                .completedAt(tracker.getCompletedAt())
                 .extensionCount(tracker.getExtensionCount())
                 .extensionDays(tracker.getExtensionDays())
                 .readingPeriod(tracker.getGroup().getReadingPeriod())

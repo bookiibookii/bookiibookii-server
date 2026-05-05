@@ -16,6 +16,8 @@ public class TrackerDetailResponseDTO {
     private TrackerStatus trackerStatus;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
+    private LocalDateTime startedAt;
+    private LocalDateTime completedAt;
     private Integer extensionCount;
     private Integer extensionDays;
     private Integer readingPeriod;

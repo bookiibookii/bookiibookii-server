@@ -111,6 +111,7 @@ public class TrackerConverter {
                     .partnerNickname(targetNickname)
                     .hostProfileImageUrl(hostProfileImageUrl)
                     .guestProfileImageUrls(guestProfileImageUrls)
+                    .trackerStatus(tracker.getTrackerStatus())
                     .stepDates(stepDates)
                     .build());
         } else if (group.getGroupType() == GroupType.TOGETHER) {

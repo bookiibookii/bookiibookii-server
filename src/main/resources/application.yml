@@ -2,4 +2,4 @@ spring:
   application:
     name: bookiibookii
   profiles:
-    active: dev
+    active: v1

@@ -95,6 +95,7 @@ public class TrackerNotificationService {
             case READING_STARTED -> TrackerNotiType.READING_STARTED;
             case READING_FINISHED -> TrackerNotiType.READING_FINISHED;
             case EXTEND_REQUESTED -> TrackerNotiType.EXTEND_REQUESTED;
+            case REVIEW_DONE_CONFIRMED -> TrackerNotiType.REVIEW_DONE_CONFIRMED;
         };
     }
 }

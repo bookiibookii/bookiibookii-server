@@ -121,28 +121,7 @@ public class GroupService {
             }
         }
 
-        // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
-        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
-
-            // 1. 전달용 약속 (호스트 -> 게스트)
-            Meeting shippingMeeting = Meeting.builder()
-                    .group(group)
-                    .trackerStatus(TrackerStatus.SHIPPING_TO_GUEST)
-                    .meetingPlace(request.getMeetPlace())
-                    .meetingTime(null)
-                    .build();
-
-            // 2. 반납용 약속 (마지막 게스트 -> 호스트)
-            Meeting returnMeeting = Meeting.builder()
-                    .group(group)
-                    .trackerStatus(TrackerStatus.SHIPPING_TO_HOST)
-                    .meetingPlace(request.getMeetPlace())
-                    .meetingTime(null)
-                    .build();
-
-            meetingRepository.saveAll(List.of(shippingMeeting, returnMeeting));
-
-        }
+        // 직접 교환 그룹의 Meeting 초기 데이터는 트래커 생성 시점(GroupMatchedEvent)에 생성됩니다.
 
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()

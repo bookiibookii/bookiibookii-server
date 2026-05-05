@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.entity;
 
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;

@@ -29,6 +29,7 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 
     @Query("SELECT DISTINCT t FROM Tracker t " +
             "JOIN FETCH t.group g " +
+            "LEFT JOIN FETCH t.deliveries " +
             "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
             "JOIN UserBook ub ON ub.group = g AND ub.user.id = :userId " +
             "WHERE ub.rating IS NULL " +
@@ -37,6 +38,7 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 
     @Query("SELECT DISTINCT t FROM Tracker t " +
             "JOIN FETCH t.group g " +
+            "LEFT JOIN FETCH t.deliveries " +
             "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
             "JOIN UserBook ub ON ub.group = g AND ub.user.id = :userId " +
             "WHERE mm.role = :role " +

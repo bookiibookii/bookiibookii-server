@@ -131,12 +131,12 @@ public class TrackerConverter {
 
         if (status == TrackerStatus.MY_BOOK_READING || status == TrackerStatus.PARTNER_BOOK_READING) {
             if (tracker.getEndDate() == null) return 0;
-            return (int) ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate());
+            return (int) Math.max(0, ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate()));
         }
 
         if ((status == TrackerStatus.EXCHANGING || status == TrackerStatus.RETURNING)
                 && latestMeeting != null && latestMeeting.getMeetingTime() != null) {
-            return (int) ChronoUnit.DAYS.between(today, latestMeeting.getMeetingTime().toLocalDate());
+            return (int) Math.max(0, ChronoUnit.DAYS.between(today, latestMeeting.getMeetingTime().toLocalDate()));
         }
 
         return 0;

@@ -33,10 +33,22 @@ public class ReviewController implements ReviewControllerDocs {
     }
 
     /**
-     * 2. [릴레이] 통합 리뷰 생성
-     * 책 리뷰와 파트너 리뷰를 한 번에 처리합니다.
+     * 2. [릴레이 중간] 책 리뷰 생성 (1차/2차 독서 완료 후)
      */
-    @PostMapping("/relay/{userBookId}") // 🟢 userBookId를 기준으로 처리 (안에서 groupId 추출)
+    @PostMapping("/relay/{userBookId}/book")
+    public ApiResponse<Void> createMidRelayBookReview(
+            @PathVariable Long userBookId,
+            @RequestBody @Valid ReviewRequestDTO.BookReviewDTO request,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        reviewService.createMidRelayBookReview(userBookId, request, user);
+        return ApiResponse.onSuccess(ReviewSuccessCode.BOOK_REVIEW_CREATED, null);
+    }
+
+    /**
+     * 3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후, 파트너 리뷰 포함)
+     */
+    @PostMapping("/relay/{userBookId}")
     public ApiResponse<Void> createRelayReview(
             @PathVariable Long userBookId,
             @RequestBody @Valid ReviewRequestDTO.RelayReviewDTO request, // 🟢 통합 DTO 사용

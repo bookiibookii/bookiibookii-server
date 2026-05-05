@@ -39,7 +39,24 @@ public interface ReviewControllerDocs {
     );
 
     @Operation(
-            summary = "릴레이 통합 리뷰 작성 (책 + 파트너)",
+            summary = "릴레이 중간 책 리뷰 작성 (1차/2차 독서 완료 후)",
+            description = """
+            1차 또는 2차 독서를 완료한 후 책에 대한 리뷰를 작성합니다.
+            양측 모두 완료 시 자동으로 교환/반납 단계로 진입합니다.
+
+            - 경로: /api/reviews/relay/{userBookId}/book
+            - 조건: 트래커가 READING 또는 READING_2 상태이며 독서 완료(READ_DONE/READ_DONE_2) 상태여야 합니다.
+            """
+    )
+    @PostMapping("/relay/{userBookId}/book")
+    ApiResponse<Void> createMidRelayBookReview(
+            @PathVariable Long userBookId,
+            @RequestBody @Valid ReviewRequestDTO.BookReviewDTO request,
+            @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(
+            summary = "릴레이 통합 리뷰 작성 (책 + 파트너, 릴레이 종료 후)",
             description = """
             1:1 이어읽기 그룹 종료 후 책에 대한 리뷰와 상대방에 대한 평가를 한 번에 작성합니다.
             

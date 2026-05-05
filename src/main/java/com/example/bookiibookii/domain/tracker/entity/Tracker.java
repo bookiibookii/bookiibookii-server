@@ -67,7 +67,7 @@ public class Tracker extends BaseEntity {
         if (this.trackerStatus != TrackerStatus.READY) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.READING;
+        this.trackerStatus = TrackerStatus.MY_BOOK_READING;
         this.startedAt = LocalDateTime.now();
     }
 
@@ -76,28 +76,28 @@ public class Tracker extends BaseEntity {
         if (this.trackerStatus != TrackerStatus.EXCHANGED) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.READING_2;
+        this.trackerStatus = TrackerStatus.PARTNER_BOOK_READING;
     }
 
     // 양측 REVIEW_DONE → READ_DONE
     public void completeFirstReading() {
-        if (this.trackerStatus != TrackerStatus.READING) {
+        if (this.trackerStatus != TrackerStatus.MY_BOOK_READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.READ_DONE;
+        this.trackerStatus = TrackerStatus.MY_BOOK_REVIEWING;
     }
 
     // 양측 REVIEW_DONE_2 → READ_DONE_2
     public void completeSecondReading() {
-        if (this.trackerStatus != TrackerStatus.READING_2) {
+        if (this.trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.READ_DONE_2;
+        this.trackerStatus = TrackerStatus.PARTNER_BOOK_REVIEWING;
     }
 
     // READ_DONE → EXCHANGING (첫 배송 등록 시)
     public void startExchanging() {
-        if (this.trackerStatus != TrackerStatus.READ_DONE) {
+        if (this.trackerStatus != TrackerStatus.MY_BOOK_REVIEWING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.trackerStatus = TrackerStatus.EXCHANGING;
@@ -113,7 +113,7 @@ public class Tracker extends BaseEntity {
 
     // READ_DONE_2 → RETURNING (첫 반납 배송 등록 시)
     public void startReturning() {
-        if (this.trackerStatus != TrackerStatus.READ_DONE_2) {
+        if (this.trackerStatus != TrackerStatus.PARTNER_BOOK_REVIEWING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         this.trackerStatus = TrackerStatus.RETURNING;
@@ -132,7 +132,7 @@ public class Tracker extends BaseEntity {
         if (days <= 0) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);
         }
-        if (this.trackerStatus != TrackerStatus.READING && this.trackerStatus != TrackerStatus.READING_2) {
+        if (this.trackerStatus != TrackerStatus.MY_BOOK_READING && this.trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
         if (this.extensionCount >= 1) {

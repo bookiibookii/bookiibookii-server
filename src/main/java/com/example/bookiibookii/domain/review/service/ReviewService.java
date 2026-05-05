@@ -112,7 +112,7 @@ public class ReviewService {
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
 
         TrackerStatus trackerStatus = tracker.getTrackerStatus();
-        if (trackerStatus != TrackerStatus.READING && trackerStatus != TrackerStatus.READING_2) {
+        if (trackerStatus != TrackerStatus.MY_BOOK_READING && trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
             throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 단계가 아님
         }
 
@@ -126,20 +126,20 @@ public class ReviewService {
 
         userBook.updateReview(request.bookRating(), request.bookComment());
 
-        if (trackerStatus == TrackerStatus.READING) {
-            if (me.getReadingStatus() != ReadingStatus.READ_DONE) {
+        if (trackerStatus == TrackerStatus.MY_BOOK_READING) {
+            if (me.getReadingStatus() != ReadingStatus.MY_BOOK_READ_DONE) {
                 throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 미완료
             }
-            me.updateReadingStatus(ReadingStatus.REVIEW_DONE);
-            if (partner.getReadingStatus() == ReadingStatus.REVIEW_DONE) {
+            me.updateReadingStatus(ReadingStatus.MY_BOOK_REVIEW_DONE);
+            if (partner.getReadingStatus() == ReadingStatus.MY_BOOK_REVIEW_DONE) {
                 tracker.completeFirstReading(); // READING → READ_DONE
             }
         } else {
-            if (me.getReadingStatus() != ReadingStatus.READ_DONE_2) {
+            if (me.getReadingStatus() != ReadingStatus.PARTNER_BOOK_READ_DONE) {
                 throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 미완료
             }
-            me.updateReadingStatus(ReadingStatus.REVIEW_DONE_2);
-            if (partner.getReadingStatus() == ReadingStatus.REVIEW_DONE_2) {
+            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_REVIEW_DONE);
+            if (partner.getReadingStatus() == ReadingStatus.PARTNER_BOOK_REVIEW_DONE) {
                 tracker.completeSecondReading(); // READING_2 → READ_DONE_2
             }
         }

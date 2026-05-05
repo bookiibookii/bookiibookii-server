@@ -219,8 +219,8 @@ public class TrackerService {
 
     private TrackerStatus resolveMeetingStatus(TrackerStatus current) {
         return switch (current) {
-            case READ_DONE, EXCHANGING -> TrackerStatus.EXCHANGING;
-            case READ_DONE_2, RETURNING -> TrackerStatus.RETURNING;
+            case MY_BOOK_REVIEWING, EXCHANGING -> TrackerStatus.EXCHANGING;
+            case PARTNER_BOOK_REVIEWING, RETURNING -> TrackerStatus.RETURNING;
             default -> null;
         };
     }
@@ -339,22 +339,22 @@ public class TrackerService {
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         TrackerStatus status = tracker.getTrackerStatus();
 
-        if (status == TrackerStatus.READY || status == TrackerStatus.READING) {
+        if (status == TrackerStatus.READY || status == TrackerStatus.MY_BOOK_READING) {
             if (me.getReadingStatus() != ReadingStatus.IDLE) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
             if (status == TrackerStatus.READY) {
                 tracker.startFirstReading();
             }
-            me.updateReadingStatus(ReadingStatus.READING);
-        } else if (status == TrackerStatus.EXCHANGED || status == TrackerStatus.READING_2) {
-            if (me.getReadingStatus() != ReadingStatus.REVIEW_DONE) {
+            me.updateReadingStatus(ReadingStatus.MY_BOOK_READING);
+        } else if (status == TrackerStatus.EXCHANGED || status == TrackerStatus.PARTNER_BOOK_READING) {
+            if (me.getReadingStatus() != ReadingStatus.MY_BOOK_REVIEW_DONE) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
             if (status == TrackerStatus.EXCHANGED) {
                 tracker.startSecondReading();
             }
-            me.updateReadingStatus(ReadingStatus.READING_2);
+            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READING);
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
@@ -369,12 +369,12 @@ public class TrackerService {
 
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
 
-        if (tracker.getTrackerStatus() == TrackerStatus.READING
-                && me.getReadingStatus() == ReadingStatus.READING) {
-            me.updateReadingStatus(ReadingStatus.READ_DONE);
-        } else if (tracker.getTrackerStatus() == TrackerStatus.READING_2
-                && me.getReadingStatus() == ReadingStatus.READING_2) {
-            me.updateReadingStatus(ReadingStatus.READ_DONE_2);
+        if (tracker.getTrackerStatus() == TrackerStatus.MY_BOOK_READING
+                && me.getReadingStatus() == ReadingStatus.MY_BOOK_READING) {
+            me.updateReadingStatus(ReadingStatus.MY_BOOK_READ_DONE);
+        } else if (tracker.getTrackerStatus() == TrackerStatus.PARTNER_BOOK_READING
+                && me.getReadingStatus() == ReadingStatus.PARTNER_BOOK_READING) {
+            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READ_DONE);
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
@@ -405,24 +405,24 @@ public class TrackerService {
         MatchedMember partner = getPartnerMember(groupId, me.getId());
         TrackerStatus status = tracker.getTrackerStatus();
 
-        if (status == TrackerStatus.READ_DONE || status == TrackerStatus.EXCHANGING) {
-            if (me.getReadingStatus() != ReadingStatus.REVIEW_DONE) {
+        if (status == TrackerStatus.MY_BOOK_REVIEWING || status == TrackerStatus.EXCHANGING) {
+            if (me.getReadingStatus() != ReadingStatus.MY_BOOK_REVIEW_DONE) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
             if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
-            if (status == TrackerStatus.READ_DONE) {
+            if (status == TrackerStatus.MY_BOOK_REVIEWING) {
                 tracker.startExchanging(); // READ_DONE → EXCHANGING
             }
-        } else if (status == TrackerStatus.READ_DONE_2 || status == TrackerStatus.RETURNING) {
-            if (me.getReadingStatus() != ReadingStatus.REVIEW_DONE_2) {
+        } else if (status == TrackerStatus.PARTNER_BOOK_REVIEWING || status == TrackerStatus.RETURNING) {
+            if (me.getReadingStatus() != ReadingStatus.PARTNER_BOOK_REVIEW_DONE) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
             if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
-            if (status == TrackerStatus.READ_DONE_2) {
+            if (status == TrackerStatus.PARTNER_BOOK_REVIEWING) {
                 tracker.startReturning(); // READ_DONE_2 → RETURNING
             }
         } else {
@@ -554,9 +554,9 @@ public class TrackerService {
         meeting.setMeetingDetails(newLocation, request.meetingTime());
 
         // 첫 번째로 미팅을 등록하면 교환/반납 단계로 진입
-        if (currentStatus == TrackerStatus.READ_DONE) {
+        if (currentStatus == TrackerStatus.MY_BOOK_REVIEWING) {
             tracker.startExchanging(); // READ_DONE → EXCHANGING
-        } else if (currentStatus == TrackerStatus.READ_DONE_2) {
+        } else if (currentStatus == TrackerStatus.PARTNER_BOOK_REVIEWING) {
             tracker.startReturning(); // READ_DONE_2 → RETURNING
         }
     }

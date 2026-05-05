@@ -129,7 +129,7 @@ public class TrackerConverter {
         LocalDate today = LocalDate.now();
         TrackerStatus status = tracker.getTrackerStatus();
 
-        if (status == TrackerStatus.READING || status == TrackerStatus.READING_2) {
+        if (status == TrackerStatus.MY_BOOK_READING || status == TrackerStatus.PARTNER_BOOK_READING) {
             if (tracker.getEndDate() == null) return 0;
             return (int) ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate());
         }

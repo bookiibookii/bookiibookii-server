@@ -68,8 +68,7 @@ public interface GroupControllerDocs {
     })
     ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
             @PathVariable(name = "groupId") Long groupId,
-            @AuthenticationPrincipal User user,
-            @RequestParam(required = false) String groupPassword
+            @AuthenticationPrincipal User user
     );
 
     @Operation(summary = "그룹 목록 조회 API (필터/검색/추천)",

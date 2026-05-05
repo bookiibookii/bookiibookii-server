@@ -189,26 +189,6 @@ public class CardService {
                         .map(ub -> ub.getComment())
                         .orElse(null);
             }
-        } else if (group.getGroupType() == GroupType.TOGETHER) {
-            // 함께읽기일 때 그룹의 모든 멤버들의 comment 조회
-            List<MatchedMember> members = 
-                    matchedMemberRepository.findAllByGroup_GroupId(groupId);
-            togetherComments = members.stream()
-                    .map(member -> {
-                        Long memberUserId = member.getUser().getId();
-                        String nickname = member.getUser().getNickName() != null 
-                                ? member.getUser().getNickName() 
-                                : "";
-                        String comment = userBookRepository.findByUser_IdAndGroup_GroupId(memberUserId, groupId)
-                                .map(ub -> ub.getComment())
-                                .orElse(null);
-                        return CardListResponseDTO.TogetherCommentDto.builder()
-                                .userId(memberUserId)
-                                .nickname(nickname)
-                                .comment(comment)
-                                .build();
-                    })
-                    .toList();
         }
 
         return CardListResponseDTO.builder()

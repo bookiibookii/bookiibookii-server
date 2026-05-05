@@ -19,7 +19,6 @@ public class UserResponseDTO {
             List<Tag> topTags,
             Integer completeBook,
             Integer relayGroup,
-            Integer togetherGroup,
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<UserBookResponseDTO.MypageBookDto> books,
             String receiverName,

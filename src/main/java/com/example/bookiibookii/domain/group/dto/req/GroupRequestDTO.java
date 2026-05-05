@@ -21,10 +21,6 @@ public class GroupRequestDTO {
         @NotBlank(message = "ISBN은 필수 입력 사항입니다.")
         @Pattern(regexp = "^[0-9]{13}$", message = "ISBN13은 숫자 13자리여야 합니다.")
         private String isbn13;          // 대상 도서 ID
-        @Schema(description = "모집 인원 (2~8명)", example = "4")
-        @Min(2)
-        @Max(8)
-        private Integer maxCapacity;
         @Schema(description = "독서 시작 날짜 (오늘 이후)", example = "2026-02-20")
         private LocalDate startDate;
         @Schema(description = "독서 기간 (7, 14, 21, 28일 중 택1)", example = "14")
@@ -32,28 +28,22 @@ public class GroupRequestDTO {
         @Schema(description = "그룹 소개글 (최대 500자)", example = "숭실대 근처에서 같이 경제 서적 읽으실 분 구해요!")
         @Size(max = 500)
         private String groupComment;
-        @Schema(description = "그룹 타입 (RELAY: 이어읽기, TOGETHER: 함께읽기)", example = "TOGETHER")
-        private GroupType groupType;   // RELAY, TOGETHER
-        @Schema(description = "교환 방식 (DIRECT: 직거래, NONE: 함께읽기 시)", example = "DIRECT")
-        private TradeType tradeType;   // DIRECT, NONE
+        @NotNull(message = "그룹 타입은 필수입니다.")
+        @Schema(description = "그룹 타입 (RELAY: 이어읽기)", example = "RELAY")
+        private GroupType groupType;
+        @NotNull(message = "교환 방식은 필수입니다.")
+        @Schema(description = "교환 방식 (DIRECT: 직거래, DELIVERY: 택배 교환)", example = "DIRECT")
+        private TradeType tradeType;
         @Schema(description = "선호 지역 (직거래 시 필수)", example = "서울 동작구 상도동")
         private String preferRegion;
         @Schema(description = "상세 만남 장소 (직거래 시)", example = "상도역 1번 출구 스타벅스")
         private String meetPlace;
-        // TOGETHER 타입 전용
-        @Schema(description = "그룹명 (TOGETHER 타입 필수)", example = "같이 읽어요")
+        @Schema(description = "그룹명", example = "같이 읽어요")
         private String groupName;
-        @Schema(description = "규칙 리스트 (1~5개, TOGETHER 타입 필수)")
+        @Schema(description = "규칙 리스트 (1~5개, 직접교환 타입 필수)")
         @Size(min = 1, max = 5)
         @Valid
         private List<@NotNull RuleDTO> rules;
-
-        @Schema(description = "비공개 여부 (기본값: false)", example = "true")
-        private Boolean isPrivate = false;
-
-        @Schema(description = "비공개 비밀번호 (숫자 4자리, isPrivate=true 시 필수)", example = "1234")
-        @Pattern(regexp = "^[0-9]{4}$", message = "비밀번호는 숫자 4자리여야 합니다.")
-        private String password;
     }
 
     @Getter
@@ -64,17 +54,10 @@ public class GroupRequestDTO {
         private Integer readingPeriod;
         @Schema(description = "수정할 소개글", example = "내용을 조금 수정했습니다. 끝까지 함께하실 분!")
         private String groupComment;
-        @Schema(description = "수정할 규칙 리스트 (1~5개, TOGETHER/직접교환 타입)")
+        @Schema(description = "수정할 규칙 리스트 (1~5개, 직접교환 타입)")
         @Size(min = 1, max = 5)
         @Valid
         private List<@NotNull RuleDTO> rules;
-
-        @Schema(description = "비공개 여부 변경 (null이면 변경 없음)")
-        private Boolean isPrivate;
-
-        @Schema(description = "변경할 비밀번호 (숫자 4자리, 변경 시에만 입력)", example = "5678")
-        @Pattern(regexp = "^[0-9]{4}$", message = "비밀번호는 숫자 4자리여야 합니다.")
-        private String password;
     }
 
     public record FilterDTO(

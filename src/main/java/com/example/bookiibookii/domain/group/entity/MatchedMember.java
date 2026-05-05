@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.group.entity;
 
-import com.example.bookiibookii.domain.group.enums.MemberStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -43,24 +42,6 @@ public class MatchedMember extends BaseEntity {
 
     @Column(name = "is_review_written", nullable = false)
     private boolean isReviewWritten = false; // 리뷰 작성 여부 추가
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    @Builder.Default // 빌더 사용 시 기본값 유지
-    private MemberStatus status = MemberStatus.JOINED;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "member_status")
-    @Builder.Default
-    private ReadingStatus readingStatus = ReadingStatus.IDLE;
-
-    // 상태 변경 편의 메서드
-    public void kick() { this.status = MemberStatus.KICKED; }
-    public void leave() { this.status = MemberStatus.LEFT; }
-
-    public void updateReadingStatus(ReadingStatus newStatus) {
-        this.readingStatus = newStatus;
-    }
 
     public void markReviewAsWritten() {
         this.isReviewWritten = true;

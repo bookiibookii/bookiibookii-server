@@ -76,20 +76,14 @@ public class GroupResponseDTO {
         // 5. 그룹 소개 및 참여 멤버 슬롯
         private String groupComment;   // 그룹 소개글
 
-        // 6. TOGETHER 타입 전용
         private String groupName;
         private List<RuleDTO> rules;
-
 
         // 예: 정원 4명 중 2명 참여 시 -> [방장, 게스트1, EMPTY, EMPTY] 순서로 구성
         private List<ParticipantSlotDTO> participantSlots;
 
-        // 6. 하단 버튼 상태 (프론트엔드 버튼 분기용)
         // APPLY(신청하기), CANCEL(취소하기), MANAGE(요청관리), TRACKER(트래커보기), FULL(인원마감)
         private String buttonStatus;
-
-        // 7. 비공개 여부
-        private Boolean isPrivate;
 
     }
 
@@ -122,8 +116,7 @@ public class GroupResponseDTO {
             String tradeType,
             Integer readingPeriod,
             String startDate,
-            String pictureBadge, //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
-            boolean isPrivate
+            String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구
     ) {}
 
     public record GroupSliceResponseDTO(

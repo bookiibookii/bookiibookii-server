@@ -253,25 +253,17 @@ public class TrackerService {
         return convertToResponseList(trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.GUEST), userId);
     }
 
-    private List<TrackerListResponseDTO> convertToResponseList(List<Tracker> trackers, Long userId) {
-        return trackers.stream()
-                .map(tracker -> {
-                    Groups group = tracker.getGroup();
-                    List<String> stepDates = buildStepDates(tracker);
-                    String targetNickname = findTargetNickName(tracker, userId);
+   private List<TrackerListResponseDTO> convertToResponseList(List<Tracker> trackers, Long userId) {
+      return trackers.stream()
+              .map(tracker -> {
+                  Groups group = tracker.getGroup();
+                  List<String> stepDates = buildStepDates(tracker);
+                  String targetNickname = findTargetNickName(tracker, userId);
 
-                    Integer myRate = 0;
-                    Integer groupRate = 0;
-
-                    if (group.getGroupType() == GroupType.TOGETHER) {
-                        myRate = calculateUserReadingRate(userId, group);
-                        groupRate = calculateGroupAverageRate(group);
-                    }
-
-                    return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, myRate, groupRate);
-                })
-                .collect(Collectors.toList());
-    }
+                  return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, 0, 0);
+              })
+              .collect(Collectors.toList());
+  }
 
     private int calculateUserReadingRate(Long userId, Groups group) {
         return group.getMatchedMember().stream()

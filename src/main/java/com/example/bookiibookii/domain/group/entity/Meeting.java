@@ -35,6 +35,10 @@ public class Meeting extends BaseEntity {
     @JoinColumn(name = "tracker_id", nullable = false)
     private Tracker tracker;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tracker_status", nullable = false)
+    private TrackerStatus trackerStatus;
+
     @Column(name = "meeting_time")
     private LocalDateTime meetingTime;
 

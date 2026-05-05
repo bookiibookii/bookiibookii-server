@@ -178,10 +178,12 @@ public class TrackerService {
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
                     .location(defaultLocation)
+                    .trackerStatus(TrackerStatus.EXCHANGING)
                     .build());
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
                     .location(defaultLocation)
+                    .trackerStatus(TrackerStatus.RETURNING)
                     .build());
         }
 

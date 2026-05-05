@@ -318,10 +318,7 @@ public class GroupService {
 
         String persistedMeetPlace = null;
         if (group.getTradeType() == TradeType.DIRECT) {
-            // findByGroup 대신 더 명확한 이름을 사용
-            persistedMeetPlace = meetingRepository.findFirstByGroupOrderByCreatedAtDesc(group)
-                    .map(Meeting::getMeetingPlace) // 엔티티 필드명이 meetingPlace이므로 정확함!
-                    .orElse(null);
+            persistedMeetPlace = group.getPreferRegion();
         }
 
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)

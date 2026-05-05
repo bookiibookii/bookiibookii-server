@@ -386,7 +386,7 @@ public class TrackerService {
     public void registerExtensionDays(Long groupId, int days, User user) {
         validateGroupMember(groupId, user.getId());
 
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
+        Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         tracker.extensionDays(days);
@@ -453,7 +453,7 @@ public class TrackerService {
 
     @Transactional
     public void registerReceive(Long groupId, TrackerReceiveRequestDTO request, User user) {
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
+        Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         MatchedMember me = getMyMatchedMember(groupId, user.getId());

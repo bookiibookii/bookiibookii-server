@@ -62,7 +62,7 @@ public class Tracker extends BaseEntity {
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
     private List<Delivery> deliveries = new ArrayList<>();
 
-    // READY → READING (첫 멤버가 읽기 시작)
+    // READY → MY_BOOK_READING (첫 멤버가 읽기 시작)
     public void startFirstReading() {
         if (this.trackerStatus != TrackerStatus.READY) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
@@ -71,7 +71,7 @@ public class Tracker extends BaseEntity {
         this.startedAt = LocalDateTime.now();
     }
 
-    // EXCHANGED → READING_2 (첫 멤버가 2차 읽기 시작)
+    // EXCHANGED → PARTNER_BOOK_READING (첫 멤버가 2차 읽기 시작)
     public void startSecondReading() {
         if (this.trackerStatus != TrackerStatus.EXCHANGED) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
@@ -79,7 +79,7 @@ public class Tracker extends BaseEntity {
         this.trackerStatus = TrackerStatus.PARTNER_BOOK_READING;
     }
 
-    // 양측 REVIEW_DONE → READ_DONE
+    // 양측 MY_BOOK_READ_DONE → MY_BOOK_REVIEWING
     public void completeFirstReading() {
         if (this.trackerStatus != TrackerStatus.MY_BOOK_READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
@@ -87,7 +87,7 @@ public class Tracker extends BaseEntity {
         this.trackerStatus = TrackerStatus.MY_BOOK_REVIEWING;
     }
 
-    // 양측 REVIEW_DONE_2 → READ_DONE_2
+    // 양측 PARTNER_BOOK_READ_DONE → PARTNER_BOOK_REVIEWING
     public void completeSecondReading() {
         if (this.trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
@@ -95,7 +95,7 @@ public class Tracker extends BaseEntity {
         this.trackerStatus = TrackerStatus.PARTNER_BOOK_REVIEWING;
     }
 
-    // READ_DONE → EXCHANGING (첫 배송 등록 시)
+    // MY_BOOK_REVIEWING → EXCHANGING (첫 배송 등록 시)
     public void startExchanging() {
         if (this.trackerStatus != TrackerStatus.MY_BOOK_REVIEWING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
@@ -111,7 +111,7 @@ public class Tracker extends BaseEntity {
         this.trackerStatus = TrackerStatus.EXCHANGED;
     }
 
-    // READ_DONE_2 → RETURNING (첫 반납 배송 등록 시)
+    // PARTNER_BOOK_REVIEWING → RETURNING (첫 반납 배송 등록 시)
     public void startReturning() {
         if (this.trackerStatus != TrackerStatus.PARTNER_BOOK_REVIEWING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);

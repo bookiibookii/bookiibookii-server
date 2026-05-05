@@ -25,6 +25,7 @@ public enum NotificationType {
     TRACKER_DELIVERY_CONFIRMED(NotificationCategory.SYSTEM),  // TRK-010
     TRACKER_RETURN_SHIPMENT_REGISTERED(NotificationCategory.SYSTEM), // TRK-010 (반납 출발)
     TRACKER_EXCHANGE_COMPLETED(NotificationCategory.SYSTEM),  // TRK-030 (후기작성)
+    TRACKER_REVIEW_DONE_CONFIRMED(NotificationCategory.SYSTEM), // TRK-010
 
     // KEYWORD
     KEYWORD_GROUP_CREATED(NotificationCategory.KEYWORD),      // GRP-010

@@ -53,7 +53,7 @@ public enum TrackerNotiType {
     ),
 
     REVIEW_DONE_CONFIRMED(
-            TRACKER_READING_FINISHED,
+            TRACKER_REVIEW_DONE_CONFIRMED,
             "파트너가 후기를 작성했어요!",
             "{nickname}님이 {bookTitle}에 대한 후기 작성을 완료했어요."
     );

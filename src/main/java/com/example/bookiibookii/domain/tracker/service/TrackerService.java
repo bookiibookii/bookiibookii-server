@@ -415,7 +415,7 @@ public class TrackerService {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
             if (status == TrackerStatus.MY_BOOK_REVIEWING) {
-                tracker.startExchanging(); // READ_DONE → EXCHANGING
+                tracker.startExchanging(); // MY_BOOK_REVIEWING → EXCHANGING
             }
         } else if (status == TrackerStatus.PARTNER_BOOK_REVIEWING || status == TrackerStatus.RETURNING) {
             if (me.getReadingStatus() != ReadingStatus.PARTNER_BOOK_REVIEW_DONE) {
@@ -425,7 +425,7 @@ public class TrackerService {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
             if (status == TrackerStatus.PARTNER_BOOK_REVIEWING) {
-                tracker.startReturning(); // READ_DONE_2 → RETURNING
+                tracker.startReturning(); // PARTNER_BOOK_REVIEWING → RETURNING
             }
         } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
@@ -557,9 +557,9 @@ public class TrackerService {
 
         // 첫 번째로 미팅을 등록하면 교환/반납 단계로 진입
         if (currentStatus == TrackerStatus.MY_BOOK_REVIEWING) {
-            tracker.startExchanging(); // READ_DONE → EXCHANGING
+            tracker.startExchanging(); // MY_BOOK_REVIEWING → EXCHANGING
         } else if (currentStatus == TrackerStatus.PARTNER_BOOK_REVIEWING) {
-            tracker.startReturning(); // READ_DONE_2 → RETURNING
+            tracker.startReturning(); // PARTNER_BOOK_REVIEWING → RETURNING
         }
     }
 

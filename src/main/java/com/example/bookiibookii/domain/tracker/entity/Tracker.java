@@ -114,13 +114,6 @@ public class Tracker extends BaseEntity {
         this.endDate = LocalDateTime.now();
     }
 
-    public void updateStatus(TrackerStatus newStatus) {
-        if (newStatus == null || this.trackerStatus == TrackerStatus.COMPLETED) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        this.trackerStatus = newStatus;
-    }
-
     public void extensionDays(int days) {
         if (days <= 0) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);

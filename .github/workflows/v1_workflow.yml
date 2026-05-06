@@ -84,25 +84,25 @@ jobs:
             exit 1
           fi
 
-          docker network create "\$NETWORK_NAME" || true
+          sudo docker network create "\$NETWORK_NAME" || true
 
-          if ! docker ps -a --format '{{.Names}}' | grep -Fxq "\$REDIS_CONTAINER_NAME"; then
-            docker run -d \
+          if ! sudo docker ps -a --format '{{.Names}}' | grep -Fxq "\$REDIS_CONTAINER_NAME"; then
+            sudo docker run -d \
               --name "\$REDIS_CONTAINER_NAME" \
               --restart unless-stopped \
               --network "\$NETWORK_NAME" \
               redis:7-alpine
           else
-            docker start "\$REDIS_CONTAINER_NAME" || true
-            docker network connect "\$NETWORK_NAME" "\$REDIS_CONTAINER_NAME" || true
+            sudo docker start "\$REDIS_CONTAINER_NAME" || true
+            sudo docker network connect "\$NETWORK_NAME" "\$REDIS_CONTAINER_NAME" || true
           fi
 
-          docker pull "\$IMAGE"
+          sudo docker pull "\$IMAGE"
 
-          docker stop "\$APP_CONTAINER_NAME" || true
-          docker rm "\$APP_CONTAINER_NAME" || true
+          sudo docker stop "\$APP_CONTAINER_NAME" || true
+          sudo docker rm "\$APP_CONTAINER_NAME" || true
 
-          docker run -d \
+          sudo docker run -d \
             --name "\$APP_CONTAINER_NAME" \
             --restart unless-stopped \
             --network "\$NETWORK_NAME" \
@@ -111,7 +111,7 @@ jobs:
             -v "\$LOG_DIR:/logs" \
             "\$IMAGE"
 
-          docker image prune -f
+          sudo docker image prune -f
 
           echo "DEPLOY DONE"
           EOF

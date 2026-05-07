@@ -22,19 +22,6 @@ import java.util.List;
 public class RecommendationController implements RecommendationControllerDocs{
     private final RecommendationService recommendationService;
 
-
-    // 사용자 태그 기반 부키메이트 추천 API
-    @Override
-    @GetMapping("/bookmates")
-    public ApiResponse<List<RecommendationResponseDTO.BookmateDto>> recommendBookmates(
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-//        List<RecommendationResponseDTO.BookmateDto> result =
-//                recommendationService.findRecommendBookmates(user.getId());
-
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
-    }
-
     // 사용자 태그 기반 그룹 추천 API
     @GetMapping("/groups")
     public ApiResponse<List<RecommendationResponseDTO.RecommendedGroupDto>> recommendGroups(

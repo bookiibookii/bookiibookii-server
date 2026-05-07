@@ -16,11 +16,8 @@ import com.example.bookiibookii.domain.notification.publisher.DomainEventPublish
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
-import com.example.bookiibookii.domain.user.repository.AddressRepository;
-import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.user.service.BadWordService;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
@@ -51,7 +48,6 @@ public class GroupService {
     private final ApplicationRepository applicationRepository;
     private final BookService bookService;
     private final GroupQueryRepository groupQueryRepository;
-    private final UserTagRepository userTagRepository;
     private final KeywordMatchService keywordMatchService;
     private final DomainEventPublisher publisher;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
@@ -508,12 +504,8 @@ public class GroupService {
     public GroupResponseDTO.GroupSliceResponseDTO getGroupList(User user, GroupRequestDTO.FilterDTO filter) {
         PageRequest pageable = PageRequest.of(filter.page(), filter.size());
 
-        // 1. 추천 로직용 태그 수집
-        List<Tag> userTags = (user != null) ?
-                userTagRepository.findAllByUser(user).stream().map(ut -> ut.getTag()).toList() : new ArrayList<>();
-
         // 2. 메인 그룹 리스트 조회 (1번 쿼리)
-        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTags, pageable);
+        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, pageable);
         List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getGroupId).toList();
 
         if (groupIds.isEmpty()) {

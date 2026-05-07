@@ -3,7 +3,6 @@ package com.example.bookiibookii.domain.group.dto.res;
 
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,8 +36,6 @@ public class ApplicationResponseDTO {
         private String name;
         @Schema(description = "신청자 프로필 이미지 표시용 Presigned GET URL. 미등록 시 null", example = "https://...")
         private String profileImageUrl;
-        @Schema(description = "태그 목록 (예: #메모환영, #인사이트)")
-        private List<Tag> tags;
         private String createdAt;
         private String applyMsg;
     }

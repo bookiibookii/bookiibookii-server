@@ -16,7 +16,6 @@ import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.user.enums.OnboardingStatus;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -46,7 +45,6 @@ public class UserService {
     private final UserImageRepository userImageRepository;
     private final UserImageValidationService userImageValidationService;
     private final UserImageS3Service userImageS3Service;
-    private final UserTagService userTagService;
     private final UserBookRepository userBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final AddressRepository addressRepository;
@@ -243,9 +241,6 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        List<UserTag> currentUserTags = userTagRepository.findByUserId(userId);
-        Tag TopTags = userTagService.extractTopTags(currentUserTags);
-
         // 완독 수 (로직에 따라 조건 추가 가능)
         Long completeBookCount = userBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
         // 참여한 그룹 수 (타입별)
@@ -288,7 +283,6 @@ public class UserService {
                 .profileImageUrl(profileImageUrl)
                 .nickname(user.getNickName())
                 .introduction(user.getIntroduction())
-                .topTags(TopTags)
                 .completeBook(completeBookCount.intValue())
                 .relayGroup(relayCount.intValue())
                 .togetherGroup(togetherCount.intValue())

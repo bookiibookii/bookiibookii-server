@@ -243,13 +243,8 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        Tag TopTags = null;
-        if(user.getTagVisible()) {
-            // Top Tag 3개 조회
-            List<UserTag> currentUserTags = userTagRepository.findByUserId(userId);
-            // 누적도 -> 최신 등록 순으로 태그 정렬 후 상위태그 1개 추출
-            TopTags = userTagService.extractTopTags(currentUserTags);
-        }
+        List<UserTag> currentUserTags = userTagRepository.findByUserId(userId);
+        Tag TopTags = userTagService.extractTopTags(currentUserTags);
 
         // 완독 수 (로직에 따라 조건 추가 가능)
         Long completeBookCount = userBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
@@ -345,7 +340,6 @@ public class UserService {
         user.updateIntroduction(request.introduction());
         user.updateRegion(request.region());
         user.updateMeetPlace(request.meetPlace());
-        user.updateTagVisible(request.tagVisible());
 
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());

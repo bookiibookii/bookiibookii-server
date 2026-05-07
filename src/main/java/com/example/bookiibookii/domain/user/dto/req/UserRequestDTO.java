@@ -57,7 +57,6 @@ public class UserRequestDTO {
             String addressDetail,
             String meetPlace,
             String region,
-            Boolean tagVisible,
             List<BookReqDTO.UserPickISBN> userPickBooks
     ){}
 }

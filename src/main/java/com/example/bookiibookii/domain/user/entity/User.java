@@ -81,9 +81,6 @@ public class User extends BaseEntity {
     @Column(name = "introduction")
     private String introduction;
 
-    @Column(name = "tag_visible")
-    private Boolean tagVisible;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "onboarding_status", nullable = false)
     @Builder.Default
@@ -112,7 +109,6 @@ public class User extends BaseEntity {
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }
     public void updateOnboardingStatus(OnboardingStatus status) { this.onboardingStatus = status; }
-    public void updateTagVisible(Boolean tagVisible) { this.tagVisible = tagVisible; }
 
     public void updateManner(double rating) {
         double scoreChange = calculateRatingScore(rating);

@@ -29,8 +29,6 @@ public class RecommendationController implements RecommendationControllerDocs{
     public ApiResponse<List<RecommendationResponseDTO.BookmateDto>> recommendBookmates(
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-//        List<RecommendationResponseDTO.BookmateDto> result =
-//                recommendationService.findRecommendBookmates(user.getId());
 
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }

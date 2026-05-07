@@ -9,87 +9,108 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: build -x test
+        run: ./gradlew clean build -x test
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - name: Docker Hub login
+        uses: docker/login-action@v4
         with:
-          name: bookii-build
-          path: build/libs/*.jar
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker image build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGENAME }}:develop
+          platforms: linux/amd64
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment: dev
+    environment: develop
 
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: bookii-build
-          path: build/libs/
-
-      - name: Deploy to EC2 (dev)
+      - name: Deploy develop to EC2 with Docker and Redis
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_IMAGENAME: ${{ secrets.DOCKER_IMAGENAME }}
         run: |
           set -e
-          
+          trap 'rm -f private_key.pem' EXIT
+
           printf '%s\n' "$EC2_SSH_KEY" > private_key.pem
           sed -i 's/\r$//' private_key.pem
           chmod 600 private_key.pem
-          
-          jar_file=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
-          if [ -z "$jar_file" ]; then
-            echo "No jar file found in build/libs"
-            exit 1
-          fi
-          
-          scp -i private_key.pem -o StrictHostKeyChecking=no "$jar_file" \
-            "${EC2_USERNAME}@${EC2_HOST}:/home/${EC2_USERNAME}/dev/bookiiDev.jar"
-          
+
           ssh -i private_key.pem -o StrictHostKeyChecking=no \
-            "${EC2_USERNAME}@${EC2_HOST}" bash -se <<'EOF'
+            "${EC2_USERNAME}@${EC2_HOST}" bash -se <<EOF
           set -e
-          
-          cleanup() { rm -f private_key.pem; }
-          trap cleanup EXIT
-          
-          APP_JAR="/home/${USER}/dev/bookiiDev.jar"
-          LOG_DIR="/home/${USER}/logs/dev"
-          ENV_FILE="/home/${USER}/dev/.env.dev"
-          
-          mkdir -p "$LOG_DIR"
-          
-          if [ ! -f "$ENV_FILE" ]; then
-            echo "ENV file not found: $ENV_FILE"
+
+          IMAGE="${DOCKER_USERNAME}/${DOCKER_IMAGENAME}:develop"
+
+          APP_CONTAINER_NAME="bookii-develop"
+          REDIS_CONTAINER_NAME="bookii-redis-develop"
+          NETWORK_NAME="bookii-develop-net"
+
+          ENV_FILE="/home/${EC2_USERNAME}/develop/.env.develop"
+          LOG_DIR="/home/${EC2_USERNAME}/logs/develop"
+
+          mkdir -p "\$LOG_DIR"
+
+          if [ ! -f "\$ENV_FILE" ]; then
+            echo "ENV file not found: \$ENV_FILE"
             exit 1
           fi
-          
-          pgrep -f "$APP_JAR" | xargs -r kill -15 || true
-          sleep 10
-          
-          set -a
-          . "$ENV_FILE"
-          set +a
-          
-          nohup java -Duser.timezone=UTC -jar "$APP_JAR" > "$LOG_DIR/app.log" 2>&1 &
-          
+
+          sudo docker network create "\$NETWORK_NAME" || true
+
+          if ! sudo docker ps -a --format '{{.Names}}' | grep -Fxq "\$REDIS_CONTAINER_NAME"; then
+            sudo docker run -d \
+              --name "\$REDIS_CONTAINER_NAME" \
+              --restart unless-stopped \
+              --network "\$NETWORK_NAME" \
+              redis:7-alpine
+          else
+            sudo docker start "\$REDIS_CONTAINER_NAME" || true
+            sudo docker network connect "\$NETWORK_NAME" "\$REDIS_CONTAINER_NAME" || true
+          fi
+
+          sudo docker pull "\$IMAGE"
+
+          sudo docker stop "\$APP_CONTAINER_NAME" || true
+          sudo docker rm "\$APP_CONTAINER_NAME" || true
+
+          sudo docker run -d \
+            --name "\$APP_CONTAINER_NAME" \
+            --restart unless-stopped \
+            --network "\$NETWORK_NAME" \
+            --env-file "\$ENV_FILE" \
+            -p 8081:8080 \
+            -v "\$LOG_DIR:/logs" \
+            "\$IMAGE"
+
+          sudo docker image prune -f
+
           echo "DEPLOY DONE"
           EOF

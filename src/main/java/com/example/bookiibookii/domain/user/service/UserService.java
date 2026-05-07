@@ -288,7 +288,6 @@ public class UserService {
                 .profileImageUrl(profileImageUrl)
                 .nickname(user.getNickName())
                 .introduction(user.getIntroduction())
-                .manner(user.getManner())
                 .topTags(TopTags)
                 .completeBook(completeBookCount.intValue())
                 .relayGroup(relayCount.intValue())

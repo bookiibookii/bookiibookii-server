@@ -16,7 +16,6 @@ public class UserResponseDTO {
             String profileImageUrl,
             String nickname,
             String introduction,
-            Double manner,
             Tag topTags,
             Integer completeBook,
             Integer relayGroup,

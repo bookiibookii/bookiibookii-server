@@ -7,8 +7,6 @@ import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -48,12 +46,6 @@ public class User extends BaseEntity {
 
     @Column(name = "social_id", nullable = false)
     private String socialId;
-
-    @Column(name = "manner", nullable = false)
-    @Builder.Default
-    @Min(0)
-    @Max(100)
-    private Double manner = 36.5;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -109,27 +101,4 @@ public class User extends BaseEntity {
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }
     public void updateOnboardingStatus(OnboardingStatus status) { this.onboardingStatus = status; }
-
-    public void updateManner(double rating) {
-        double scoreChange = calculateRatingScore(rating);
-
-        double currentManner = (this.manner != null) ? this.manner : 36.5;
-        double newManner = currentManner + scoreChange;
-
-        // 상한 및 하한선 적용 (0.0 ~ 100.0)
-        this.manner = Math.max(0.0, Math.min(100.0, Math.round(newManner * 10) / 10.0));
-    }
-
-    private double calculateRatingScore(double rating) {
-        if (rating >= 5.0) return 0.5;
-        if (rating >= 4.5) return 0.3;
-        if (rating >= 4.0) return 0.2;
-        if (rating >= 3.5) return 0.1;
-        if (rating >= 3.0) return 0.0;
-        if (rating >= 2.5) return -0.1;
-        if (rating >= 2.0) return -0.3;
-        if (rating >= 1.5) return -0.4;
-        if (rating >= 1.0) return -0.5;
-        return -1.0; // 0.5점 이하 (심각한 비매너)
-    }
 }

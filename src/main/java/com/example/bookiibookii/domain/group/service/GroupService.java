@@ -38,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DELETED;
@@ -63,6 +64,7 @@ public class GroupService {
     private final BadWordService badWordService;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+    private static final Set<Tag> READING_STYLE_TAGS = Set.of(Tag.MEMO, Tag.POSTIT, Tag.PHOTO, Tag.All_ROUNDER);
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -91,21 +93,19 @@ public class GroupService {
         // 2. 도서 존재 여부 확인
         Book book = bookService.getOrCreateByIsbn13(request.getIsbn13());
 
-        // 3. RELAY 정책 검증
-        validateRelayPolicy(host, request);
-        Integer finalCapacity = 2;
-        TradeType finalTradeType = request.getTradeType();
+        // 3. 정책 검증
+        validatePolicy(host, request);
 
-        // 4. Groups 엔티티 빌드 (ID 기반 연관관계 매핑)
+        // 4. Groups 엔티티 빌드
         Groups group = Groups.builder()
                 .book(book)
                 .host(host)
-                .maxCapacity(finalCapacity)
+                .maxCapacity(2)
                 .startDate(request.getStartDate())
                 .readingPeriod(request.getReadingPeriod())
                 .groupComment(request.getGroupComment())
-                .groupType(request.getGroupType())
-                .tradeType(finalTradeType)
+                .groupType(GroupType.RELAY)
+                .tradeType(request.getTradeType())
                 .groupStatus(GroupStatus.RECRUITING)
                 .preferRegion(request.getPreferRegion())
                 .groupName(request.getGroupName())
@@ -113,13 +113,9 @@ public class GroupService {
 
         Groups savedGroup = groupsRepository.save(group);
 
-        // RELAY + DIRECT 타입: 규칙 저장
-        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
-            if (request.getRules() != null) {
-                request.getRules().forEach(rule ->
-                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
-            }
-        }
+        // 규칙 저장 (모든 트레이드 타입 공통)
+        request.getRules().forEach(rule ->
+                savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
 
         // 직접 교환 그룹의 Meeting 초기 데이터는 트래커 생성 시점(GroupMatchedEvent)에 생성됩니다.
 
@@ -151,57 +147,62 @@ public class GroupService {
     }
 
     private void validateCommonPolicy(GroupRequestDTO.CreateDTO request) {
-        // 도서 선택 필수
         if (request.getIsbn13() == null || request.getIsbn13().isBlank()) {
             throw new GroupException(GroupErrorCode.BOOK_NOT_SELECTED);
         }
 
-        // 시작 날짜는 내일 이후 ~ 2주 이내
+        if (request.getGroupName() == null || request.getGroupName().isBlank()) {
+            throw new GroupException(GroupErrorCode.GROUP_NAME_REQUIRED);
+        }
+
         LocalDate today = LocalDate.now();
-        if (request.getStartDate() == null
-                || !request.getStartDate().isAfter(today)
-                || request.getStartDate().isAfter(today.plusWeeks(2))) {
+        if (request.getStartDate() == null || !request.getStartDate().isAfter(today)) {
             throw new GroupException(GroupErrorCode.INVALID_START_DATE);
         }
 
-
-        // 독서 기간 7, 14, 21, 28일 중 택1
-        if (request.getReadingPeriod() == null || !List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
+        if (request.getReadingPeriod() == null || !List.of(3, 7, 14, 21, 28).contains(request.getReadingPeriod())) {
             throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
         }
 
-        // 그룹 소개글 검증 로직
-        if (request.getGroupComment() == null || request.getGroupComment().isBlank()) {
-            throw new GroupException(GroupErrorCode.COMMENT_REQUIRED);
-        }
-
-        // 4. 소개글 글자 수 제한 (최대 500자)
-        if (request.getGroupComment().length() > 500) {
-            throw new GroupException(GroupErrorCode.INTRODUCTION_TOO_LONG);
-        }
-
-        // 5. 금칙어 검증 (BadWordService 활용)
-        // 닉네임에서 썼던 아호-코라식 알고리즘이 500자 문장도 순식간에 훑어줍니다.
-        if (badWordService.containsBadWord(request.getGroupComment())) {
-            throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+        // 소개글 선택 입력 — 값이 있을 때만 검증
+        if (request.getGroupComment() != null && !request.getGroupComment().isBlank()) {
+            if (request.getGroupComment().length() > 500) {
+                throw new GroupException(GroupErrorCode.INTRODUCTION_TOO_LONG);
+            }
+            if (badWordService.containsBadWord(request.getGroupComment())) {
+                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+            }
         }
     }
 
-    //1:1 relay 읽기 정책
-    private void validateRelayPolicy(User host, GroupRequestDTO.CreateDTO request) {
-        // 직접 교환 시 유저 엔티티의 지역/상세장소 정보 필수
-        if (request.getTradeType() == TradeType.DIRECT) {
-            // host 프로필이 비어있어도 request에 값이 있다면 통과
-            if (request.getPreferRegion() == null || request.getMeetPlace() == null) {
-                throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
-            }
-            // 직접 교환 시 규칙 1~5개 필수
-            if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
+    private void validatePolicy(User host, GroupRequestDTO.CreateDTO request) {
+        // 직접 교환 시 희망 교환 장소 필수
+        if (request.getTradeType() == TradeType.DIRECT
+                && (request.getPreferRegion() == null || request.getPreferRegion().isBlank())) {
+            throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
+        }
+
+        // 규칙 검증 (모든 트레이드 타입 공통)
+        validateRules(request.getRules());
+    }
+
+    private void validateRules(List<RuleDTO> rules) {
+        if (rules == null || rules.isEmpty() || rules.size() > 5) {
+            throw new GroupException(GroupErrorCode.INVALID_RULES);
+        }
+
+        boolean hasReadingStyleTag = false;
+        for (RuleDTO rule : rules) {
+            if (rule == null || rule.tag() == null || rule.tag() == Tag.NO_IDEA) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
             }
-            for (RuleDTO rule : request.getRules()) {
-                validateRule(rule);
+            if (READING_STYLE_TAGS.contains(rule.tag())) {
+                hasReadingStyleTag = true;
             }
+            validateRule(rule);
+        }
+        if (!hasReadingStyleTag) {
+            throw new GroupException(GroupErrorCode.READING_STYLE_TAG_REQUIRED);
         }
     }
 
@@ -236,7 +237,7 @@ public class GroupService {
         }
 
         if (request.getReadingPeriod() != null) {
-            if (!List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
+            if (!List.of(3, 7, 14, 21, 28).contains(request.getReadingPeriod())) {
                 throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
             }
             group.setReadingPeriod(request.getReadingPeriod());
@@ -253,15 +254,9 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
-        // 규칙 수정 (RELAY+DIRECT 타입)
-        boolean isRuleGroup = group.getGroupType() == GroupType.RELAY && group.getTradeType() == TradeType.DIRECT;
-        if (request.getRules() != null && isRuleGroup) {
-            if (request.getRules().isEmpty() || request.getRules().size() > 5) {
-                throw new GroupException(GroupErrorCode.INVALID_RULES);
-            }
-            for (RuleDTO rule : request.getRules()) {
-                validateRule(rule);
-            }
+        // 규칙 수정
+        if (request.getRules() != null) {
+            validateRules(request.getRules());
             group.getGroupRules().clear();
             request.getRules().forEach(rule ->
                     group.getGroupRules().add(GroupRule.create(group, resolveRuleContent(rule), rule.tag())));

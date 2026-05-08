@@ -5,7 +5,6 @@ import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.user.enums.Tag;
 import com.querydsl.core.types.Order;
@@ -38,7 +37,6 @@ public class GroupQueryRepository {
                 .join(groups.book, book).fetchJoin() // 도서 정보 페치 조인
                 .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
                 .where(
-                        inGroupTypes(filter.groupTypes()),
                         inTradeTypes(filter.tradeTypes()),
                         containsMeetPlaces(filter.meetPlace()),
                         inCategories(filter.categories()),
@@ -102,10 +100,6 @@ public class GroupQueryRepository {
                .reduce(BooleanExpression::or)
                .orElse(null);
    }
-
-    private BooleanExpression inGroupTypes(List<GroupType> types) {
-        return (types == null || types.isEmpty()) ? null : groups.groupType.in(types);
-    }
 
     private BooleanExpression inTradeTypes(List<TradeType> types) {
         return (types == null || types.isEmpty()) ? null : groups.tradeType.in(types);

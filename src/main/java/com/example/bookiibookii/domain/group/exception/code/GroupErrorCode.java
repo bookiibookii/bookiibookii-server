@@ -38,6 +38,7 @@ public enum GroupErrorCode implements BaseCode {
     INVALID_GROUP_STATUS(HttpStatus.BAD_REQUEST, "GROUP400_19", "그룹상태가 진행중이 아닙니다."),
     GROUP_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_20", "그룹명을 입력해야 합니다."),
     INVALID_RULES(HttpStatus.BAD_REQUEST, "GROUP400_21", "규칙은 1개 이상 5개 이하로 입력해야 합니다."),
+    READING_STYLE_TAG_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_22", "독서 스타일 규칙은 1개 이상 선택해야 합니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),

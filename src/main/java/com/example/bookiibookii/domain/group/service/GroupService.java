@@ -191,16 +191,18 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.INVALID_RULES);
         }
 
-        boolean hasReadingStyleTag = rules.stream().anyMatch(r -> READING_STYLE_TAGS.contains(r.tag()));
-        if (!hasReadingStyleTag) {
-            throw new GroupException(GroupErrorCode.READING_STYLE_TAG_REQUIRED);
-        }
-
+        boolean hasReadingStyleTag = false;
         for (RuleDTO rule : rules) {
-            if (rule.tag() == Tag.NO_IDEA) {
+            if (rule == null || rule.tag() == null || rule.tag() == Tag.NO_IDEA) {
                 throw new GroupException(GroupErrorCode.INVALID_RULES);
             }
+            if (READING_STYLE_TAGS.contains(rule.tag())) {
+                hasReadingStyleTag = true;
+            }
             validateRule(rule);
+        }
+        if (!hasReadingStyleTag) {
+            throw new GroupException(GroupErrorCode.READING_STYLE_TAG_REQUIRED);
         }
     }
 
@@ -235,7 +237,7 @@ public class GroupService {
         }
 
         if (request.getReadingPeriod() != null) {
-            if (!List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
+            if (!List.of(3, 7, 14, 21, 28).contains(request.getReadingPeriod())) {
                 throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
             }
             group.setReadingPeriod(request.getReadingPeriod());

@@ -58,10 +58,10 @@ public class RedisUtil {
             // JSON String -> Object 변환
             return objectMapper.readValue(jsonValue, classType);
         } catch (JsonProcessingException e) {
-            log.error("Redis 조회 중 JSON 변환 에러: {}", e.getMessage());
+            log.error("Redis 조회 중 JSON 변환 에러: ", e);
             return null;
         } catch (Exception e) {
-            log.error("[GET] Redis 연결 에러 : {}", e.getMessage());
+            log.error("[GET] Redis 연결 에러 : ", e);
             return null;
         }
     }
@@ -71,7 +71,7 @@ public class RedisUtil {
         try {
             return Boolean.TRUE.equals(redisTemplate.delete(applyPrefix(key)));
         } catch (Exception e) {
-            log.error("[DELETE] Redis 연결 에러 : {}", e.getMessage());
+            log.error("[DELETE] Redis 연결 에러 : ", e);
             return false;
         }
     }

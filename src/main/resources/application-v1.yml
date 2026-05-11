@@ -21,8 +21,9 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       ssl:
-        enabled: true
-      timeout: 3s
+        enabled: false
+      timeout: 500ms
+      connect-timeout: 500ms
 
 logging:
   level:

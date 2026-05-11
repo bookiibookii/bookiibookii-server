@@ -48,17 +48,16 @@ public class GroupResponseDTO {
     public static class GroupDetailDTO {
         // 1. 그룹 및 상태 정보
         private Long groupId;
-        private String title;          // 도서 제목
         private String groupStatus;    // RECRUITING, MATCHED
         private Boolean isHost;        // 조회자가 방장인지 여부
+        private String tradeType;      // DIRECT, DELIVERY
         private String preferRegion;
-        private String meetPlace;
 
         // 2. 도서 상세 정보 (Book 엔티티와 매핑)
-        private String bookTitle;
+        private String title;
         private String bookImage;
         private String author;
-        private String category;       // CustomCategory 명칭
+        private String genre;          // CustomCategory 명칭
 
         // 3. 그룹 설정 및 배지 정보
         private Integer readingPeriod; // 독서 기간 (day)

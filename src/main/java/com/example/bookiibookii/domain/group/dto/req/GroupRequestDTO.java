@@ -49,7 +49,11 @@ public class GroupRequestDTO {
         private Integer readingPeriod;
         @Schema(description = "수정할 소개글", example = "내용을 조금 수정했습니다. 끝까지 함께하실 분!")
         private String groupComment;
-        @Schema(description = "수정할 규칙 리스트 (1~5개, 직접교환 타입)")
+        @Schema(description = "수정할 그룹명", example = "같이 읽어요")
+        private String groupName;
+        @Schema(description = "수정할 희망 교환 장소 또는 배송지", example = "서울 마포구 합정동")
+        private String preferRegion;
+        @Schema(description = "수정할 규칙 리스트 (1~5개)")
         @Size(min = 1, max = 5)
         @Valid
         private List<@NotNull RuleDTO> rules;

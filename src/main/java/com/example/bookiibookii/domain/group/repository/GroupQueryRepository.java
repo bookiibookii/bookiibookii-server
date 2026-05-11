@@ -5,9 +5,7 @@ import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -31,21 +29,19 @@ public class GroupQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, List<Tag> userTags, Pageable pageable) {
+    public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, Pageable pageable) {
 
         List<Groups> content = queryFactory
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin() // 도서 정보 페치 조인
                 .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
                 .where(
-                        inGroupTypes(filter.groupTypes()),
                         inTradeTypes(filter.tradeTypes()),
                         containsMeetPlaces(filter.meetPlace()),
                         inCategories(filter.categories()),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
                 .groupBy(groups.groupId)
-                .orderBy(getSortOrder(filter.sort(), userTags))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
                 .fetch();
@@ -60,19 +56,10 @@ public class GroupQueryRepository {
     }
 
     // 정렬 조건 생성 (추천순/인기순/최신순)
-    private OrderSpecifier<?>[] getSortOrder(GroupSortType sort, List<Tag> userTags) {
+    private OrderSpecifier<?>[] getSortOrder(GroupSortType sort) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
         GroupSortType sortType = (sort != null) ? sort : GroupSortType.LATEST;
-
-        // 추천순(usertag 기반 누적 추천?) 고도화 필요(현재 책 카테고리만 적용)
-//        if (GroupSortType.RECOMMEND == sortType && userTags != null && !userTags.isEmpty()) {
-//            NumberExpression<Long> matchCount = new CaseBuilder()
-//                    .when(groups.groupRules.in(userTags)).then(1L)
-//                    .otherwise(0L)
-//                    .sum();
-//            orders.add(new OrderSpecifier<>(Order.DESC, matchCount));
-//        }
 
         // 2순위: 인기순(신청자 수)
         if (GroupSortType.POPULAR == sortType) {
@@ -102,10 +89,6 @@ public class GroupQueryRepository {
                .reduce(BooleanExpression::or)
                .orElse(null);
    }
-
-    private BooleanExpression inGroupTypes(List<GroupType> types) {
-        return (types == null || types.isEmpty()) ? null : groups.groupType.in(types);
-    }
 
     private BooleanExpression inTradeTypes(List<TradeType> types) {
         return (types == null || types.isEmpty()) ? null : groups.tradeType.in(types);

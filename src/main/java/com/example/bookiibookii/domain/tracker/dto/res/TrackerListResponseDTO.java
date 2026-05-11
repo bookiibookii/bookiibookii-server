@@ -12,7 +12,7 @@ import java.util.List;
 public class TrackerListResponseDTO {
     // 공통 필드
     private Long groupId;
-    private String groupType; // RELAY, TOGETHER
+    private String groupType;
     private String bookTitle;
     private String bookImage;
     private String bookAuthor;
@@ -21,9 +21,7 @@ public class TrackerListResponseDTO {
     // 거래방식
     private TradeType tradeType;
 
-    // 타입별 상세 데이터
     private RelayDetail relayDetail;
-    private TogetherDetail togetherDetail;
 
     @Getter
     @Builder
@@ -35,12 +33,4 @@ public class TrackerListResponseDTO {
         private List<String> stepDates; // [4] 단계별 날짜 (예: ["12.01", null, null, null])
     }
 
-    @Getter
-    @Builder
-    public static class TogetherDetail {
-        private String hostNickname;
-        private int participantCount; // 참여 인원 수
-        private int myReadingRate;    // 나의 독서율 (0~100)
-        private int groupReadingRate; // 그룹 전체 평균 독서율
-    }
 }

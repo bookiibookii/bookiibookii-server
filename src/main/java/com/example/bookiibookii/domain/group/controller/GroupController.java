@@ -57,9 +57,8 @@ public class GroupController implements GroupControllerDocs {
     @GetMapping("/{groupId}")
     public ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
             @PathVariable(name = "groupId") Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user,
-            @RequestParam(required = false) String groupPassword) {
-        GroupResponseDTO.GroupDetailDTO result = groupService.getGroupDetail(groupId, user.getId(), groupPassword);
+            @AuthenticationPrincipal(expression = "user") User user) {
+        GroupResponseDTO.GroupDetailDTO result = groupService.getGroupDetail(groupId, user.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 

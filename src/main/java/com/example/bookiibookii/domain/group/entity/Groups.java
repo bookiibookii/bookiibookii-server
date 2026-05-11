@@ -61,20 +61,13 @@ public class Groups extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "trade_type")
-    private TradeType tradeType;//DIRECT, NONE
+    private TradeType tradeType;//DIRECT, DELIVERY
 
     @Column(name = "prefer_region")
     private String preferRegion;
 
     @Column(name = "group_name")
     private String groupName;
-
-    @Builder.Default
-    @Column(name = "is_private", nullable = false)
-    private Boolean isPrivate = false;
-
-    @Column(name = "password")
-    private String password;
 
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
@@ -87,10 +80,6 @@ public class Groups extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<UserBook> userBooks = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Meeting> meetings = new ArrayList<>();
 
     @Builder.Default
     @BatchSize(size = 10)

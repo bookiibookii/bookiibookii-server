@@ -1,5 +1,5 @@
 package com.example.bookiibookii.domain.group.enums;
 
 public enum TradeType {
-    DIRECT, NONE
+    DIRECT, DELIVERY
 }

@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.Location;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.GroupType;
@@ -10,6 +11,7 @@ import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.group.repository.LocationRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
@@ -18,41 +20,39 @@ import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponseDTO;
+import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
-import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
+import com.example.bookiibookii.domain.tracker.entity.TrackingImage;
+import com.example.bookiibookii.domain.tracker.enums.DeliveryStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
-import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
-import com.example.bookiibookii.domain.tracker.entity.TrackerImage;
-import com.example.bookiibookii.domain.tracker.enums.TrackerImageType;
 import com.example.bookiibookii.domain.tracker.exception.TrackerImageException;
+import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageErrorCode;
-import com.example.bookiibookii.domain.tracker.repository.TrackerHistoryRepository;
-import com.example.bookiibookii.domain.tracker.repository.TrackerImageRepository;
+import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
+import com.example.bookiibookii.domain.tracker.repository.TrackingImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
-import com.example.bookiibookii.domain.user.entity.Address;
-import com.example.bookiibookii.domain.user.repository.AddressRepository;
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.userbook.entity.UserBook;
-import com.example.bookiibookii.domain.userbook.repository.CardRepository;
 import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
-import com.example.bookiibookii.global.entity.BaseEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.*;
@@ -64,145 +64,137 @@ import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.*;
 public class TrackerService {
 
     private final TrackerRepository trackerRepository;
-    private final TrackerHistoryRepository trackerHistoryRepository;
-    private final TrackerImageRepository trackerImageRepository;
+    private final DeliveryRepository deliveryRepository;
+    private final TrackingImageRepository trackingImageRepository;
     private final TrackerImageValidationService trackerImageValidationService;
     private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final CardRepository cardRepository;
     private final UserBookRepository userBookRepository;
-    private final AddressRepository addressRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
+    private final LocationRepository locationRepository;
     private final TrackerConverter trackerConverter;
     private final DomainEventPublisher publisher;
-
-
-    private void validateGroupMember(Long groupId, Long userId) {
-        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
-            throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER); // 403 Forbidden
-        }
-    }
 
     private static final int TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES = 60;
 
-    /**
-     * 트래커 인증 이미지(배송/수령) 업로드용 Presigned PUT URL 발급.
-     * 그룹 멤버만 발급 가능.
-     */
+    // --- Helpers ---
+
+    private void validateGroupMember(Long groupId, Long userId) {
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER);
+        }
+    }
+
+    private MatchedMember getMyMatchedMember(Long groupId, Long userId) {
+        return matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private MatchedMember getPartnerMember(Long groupId, Long myMemberId) {
+        return matchedMemberRepository.findAllByGroup_GroupId(groupId).stream()
+                .filter(mm -> !mm.getId().equals(myMemberId))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
+    }
+
+    // --- 이미지 관련 ---
+
     public PresignedUrlResponseDTO getPresignedPutUrlForTrackerImage(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
         return trackerImageS3Service.generatePresignedPutUrl(TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES);
     }
 
-    /**
-     * 배송 인증 사진 보기. 수령한 사람(나)이 배송한 사람이 올린 SENDER_PROOF 이미지를 조회.
-     * 같은 그룹 멤버만 조회 가능.
-     */
     public TrackerImageGetResponseDTO getShippingProofImageUrl(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
-        MatchedMember myMatchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
 
-        TrackerHistory shippingHistory = trackerHistoryRepository
-                .findTop1ByTracker_Group_GroupIdAndReceiverMatchedMemberIdOrderByCreatedAtDesc(groupId, myMatchedMember.getId())
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        Delivery shippingDelivery = deliveryRepository
+                .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
 
-        TrackerImage senderProof = trackerImageRepository.findByTrackerHistory_IdAndType(shippingHistory.getId(), TrackerImageType.SENDER_PROOF)
+        TrackingImage image = trackingImageRepository
+                .findTopByDelivery_IdOrderByCreatedAtAsc(shippingDelivery.getId())
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
 
-        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(senderProof.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
+        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(image.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
         return TrackerImageGetResponseDTO.builder().presignedGetUrl(presignedGetUrl).build();
     }
 
-    /**
-     * 수령 인증 사진 보기. 배송한 사람(나)이 수령한 사람이 올린 RECEIVER_PROOF 이미지를 조회.
-     * 같은 그룹 멤버만 조회 가능.
-     */
     public TrackerImageGetResponseDTO getReceivedProofImageUrl(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
-        MatchedMember myMatchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
 
-        TrackerHistory myShippingHistory = trackerHistoryRepository
-                .findLatestHistoryByGroupAndSender(groupId, myMatchedMember.getId())
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        // 내가 보낸 배송이 RETURNED 되었을 때 수령인이 올린 이미지(최신)를 반환
+        Delivery myReturnedDelivery = deliveryRepository
+                .findTopByTrackerAndSenderIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.RETURNED)
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
 
-        Long receiverMatchedMemberId = myShippingHistory.getReceiverMatchedMemberId();
-
-        List<TrackerHistory> histories = trackerHistoryRepository.findAllByGroupId(groupId);
-        List<Long> historyIds = histories.stream()
-                .filter(h -> receiverMatchedMemberId.equals(h.getReceiverMatchedMemberId()))
-                .map(TrackerHistory::getId)
-                .toList();
-
-        TrackerImage receiverProof = trackerImageRepository
-                .findFirstByTrackerHistory_IdInAndTypeOrderByCreatedAtDesc(historyIds, TrackerImageType.RECEIVER_PROOF)
+        TrackingImage image = trackingImageRepository
+                .findTopByDelivery_IdOrderByCreatedAtDesc(myReturnedDelivery.getId())
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
 
-        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(receiverProof.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
+        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(image.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
         return TrackerImageGetResponseDTO.builder().presignedGetUrl(presignedGetUrl).build();
     }
 
+    // --- 트래커 생성 ---
 
-    // 트래커 생성
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createTracker(GroupMatchedEvent event) {
-
-        // 1. 이미 해당 그룹의 트래커가 있는지 검증 (boolean 체크)
         if (trackerRepository.existsByGroup_GroupId(event.groupId())) {
             throw new TrackerException(TrackerErrorCode.TRACKER_ALREADY_EXISTS);
         }
 
-        // 2. 그룹 엔티티 조회
         Groups group = groupsRepository.findById(event.groupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        // 3. 첫 번째 주자(호스트)의 MatchedMember 조회
-        MatchedMember firstOwner = matchedMemberRepository.findFirstByGroup_GroupIdOrderByCreatedAtAsc(event.groupId())
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.FIRST_MEMBER_NOT_FOUND));
-
-        TrackerStatus trackerStatus;
-        if(group.getGroupType() == GroupType.TOGETHER){
-            trackerStatus = TrackerStatus.TOGETHER;
-        }else if(group.getGroupType() == GroupType.RELAY){
-            trackerStatus = TrackerStatus.READY;
-        }else {
-            throw new GroupException(GroupErrorCode.INVALID_GROUP_TYPE);
-        }
-
-        // 4. 트래커 초기 빌드
         Tracker tracker = Tracker.builder()
                 .group(group)
-                .trackerStatus(trackerStatus)
-                .bookOwner(firstOwner)
+                .trackerStatus(TrackerStatus.READY)
                 .startDate(group.getStartDate().atStartOfDay())
                 .endDate(group.getStartDate().atStartOfDay().plusDays(group.getReadingPeriod()))
                 .extensionCount(0)
                 .extensionDays(0)
-                .isVerified(false)
                 .build();
 
         trackerRepository.save(tracker);
 
-        // 5. 첫 히스토리 기록
-        TrackerHistory initialHistory = tracker.createHistorySnapshot(
-                null,
-                firstOwner.getId(),
-                null, null
-        );
-        trackerHistoryRepository.save(initialHistory);
+        // DIRECT 거래 그룹의 경우 교환/반납 단계 미팅 레코드 사전 생성
+        if (group.getTradeType() == TradeType.DIRECT) {
+            Location defaultLocation = Location.builder()
+                    .id(UUID.randomUUID().toString())
+                    .placeName(group.getPreferRegion())
+                    .build();
+            locationRepository.save(defaultLocation);
 
-        // userbook에 트래커 사후 할당
+            meetingRepository.save(Meeting.builder()
+                    .tracker(tracker)
+                    .location(defaultLocation)
+                    .trackerStatus(TrackerStatus.EXCHANGING)
+                    .build());
+            meetingRepository.save(Meeting.builder()
+                    .tracker(tracker)
+                    .location(defaultLocation)
+                    .trackerStatus(TrackerStatus.RETURNING)
+                    .build());
+        }
+
         List<UserBook> userBooks = userBookRepository.findAllByGroup_GroupId(event.groupId());
         if (!userBooks.isEmpty()) {
             userBooks.forEach(ub -> ub.assignTracker(tracker));
         }
-
     }
 
-    //트래커 상세 조회
+    // --- 트래커 조회 ---
+
     @Transactional(readOnly = true)
     public TrackerDetailResponseDTO getTrackerDetailByGroupId(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
@@ -210,123 +202,70 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         MatchedMember partnerMember = findPartnerForRelay(groupId, user.getId());
-        User partnerUser = partnerMember.getUser();
 
-        // v1: 배송 관련 변수(partnerAddress, latestHistory)는 더 이상 필요 없습니다.
         Meeting latestMeeting = null;
-
-        // 직거래(DIRECT)일 때만 약속 정보를 조회합니다.
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
-            latestMeeting = meetingRepository.findByGroupIdAndStatusNative(groupId, tracker.getTrackerStatus().toString()).orElse(null);
+            TrackerStatus meetingStatus = resolveMeetingStatus(tracker.getTrackerStatus());
+            if (meetingStatus != null) {
+                latestMeeting = meetingRepository.findByTrackerIdAndStatusNative(
+                        tracker.getId(), meetingStatus.name()).orElse(null);
+            }
         }
 
-        // 컨버터 호출 시 partnerAddress와 latestHistory 자리에 null을 넘깁니다.
-        // (나중에 TrackerConverter에서도 이 파라미터들을 제거하면 더 좋습니다.)
-        return trackerConverter.toDetailResponse(tracker, latestMeeting, null, partnerUser, null);
+        Delivery latestShipping = deliveryRepository
+                .findTopByTrackerAndDeliveryStatusOrderByCreatedAtDesc(tracker, DeliveryStatus.SHIPPING)
+                .orElse(null);
+
+        return trackerConverter.toDetailResponse(tracker, latestMeeting, latestShipping, partnerMember.getUser());
     }
 
-    /**
-     * 1:1 교환 상황에서 현재 로그인한 유저를 제외한 파트너(MatchedMember)를 조회합니다.
-     */
+    private TrackerStatus resolveMeetingStatus(TrackerStatus current) {
+        return switch (current) {
+            case MY_BOOK_REVIEWING, EXCHANGING -> TrackerStatus.EXCHANGING;
+            case PARTNER_BOOK_REVIEWING, RETURNING -> TrackerStatus.RETURNING;
+            default -> null;
+        };
+    }
+
     private MatchedMember findPartnerForRelay(Long groupId, Long myUserId) {
         List<MatchedMember> members = matchedMemberRepository.findAllByGroup_GroupId(groupId);
-
-        // 1:1 상황인지 데이터 수준에서 한 번 더 검증
         if (members.size() > 2) {
             throw new TrackerException(TrackerErrorCode.INVALID_PARTNER_COUNT);
         }
-
         return members.stream()
                 .filter(mm -> !mm.getUser().getId().equals(myUserId))
                 .findFirst()
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
     }
 
-
-    // 트래커 히스토리 조회
-    @Transactional(readOnly = true)
-    public List<TrackerHistoryResponseDTO> getTrackerHistoriesByGroupId(Long groupId, User user) {
-        validateGroupMember(groupId, user.getId());
-
-        // 1. 해당 그룹의 모든 히스토리 조회
-        List<TrackerHistory> histories = trackerHistoryRepository.findAllByGroupId(groupId);
-
-        // 리스트가 비어있다면 커스텀 예외 발생
-        if (histories.isEmpty()) {
-            throw new TrackerException(TrackerErrorCode.HISTORY_NOT_FOUND);
-        }
-
-        return histories.stream().map(history -> {
-            // 1. senderUserId 처리 (null 체크 필수!)
-            Long senderUserId = null;
-            if (history.getSenderMatchedMemberId() != null) {
-                // (주의) matchedGroupRepository가 아니라 matchedMemberRepository를 사용해야 할 것 같습니다.
-                senderUserId = matchedMemberRepository.findById(history.getSenderMatchedMemberId())
-                        .map(mm -> mm.getUser().getId())
-                        .orElse(null);
-            }
-
-            // 2. receiverUserId 처리
-            Long receiverUserId = null;
-            if (history.getReceiverMatchedMemberId() != null) {
-                receiverUserId = matchedMemberRepository.findById(history.getReceiverMatchedMemberId())
-                        .map(mm -> mm.getUser().getId())
-                        .orElse(null);
-            }
-
-            // 3. 컨버터 호출
-            return trackerConverter.toHistoryResponse(history, senderUserId, receiverUserId);
-        }).collect(Collectors.toList());
-    }
-
-
-    // 트래커 리스트 조회
-    // 1. 전체 조회
     @Transactional(readOnly = true)
     public List<TrackerListResponseDTO> getTrackerList(Long userId) {
-        List<Tracker> trackers = trackerRepository.findAllByUserIdWithDetails(userId);
-        return convertToResponseList(trackers, userId);
+        return convertToResponseList(trackerRepository.findAllByUserIdWithDetails(userId), userId);
     }
 
-    // 2. 내가 호스트인 리스트 조회
     @Transactional(readOnly = true)
     public List<TrackerListResponseDTO> getHostTrackerList(Long userId) {
-        List<Tracker> trackers = trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.HOST);
-        return convertToResponseList(trackers, userId);
+        return convertToResponseList(trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.HOST), userId);
     }
 
-    // 3.  내가 게스트인 리스트 조회
     @Transactional(readOnly = true)
     public List<TrackerListResponseDTO> getGuestTrackerList(Long userId) {
-        List<Tracker> trackers = trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.GUEST);
-        return convertToResponseList(trackers, userId);
+        return convertToResponseList(trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.GUEST), userId);
     }
 
-    // 공통 변환 로직
-    private List<TrackerListResponseDTO> convertToResponseList(List<Tracker> trackers, Long userId) {
-        return trackers.stream()
-                .map(tracker -> {
-                    Groups group = tracker.getGroup();
-                    List<String> stepDates = buildStepDates(tracker);
-                    String targetNickname = findTargetNickName(tracker, userId);
+   private List<TrackerListResponseDTO> convertToResponseList(List<Tracker> trackers, Long userId) {
+      return trackers.stream()
+              .map(tracker -> {
+                  Groups group = tracker.getGroup();
+                  List<String> stepDates = buildStepDates(tracker);
+                  String targetNickname = findTargetNickName(tracker, userId);
 
-                    Integer myRate = 0;
-                    Integer groupRate = 0;
+                  return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, 0, 0);
+              })
+              .collect(Collectors.toList());
+  }
 
-
-                    if (group.getGroupType() == GroupType.TOGETHER) {
-                        myRate = calculateUserReadingRate(userId, group);
-                        groupRate = calculateGroupAverageRate(group);
-                    }
-
-                    return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, myRate, groupRate);
-                })
-                .collect(Collectors.toList());
-    }
-
-    // 내 독서율 가져오기
     private int calculateUserReadingRate(Long userId, Groups group) {
-        // MatchedMember에서 해당 유저의 이미 저장된 독서율 필드를 가져옵니다.
         return group.getMatchedMember().stream()
                 .filter(mm -> mm.getUser().getId().equals(userId))
                 .findFirst()
@@ -334,26 +273,21 @@ public class TrackerService {
                 .orElse(0);
     }
 
-    // 그룹 평균 독서율 가져오기
     private int calculateGroupAverageRate(Groups group) {
         List<MatchedMember> members = group.getMatchedMember();
         if (members == null || members.isEmpty()) return 0;
-
-        // 루프 안에서 쿼리 실행 없이, 메모리에 로드된 멤버들의 필드값만 합산
         double totalSum = members.stream()
                 .mapToDouble(mm -> mm.getCurrentReadingRate() != null ? mm.getCurrentReadingRate() : 0)
                 .sum();
-
         return (int) (totalSum / members.size());
     }
-
 
     private String findTargetNickName(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()
                 .filter(mm -> mm.getUser() != null && !mm.getUser().getId().equals(userId))
                 .map(mm -> {
                     String nickname = mm.getUser().getNickName();
-                    return (nickname != null) ? nickname : "닉네임 미설정"; // null이면 기본값 반환
+                    return nickname != null ? nickname : "닉네임 미설정";
                 })
                 .findFirst()
                 .orElse("상대방 없음");
@@ -363,229 +297,195 @@ public class TrackerService {
         List<String> dates = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM. dd.");
 
-        List<TrackerHistory> histories = tracker.getHistories();
-            if (histories == null || histories.isEmpty()) {
-                 return dates;
-              }
+        if (tracker.getStartDate() != null) {
+            dates.add(tracker.getStartDate().format(formatter));
+        }
 
-        addDateIfPresent(dates, histories, TrackerStatus.HOST_READING, formatter);    // 호스트 읽는중
-        addDateIfPresent(dates, histories, TrackerStatus.SHIPPING_TO_GUEST, formatter);    // 배송 중
-        addDateIfPresent(dates, histories, TrackerStatus.GUEST_READING, formatter); // 게스트 읽는 중
-        addDateIfPresent(dates, histories, TrackerStatus.SHIPPING_TO_HOST, formatter);   // 회수 중
+        List<Delivery> deliveries = tracker.getDeliveries();
+        if (deliveries == null || deliveries.isEmpty()) return dates;
+
+        List<Delivery> shippingDeliveries = deliveries.stream()
+                .filter(d -> d.getDeliveryStatus() == DeliveryStatus.SHIPPING ||
+                             d.getDeliveryStatus() == DeliveryStatus.RETURNED)
+                .sorted(Comparator.comparing(Delivery::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+
+        // 1차 교환 시작일
+        if (!shippingDeliveries.isEmpty() && shippingDeliveries.get(0).getStartDate() != null) {
+            dates.add(shippingDeliveries.get(0).getStartDate().format(formatter));
+        }
+
+        // 2차 교환(반납) 시작일 — 교환 단계 2건 이후부터 반납 단계
+        if (shippingDeliveries.size() > 2 && shippingDeliveries.get(2).getStartDate() != null) {
+            dates.add(shippingDeliveries.get(2).getStartDate().format(formatter));
+        }
 
         return dates;
     }
 
-    private void addDateIfPresent(List<String> dates, List<TrackerHistory> histories, TrackerStatus status, DateTimeFormatter formatter) {
-        histories.stream()
-                .filter(h -> h.getTrackerStatus() == status)
-                .map(BaseEntity::getCreatedAt)  // 생성 시점
-                .filter(Objects::nonNull)
-                .sorted() // 혹시 모를 중복 기록에 대비해 가장 빠른 날짜 선택
-                .findFirst()
-                .ifPresent(createdAt -> dates.add(createdAt.format(formatter)));
-    }
+    // --- 독서 단계 ---
 
-
-    // 배송 등록
     @Transactional
-    public void registerShipping(Long groupId, TrackerShippingRequestDTO request, User user) {
+    public void registerReading(Long groupId, User user) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        if (tracker.getTrackerStatus() != TrackerStatus.HOST_DONE &&
-                tracker.getTrackerStatus() != TrackerStatus.GUEST_DONE &&
-        tracker.getTrackerStatus() != TrackerStatus.READ_DONE) {
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        TrackerStatus status = tracker.getTrackerStatus();
+
+        if (status == TrackerStatus.READY || status == TrackerStatus.MY_BOOK_READING) {
+            if (me.getReadingStatus() != ReadingStatus.IDLE) {
+                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+            }
+            if (status == TrackerStatus.READY) {
+                tracker.startFirstReading();
+            }
+            me.updateReadingStatus(ReadingStatus.MY_BOOK_READING);
+        } else if (status == TrackerStatus.EXCHANGED || status == TrackerStatus.PARTNER_BOOK_READING) {
+            if (me.getReadingStatus() != ReadingStatus.MY_BOOK_REVIEW_DONE) {
+                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+            }
+            if (status == TrackerStatus.EXCHANGED) {
+                tracker.startSecondReading();
+            }
+            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READING);
+        } else {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
-        MatchedMember bookOwner = tracker.getBookOwner(); // 현재 책을 가지고 있는 사람
-
-        // 권한 검증
-        if(!bookOwner.getUser().getId().equals(user.getId())){
-            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
-        }
-
-        // 다음 주자(receiver) 조회
-        MatchedMember nextOwner = findNextMember(groupId, bookOwner.getId());
-
-        // 엔티티에 판단 위임 (위에 작성한 메서드 호출)
-        tracker.updateShippingStatus(bookOwner, nextOwner);
-
-        // S3 인증 이미지 검증
-        String s3Key = request.s3Key();
-        validateTrackerImageS3Key(s3Key);
-
-        // 트래커 히스토리에 write. (이미지는 TrackerImage로 저장)
-        TrackerHistory shippingHistory = tracker.createHistorySnapshot(
-                bookOwner.getId(),
-                nextOwner.getId(),
-                request.deliveryCompany(),
-                request.trackingNumber()
-        );
-        trackerHistoryRepository.save(shippingHistory);
-
-        TrackerImage senderProof = TrackerImage.builder()
-                .trackerHistory(shippingHistory)
-                .s3Key(s3Key)
-                .type(TrackerImageType.SENDER_PROOF)
-                .build();
-        trackerImageRepository.save(senderProof);
-
-        // 알림 publish
-        publisher.publish(new TrackerNotificationEvent(SHIPPING_REGISTERED, user.getId(), groupId, null) );
+        publisher.publish(new TrackerNotificationEvent(READING_STARTED, user.getId(), groupId, null));
     }
 
-    private void validateTrackerImageS3Key(String s3Key) {
-        if (!trackerImageValidationService.isValidS3Key(s3Key)) {
-            throw new TrackerImageException(TrackerImageErrorCode.INVALID_S3_KEY_FORMAT);
-        }
-        if (!trackerImageS3Service.doesImageExist(s3Key)) {
-            throw new TrackerImageException(TrackerImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
-        }
-        if (trackerImageRepository.existsByS3Key(s3Key)) {
-            throw new TrackerImageException(TrackerImageErrorCode.DUPLICATE_S3_KEY);
-        }
-    }
-
-
-    //수령 완료
-    @Transactional
-    public void registerReceive(Long groupId, TrackerReceiveRequestDTO request, User user) {
-        // 1. 트래커 조회
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        MatchedMember bookOwner = tracker.getBookOwner();
-        // 권한 검증
-        if (!bookOwner.getUser().getId().equals(user.getId())) {
-            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
-        }
-
-        List<TrackerStatus> shippingStatuses = List.of(
-                TrackerStatus.SHIPPING_TO_GUEST,
-                TrackerStatus.SHIPPING_TO_HOST
-        );
-
-        TrackerHistory lastShippingHistory = trackerHistoryRepository.findLatestShippingHistory(tracker, shippingStatuses)
-                .orElse(null);
-
-        String deliveryCompany = (lastShippingHistory != null) ? lastShippingHistory.getDeliveryCompany() : null;
-        String trackingNumber = (lastShippingHistory != null) ? lastShippingHistory.getTrackingNumber() : null;
-
-
-        // S3 수령 인증 이미지 검증
-        String s3Key = request.s3Key();
-        validateTrackerImageS3Key(s3Key);
-
-        // 2. [상태 변경] 엔티티 상태 업데이트 (SHIPPING -> RECEIVED/RETURNED)
-        tracker.updateReceiveStatus();
-
-        // 3. [새로운 단계 기록] '수령 완료' 상태가 시작되었음을 히스토리에 기록
-        TrackerHistory receiveHistory = tracker.createHistorySnapshot(
-                null,
-                bookOwner.getId(),
-                deliveryCompany, trackingNumber
-        );
-        trackerHistoryRepository.save(receiveHistory);
-
-        TrackerImage receiverProof = TrackerImage.builder()
-                .trackerHistory(receiveHistory)
-                .s3Key(s3Key)
-                .type(TrackerImageType.RECEIVER_PROOF)
-                .build();
-        trackerImageRepository.save(receiverProof);
-
-        // 알림 publish
-        publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, user.getId(), groupId, null) );
-    }
-
-
-    // 독서 시작
-    @Transactional
-    public void registerReading(Long groupId, User user) {
-        // 1. 트래커 조회
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        MatchedMember bookOwner = tracker.getBookOwner();
-        // 권한 검증
-        if(!bookOwner.getUser().getId().equals(user.getId())){
-            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
-        }
-
-
-        // 2. [상태 변경] 엔티티 상태 업데이트 (RECEIVED -> GUEST_READING 등)
-        tracker.startReading();
-
-        // 3. [새로운 단계 기록] '독서 중' 상태가 시작되었음을 히스토리에 기록
-        // 독서 중에는 보내는 사람이 없으므로 senderId는 null, receiverId는 현재 읽는 사람(나)
-        TrackerHistory readingHistory = tracker.createHistorySnapshot(
-                null,
-                bookOwner.getId(),
-                null, null
-        );
-        trackerHistoryRepository.save(readingHistory);
-
-        // 알림 publish
-        publisher.publish(new TrackerNotificationEvent(READING_STARTED, user.getId(), groupId, null) );
-    }
-
-    // 독서 완료
     @Transactional
     public void registerReadingDone(Long groupId, User user) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        MatchedMember bookOwner = tracker.getBookOwner();
-        // 권한 검증
-        if(!bookOwner.getUser().getId().equals(user.getId())){
-            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+
+        if (tracker.getTrackerStatus() == TrackerStatus.MY_BOOK_READING
+                && me.getReadingStatus() == ReadingStatus.MY_BOOK_READING) {
+            me.updateReadingStatus(ReadingStatus.MY_BOOK_READ_DONE);
+        } else if (tracker.getTrackerStatus() == TrackerStatus.PARTNER_BOOK_READING
+                && me.getReadingStatus() == ReadingStatus.PARTNER_BOOK_READING) {
+            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READ_DONE);
+        } else {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
-        tracker.completeReading();
-
-        TrackerHistory doneHistory = tracker.createHistorySnapshot(
-                null,
-                bookOwner.getId(),
-                null, null
-        );
-        trackerHistoryRepository.save(doneHistory);
-
-        // 알림 publish
-        publisher.publish(new TrackerNotificationEvent(READING_FINISHED, user.getId(), groupId, null) );
+        publisher.publish(new TrackerNotificationEvent(READING_FINISHED, user.getId(), groupId, null));
     }
 
-    // 기간 연장
     @Transactional
     public void registerExtensionDays(Long groupId, int days, User user) {
-        // 1. 트래커 조회
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
+        validateGroupMember(groupId, user.getId());
+
+        Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-        MatchedMember bookOwner = tracker.getBookOwner();
-        // 권한 검증
-        if(!bookOwner.getUser().getId().equals(user.getId())){
-            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
-        }
 
-        RoleStatus roleStatus= bookOwner.getRole();
+        tracker.extensionDays(days);
 
-        // 2. [상태/데이터 변경] 엔티티의 연장 로직 호출
-        tracker.extensionDays(days, roleStatus);
-
-        // 3. [새로운 단계 기록] 연장된 정보가 반영된 새로운 히스토리 생성
-        TrackerHistory extensionHistory = tracker.createHistorySnapshot(
-                null,
-                bookOwner.getId(),
-                null, null
-        );
-        trackerHistoryRepository.save(extensionHistory);
-
-        // 알림 publish
-        publisher.publish(new TrackerNotificationEvent(EXTEND_REQUESTED, user.getId(), groupId, tracker.getEndDate()) );
+        publisher.publish(new TrackerNotificationEvent(EXTEND_REQUESTED, user.getId(), groupId, tracker.getEndDate()));
     }
 
-    // 약속 상세 조회 (현재 트래커 상태에 맞는 약속 조회)
+    // --- 택배 배송/수령 (PARCEL) ---
+
+    @Transactional
+    public void registerShipping(Long groupId, TrackerShippingRequestDTO request, User user) {
+        Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        MatchedMember partner = getPartnerMember(groupId, me.getId());
+        TrackerStatus status = tracker.getTrackerStatus();
+
+        if (status == TrackerStatus.MY_BOOK_REVIEWING || status == TrackerStatus.EXCHANGING) {
+            if (me.getReadingStatus() != ReadingStatus.MY_BOOK_REVIEW_DONE) {
+                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+            }
+            if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
+                throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
+            }
+            if (status == TrackerStatus.MY_BOOK_REVIEWING) {
+                tracker.startExchanging(); // MY_BOOK_REVIEWING → EXCHANGING
+            }
+        } else if (status == TrackerStatus.PARTNER_BOOK_REVIEWING || status == TrackerStatus.RETURNING) {
+            if (me.getReadingStatus() != ReadingStatus.PARTNER_BOOK_REVIEW_DONE) {
+                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+            }
+            if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
+                throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
+            }
+            if (status == TrackerStatus.PARTNER_BOOK_REVIEWING) {
+                tracker.startReturning(); // PARTNER_BOOK_REVIEWING → RETURNING
+            }
+        } else {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        validateTrackerImageS3Key(request.s3Key());
+
+        Delivery shippingDelivery = Delivery.builder()
+                .id(UUID.randomUUID().toString())
+                .tracker(tracker)
+                .deliveryStatus(DeliveryStatus.SHIPPING)
+                .sender(me)
+                .receiver(partner)
+                .deliveryCompany(request.deliveryCompany())
+                .trackingNumber(request.trackingNumber())
+                .startDate(LocalDateTime.now())
+                .build();
+        deliveryRepository.save(shippingDelivery);
+
+        trackingImageRepository.save(TrackingImage.builder()
+                .delivery(shippingDelivery)
+                .s3Key(request.s3Key())
+                .build());
+
+        publisher.publish(new TrackerNotificationEvent(SHIPPING_REGISTERED, user.getId(), groupId, null));
+    }
+
+    @Transactional
+    public void registerReceive(Long groupId, TrackerReceiveRequestDTO request, User user) {
+        Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        TrackerStatus status = tracker.getTrackerStatus();
+
+        if (status != TrackerStatus.EXCHANGING && status != TrackerStatus.RETURNING) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        Delivery shippingDelivery = deliveryRepository
+                .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS));
+
+        validateTrackerImageS3Key(request.s3Key());
+
+        shippingDelivery.complete(LocalDateTime.now()); // SHIPPING → RETURNED
+
+        trackingImageRepository.save(TrackingImage.builder()
+                .delivery(shippingDelivery)
+                .s3Key(request.s3Key())
+                .build());
+
+        // 남은 SHIPPING 배송이 없으면 → 양측 수령 완료 → 다음 단계 진행
+        if (!deliveryRepository.existsByTrackerAndDeliveryStatus(tracker, DeliveryStatus.SHIPPING)) {
+            if (status == TrackerStatus.EXCHANGING) {
+                tracker.completeExchange(); // EXCHANGING → EXCHANGED
+            } else {
+                me.updateReadingStatus(ReadingStatus.DONE);
+                getPartnerMember(groupId, me.getId()).updateReadingStatus(ReadingStatus.DONE);
+                tracker.completeRelay(); // RETURNING → COMPLETED
+            }
+        }
+
+        publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, user.getId(), groupId, null));
+    }
+
+    // --- 직접 교환(Meeting, DIRECT) ---
+
     public TrackerMeetingResponseDTO getMeetingDetailByGroupId(Long groupId, User user) {
         validateGroupMember(groupId, user.getId());
 
@@ -596,100 +496,26 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
 
-        //  1. 현재 트래커 상태에 따라 조회해야 할 약속의 타겟 상태 결정
-        TrackerStatus currentStatus = tracker.getTrackerStatus();
-        TrackerStatus targetStatus;
-
-        // 전달 단계(호스트완료/전달중)일 때는 GUEST행 약속, 반납 단계(게스트완료/반납중)일 때는 HOST행 약속 조회
-        if (currentStatus == TrackerStatus.HOST_DONE || currentStatus == TrackerStatus.SHIPPING_TO_GUEST) {
-            targetStatus = TrackerStatus.SHIPPING_TO_GUEST;
-        } else if(currentStatus == TrackerStatus.GUEST_DONE || currentStatus == TrackerStatus.SHIPPING_TO_HOST){
-            targetStatus = TrackerStatus.SHIPPING_TO_HOST;
-        } else{
+        TrackerStatus meetingStatus = resolveMeetingStatus(tracker.getTrackerStatus());
+        if (meetingStatus == null) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
-        //  2. 특정 상태(targetStatus)와 일치하는 약속 조회
-        return meetingRepository.findByGroupIdAndStatusNative(groupId, targetStatus.name())
-                .map(meeting -> new TrackerMeetingResponseDTO(
-                        meeting.getMeetingTime(),
-                        meeting.getMeetingPlace()
-                ))
-                .orElseGet(() -> {
-                    // 약속 데이터가 없을 경우 호스트의 선호 지역 반환
-                    String defaultPlace = tracker.getGroup().getPreferRegion();
-                    return new TrackerMeetingResponseDTO(null, defaultPlace);
-                });
+        return meetingRepository.findByTrackerIdAndStatusNative(tracker.getId(), meetingStatus.name())
+                .map(meeting -> {
+                    Location loc = meeting.getLocation();
+                    return new TrackerMeetingResponseDTO(
+                            meeting.getMeetingTime(),
+                            loc != null ? loc.getPlaceName() : null,
+                            loc != null ? loc.getAddress() : null
+                    );
+                })
+                .orElseGet(() -> new TrackerMeetingResponseDTO(null, tracker.getGroup().getPreferRegion(), null));
     }
 
-
-    //약속 정보 업데이트
     @Transactional
     public void updateMeeting(Long groupId, TrackerMeetingRequestDTO request, User user) {
-        meetingRepository.flush();
-        // 1. 트래커 조회 및 권한 검증
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        // 현재 책 소유자 확인
-        MatchedMember bookOwner = tracker.getBookOwner();
-        if (!bookOwner.getUser().getId().equals(user.getId())) {
-            throw new TrackerException(TrackerErrorCode.NOT_TRACKER_OWNER);
-        }
-
-        if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
-             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
-        }
-
-        TrackerStatus currentStatus = tracker.getTrackerStatus();
-
-        boolean isDoneStatus = (currentStatus == TrackerStatus.HOST_DONE ||
-                currentStatus == TrackerStatus.GUEST_DONE ||
-                currentStatus == TrackerStatus.READ_DONE);
-
-        boolean isShippingStatus = (currentStatus == TrackerStatus.SHIPPING_TO_GUEST ||
-                currentStatus == TrackerStatus.SHIPPING_TO_HOST);
-
-        if (!isDoneStatus && !isShippingStatus) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        // 현재 소유자가 호스트면 '전달(GUEST)' 단계, 게스트면 '반납(HOST)' 단계로 정의
-        TrackerStatus meetingStep = (tracker.getBookOwner().getRole() == RoleStatus.HOST)
-                ? TrackerStatus.SHIPPING_TO_GUEST : TrackerStatus.SHIPPING_TO_HOST;
-
-        Meeting meeting = meetingRepository.findByGroupIdAndStatusNative(groupId, meetingStep.name())
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
-
-        if (meeting.getMeetingTime() == null) {
-            // [최초 등록]
-            // 처음으로 약속을 잡는 것이므로 필요한 정보 세팅
-            meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
-        } else {
-            // [재수정]
-            // 이미 약속이 잡혀있던 상태이므로, 기존 컨펌 상태를 리셋하고 정보 업데이트
-            meeting.resetConfirmation();
-            meeting.setMeetingDetails(request.meetingPlace(), request.meetingTime());
-        }
-
-        tracker.updateStatus(meetingStep);
-
-        meetingRepository.saveAndFlush(meeting);
-
-        if (isDoneStatus) {
-            MatchedMember nextOwner = findNextMember(groupId, bookOwner.getId());
-
-            TrackerHistory meetingHistory = tracker.createHistorySnapshot(
-                    bookOwner.getId(),
-                    nextOwner.getId(),
-                    null, null
-            );
-            trackerHistoryRepository.save(meetingHistory);
-        }
-    }
-
-    // 약속 완료
-    @Transactional
-    public void completeMeeting(Long groupId, User user) {
+        validateGroupMember(groupId, user.getId());
 
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
@@ -697,86 +523,88 @@ public class TrackerService {
         if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
-        if (tracker.getTrackerStatus() != TrackerStatus.SHIPPING_TO_GUEST &&
-                tracker.getTrackerStatus() != TrackerStatus.SHIPPING_TO_HOST) {
+
+        TrackerStatus currentStatus = tracker.getTrackerStatus();
+        TrackerStatus meetingPhaseStatus = resolveMeetingStatus(currentStatus);
+        if (meetingPhaseStatus == null) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+
+        Meeting meeting = meetingRepository.findByTrackerIdAndStatusNative(tracker.getId(), meetingPhaseStatus.name())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
+
+        Location newLocation = Location.builder()
+                .id(UUID.randomUUID().toString())
+                .placeName(request.placeName())
+                .address(request.address())
+                .addressDetail(request.addressDetail())
+                .zipCode(request.zipCode())
+                .build();
+        locationRepository.save(newLocation);
+
+        if (meeting.getMeetingTime() != null) {
+            meeting.resetConfirmation();
+        }
+        meeting.setMeetingDetails(newLocation, request.meetingTime());
+
+        // 첫 번째로 미팅을 등록하면 교환/반납 단계로 진입
+        if (currentStatus == TrackerStatus.MY_BOOK_REVIEWING) {
+            tracker.startExchanging(); // MY_BOOK_REVIEWING → EXCHANGING
+        } else if (currentStatus == TrackerStatus.PARTNER_BOOK_REVIEWING) {
+            tracker.startReturning(); // PARTNER_BOOK_REVIEWING → RETURNING
+        }
+    }
+
+    @Transactional
+    public void completeMeeting(Long groupId, User user) {
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        if (tracker.getGroup().getTradeType() != TradeType.DIRECT) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
+        }
+
+        TrackerStatus currentStatus = tracker.getTrackerStatus();
+        if (currentStatus != TrackerStatus.EXCHANGING && currentStatus != TrackerStatus.RETURNING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
         RoleStatus userRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
 
-        Meeting meeting = meetingRepository.findByGroupWithLock(groupId, tracker.getTrackerStatus())
+        Meeting meeting = meetingRepository.findByTrackerWithLock(tracker.getId(), currentStatus)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
-
 
         meeting.confirm(userRole);
 
         if (meeting.isFullyConfirmed()) {
-            processStatusTransition(tracker);
+            if (currentStatus == TrackerStatus.EXCHANGING) {
+                tracker.completeExchange(); // EXCHANGING → EXCHANGED
+            } else {
+                // 반납 완료 시 양측 ReadingStatus → DONE
+                MatchedMember me = getMyMatchedMember(groupId, user.getId());
+                MatchedMember partner = getPartnerMember(groupId, me.getId());
+                me.updateReadingStatus(ReadingStatus.DONE);
+                partner.updateReadingStatus(ReadingStatus.DONE);
+                tracker.completeRelay(); // RETURNING → COMPLETED
+            }
+            publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, user.getId(), groupId, null));
         } else {
-            // 아직 한 명만 확인한 상태일 때
             log.info("상대방 확인 대기 중.");
         }
     }
 
-    private void processStatusTransition(Tracker tracker) {
-        MatchedMember currentOwner = tracker.getBookOwner();
-        Long groupId = tracker.getGroup().getGroupId();
-        MatchedMember nextOwner = findNextMember(groupId, currentOwner.getId());
+    // --- 내부 유틸 ---
 
-        TrackerStatus nextStatus = (currentOwner.getRole() == RoleStatus.HOST)
-                ? TrackerStatus.RECEIVED : TrackerStatus.RETURNED;
-
-        tracker.completeTrade(nextOwner, nextStatus);
-
-        TrackerHistory transitionHistory = tracker.createHistorySnapshot(
-                currentOwner.getId(),
-                nextOwner.getId(),
-                null, null
-        );
-        trackerHistoryRepository.save(transitionHistory);
-
-        // 알림 발송
-        publisher.publish(new TrackerNotificationEvent(RECEIVED_CONFIRMED, nextOwner.getUser().getId(), groupId, null));
-    }
-
-
-    @Transactional
-    public void verifyPartnerReception(Long groupId, User user) {
-        // 1. groupId로 해당 그룹의 트래커 조회
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        // 2. 현재 트래커의 주인(책을 받은 사람) 정보 가져오기
-        Long currentOwnerUserId = tracker.getBookOwner().getUser().getId();
-
-        // 3. 권한 검증: 현재 주인(받은 사람)은 본인의 수령 사진을 확인할 수 없음
-        // 즉, 반대편에 있는 사람(보낸 사람)이 확인 버튼을 눌러야 함
-        if (currentOwnerUserId.equals(user.getId())) {
-            throw new TrackerException(TrackerErrorCode.OWNER_CANNOT_VERIFY);
+    private void validateTrackerImageS3Key(String s3Key) {
+        if (!trackerImageValidationService.isValidS3Key(s3Key)) {
+            throw new TrackerImageException(TrackerImageErrorCode.INVALID_S3_KEY_FORMAT);
         }
-
-        // 4. 요청자가 해당 그룹의 멤버인지 최종 확인 (보안 강화)
-        boolean isMember = tracker.getGroup().getMatchedMember().stream()
-                .anyMatch(mm -> mm.getUser().getId().equals(user.getId()));
-
-        if (!isMember) {
-            throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER);
+        if (!trackerImageS3Service.doesImageExist(s3Key)) {
+            throw new TrackerImageException(TrackerImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
         }
-
-        // 5. 엔티티 메서드 호출 (isVerified = true)
-        tracker.verifyReception();
-    }
-
-    // 현재 멤버의 다음 주자를 createdAt 순서 기준으로 조회 (순환)
-    private MatchedMember findNextMember(Long groupId, Long currentMemberId) {
-        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_GroupIdOrderByCreatedAtAsc(groupId);
-        for (int i = 0; i < members.size(); i++) {
-            if (members.get(i).getId().equals(currentMemberId)) {
-                return members.get((i + 1) % members.size());
-            }
+        if (trackingImageRepository.existsByS3Key(s3Key)) {
+            throw new TrackerImageException(TrackerImageErrorCode.DUPLICATE_S3_KEY);
         }
-        throw new TrackerException(TrackerErrorCode.NEXT_MEMBER_NOT_FOUND);
     }
-
 }

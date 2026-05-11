@@ -17,8 +17,6 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserTag;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -67,8 +65,8 @@ public class ApplicationService {
             throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
         }
 
-        // 3. 신청자 명단 조회 (Fetch Join으로 User와 Tag까지 한 번에!)
-        List<Application> applications = applicationRepository.findAllWithGuestAndTagsByGroupId(groupId);
+        // 3. 신청자 명단 조회
+        List<Application> applications = applicationRepository.findAllWithGuestByGroupId(groupId);
 
         // 4. 엔티티 리스트를 DTO 리스트로 변환
         List<ApplicationResponseDTO.ApplicationDetailDTO> detailDTOs = applications.stream()
@@ -304,18 +302,6 @@ public class ApplicationService {
     private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
         User guest = application.getGuest();
 
-        // 태그 이름만 String 리스트로 추출
-        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그를 추출
-        List<Tag> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
-                guest.getUserTags().stream()
-                        // 1. 점수(score) 높은 순서대로 정렬
-                        .sorted(Comparator.comparingInt(UserTag::getScore).reversed())
-                        // 2. 상위 3개만 자르기
-                        .limit(3)
-                        // 3. 태그 꺼내기
-                        .map(ut -> ut.getTag())
-                        .toList();
-
         String profileImageUrl = null;
         if (guest.getUserImage() != null) {
             profileImageUrl = userImageS3Service.generatePresignedGetUrl(
@@ -328,7 +314,6 @@ public class ApplicationService {
                 .name(guest.getNickName())
                 .profileImageUrl(profileImageUrl)
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                .tags(top3Tags)
                 .applyMsg(application.getApplyMsg())
                 .build();
     }

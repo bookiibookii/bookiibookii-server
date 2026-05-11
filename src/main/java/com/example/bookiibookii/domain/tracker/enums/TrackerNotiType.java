@@ -50,6 +50,12 @@ public enum TrackerNotiType {
             TRACKER_EXCHANGE_COMPLETED,
             "교환독서가 모두 끝났어요",
             "{bookTitle}과 함께 한 시간, 어땠었나요? 잊어버리기 전 후기를 남겨주세요!"
+    ),
+
+    REVIEW_DONE_CONFIRMED(
+            TRACKER_REVIEW_DONE_CONFIRMED,
+            "파트너가 후기를 작성했어요!",
+            "{nickname}님이 {bookTitle}에 대한 후기 작성을 완료했어요."
     );
 
     private final NotificationType notificationType;

@@ -38,20 +38,13 @@ public enum GroupErrorCode implements BaseCode {
     INVALID_GROUP_STATUS(HttpStatus.BAD_REQUEST, "GROUP400_19", "그룹상태가 진행중이 아닙니다."),
     GROUP_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_20", "그룹명을 입력해야 합니다."),
     INVALID_RULES(HttpStatus.BAD_REQUEST, "GROUP400_21", "규칙은 1개 이상 5개 이하로 입력해야 합니다."),
+    READING_STYLE_TAG_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_22", "독서 스타일 규칙은 1개 이상 선택해야 합니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),
     HOST_CANNOT_APPLY(HttpStatus.FORBIDDEN, "GROUP403_2", "Host는 신청할 수 없습니다."),
     HOST_CANNOT_LEAVE(HttpStatus.FORBIDDEN, "GROUP403_3","Host는 그룹을 떠날 수 없습니다."),
-    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다."),
-    PRIVATE_GROUP_ACCESS_REQUIRED(HttpStatus.FORBIDDEN, "GROUP403_5", "비공개 그룹입니다. 비밀번호를 입력해주세요."),
-
-    // 401 Unauthorized
-    WRONG_GROUP_PASSWORD(HttpStatus.UNAUTHORIZED, "GROUP401_1", "비밀번호가 일치하지 않습니다."),
-
-    // 400 Bad Request (비밀번호)
-    INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "GROUP400_22", "비밀번호는 숫자 4자리여야 합니다."),
-    PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_23", "비공개 그룹은 비밀번호를 설정해야 합니다."),
+    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다.")
 
 ;
 

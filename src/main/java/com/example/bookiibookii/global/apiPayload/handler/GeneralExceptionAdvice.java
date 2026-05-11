@@ -77,4 +77,5 @@ public class GeneralExceptionAdvice {
         log.debug("Resource not found: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not Found");
     }
+
 }

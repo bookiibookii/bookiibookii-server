@@ -17,18 +17,14 @@ import com.example.bookiibookii.domain.notification.publisher.DomainEventPublish
 import com.example.bookiibookii.domain.notification.service.KeywordMatchService;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
-import com.example.bookiibookii.domain.user.repository.AddressRepository;
-import com.example.bookiibookii.domain.user.repository.UserTagRepository;
 import com.example.bookiibookii.domain.user.service.BadWordService;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DELETED;
@@ -53,7 +50,6 @@ public class GroupService {
     private final ApplicationRepository applicationRepository;
     private final BookService bookService;
     private final GroupQueryRepository groupQueryRepository;
-    private final UserTagRepository userTagRepository;
     private final KeywordMatchService keywordMatchService;
     private final DomainEventPublisher publisher;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
@@ -62,9 +58,9 @@ public class GroupService {
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
-    private final PasswordEncoder passwordEncoder;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+    private static final Set<Tag> READING_STYLE_TAGS = Set.of(Tag.MEMO, Tag.POSTIT, Tag.PHOTO, Tag.All_ROUNDER);
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -93,89 +89,31 @@ public class GroupService {
         // 2. 도서 존재 여부 확인
         Book book = bookService.getOrCreateByIsbn13(request.getIsbn13());
 
-        // 3. 타입별 변수 설정 및 정책 검증
-        Integer finalCapacity;
-        TradeType finalTradeType;
+        // 3. 정책 검증
+        validatePolicy(host, request);
 
-        if (request.getGroupType() == GroupType.RELAY) {
-            // [1:1 이어읽기] 방장 포함 2명 고정 및 위치 정보 검증
-            validateRelayPolicy(host, request);
-            finalCapacity = 2;
-            finalTradeType = request.getTradeType(); //사용자가 선택한 교환 방식 적용
-        } else {
-            // [1:N 함께읽기] 방장 포함 최대 8명 제한 및 기본 택배 설정
-            validateTogetherPolicy(request);
-            finalCapacity = request.getMaxCapacity();
-            finalTradeType = TradeType.NONE;
-        }
-
-        // 4. 비공개 그룹 비밀번호 처리
-        boolean isPrivate = Boolean.TRUE.equals(request.getIsPrivate());
-        String hashedPassword = null;
-        if (isPrivate) {
-            if (request.getPassword() == null) {
-                throw new GroupException(GroupErrorCode.PASSWORD_REQUIRED);
-            }
-            hashedPassword = passwordEncoder.encode(request.getPassword());
-        }
-
-        // 5. Groups 엔티티 빌드 (ID 기반 연관관계 매핑)
+        // 4. Groups 엔티티 빌드
         Groups group = Groups.builder()
                 .book(book)
                 .host(host)
-                .maxCapacity(finalCapacity)
+                .maxCapacity(2)
                 .startDate(request.getStartDate())
                 .readingPeriod(request.getReadingPeriod())
                 .groupComment(request.getGroupComment())
-                .groupType(request.getGroupType())
-                .tradeType(finalTradeType)
+                .groupType(GroupType.RELAY)
+                .tradeType(request.getTradeType())
                 .groupStatus(GroupStatus.RECRUITING)
                 .preferRegion(request.getPreferRegion())
                 .groupName(request.getGroupName())
-                .isPrivate(isPrivate)
-                .password(hashedPassword)
                 .build();
 
         Groups savedGroup = groupsRepository.save(group);
 
-        // TOGETHER 타입 전용: 규칙 저장
-        if (request.getGroupType() == GroupType.TOGETHER) {
-            if (request.getRules() != null) {
-                request.getRules().forEach(rule ->
-                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
-            }
-        }
+        // 규칙 저장 (모든 트레이드 타입 공통)
+        request.getRules().forEach(rule ->
+                savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
 
-        // RELAY + DIRECT 타입: 규칙 저장
-        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
-            if (request.getRules() != null) {
-                request.getRules().forEach(rule ->
-                        savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
-            }
-        }
-
-        // 1:1 직접 교환일 때 Meeting 초기 데이터 생성
-        if (request.getGroupType() == GroupType.RELAY && request.getTradeType() == TradeType.DIRECT) {
-
-            // 1. 전달용 약속 (호스트 -> 게스트)
-            Meeting shippingMeeting = Meeting.builder()
-                    .group(group)
-                    .trackerStatus(TrackerStatus.SHIPPING_TO_GUEST)
-                    .meetingPlace(request.getMeetPlace())
-                    .meetingTime(null)
-                    .build();
-
-            // 2. 반납용 약속 (마지막 게스트 -> 호스트)
-            Meeting returnMeeting = Meeting.builder()
-                    .group(group)
-                    .trackerStatus(TrackerStatus.SHIPPING_TO_HOST)
-                    .meetingPlace(request.getMeetPlace())
-                    .meetingTime(null)
-                    .build();
-
-            meetingRepository.saveAll(List.of(shippingMeeting, returnMeeting));
-
-        }
+        // 직접 교환 그룹의 Meeting 초기 데이터는 트래커 생성 시점(GroupMatchedEvent)에 생성됩니다.
 
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
@@ -205,86 +143,66 @@ public class GroupService {
     }
 
     private void validateCommonPolicy(GroupRequestDTO.CreateDTO request) {
-        // 도서 선택 필수
         if (request.getIsbn13() == null || request.getIsbn13().isBlank()) {
             throw new GroupException(GroupErrorCode.BOOK_NOT_SELECTED);
         }
 
-        // 시작 날짜는 내일 이후 ~ 2주 이내
-        LocalDate today = LocalDate.now();
-        if (request.getStartDate() == null
-                || !request.getStartDate().isAfter(today)
-                || request.getStartDate().isAfter(today.plusWeeks(2))) {
-            throw new GroupException(GroupErrorCode.INVALID_START_DATE);
-        }
-
-
-        // 독서 기간 7, 14, 21, 28일 중 택1
-        if (request.getReadingPeriod() == null || !List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
-            throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
-        }
-
-        // 그룹 소개글 검증 로직
-        if (request.getGroupComment() == null || request.getGroupComment().isBlank()) {
-            throw new GroupException(GroupErrorCode.COMMENT_REQUIRED);
-        }
-
-        // 4. 소개글 글자 수 제한 (최대 500자)
-        if (request.getGroupComment().length() > 500) {
-            throw new GroupException(GroupErrorCode.INTRODUCTION_TOO_LONG);
-        }
-
-        // 5. 금칙어 검증 (BadWordService 활용)
-        // 닉네임에서 썼던 아호-코라식 알고리즘이 500자 문장도 순식간에 훑어줍니다.
-        if (badWordService.containsBadWord(request.getGroupComment())) {
-            throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
-        }
-    }
-
-    //1:1 relay 읽기 정책
-    private void validateRelayPolicy(User host, GroupRequestDTO.CreateDTO request) {
-        // 직접 교환 시 유저 엔티티의 지역/상세장소 정보 필수
-        if (request.getTradeType() == TradeType.DIRECT) {
-            // host 프로필이 비어있어도 request에 값이 있다면 통과
-            if (request.getPreferRegion() == null || request.getMeetPlace() == null) {
-                throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
-            }
-            // 직접 교환 시 규칙 1~5개 필수
-            if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
-                throw new GroupException(GroupErrorCode.INVALID_RULES);
-            }
-            for (RuleDTO rule : request.getRules()) {
-                validateRule(rule);
-            }
-        }
-    }
-
-
-
-   //1:n together 읽기 정책
-    private void validateTogetherPolicy(GroupRequestDTO.CreateDTO request) {
-        // 방장 포함 인원수는 최소 2명에서 최대 8명까지
-        if (request.getMaxCapacity() == null || request.getMaxCapacity() < 2 || request.getMaxCapacity() > 8) {
-            throw new GroupException(GroupErrorCode.INVALID_GROUP_CAPACITY);
-        }
-
-        // 그룹명 필수
         if (request.getGroupName() == null || request.getGroupName().isBlank()) {
             throw new GroupException(GroupErrorCode.GROUP_NAME_REQUIRED);
         }
-        if (badWordService.containsBadWord(request.getGroupName())) {
-            throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+
+        LocalDate today = LocalDate.now();
+        if (request.getStartDate() == null || !request.getStartDate().isAfter(today)) {
+            throw new GroupException(GroupErrorCode.INVALID_START_DATE);
         }
 
-        // 규칙 1~5개 필수
-        if (request.getRules() == null || request.getRules().isEmpty() || request.getRules().size() > 5) {
+        if (request.getReadingPeriod() == null || !List.of(3, 7, 14, 21, 28).contains(request.getReadingPeriod())) {
+            throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
+        }
+
+        // 소개글 선택 입력 — 값이 있을 때만 검증
+        if (request.getGroupComment() != null && !request.getGroupComment().isBlank()) {
+            if (request.getGroupComment().length() > 500) {
+                throw new GroupException(GroupErrorCode.INTRODUCTION_TOO_LONG);
+            }
+            if (badWordService.containsBadWord(request.getGroupComment())) {
+                throw new GroupException(GroupErrorCode.FORBIDDEN_WORD_INCLUDED);
+            }
+        }
+    }
+
+    private void validatePolicy(User host, GroupRequestDTO.CreateDTO request) {
+        // 직접 교환 시 희망 교환 장소 필수
+        if (request.getTradeType() == TradeType.DIRECT
+                && (request.getPreferRegion() == null || request.getPreferRegion().isBlank())) {
+            throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
+        }
+
+        // 규칙 검증 (모든 트레이드 타입 공통)
+        validateRules(request.getRules());
+    }
+
+    private void validateRules(List<RuleDTO> rules) {
+        if (rules == null || rules.isEmpty() || rules.size() > 5) {
             throw new GroupException(GroupErrorCode.INVALID_RULES);
         }
-        for (RuleDTO rule : request.getRules()) {
+
+        boolean hasReadingStyleTag = false;
+        for (RuleDTO rule : rules) {
+            if (rule == null || rule.tag() == null || rule.tag() == Tag.NO_IDEA) {
+                throw new GroupException(GroupErrorCode.INVALID_RULES);
+            }
+            if (READING_STYLE_TAGS.contains(rule.tag())) {
+                hasReadingStyleTag = true;
+            }
             validateRule(rule);
         }
-
+        if (!hasReadingStyleTag) {
+            throw new GroupException(GroupErrorCode.READING_STYLE_TAG_REQUIRED);
+        }
     }
+
+
 
     //그룹수정 service
     @Transactional
@@ -315,7 +233,7 @@ public class GroupService {
         }
 
         if (request.getReadingPeriod() != null) {
-            if (!List.of(7, 14, 21, 28).contains(request.getReadingPeriod())) {
+            if (!List.of(3, 7, 14, 21, 28).contains(request.getReadingPeriod())) {
                 throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
             }
             group.setReadingPeriod(request.getReadingPeriod());
@@ -332,36 +250,12 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
-        // 규칙 수정 (TOGETHER 또는 RELAY+DIRECT 타입)
-        boolean isRuleGroup = group.getGroupType() == GroupType.TOGETHER
-                || (group.getGroupType() == GroupType.RELAY && group.getTradeType() == TradeType.DIRECT);
-        if (request.getRules() != null && isRuleGroup) {
-            if (request.getRules().isEmpty() || request.getRules().size() > 5) {
-                throw new GroupException(GroupErrorCode.INVALID_RULES);
-            }
-            for (RuleDTO rule : request.getRules()) {
-                validateRule(rule);
-            }
+        // 규칙 수정
+        if (request.getRules() != null) {
+            validateRules(request.getRules());
             group.getGroupRules().clear();
             request.getRules().forEach(rule ->
                     group.getGroupRules().add(GroupRule.create(group, resolveRuleContent(rule), rule.tag())));
-        }
-
-        // 비공개 여부 및 비밀번호 수정
-        if (request.getIsPrivate() != null) {
-            if (Boolean.TRUE.equals(request.getIsPrivate())) {
-                if (request.getPassword() != null) {
-                    group.setPassword(passwordEncoder.encode(request.getPassword()));
-                } else if (group.getPassword() == null) {
-                    // 공개→비공개 전환인데 기존 비밀번호도 없는 경우
-                    throw new GroupException(GroupErrorCode.PASSWORD_REQUIRED);
-                }
-                group.setIsPrivate(true);
-            } else {
-                // 비공개→공개 전환: 비밀번호 초기화
-                group.setIsPrivate(false);
-                group.setPassword(null);
-            }
         }
 
         return GroupResponseDTO.UpdateResultDTO.builder()
@@ -408,32 +302,10 @@ public class GroupService {
 
     //그룹조회
     @Transactional(readOnly = true)
-    public GroupResponseDTO.GroupDetailDTO getGroupDetail(Long groupId, Long userId, String groupPassword) {
+    public GroupResponseDTO.GroupDetailDTO getGroupDetail(Long groupId, Long userId) {
 
-        // 1. 그룹의 핵심 정보(도서, 호스트)를 한 번에 조회 (Fetch Join 활용으로 성능 최적화)
         Groups group = groupsRepository.findDetailById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-
-        // 2. 비공개 그룹 접근 제어: 비그룹원은 비밀번호 검증 필요
-        if (Boolean.TRUE.equals(group.getIsPrivate())) {
-            boolean isMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
-            if (!isMember) {
-                if (groupPassword == null) {
-                    throw new GroupException(GroupErrorCode.PRIVATE_GROUP_ACCESS_REQUIRED);
-                }
-                if (!passwordEncoder.matches(groupPassword, group.getPassword())) {
-                    throw new GroupException(GroupErrorCode.WRONG_GROUP_PASSWORD);
-                }
-            }
-        }
-
-        String persistedMeetPlace = null;
-        if (group.getTradeType() == TradeType.DIRECT) {
-            // findByGroup 대신 더 명확한 이름을 사용
-            persistedMeetPlace = meetingRepository.findFirstByGroupOrderByCreatedAtDesc(group)
-                    .map(Meeting::getMeetingPlace) // 엔티티 필드명이 meetingPlace이므로 정확함!
-                    .orElse(null);
-        }
 
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByCreatedAtAsc(group);
@@ -452,16 +324,15 @@ public class GroupService {
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
                 .groupId(group.getGroupId())
-                .title(group.getBook().getTitle())
                 .groupComment(group.getGroupComment())
                 .groupStatus(group.getGroupStatus().name())
                 .isHost(group.getHost().getId().equals(userId))
+                .tradeType(group.getTradeType().name())
                 .preferRegion(group.getPreferRegion())
-                .meetPlace(persistedMeetPlace)
-                .bookTitle(group.getBook().getTitle())
+                .title(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .author(group.getBook().getAuthor())
-                .category(group.getBook().getCategory().label())
+                .genre(group.getBook().getCategory().label())
                 .readingPeriod(group.getReadingPeriod())
                 .matchedCount(matchedMembers.size())
                 .maxCapacity(group.getMaxCapacity())
@@ -477,7 +348,6 @@ public class GroupService {
                 .rules(group.getGroupRules().stream()
                         .map(r -> new RuleDTO(r.getTag(), r.getRuleContent()))
                         .toList())
-                .isPrivate(group.getIsPrivate())
                 .build();
     }
 
@@ -559,12 +429,8 @@ public class GroupService {
     public GroupResponseDTO.GroupSliceResponseDTO getGroupList(User user, GroupRequestDTO.FilterDTO filter) {
         PageRequest pageable = PageRequest.of(filter.page(), filter.size());
 
-        // 1. 추천 로직용 태그 수집
-        List<Tag> userTags = (user != null) ?
-                userTagRepository.findAllByUser(user).stream().map(ut -> ut.getTag()).toList() : new ArrayList<>();
-
         // 2. 메인 그룹 리스트 조회 (1번 쿼리)
-        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, userTags, pageable);
+        Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, pageable);
         List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getGroupId).toList();
 
         if (groupIds.isEmpty()) {
@@ -599,7 +465,6 @@ public class GroupService {
                             .pictureBadge(determinePictureBadge(group))
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
-                            .isPrivate(Boolean.TRUE.equals(group.getIsPrivate()))
                             .build();
                 }).toList();
 
@@ -608,10 +473,9 @@ public class GroupService {
 
     // 배지 텍스트 결정 로직
     private String determinePictureBadge(Groups group) {
-        // '함께읽기' 타입이면 그대로 배지 노출
-        if (group.getGroupType() == GroupType.TOGETHER) return "함께읽기";
+        if (group.getTradeType() == TradeType.DELIVERY) return "택배";
 
-        // '이어읽기' 중 '직접교환'이면 지역 정보 노출 (예: 서울 마포구 -> 마포구)
+        // 직접교환: 지역 정보 노출 (예: 서울 마포구 -> 마포구)
         String region = group.getPreferRegion();
         if (region == null || region.isBlank()) return "지역미정";
 
@@ -680,8 +544,7 @@ public class GroupService {
                             .tradeType(group.getTradeType().name())
                             .readingPeriod(group.getReadingPeriod())
                             .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
-                            .pictureBadge(determinePictureBadge(group)) // 기존 배지 결정 로직 재사용
-                            .isPrivate(Boolean.TRUE.equals(group.getIsPrivate()))
+                            .pictureBadge(determinePictureBadge(group))
                             .build();
                 }).toList();
 

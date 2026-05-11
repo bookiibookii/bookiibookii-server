@@ -9,7 +9,6 @@ import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository;
-import com.example.bookiibookii.domain.user.service.UserTagService;
 import com.example.bookiibookii.domain.userbook.service.UserBookService;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 public class RecommendationService {
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
-    private final UserTagService userTagService;
     private final UserRepository userRepository;
     private final UserTagRepository userTagRepository;
     private final UserBookService userBookService;

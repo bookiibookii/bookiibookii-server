@@ -48,17 +48,16 @@ public class GroupResponseDTO {
     public static class GroupDetailDTO {
         // 1. 그룹 및 상태 정보
         private Long groupId;
-        private String title;          // 도서 제목
         private String groupStatus;    // RECRUITING, MATCHED
         private Boolean isHost;        // 조회자가 방장인지 여부
+        private String tradeType;      // DIRECT, DELIVERY
         private String preferRegion;
-        private String meetPlace;
 
         // 2. 도서 상세 정보 (Book 엔티티와 매핑)
-        private String bookTitle;
+        private String title;
         private String bookImage;
         private String author;
-        private String category;       // CustomCategory 명칭
+        private String genre;          // CustomCategory 명칭
 
         // 3. 그룹 설정 및 배지 정보
         private Integer readingPeriod; // 독서 기간 (day)
@@ -76,20 +75,14 @@ public class GroupResponseDTO {
         // 5. 그룹 소개 및 참여 멤버 슬롯
         private String groupComment;   // 그룹 소개글
 
-        // 6. TOGETHER 타입 전용
         private String groupName;
         private List<RuleDTO> rules;
-
 
         // 예: 정원 4명 중 2명 참여 시 -> [방장, 게스트1, EMPTY, EMPTY] 순서로 구성
         private List<ParticipantSlotDTO> participantSlots;
 
-        // 6. 하단 버튼 상태 (프론트엔드 버튼 분기용)
         // APPLY(신청하기), CANCEL(취소하기), MANAGE(요청관리), TRACKER(트래커보기), FULL(인원마감)
         private String buttonStatus;
-
-        // 7. 비공개 여부
-        private Boolean isPrivate;
 
     }
 
@@ -122,8 +115,7 @@ public class GroupResponseDTO {
             String tradeType,
             Integer readingPeriod,
             String startDate,
-            String pictureBadge, //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
-            boolean isPrivate
+            String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구
     ) {}
 
     public record GroupSliceResponseDTO(

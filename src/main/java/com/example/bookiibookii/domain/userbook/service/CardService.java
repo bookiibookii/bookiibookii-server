@@ -54,6 +54,7 @@ public class CardService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final UserRepository userRepository;
     private final TrackerRepository trackerRepository;
+    private final com.example.bookiibookii.domain.tracker.repository.DeliveryRepository deliveryRepository;
 
     // ========== 컨트롤러에서 직접 호출 (DTO 반환) ==========
 
@@ -161,11 +162,11 @@ public class CardService {
 
         var trackerOpt = trackerRepository.findByGroupId(groupId);
         CardListResponseDTO.CurrentBookOwnerDto currentBookOwner = trackerOpt
-                .filter(t -> t.getBookOwner() != null && t.getBookOwner().getUser() != null)
-
-                .map(t -> CardListResponseDTO.CurrentBookOwnerDto.builder()
-                        .matchedMemberId(t.getBookOwner().getId())
-                        .nickname(t.getBookOwner().getUser().getNickName() != null ? t.getBookOwner().getUser().getNickName() : "")
+                .flatMap(t -> deliveryRepository.findTopByTrackerOrderByCreatedAtDesc(t))
+                .filter(d -> d.getReceiver() != null && d.getReceiver().getUser() != null)
+                .map(d -> CardListResponseDTO.CurrentBookOwnerDto.builder()
+                        .matchedMemberId(d.getReceiver().getId())
+                        .nickname(d.getReceiver().getUser().getNickName() != null ? d.getReceiver().getUser().getNickName() : "")
                         .build())
                 .orElse(null);
 
@@ -177,35 +178,17 @@ public class CardService {
             myComment = userBookRepository.findByUser_IdAndGroup_GroupId(userId, groupId)
                     .map(ub -> ub.getComment())
                     .orElse(null);
-            if (trackerOpt.isPresent()
-                    && trackerOpt.get().getBookOwner() != null
-                    && trackerOpt.get().getBookOwner().getUser() != null
-                    && !trackerOpt.get().getBookOwner().getUser().getId().equals(userId)) {
-                Long partnerUserId = trackerOpt.get().getBookOwner().getUser().getId();
+            var currentOwnerOpt = trackerOpt
+                    .flatMap(t -> deliveryRepository.findTopByTrackerOrderByCreatedAtDesc(t))
+                    .map(d -> d.getReceiver());
+            if (currentOwnerOpt.isPresent()
+                    && currentOwnerOpt.get().getUser() != null
+                    && !currentOwnerOpt.get().getUser().getId().equals(userId)) {
+                Long partnerUserId = currentOwnerOpt.get().getUser().getId();
                 partnerComment = userBookRepository.findByUser_IdAndGroup_GroupId(partnerUserId, groupId)
                         .map(ub -> ub.getComment())
                         .orElse(null);
             }
-        } else if (group.getGroupType() == GroupType.TOGETHER) {
-            // 함께읽기일 때 그룹의 모든 멤버들의 comment 조회
-            List<MatchedMember> members = 
-                    matchedMemberRepository.findAllByGroup_GroupId(groupId);
-            togetherComments = members.stream()
-                    .map(member -> {
-                        Long memberUserId = member.getUser().getId();
-                        String nickname = member.getUser().getNickName() != null 
-                                ? member.getUser().getNickName() 
-                                : "";
-                        String comment = userBookRepository.findByUser_IdAndGroup_GroupId(memberUserId, groupId)
-                                .map(ub -> ub.getComment())
-                                .orElse(null);
-                        return CardListResponseDTO.TogetherCommentDto.builder()
-                                .userId(memberUserId)
-                                .nickname(nickname)
-                                .comment(comment)
-                                .build();
-                    })
-                    .toList();
         }
 
         return CardListResponseDTO.builder()

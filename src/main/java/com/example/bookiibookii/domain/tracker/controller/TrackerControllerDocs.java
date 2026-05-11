@@ -131,7 +131,7 @@ public interface TrackerControllerDocs {
     );
 
     @PatchMapping("/{groupId}/tracker/done")
-    @Operation(summary = "독서 완료 등록", description = "도서를 다 읽었을 때 호출합니다. 이후 배송 등록이 가능해집니다.")
+    @Operation(summary = "독서 완료 등록", description = "도서를 다 읽었을 때 호출합니다. 이후 후기 작성이 가능해집니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독서 완료 등록 성공",
                     content = @Content(schema = @Schema(implementation = TrackerDetailResponseDTO.class))),
@@ -170,14 +170,6 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @PatchMapping("/{groupId}/tracker/reception/verification")
-    @Operation(summary = "상대방의 수령 인증 사진 확인 (승인)")
-    ApiResponse<TrackerDetailResponseDTO> verifyPartnerReception(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
-
     // --- 4. 직접 교환(Meeting) 관련 ---
     @GetMapping("/{groupId}/tracker/meetings")
     @Operation(summary = "직접 교환 약속 상세 조회")
@@ -192,7 +184,7 @@ public interface TrackerControllerDocs {
             description = """
             직접 교환 시 만날 장소와 시간을 등록하거나 수정합니다.
             
-            - **최초 등록 시**: 트래커 상태가 `SHIPPING_TO_GUEST`(전달 시) 또는 `SHIPPING_TO_HOST`(반납 시)로 변경됩니다.
+            - **최초 등록 시**: 트래커 상태가 `EXCHANGING`(전달 시) 또는 `RETURNING`(반납 시)로 변경됩니다.
             - **수정 시**: 이미 약속이 있는 경우 기존 정보를 업데이트하며, 상대방의 수락 여부(isConfirmed)가 초기화됩니다.
             - **응답**: 수정된 약속의 상세 정보(`TrackerMeetingResponse`)를 반환합니다.
             """
@@ -216,7 +208,7 @@ public interface TrackerControllerDocs {
     @Operation(
             summary = "직접 교환 완료 확인 (상호 확인)",
             description = "직접 교환 현장에서 책을 주고받은 후 양측(호스트, 게스트)이 각각 완료 버튼을 누릅니다. " +
-                    "두 명 모두 확인 시 소유권이 이전되며, 상태가 RECEIVED(전달 시) 또는 RETURNED(반납 시)로 즉시 변경됩니다."
+                    "두 명 모두 확인 시 소유권이 이전되며, 상태가 `EXCHANGED`(전달 시) 또는 `COMPLETED`(반납 시)로 즉시 변경됩니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "교환 확인 처리 성공",

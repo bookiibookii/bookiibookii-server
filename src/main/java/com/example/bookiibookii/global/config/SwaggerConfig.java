@@ -15,9 +15,9 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI swagger() {
         Info info = new Info()
-                .title("부키부키 API 명세서")
-                .description("부키부키 임시 백엔드 API 명세서입니다.")
-                .version("0.0.1");
+                .title("부키부키 V1 API 명세서")
+                .description("부키부키 V1 백엔드 API 명세서입니다.")
+                .version("0.1.0");
 
         String securityScheme = "JWT TOKEN";
         SecurityRequirement securityRequirement = new SecurityRequirement().addList(securityScheme);

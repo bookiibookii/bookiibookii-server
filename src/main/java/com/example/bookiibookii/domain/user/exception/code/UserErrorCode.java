@@ -29,7 +29,10 @@ public enum UserErrorCode implements BaseCode {
             "닉네임에 금칙어가 포함되어 있습니다."),
     SOCIAL_USER_CREATE_RACE_CONDITION(HttpStatus.INTERNAL_SERVER_ERROR,
             "USER500_1",
-            "소셜 사용자 생성 중 일시적인 충돌이 발생했습니다. 다시 시도해주세요.")
+            "소셜 사용자 생성 중 일시적인 충돌이 발생했습니다. 다시 시도해주세요."),
+    USER_PICK_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST,
+            "USER400_4",
+            "책은 최대 7개까지 설정 가능합니다.")
     ;
     private final HttpStatus status;
     private final String code;

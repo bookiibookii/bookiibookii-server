@@ -207,7 +207,6 @@ public class ReviewService {
                 .comment(request.partnerComment())
                 .build();
 
-        processGroupReview(reviewed.getUser(), request.partnerRating());
         groupReviewRepository.save(groupReview);
 
         // [핵심] 락이 걸린 상태에서 전원 완료 여부 체크
@@ -216,13 +215,6 @@ public class ReviewService {
         if (remainingCount == 0) {
             group.updateStatus(GroupStatus.COMPLETED);
         }
-    }
-
-    /**
-     * 그룹 리뷰(파트너 리뷰) 저장 시 매너 온도 업데이트 처리
-     */
-    private void processGroupReview(User targetUser, Double rating) {
-        targetUser.updateManner(rating);
     }
 
     private void validateRating(Double rating) {

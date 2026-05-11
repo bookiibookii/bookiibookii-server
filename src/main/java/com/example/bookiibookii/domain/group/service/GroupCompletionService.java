@@ -51,10 +51,6 @@ public class GroupCompletionService {
                                     .orElseThrow(() -> new GroupException(GroupErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
                             if (partnerMM != null) {
-                                // 2. 파트너 매너 점수 업데이트 (User 엔티티)
-                                partnerMM.getUser().updateManner(3.0);
-
-                                // 3. 기본 리뷰 생성 (수정된 메서드 호출)
                                 createDefaultReview(mm, partnerMM);
                             }
                         });

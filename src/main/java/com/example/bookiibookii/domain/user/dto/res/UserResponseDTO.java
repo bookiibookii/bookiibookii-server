@@ -15,12 +15,12 @@ public class UserResponseDTO {
             /** 프로필 이미지 표시용 Presigned GET URL. 없으면 null */
             String profileImageUrl,
             String nickname,
-            Double manner,
-            List<Tag> topTags,
+            String introduction,
             Integer completeBook,
             Integer relayGroup,
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<UserBookResponseDTO.MypageBookDto> books,
+            List<UserPickBookDto> userPickBooks,
             String receiverName,
             String phone,
             String zipCode,
@@ -28,6 +28,12 @@ public class UserResponseDTO {
             String addressDetail,
             String region,
             String meetPlace
+    ){}
+
+    public record UserPickBookDto (
+            String title,
+            String auth,
+            String image
     ){}
 
     @Builder

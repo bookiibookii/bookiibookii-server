@@ -311,11 +311,6 @@ public class GroupService {
         Groups group = groupsRepository.findDetailById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        String persistedMeetPlace = null;
-        if (group.getTradeType() == TradeType.DIRECT) {
-            persistedMeetPlace = group.getPreferRegion();
-        }
-
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByCreatedAtAsc(group);
         int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
@@ -333,16 +328,15 @@ public class GroupService {
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
                 .groupId(group.getGroupId())
-                .title(group.getBook().getTitle())
                 .groupComment(group.getGroupComment())
                 .groupStatus(group.getGroupStatus().name())
                 .isHost(group.getHost().getId().equals(userId))
+                .tradeType(group.getTradeType().name())
                 .preferRegion(group.getPreferRegion())
-                .meetPlace(persistedMeetPlace)
-                .bookTitle(group.getBook().getTitle())
+                .title(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .author(group.getBook().getAuthor())
-                .category(group.getBook().getCategory().label())
+                .genre(group.getBook().getCategory().label())
                 .readingPeriod(group.getReadingPeriod())
                 .matchedCount(matchedMembers.size())
                 .maxCapacity(group.getMaxCapacity())

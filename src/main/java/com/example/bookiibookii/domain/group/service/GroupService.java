@@ -254,6 +254,16 @@ public class GroupService {
             group.setGroupComment(request.getGroupComment());
         }
 
+        // 그룹명 수정
+        if (request.getGroupName() != null) {
+            group.setGroupName(request.getGroupName());
+        }
+
+        // 희망 교환 장소 수정
+        if (request.getPreferRegion() != null) {
+            group.setPreferRegion(request.getPreferRegion());
+        }
+
         // 규칙 수정
         if (request.getRules() != null) {
             validateRules(request.getRules());

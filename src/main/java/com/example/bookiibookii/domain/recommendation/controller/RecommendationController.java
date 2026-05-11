@@ -22,6 +22,8 @@ import java.util.List;
 public class RecommendationController implements RecommendationControllerDocs{
     private final RecommendationService recommendationService;
 
+<<<<<<< delete/#395-bookiimate
+=======
 
     // 사용자 태그 기반 부키메이트 추천 API
     @Override
@@ -33,6 +35,7 @@ public class RecommendationController implements RecommendationControllerDocs{
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
 
+>>>>>>> v1
     // 사용자 태그 기반 그룹 추천 API
     @GetMapping("/groups")
     public ApiResponse<List<RecommendationResponseDTO.RecommendedGroupDto>> recommendGroups(

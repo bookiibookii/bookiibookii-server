@@ -45,14 +45,16 @@ public class MatchedMember extends BaseEntity {
     @Builder.Default
     private ReadingStatus readingStatus = ReadingStatus.IDLE;
 
+    @Builder.Default
     @Column(name = "current_reading_rate", nullable = false)
     private Integer currentReadingRate = 0;
 
     @Column(name = "completed_at")
-    private LocalDateTime completedAt; // 독서 종료일 기록
+    private LocalDateTime completedAt;
 
+    @Builder.Default
     @Column(name = "is_review_written", nullable = false)
-    private boolean isReviewWritten = false; // 리뷰 작성 여부 추가
+    private boolean isReviewWritten = false;
 
     public void updateReadingStatus(ReadingStatus newStatus) {
         this.readingStatus = newStatus;

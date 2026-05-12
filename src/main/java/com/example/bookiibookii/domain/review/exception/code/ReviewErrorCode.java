@@ -16,10 +16,10 @@ public enum ReviewErrorCode implements BaseCode {
 
     // 403
     NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "REVIEW403_1", "해당 그룹의 멤버만 리뷰를 작성할 수 있습니다."),
-    NOT_USER_BOOK_OWNER(HttpStatus.FORBIDDEN, "REVIEW403_2", "본인 서재(UserBook)가 아닙니다."),
+    NOT_GROUP_BOOK_OWNER(HttpStatus.FORBIDDEN, "REVIEW403_2", "본인 서재(GroupBook)가 아닙니다."),
 
     // 404
-    USER_BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_1", "UserBook을 찾을 수 없습니다."),
+    GROUP_BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_1", "GroupBook을 찾을 수 없습니다."),
     MATCHED_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_2", "그룹 매칭 정보를 찾을 수 없습니다."),
     PARTNER_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_3", "리뷰 대상 파트너를 찾을 수 없습니다."),
     TRACKER_NOT_FOUND(HttpStatus.NOT_FOUND, "REVIEW404_4", "트래커를 찾을 수 없습니다."),

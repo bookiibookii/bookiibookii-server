@@ -18,10 +18,10 @@ public interface ReviewControllerDocs {
     @Operation(
             summary = "함께 읽기 리뷰 작성",
             description = """
-            1:N 함께 읽기 그룹 종료 후 사용자의 UserBook에 책에 대한 평점과 코멘트를 저장합니다.
+            1:N 함께 읽기 그룹 종료 후 사용자의 GroupBook에 책에 대한 평점과 코멘트를 저장합니다.
             
-            - 경로: /api/reviews/together/{userBookId}
-            - 조건: 해당 UserBook 소유자여야 합니다.
+            - 경로: /api/reviews/together/{groupBookId}
+            - 조건: 해당 GroupBook 소유자여야 합니다.
             - 코멘트: 최대 500자
             """
     )
@@ -29,11 +29,11 @@ public interface ReviewControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "작성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 평점/코멘트"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음(소유자 아님)"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "UserBook 미존재")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "GroupBook 미존재")
     })
-    @PostMapping("/together/{userBookId}")
+    @PostMapping("/together/{groupBookId}")
     ApiResponse<Void> createTogetherReview(
-            @PathVariable Long userBookId,
+            @PathVariable Long groupBookId,
             @RequestBody @Valid ReviewRequestDTO.TogetherReviewDTO request,
             @AuthenticationPrincipal(expression = "user") User user
     );
@@ -44,13 +44,13 @@ public interface ReviewControllerDocs {
             1차 또는 2차 독서를 완료한 후 책에 대한 리뷰를 작성합니다.
             양측 모두 완료 시 자동으로 교환/반납 단계로 진입합니다.
 
-            - 경로: /api/reviews/relay/{userBookId}/book
+            - 경로: /api/reviews/relay/{groupBookId}/book
             - 조건: 트래커가 READING 또는 READING_2 상태이며 독서 완료(READ_DONE/READ_DONE_2) 상태여야 합니다.
             """
     )
-    @PostMapping("/relay/{userBookId}/book")
+    @PostMapping("/relay/{groupBookId}/book")
     ApiResponse<Void> createMidRelayBookReview(
-            @PathVariable Long userBookId,
+            @PathVariable Long groupBookId,
             @RequestBody @Valid ReviewRequestDTO.BookReviewDTO request,
             @AuthenticationPrincipal(expression = "user") User user
     );
@@ -60,7 +60,7 @@ public interface ReviewControllerDocs {
             description = """
             1:1 이어읽기 그룹 종료 후 책에 대한 리뷰와 상대방에 대한 평가를 한 번에 작성합니다.
             
-            - 경로: /api/reviews/relay/{userBookId}
+            - 경로: /api/reviews/relay/{groupBookId}
             - 조건: 그룹 멤버이며 트래커가 RETURNED 상태여야 합니다. 한 번만 작성 가능.
             - 데이터: 책 평점/코멘트(500자), 파트너 평점/코멘트(200자) 전달
             """
@@ -69,12 +69,12 @@ public interface ReviewControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "작성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 평점/코멘트 또는 중복 작성"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한없음/소유자아님"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "UserBook 또는 트래커 미존재"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "GroupBook 또는 트래커 미존재"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "트래커 미반납(RETURNED) 시 작성 불가")
     })
-    @PostMapping("/relay/{userBookId}")
+    @PostMapping("/relay/{groupBookId}")
     ApiResponse<Void> createRelayReview(
-            @PathVariable Long userBookId,
+            @PathVariable Long groupBookId,
             @RequestBody @Valid ReviewRequestDTO.RelayReviewDTO request,
             @AuthenticationPrincipal(expression = "user") User user
     );

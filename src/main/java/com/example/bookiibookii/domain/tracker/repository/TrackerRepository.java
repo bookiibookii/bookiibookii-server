@@ -31,7 +31,7 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
             "JOIN FETCH t.group g " +
             "LEFT JOIN FETCH t.deliveries " +
             "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
-            "JOIN UserBook ub ON ub.group = g AND ub.user.id = :userId " +
+            "JOIN GroupBook ub ON ub.group = g AND ub.user.id = :userId " +
             "WHERE ub.rating IS NULL " +
             "ORDER BY t.createdAt DESC")
     List<Tracker> findAllByUserIdWithDetails(@Param("userId") Long userId);
@@ -40,7 +40,7 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
             "JOIN FETCH t.group g " +
             "LEFT JOIN FETCH t.deliveries " +
             "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
-            "JOIN UserBook ub ON ub.group = g AND ub.user.id = :userId " +
+            "JOIN GroupBook ub ON ub.group = g AND ub.user.id = :userId " +
             "WHERE mm.role = :role " +
             "AND ub.rating IS NULL " +
             "ORDER BY t.createdAt DESC")

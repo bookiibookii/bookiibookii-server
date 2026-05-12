@@ -21,10 +21,9 @@ import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
-import com.example.bookiibookii.domain.userbook.service.UserBookService;
+import com.example.bookiibookii.domain.groupbook.service.GroupBookService;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +32,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,7 +46,7 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher publisher;
-    private final UserBookService userBookService;
+    private final GroupBookService groupBookService;
     private final UserImageS3Service userImageS3Service;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
@@ -125,8 +122,8 @@ public class ApplicationService {
                     .build();
             matchedMemberRepository.save(newMember);
 
-            // 서재(UserBook) 추가
-            userBookService.createForParticipation(application.getGuest(), group);
+            // 서재(GroupBook) 추가
+            groupBookService.createForParticipation(application.getGuest(), group);
 
             // 개별 수락 알림 발송
             publisher.publish(new GroupNotificationEvent(

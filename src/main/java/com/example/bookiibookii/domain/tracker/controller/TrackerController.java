@@ -6,7 +6,7 @@ import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageSuccessCode;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerSuccessCode;
-import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
+import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.tracker.service.TrackerService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;

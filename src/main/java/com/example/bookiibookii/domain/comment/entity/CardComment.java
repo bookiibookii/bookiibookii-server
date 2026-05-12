@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.comment.entity;
 
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.userbook.entity.Card;
+import com.example.bookiibookii.domain.groupbook.entity.Card;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;

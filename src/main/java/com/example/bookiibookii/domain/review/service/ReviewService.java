@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
@@ -21,8 +22,7 @@ import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.userbook.entity.UserBook;
-import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
+import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.REVIEW_DONE_CONFIRMED;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +45,7 @@ public class ReviewService {
     private static final int GROUP_COMMENT_MAX_LENGTH = 200;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy. MM. dd.");
 
-    private final UserBookRepository userBookRepository;
+    private final GroupBookRepository groupBookRepository;
     private final TrackerRepository trackerRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupReviewRepository groupReviewRepository;
@@ -55,24 +54,24 @@ public class ReviewService {
 
     /**
      * 1. [함께 읽기] 리뷰 생성
-     * 파트너가 없으므로 본인의 서재(UserBook)에 책 리뷰만 남깁니다.
+     * 파트너가 없으므로 본인의 서재(GroupBook)에 책 리뷰만 남깁니다.
      */
     @Transactional
-    public void createTogetherReview(Long userBookId, ReviewRequestDTO.TogetherReviewDTO request, User user) {
+    public void createTogetherReview(Long groupBookId, ReviewRequestDTO.TogetherReviewDTO request, User user) {
         validateRating(request.rating());
         validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
 
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
+        GroupBook groupBook = groupBookRepository.findById(groupBookId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.GROUP_BOOK_NOT_FOUND));
 
-        if (!userBook.getUser().getId().equals(user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
+        if (!groupBook.getUser().getId().equals(user.getId())) {
+            throw new ReviewException(ReviewErrorCode.NOT_GROUP_BOOK_OWNER);
         }
 
-        userBook.updateReview(request.rating(), request.comment());
+        groupBook.updateReview(request.rating(), request.comment());
 
         //그룹 조회 락 추가
-        Groups group = groupsRepository.findByIdForUpdate(userBook.getGroup().getGroupId())
+        Groups group = groupsRepository.findByIdForUpdate(groupBook.getGroup().getGroupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 그룹이 MATCHED 상태일 때만 종료 로직 수행
@@ -96,17 +95,17 @@ public class ReviewService {
      * 양측 모두 완료되면 TrackerStatus가 READ_DONE/READ_DONE_2로 자동 전환됩니다.
      */
     @Transactional
-    public void createMidRelayBookReview(Long userBookId, ReviewRequestDTO.BookReviewDTO request, User user) {
+    public void createMidRelayBookReview(Long groupBookId, ReviewRequestDTO.BookReviewDTO request, User user) {
         validateRating(request.bookRating());
         validateCommentLength(request.bookComment(), BOOK_COMMENT_MAX_LENGTH);
 
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
-        if (!userBook.getUser().getId().equals(user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
+        GroupBook groupBook = groupBookRepository.findById(groupBookId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.GROUP_BOOK_NOT_FOUND));
+        if (!groupBook.getUser().getId().equals(user.getId())) {
+            throw new ReviewException(ReviewErrorCode.NOT_GROUP_BOOK_OWNER);
         }
 
-        Long groupId = userBook.getGroup().getGroupId();
+        Long groupId = groupBook.getGroup().getGroupId();
 
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
@@ -124,7 +123,7 @@ public class ReviewService {
         MatchedMember partner = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
-        userBook.updateReview(request.bookRating(), request.bookComment());
+        groupBook.updateReview(request.bookRating(), request.bookComment());
 
         if (trackerStatus == TrackerStatus.MY_BOOK_READING) {
             if (me.getReadingStatus() != ReadingStatus.MY_BOOK_READ_DONE) {
@@ -149,25 +148,25 @@ public class ReviewService {
 
     /**
      * 3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후)
-     * 책 리뷰(UserBook)와 상대방 리뷰(GroupReview)를 한 번에 저장하고 트래커를 종료합니다.
+     * 책 리뷰(GroupBook)와 상대방 리뷰(GroupReview)를 한 번에 저장하고 트래커를 종료합니다.
      */
     @Transactional
-    public void createRelayReview(Long userBookId, ReviewRequestDTO.RelayReviewDTO request, User user) {
+    public void createRelayReview(Long groupBookId, ReviewRequestDTO.RelayReviewDTO request, User user) {
         // 2-1. 모든 평점 및 코멘트 검증
         validateRating(request.bookRating());
         validateRating(request.partnerRating());
         validateCommentLength(request.bookComment(), BOOK_COMMENT_MAX_LENGTH);
         validateCommentLength(request.partnerComment(), GROUP_COMMENT_MAX_LENGTH);
 
-        // 2-2. UserBook 조회 및 권한 확인
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
-        if (!userBook.getUser().getId().equals(user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
+        // 2-2. GroupBook 조회 및 권한 확인
+        GroupBook groupBook = groupBookRepository.findById(groupBookId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.GROUP_BOOK_NOT_FOUND));
+        if (!groupBook.getUser().getId().equals(user.getId())) {
+            throw new ReviewException(ReviewErrorCode.NOT_GROUP_BOOK_OWNER);
         }
 
         // [보완] 비관적 락을 사용하여 그룹 조회 (동시성 제어)
-        Groups group = groupsRepository.findByIdForUpdate(userBook.getGroup().getGroupId())
+        Groups group = groupsRepository.findByIdForUpdate(groupBook.getGroup().getGroupId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // [보완] 그룹 상태가 MATCHED일 때만 리뷰 프로세스 진행
@@ -180,7 +179,7 @@ public class ReviewService {
         ensureTrackerReturned(groupId);
 
         // 2-3. [책 리뷰] 업데이트
-        userBook.updateReview(request.bookRating(), request.bookComment());
+        groupBook.updateReview(request.bookRating(), request.bookComment());
 
         // 2-4. 리뷰어 조회 및 중복 체크
         MatchedMember reviewer = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
@@ -254,13 +253,13 @@ public class ReviewService {
                 .distinct()
                 .toList();
 
-        // 3. Tracker / UserBook 배치 조회 (N+1 방지)
+        // 3. Tracker / GroupBook 배치 조회 (N+1 방지)
         List<Tracker> trackers = trackerRepository.findByGroup_GroupIdIn(groupIds);
         Map<Long, Tracker> trackerByGroupId = trackers.stream()
                 .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t, (a, b) -> a));
 
-        List<UserBook> userBooksInGroups = userBookRepository.findByGroup_GroupIdInWithUserAndGroup(groupIds);
-        Map<String, UserBook> userBookByUserAndGroup = userBooksInGroups.stream()
+        List<GroupBook> groupBooksInGroups = groupBookRepository.findByGroup_GroupIdInWithUserAndGroup(groupIds);
+        Map<String, GroupBook> groupBookByUserAndGroup = groupBooksInGroups.stream()
                 .collect(Collectors.toMap(
                         ub -> ub.getUser().getId() + "_" + ub.getGroup().getGroupId(),
                         ub -> ub,
@@ -278,7 +277,7 @@ public class ReviewService {
                     Long partnerUserId = partnerMM.getUser().getId();
 
                     Tracker tracker = trackerByGroupId.get(groupId);
-                    UserBook partnerBookReview = userBookByUserAndGroup.get(partnerUserId + "_" + groupId);
+                    GroupBook partnerBookReview = groupBookByUserAndGroup.get(partnerUserId + "_" + groupId);
 
                     return buildReviewItemDTO(group, tracker, partnerMM, gr, partnerBookReview);
                 })
@@ -291,7 +290,7 @@ public class ReviewService {
     }
 
     private GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO buildReviewItemDTO(
-            Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, UserBook pub) {
+            Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, GroupBook pub) {
 
         return GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO.builder()
                 .groupId(group.getGroupId())

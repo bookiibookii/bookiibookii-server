@@ -3,7 +3,6 @@ package com.example.bookiibookii.domain.user.service;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
-import com.example.bookiibookii.domain.userbook.exception.CardImageException;
 import com.example.bookiibookii.global.aws.AwsS3Properties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

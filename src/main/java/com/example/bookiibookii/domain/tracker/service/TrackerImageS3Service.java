@@ -2,7 +2,7 @@ package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.tracker.exception.TrackerImageException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageErrorCode;
-import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
+import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.aws.AwsS3Properties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

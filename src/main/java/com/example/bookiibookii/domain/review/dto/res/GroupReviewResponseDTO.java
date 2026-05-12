@@ -35,7 +35,7 @@ public class GroupReviewResponseDTO {
             private Double partnerToMeRating;    // 나에게 준 매너 점수
             private String partnerToMeComment;   // 나에게 남긴 말
 
-            // 상대방이 '책'에 대해 남긴 리뷰 (Partner's UserBook)
+            // 상대방이 '책'에 대해 남긴 리뷰 (Partner's GroupBook)
             private Double partnerBookRating;    // 상대가 책에 준 별점
             private String partnerBookComment;   // 상대가 책에 대해 쓴 감상문
             private String partnerBookReviewDate; // 상대가 책 리뷰를 쓴 날짜

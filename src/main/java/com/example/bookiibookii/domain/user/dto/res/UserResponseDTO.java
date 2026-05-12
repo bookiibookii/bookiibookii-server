@@ -19,7 +19,7 @@ public class UserResponseDTO {
             Integer relayGroup,
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<GroupBookResponseDTO.MypageBookDto> books,
-            List<UserPickBookDto> userPickBooks,
+            List<UserBookDto> userBooks,
             String receiverName,
             String phone,
             String zipCode,
@@ -29,7 +29,7 @@ public class UserResponseDTO {
             String meetPlace
     ){}
 
-    public record UserPickBookDto (
+    public record UserBookDto (
             String title,
             String auth,
             String image

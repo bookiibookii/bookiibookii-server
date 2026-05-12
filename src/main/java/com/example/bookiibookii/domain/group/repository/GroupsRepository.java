@@ -76,17 +76,6 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     """)
     Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);
 
-    // 상태가 RECRUITING이고, 시작일(startDate)이 오늘이거나 이미 지난 그룹 조회
-    @Query("""
-        SELECT g
-        FROM Groups g
-        JOIN FETCH g.host
-        JOIN FETCH g.book
-        WHERE g.groupStatus = 'RECRUITING'
-          AND g.startDate <= :today
-    """)
-    List<Groups> findGroupsToStart(@Param("today") LocalDate today);
-
     // 내가 방장인 그룹 중 '모집 중' 또는 '진행 중'인 개수
     long countByHostIdAndGroupStatusIn(Long hostId, List<GroupStatus> statuses);
 

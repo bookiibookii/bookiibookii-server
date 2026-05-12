@@ -183,8 +183,8 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
 
-        //그룹 존재여부 확인
-        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
+        //그룹 존재여부 확인 (락 적용 — 수락 트랜잭션과 동일한 락을 사용해 MATCHED 직후 신청 유입 차단)
+        Groups group = groupsRepository.findByIdForUpdateWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         //그룹 상태 확인(RECRUTING)

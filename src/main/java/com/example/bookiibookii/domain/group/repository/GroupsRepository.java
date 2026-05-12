@@ -40,6 +40,17 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     @Query("select g from Groups g where g.groupId = :groupId and g.groupStatus != 'DELETED'")
     Optional<Groups> findByIdForUpdate(@Param("groupId") Long groupId);
 
+    // 신청 시 동시성 제어용 — 락 + book/host fetch join
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+    select g from Groups g
+    join fetch g.book
+    join fetch g.host
+    where g.groupId = :groupId
+    and g.groupStatus != 'DELETED'
+    """)
+    Optional<Groups> findByIdForUpdateWithBookAndHost(@Param("groupId") Long groupId);
+
 
     // 랜덤 그룹 조회 (이미 뽑힌 그룹 제외)
     @Query("""

@@ -1,57 +1,98 @@
 package com.example.bookiibookii.domain.book.service;
 
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 @Component
+@RequiredArgsConstructor
 public class BookCategoryMapper {
 
-    private static final Set<String> BLOCK_CATEGORIES = Set.of(
-            "수험서/자격증",
-            "대학교재",
-            "초/중/고 참고서",
-            "어린이/유아",
-            "전집/중고전집",
-            "잡지",
-            "달력/기타 굿즈"
+    private final AladinCategoryTree aladinCategoryTree;
+
+    private static final Set<Long> BLOCK_ROOT_CIDS = Set.of(
+            // 수험서/자격증
+            1383L,
+
+            // 대학교재/전문서적
+            8257L,
+
+            // 초/중/고 참고서
+            50246L, // 초등학교참고서
+            76000L, // 중학교참고서
+            76001L, // 고등학교참고서
+
+            // 어린이/유아
+            1108L,  // 어린이
+            13789L, // 유아
+
+            // 전집
+            17195L, // 전집/중고전집
+
+            // 잡지
+            2913L,  // 잡지
+            50951L  // 문학 잡지
     );
 
-    // category가 "어린이"처럼 더 쪼개져 오는 상황 대비
-    private static boolean isBlocked(String category) {
-        if (category == null || category.isBlank()) return false;
-        String c = category.trim();
+    private static final Map<Long, CustomCategory> CID_CATEGORY_MAP = Map.<Long, CustomCategory>ofEntries(
+            // 문학
+            Map.entry(50917L, CustomCategory.KOREAN_NOVEL),      // 한국소설
+            Map.entry(50925L, CustomCategory.WORLD_NOVEL),       // 세계의 소설
+            Map.entry(112011L, CustomCategory.GENRE_NOVEL),      // 장르소설
+            Map.entry(50935L, CustomCategory.ROMANCE),           // 로맨스소설
+            Map.entry(50929L, CustomCategory.HISTORICAL_NOVEL),  // 역사소설
+            Map.entry(50940L, CustomCategory.POETRY_ESSAY),      // 시
+            Map.entry(55889L, CustomCategory.POETRY_ESSAY),      // 에세이
+            Map.entry(50948L, CustomCategory.PLAY_LITERATURE),   // 희곡
 
-        // 완전 일치(루트가 그대로 오는 케이스)
-        if (BLOCK_CATEGORIES.contains(c)) return true;
+            // 비문학
+            Map.entry(170L, CustomCategory.ECONOMY_BUSINESS),    // 경제경영
 
-        // 한 단어로 오는 하위/동의어 케이스
-        return containsAny(c, "수험서", "자격증", "대학교재", "참고서", "어린이", "유아", "전집", "중고전집", "잡지", "달력", "굿즈");
-    }
+            Map.entry(987L, CustomCategory.SCIENCE_IT),          // 과학
+            Map.entry(351L, CustomCategory.SCIENCE_IT),          // 컴퓨터/모바일
 
-    private static boolean containsAny(String s, String... keys) {
-        for (String k : keys) if (s.contains(k)) return true;
-        return false;
-    }
+            Map.entry(656L, CustomCategory.HUMANITIES_HISTORY),  // 인문학
+            Map.entry(74L, CustomCategory.HUMANITIES_HISTORY),   // 역사
 
-    public Optional<CustomCategory> mapCategory(String category) {
-        if (category == null || category.isBlank()) return Optional.of(CustomCategory.ETC);
+            Map.entry(1230L, CustomCategory.HOME_HOBBY),         // 가정/요리/뷰티
+            Map.entry(55890L, CustomCategory.HOME_HOBBY),        // 건강/취미/레저
+            Map.entry(1196L, CustomCategory.HOME_HOBBY),         // 여행
 
-        // 특정 분야 검색 차단
-        if (isBlocked(category)) return Optional.empty();
+            Map.entry(517L, CustomCategory.ART_CULTURE),         // 예술/대중문화
 
-        if (containsAny(category, "경제", "경영")) return Optional.of(CustomCategory.ECON_BIZ);
-        if (containsAny(category, "과학", "컴퓨터", "모바일", "IT")) return Optional.of(CustomCategory.SCI_IT);
-        if (containsAny(category, "소설", "희곡", "장르소설", "소설/시/희곡")) return Optional.of(CustomCategory.NOVEL_GENRE);
-        if (containsAny(category, "시", "에세이")) return Optional.of(CustomCategory.POEM_ESSAY);
-        if (containsAny(category, "가정", "취미", "여행", "요리", "살림", "건강")) return Optional.of(CustomCategory.HOME_HOBBY);
-        if (containsAny(category, "예술", "대중문화", "음악", "미술", "영화")) return Optional.of(CustomCategory.ART_CULTURE);
-        if (containsAny(category, "인문학", "역사")) return Optional.of(CustomCategory.HUMAN_HISTORY);
-        if (containsAny(category, "자기계발")) return Optional.of(CustomCategory.SELF_DEV);
-        if (containsAny(category, "사회과학", "정치", "사회")) return Optional.of(CustomCategory.POL_SOC);
+            Map.entry(336L, CustomCategory.SELF_DEVELOPMENT),    // 자기계발
 
-        return Optional.of(CustomCategory.ETC);
+            Map.entry(798L, CustomCategory.POLITICS_SOCIETY),    // 사회과학
+            Map.entry(51016L, CustomCategory.POLITICS_SOCIETY),  // 정치학/외교학/행정학
+            Map.entry(51046L, CustomCategory.POLITICS_SOCIETY)   // 법과 생활
+    );
+
+    public Optional<CustomCategory> mapCategory(Long aladinCategoryId) {
+        if (aladinCategoryId == null) {
+            return Optional.of(CustomCategory.NON_LITERATURE_ETC);
+        }
+
+        Long currentCid = aladinCategoryId;
+        Set<Long> visited = new HashSet<>();
+
+        while (currentCid != null && visited.add(currentCid)) {
+            if (BLOCK_ROOT_CIDS.contains(currentCid)) {
+                return Optional.empty();
+            }
+
+            CustomCategory mapped = CID_CATEGORY_MAP.get(currentCid);
+            if (mapped != null) {
+                return Optional.of(mapped);
+            }
+
+            currentCid = aladinCategoryTree.getParentCid(currentCid).orElse(null);
+        }
+
+        return Optional.of(CustomCategory.NON_LITERATURE_ETC);
     }
 }

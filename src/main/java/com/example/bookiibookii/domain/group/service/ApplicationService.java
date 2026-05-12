@@ -134,38 +134,31 @@ public class ApplicationService {
                     newMember.getUser().getId(), null, group.getGroupId()
             ));
 
-            // 그룹 상태 동기화 및 전이 판단
-            GroupStatus oldStatus = group.getGroupStatus();
-            long newTotalCount = currentTotalCount + 1; // 방금 추가된 멤버 포함
+            // 수락일이 독서 시작일 → 즉시 MATCHED 전환
+            group.setStartDate(LocalDate.now(ZoneId.of("Asia/Seoul")));
+            group.updateStatus(GroupStatus.MATCHED);
 
-            LocalDate seoulToday = LocalDate.now(ZoneId.of("Asia/Seoul"));
-            group.syncStatus(newTotalCount, seoulToday); // 엔티티의 통합 로직 호출
+            // 매칭 성공 이벤트 발행 (트래커 생성 등 후속 처리)
+            publisher.publish(new GroupMatchedEvent(
+                    group.getGroupId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
+            ));
 
-            // 상태가 MATCHED로 변경되었을 경우에만 후속 작업 실행
-            if (oldStatus != GroupStatus.MATCHED && group.getGroupStatus() == GroupStatus.MATCHED) {
-                // 매칭 성공 이벤트 발행
-                publisher.publish(new GroupMatchedEvent(
-                        group.getGroupId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
+            // 나머지 대기자들 자동 거절 처리
+            List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
+            List<Long> autoRejectedReceiverIds = pendingApplications.stream()
+                    .map(app -> app.getGuest().getId())
+                    .distinct()
+                    .toList();
+
+            for (Application pendingApp : pendingApplications) {
+                pendingApp.updateStatus(ApplicationStatus.REJECTED);
+            }
+
+            if (!autoRejectedReceiverIds.isEmpty()) {
+                publisher.publish(new GroupNotificationEvent(
+                        MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
+                        null, autoRejectedReceiverIds, group.getGroupId()
                 ));
-
-                // 나머지 대기자들 자동 거절 처리
-                List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
-                List<Long> autoRejectedReceiverIds = pendingApplications.stream()
-                        .map(app -> app.getGuest().getId())
-                        .distinct()
-                        .toList();
-
-                for (Application pendingApp : pendingApplications) {
-                    pendingApp.updateStatus(ApplicationStatus.REJECTED);
-                }
-
-                // 자동 거절 알림 발송
-                if (!autoRejectedReceiverIds.isEmpty()) {
-                    publisher.publish(new GroupNotificationEvent(
-                            MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
-                            null, autoRejectedReceiverIds, group.getGroupId()
-                    ));
-                }
             }
 
         }
@@ -190,8 +183,8 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
 
-        //그룹 존재여부 확인
-        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
+        //그룹 존재여부 확인 (락 적용 — 수락 트랜잭션과 동일한 락을 사용해 MATCHED 직후 신청 유입 차단)
+        Groups group = groupsRepository.findByIdForUpdateWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         //그룹 상태 확인(RECRUTING)

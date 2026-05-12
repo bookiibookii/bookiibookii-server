@@ -40,6 +40,17 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     @Query("select g from Groups g where g.groupId = :groupId and g.groupStatus != 'DELETED'")
     Optional<Groups> findByIdForUpdate(@Param("groupId") Long groupId);
 
+    // 신청 시 동시성 제어용 — 락 + book/host fetch join
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+    select g from Groups g
+    join fetch g.book
+    join fetch g.host
+    where g.groupId = :groupId
+    and g.groupStatus != 'DELETED'
+    """)
+    Optional<Groups> findByIdForUpdateWithBookAndHost(@Param("groupId") Long groupId);
+
 
     // 랜덤 그룹 조회 (이미 뽑힌 그룹 제외)
     @Query("""
@@ -75,17 +86,6 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     and g.groupStatus != 'DELETED'
     """)
     Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);
-
-    // 상태가 RECRUITING이고, 시작일(startDate)이 오늘이거나 이미 지난 그룹 조회
-    @Query("""
-        SELECT g
-        FROM Groups g
-        JOIN FETCH g.host
-        JOIN FETCH g.book
-        WHERE g.groupStatus = 'RECRUITING'
-          AND g.startDate <= :today
-    """)
-    List<Groups> findGroupsToStart(@Param("today") LocalDate today);
 
     // 내가 방장인 그룹 중 '모집 중' 또는 '진행 중'인 개수
     long countByHostIdAndGroupStatusIn(Long hostId, List<GroupStatus> statuses);

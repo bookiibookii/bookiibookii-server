@@ -34,7 +34,7 @@ public class Application extends BaseEntity {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id")
+    @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
     @Column(name = "apply_msg", length = 200)

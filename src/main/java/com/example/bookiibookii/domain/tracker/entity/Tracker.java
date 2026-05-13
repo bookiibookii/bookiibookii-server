@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Audited
+
 @AuditOverride(forClass = BaseEntity.class)
 @Entity
 @Getter
@@ -31,7 +31,6 @@ public class Tracker extends BaseEntity {
     @Column(name = "tracker_id")
     private Long id;
 
-    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
     private Groups group;

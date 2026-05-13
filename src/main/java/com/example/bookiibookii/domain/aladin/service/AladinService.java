@@ -29,7 +29,7 @@ public class AladinService {
         List<BookResDTO> books = raw.item() == null ? List.of()
                 : raw.item().stream()
                 .flatMap(item -> {
-                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryName());
+                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryId());
                     if (cc.isEmpty()) return Stream.empty(); // 차단 카테고리일 시 제거
 
                     return Stream.of(
@@ -41,7 +41,7 @@ public class AladinService {
                                     .isbn13(nvl(item.isbn13()))
                                     .link(nvl(item.link()))
                                     .category(cc.get())
-                                    .categoryLabel(cc.get().label())
+                                    .categoryLabel(cc.get().getLabel())
                                     .build()
                     );
                 })

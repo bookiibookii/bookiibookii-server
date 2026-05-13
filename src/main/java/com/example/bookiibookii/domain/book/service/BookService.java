@@ -30,7 +30,7 @@ public class BookService {
                 .orElseGet(() -> { // 없을 시
                     // 1) 알라딘에서 단건 조회
                     AladinClient.AladinBookItem item = aladinClient.lookupBookByIsbn13(isbn13);
-                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryName());
+                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryId());
                     if (cc.isEmpty()) {
                         throw new BookException(BookErrorCode.BLOCKED_CATEGORY);
                     }

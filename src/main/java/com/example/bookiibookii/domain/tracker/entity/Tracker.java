@@ -8,17 +8,12 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.envers.Audited;
-import org.hibernate.envers.AuditOverride;
-import org.hibernate.envers.NotAudited;
-import org.hibernate.envers.RelationTargetAuditMode;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 
-@AuditOverride(forClass = BaseEntity.class)
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -56,7 +51,6 @@ public class Tracker extends BaseEntity {
     @Builder.Default
     private Integer extensionDays = 0;
 
-    @NotAudited
     @Builder.Default
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
     private List<Delivery> deliveries = new ArrayList<>();

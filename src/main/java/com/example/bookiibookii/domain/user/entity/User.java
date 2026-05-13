@@ -74,7 +74,7 @@ public class User extends BaseEntity {
     private String introduction;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(length = 20)
     private Gender gender;
 
     @Column(name = "birth")

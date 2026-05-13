@@ -9,8 +9,6 @@ import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.CaseBuilder;
-import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -37,11 +35,12 @@ public class GroupQueryRepository {
                 .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
                 .where(
                         inTradeTypes(filter.tradeTypes()),
-                        containsMeetPlaces(filter.meetPlace()),
+                        containsRegions(filter.regions()),
                         inCategories(filter.categories()),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
                 .groupBy(groups.groupId)
+                .orderBy(getSortOrder(filter.sort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
                 .fetch();
@@ -55,40 +54,18 @@ public class GroupQueryRepository {
         return new SliceImpl<>(content, pageable, hasNext);
     }
 
-    // 정렬 조건 생성 (추천순/인기순/최신순)
     private OrderSpecifier<?>[] getSortOrder(GroupSortType sort) {
-        List<OrderSpecifier<?>> orders = new ArrayList<>();
-
-        GroupSortType sortType = (sort != null) ? sort : GroupSortType.LATEST;
-
-        // 2순위: 인기순(신청자 수)
-        if (GroupSortType.POPULAR == sortType) {
-            orders.add(new OrderSpecifier<>(Order.DESC, groups.applications.size()));
-        }
-
-        //최신순
-        orders.add(new OrderSpecifier<>(Order.DESC, groups.createdAt));
-
-        return orders.toArray(new OrderSpecifier[0]);
+        return new OrderSpecifier[]{new OrderSpecifier<>(Order.DESC, groups.createdAt)};
     }
 
-   //지역 필터
-   private BooleanExpression containsMeetPlaces(List<String> meetPlaces) {
-       if (meetPlaces == null || meetPlaces.isEmpty()) return null;
-
-       return meetPlaces.stream()
-               .map(place -> {
-                   if (place.contains("전체")) {
-                       String clean = place.replace("전체", "").trim();
-                       return clean.length() >= 2 ? clean.substring(0, 2) : clean;
-                   }
-                   return place;
-               })
-               .filter(keyword -> keyword != null && !keyword.isBlank())
-               .map(groups.preferRegion::contains)
-               .reduce(BooleanExpression::or)
-               .orElse(null);
-   }
+    private BooleanExpression containsRegions(List<String> regions) {
+        if (regions == null || regions.isEmpty()) return null;
+        return regions.stream()
+                .filter(r -> r != null && !r.isBlank())
+                .map(groups.preferRegion::contains)
+                .reduce(BooleanExpression::or)
+                .orElse(null);
+    }
 
     private BooleanExpression inTradeTypes(List<TradeType> types) {
         return (types == null || types.isEmpty()) ? null : groups.tradeType.in(types);
@@ -135,15 +112,6 @@ public class GroupQueryRepository {
     }
 
     private OrderSpecifier<?> getSearchSortOrder(GroupSortType sort) {
-        GroupSortType sortType = (sort != null) ? sort : GroupSortType.LATEST;
-
-        return switch (sortType) {
-            case POPULAR -> groups.applications.size().desc(); // 인기순
-
-            // RECOMMEND가 들어와도 의도적으로 LATEST(최신순)를 반환(검색결과에는 추천순 필터 없음)
-            case LATEST, RECOMMEND -> groups.createdAt.desc();
-
-            default -> groups.createdAt.desc();
-        };
+        return groups.createdAt.desc();
     }
 }

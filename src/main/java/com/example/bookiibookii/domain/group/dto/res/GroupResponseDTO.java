@@ -100,22 +100,21 @@ public class GroupResponseDTO {
     @Builder
     public record GroupSummaryDTO(
             Long groupId,
+            String groupName,
             String title,
             String author,
             String genre,
             String bookImage,
             String hostNickname,
-            String hostProfileImageUrl,  // 프로필 이미지 Presigned GET URL
+            String hostProfileImageUrl,
             String groupStatus,
             int currentCount,
             int maxCapacity,
             int waitingCount,
             boolean isHot,
-            String groupType,
             String tradeType,
             Integer readingPeriod,
-            String startDate,
-            String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구
+            String pictureBadge
     ) {}
 
     public record GroupSliceResponseDTO(

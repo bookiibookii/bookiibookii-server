@@ -11,10 +11,14 @@ import static jakarta.persistence.FetchType.LAZY;
 @Entity
 @Table(
         name = "user_policy_agreement",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_user_policy_agreement_user_policy",
-                        columnNames = {"user_id", "policy_document_id"}
+        indexes = {
+                @Index(
+                        name = "idx_user_policy_agreement_user_policy",
+                        columnList = "user_id, policy_document_id"
+                ),
+                @Index(
+                        name = "idx_user_policy_agreement_user_created_at",
+                        columnList = "user_id, acted_at"
                 )
         }
 )
@@ -42,26 +46,24 @@ public class UserPolicyAgreement {
     @Column(name = "agreed", nullable = false)
     private boolean agreed;
 
-    @Column(name = "agreed_at")
-    private LocalDateTime agreedAt;
+    @Column(name = "acted_at")
+    private LocalDateTime actedAt;
 
     public static UserPolicyAgreement agree(User user, PolicyDocument policyDocument) {
         return UserPolicyAgreement.builder()
                 .user(user)
                 .policyDocument(policyDocument)
                 .agreed(true)
-                .agreedAt(LocalDateTime.now())
+                .actedAt(LocalDateTime.now())
                 .build();
     }
 
-
-    public void agree() {
-        this.agreed = true;
-        this.agreedAt = LocalDateTime.now();
-    }
-
-    public void disagree() {
-        this.agreed = false;
-        this.agreedAt = null;
+    public static UserPolicyAgreement disagree(User user, PolicyDocument policyDocument) {
+        return UserPolicyAgreement.builder()
+                .user(user)
+                .policyDocument(policyDocument)
+                .agreed(false)
+                .actedAt(LocalDateTime.now())
+                .build();
     }
 }

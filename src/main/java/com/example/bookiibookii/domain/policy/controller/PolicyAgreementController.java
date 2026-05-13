@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.policy.exception.code.PolicySuccessCode;
 import com.example.bookiibookii.domain.policy.service.PolicyAgreementService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,7 @@ public class PolicyAgreementController implements PolicyAgreementControllerDocs 
     @PostMapping("/agreements")
     public ApiResponse<PolicyResponseDTO.AgreePolicies> agreePolicies(
             @AuthenticationPrincipal(expression = "user") User user,
-            @RequestBody PolicyRequestDTO.AgreePolicies request
+            @RequestBody @Valid PolicyRequestDTO.AgreePolicies request
     ) {
         return ApiResponse.onSuccess(
                 PolicySuccessCode.POLICY_AGREE_OK,

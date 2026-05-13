@@ -2,8 +2,7 @@ package com.example.bookiibookii.domain.user.dto.res;
 
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
-import com.example.bookiibookii.domain.user.enums.Tag;
-import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
+import com.example.bookiibookii.domain.groupbook.dto.res.GroupBookResponseDTO;
 import lombok.Builder;
 
 import java.util.List;
@@ -19,8 +18,8 @@ public class UserResponseDTO {
             Integer completeBook,
             Integer relayGroup,
             List<GroupResponseDTO.MypageGroupDto> groups,
-            List<UserBookResponseDTO.MypageBookDto> books,
-            List<UserPickBookDto> userPickBooks,
+            List<GroupBookResponseDTO.MypageBookDto> books,
+            List<UserBookDto> userBooks,
             String receiverName,
             String phone,
             String zipCode,
@@ -30,7 +29,7 @@ public class UserResponseDTO {
             String meetPlace
     ){}
 
-    public record UserPickBookDto (
+    public record UserBookDto (
             String title,
             String auth,
             String image

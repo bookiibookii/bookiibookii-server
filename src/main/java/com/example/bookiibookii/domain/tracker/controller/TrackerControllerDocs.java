@@ -5,7 +5,7 @@ import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
+import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

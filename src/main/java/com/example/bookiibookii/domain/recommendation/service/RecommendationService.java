@@ -1,23 +1,14 @@
 package com.example.bookiibookii.domain.recommendation.service;
 
-import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
-import com.example.bookiibookii.domain.recommendation.dto.res.RecommendationResponseDTO;
-import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.repository.UserTagRepository;
-import com.example.bookiibookii.domain.userbook.service.UserBookService;
+import com.example.bookiibookii.domain.groupbook.service.GroupBookService;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +18,7 @@ public class RecommendationService {
 
     private final UserRepository userRepository;
     private final UserTagRepository userTagRepository;
-    private final UserBookService userBookService;
+    private final GroupBookService groupBookService;
     private final GroupsRepository groupsRepository;
     private final RedisUtil redisUtil;
     private final UserImageS3Service userImageS3Service;

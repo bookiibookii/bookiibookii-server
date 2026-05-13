@@ -21,7 +21,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.service.BadWordService;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
-import com.example.bookiibookii.domain.userbook.service.UserBookService;
+import com.example.bookiibookii.domain.groupbook.service.GroupBookService;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -53,7 +53,7 @@ public class GroupService {
     private final DomainEventPublisher publisher;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
-    private final UserBookService userBookService;
+    private final GroupBookService groupBookService;
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
@@ -123,8 +123,8 @@ public class GroupService {
 
         matchedMemberRepository.save(hostMember);
 
-        // 방장 서재(UserBook)에 추가
-        userBookService.createForParticipation(host, savedGroup);
+        // 방장 서재(GroupBook)에 추가
+        groupBookService.createForParticipation(host, savedGroup);
 
         List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
 

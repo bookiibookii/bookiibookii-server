@@ -4,7 +4,6 @@ import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.Location;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
@@ -14,6 +13,7 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.LocationRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
+import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
@@ -38,9 +38,8 @@ import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackingImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.userbook.dto.res.PresignedUrlResponseDTO;
-import com.example.bookiibookii.domain.userbook.entity.UserBook;
-import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
+import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
+import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -69,7 +68,7 @@ public class TrackerService {
     private final TrackerImageValidationService trackerImageValidationService;
     private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final UserBookRepository userBookRepository;
+    private final GroupBookRepository groupBookRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
     private final LocationRepository locationRepository;
@@ -187,9 +186,9 @@ public class TrackerService {
                     .build());
         }
 
-        List<UserBook> userBooks = userBookRepository.findAllByGroup_GroupId(event.groupId());
-        if (!userBooks.isEmpty()) {
-            userBooks.forEach(ub -> ub.assignTracker(tracker));
+        List<GroupBook> groupBooks = groupBookRepository.findAllByGroup_GroupId(event.groupId());
+        if (!groupBooks.isEmpty()) {
+            groupBooks.forEach(ub -> ub.assignTracker(tracker));
         }
     }
 

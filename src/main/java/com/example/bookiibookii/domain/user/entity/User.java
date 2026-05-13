@@ -77,13 +77,13 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 20)
     private Gender gender;
 
-    @Column(name = "birth", nullable = false)
+    @Column(name = "birth")
     @Past(message = "과거 날짜만 입력 가능합니다.")
     private LocalDate birth;
 
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "onboarding_status", nullable = false)
+    @Column(name = "onboarding_status")
     @Builder.Default
     private OnboardingStatus onboardingStatus = OnboardingStatus.NEW;
 

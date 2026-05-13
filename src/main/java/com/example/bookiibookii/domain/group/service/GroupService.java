@@ -29,7 +29,6 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -97,7 +96,6 @@ public class GroupService {
                 .book(book)
                 .host(host)
                 .maxCapacity(2)
-                .startDate(request.getStartDate())
                 .readingPeriod(request.getReadingPeriod())
                 .groupComment(request.getGroupComment())
                 .groupType(GroupType.RELAY)
@@ -149,11 +147,6 @@ public class GroupService {
 
         if (request.getGroupName() == null || request.getGroupName().isBlank()) {
             throw new GroupException(GroupErrorCode.GROUP_NAME_REQUIRED);
-        }
-
-        LocalDate today = LocalDate.now();
-        if (request.getStartDate() == null || !request.getStartDate().isAfter(today)) {
-            throw new GroupException(GroupErrorCode.INVALID_START_DATE);
         }
 
         if (request.getReadingPeriod() == null || !List.of(3, 7, 14, 21, 28).contains(request.getReadingPeriod())) {
@@ -220,16 +213,6 @@ public class GroupService {
         //진행중(MATCHED)인 그룹은 수정 불가
         if(group.getGroupStatus() != GroupStatus.RECRUITING){
             throw new GroupException(GroupErrorCode.GROUP_CANT_UPDATE);
-        }
-
-        //날짜수정 (이미 시작한 그룹은 수정불가) 유효성 검사
-        // 4. 날짜 및 기간 수정 시 유효성 검사 (생성 시 규칙과 동일)
-        if (request.getStartDate() != null) {
-            // 시작 날짜는 오늘 이후(내일부터) 선택 가능
-            if (!request.getStartDate().isAfter(LocalDate.now())) {
-                throw new GroupException(GroupErrorCode.INVALID_START_DATE);
-            }
-            group.setStartDate(request.getStartDate());
         }
 
         if (request.getReadingPeriod() != null) {

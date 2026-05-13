@@ -278,14 +278,6 @@ public class ApplicationService {
         // 5. 신청 내역(Application) 삭제
         applicationRepository.delete(application);
 
-        // 6. 인원 재계산 및 필요 시 모집 중(RECRUITING)으로 상태 복구
-        long currentCount = matchedMemberRepository.countByGroup(group);
-
-        //통합 로직 호출 후 재계산
-
-        LocalDate seoulToday = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        group.syncStatus(currentCount, seoulToday);
-
         return ApplicationResponseDTO.CancelResultDTO.builder()
                 .groupId(groupId)
                 .canceledAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))

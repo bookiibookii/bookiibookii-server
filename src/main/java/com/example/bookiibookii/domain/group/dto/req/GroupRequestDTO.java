@@ -9,7 +9,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public class GroupRequestDTO {
@@ -20,8 +19,6 @@ public class GroupRequestDTO {
         @NotBlank(message = "ISBN은 필수 입력 사항입니다.")
         @Pattern(regexp = "^[0-9]{13}$", message = "ISBN13은 숫자 13자리여야 합니다.")
         private String isbn13;
-        @Schema(description = "독서 시작 날짜 (익일부터)", example = "2026-02-20")
-        private LocalDate startDate;
         @Schema(description = "독서 기간 (3, 7, 14, 21, 28일 중 택1)", example = "14")
         private Integer readingPeriod;
         @Schema(description = "그룹 소개글 (선택, 최대 500자)", example = "숭실대 근처에서 같이 경제 서적 읽으실 분 구해요!")
@@ -43,8 +40,6 @@ public class GroupRequestDTO {
 
     @Getter
     public static class UpdateDTO{
-        @Schema(description = "수정할 시작 날짜", example = "2026-02-25")
-        private LocalDate startDate;
         @Schema(description = "수정할 독서 기간", example = "21")
         private Integer readingPeriod;
         @Schema(description = "수정할 소개글", example = "내용을 조금 수정했습니다. 끝까지 함께하실 분!")

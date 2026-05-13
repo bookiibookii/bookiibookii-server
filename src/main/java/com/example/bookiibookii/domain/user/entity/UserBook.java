@@ -30,10 +30,17 @@ public class UserBook extends BaseEntity {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
-    public static UserBook create(User user, Book book) {
+    @Column(name = "is_onboarding", nullable = false)
+    private boolean isOnboarding;
+
+    @Column(name = "is_display", nullable = false)
+    private boolean isDisplay;
+
+    public static UserBook create(User user, Book book, boolean isOnboarding) {
         return UserBook.builder()
                 .user(user)
                 .book(book)
+                .isOnboarding(isOnboarding)
                 .build();
     }
 }

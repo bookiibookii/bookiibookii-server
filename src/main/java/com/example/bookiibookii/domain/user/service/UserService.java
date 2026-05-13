@@ -104,7 +104,7 @@ public class UserService {
 
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-        addUserBooks(user, request.userBooks());
+        addUserBooks(user, request.userBooks(), true);
         user.updateIntroduction(request.introduction());
         user.updateUserInform(request.gender(), request.birth());
 
@@ -114,7 +114,7 @@ public class UserService {
         user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
     }
 
-    private void addUserBooks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
+    private void addUserBooks(User user, List<BookReqDTO.UserPickISBN> isbnList, boolean is_onboarding) {
         List<String> distinctIsbns = isbnList.stream()
                 .filter(Objects::nonNull)
                 .map(BookReqDTO.UserPickISBN::isbn13)
@@ -128,7 +128,7 @@ public class UserService {
 
         List<UserBook> picks = distinctIsbns.stream()
                 .map(bookService::getOrCreateByIsbn13)
-                .map(book -> UserBook.create(user, book))
+                .map(book -> UserBook.create(user, book, true))
                 .toList();
 
         userBookRepository.saveAll(picks);
@@ -170,7 +170,7 @@ public class UserService {
         // 추가 대상
         List<UserBook> toAdd = books.stream()
                 .filter(book -> !existingBookIds.contains(book.getId()))
-                .map(book -> UserBook.create(user, book))
+                .map(book -> UserBook.create(user, book, false))
                 .toList();
 
         userBookRepository.deleteAll(toDelete);

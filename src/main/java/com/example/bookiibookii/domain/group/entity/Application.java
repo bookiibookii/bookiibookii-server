@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.entity;
 
+import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -31,6 +32,10 @@ public class Application extends BaseEntity {
     @Column(name = "application_status",nullable = false)
     private ApplicationStatus applicationStatus; //PENDING, ACCEPTED, REJECTED
 
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_id")
+    private Book book;
 
     @Column(name = "apply_msg", length = 200)
     private String applyMsg;

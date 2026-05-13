@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.group.service;
 
+import com.example.bookiibookii.domain.book.entity.Book;
+import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
@@ -51,6 +53,7 @@ public class ApplicationService {
     private final DomainEventPublisher publisher;
     private final UserBookService userBookService;
     private final UserImageS3Service userImageS3Service;
+    private final BookService bookService;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -222,10 +225,14 @@ public class ApplicationService {
         User guest = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
+        // 교환할 책 조회/생성
+        Book book = bookService.getOrCreateByIsbn13(request.getIsbn13());
+
         // 신청 엔티티 생성 및 저장
         Application application = Application.builder()
                 .group(group)
                 .guest(guest)
+                .book(book)
                 .applyMsg(request.getApplyMsg())
                 .applicationStatus(ApplicationStatus.PENDING)
                 .build();
@@ -293,6 +300,8 @@ public class ApplicationService {
                     guest.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         }
 
+        Book book = application.getBook();
+
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
                 .user(guest.getId())
@@ -300,6 +309,9 @@ public class ApplicationService {
                 .profileImageUrl(profileImageUrl)
                 .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .applyMsg(application.getApplyMsg())
+                .bookTitle(book != null ? book.getTitle() : null)
+                .bookAuthor(book != null ? book.getAuthor() : null)
+                .bookImage(book != null ? book.getImage() : null)
                 .build();
     }
 }

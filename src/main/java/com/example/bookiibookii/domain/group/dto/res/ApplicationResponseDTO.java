@@ -38,6 +38,12 @@ public class ApplicationResponseDTO {
         private String profileImageUrl;
         private String createdAt;
         private String applyMsg;
+        @Schema(description = "신청자가 제안한 책 제목")
+        private String bookTitle;
+        @Schema(description = "신청자가 제안한 책 저자")
+        private String bookAuthor;
+        @Schema(description = "신청자가 제안한 책 표지 이미지 URL")
+        private String bookImage;
     }
 
     @Getter

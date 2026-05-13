@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.user.enums.*;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Past;
 import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -77,6 +78,7 @@ public class User extends BaseEntity {
     private Gender gender;
 
     @Column(name = "birth", nullable = false)
+    @Past(message = "과거 날짜만 입력 가능합니다.")
     private LocalDate birth;
 
 

@@ -1,14 +1,13 @@
 package com.example.bookiibookii.domain.user.dto.req;
 
 import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
+import com.example.bookiibookii.domain.user.enums.Gender;
 import com.example.bookiibookii.domain.user.enums.Tag;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public class UserRequestDTO {
@@ -16,6 +15,12 @@ public class UserRequestDTO {
             @NotBlank(message = "닉네임은 필수 입력 사항입니다.")
             @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String name,
+
+            @NotNull(message = "성별은 필수 입력 사항입니다.")
+            Gender gender,
+
+            @NotNull(message = "생년월일은 필수 입력 사항입니다.")
+            LocalDate birth,
 
             @NotEmpty
             @Valid
@@ -28,11 +33,7 @@ public class UserRequestDTO {
             @Valid
             List<BookReqDTO.UserPickISBN> userBooks,
 
-            String introduction,
-
-            // TODO : 집, 회사, 교환장소 등 상세주소(위치좌표)를 위치 테이블에 저장하여 좌표 기준 인접 km 계산가능하도록 로직 수정 필요
-            // 임의로 시+군+구 합친 위치를 string으로 저장
-            String region
+            String introduction
     ){}
 
     public record MypageReqDTO (

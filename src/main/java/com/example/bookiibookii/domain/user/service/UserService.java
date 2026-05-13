@@ -106,7 +106,7 @@ public class UserService {
 
         addUserBooks(user, request.userBooks());
         user.updateIntroduction(request.introduction());
-        user.updateRegion(request.region());
+        user.updateUserInform(request.gender(), request.birth());
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);

@@ -1,9 +1,6 @@
 package com.example.bookiibookii.domain.user.entity;
 
-import com.example.bookiibookii.domain.user.enums.OnboardingStatus;
-import com.example.bookiibookii.domain.user.enums.Role;
-import com.example.bookiibookii.domain.user.enums.SocialType;
-import com.example.bookiibookii.domain.user.enums.Status;
+import com.example.bookiibookii.domain.user.enums.*;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -11,9 +8,11 @@ import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.bookiibookii.domain.user.enums.Gender.FEMALE;
 import static com.example.bookiibookii.domain.user.enums.Role.USER;
 import static com.example.bookiibookii.domain.user.enums.Status.ACTIVE;
 
@@ -74,6 +73,14 @@ public class User extends BaseEntity {
     private String introduction;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Gender gender;
+
+    @Column(name = "birth", nullable = false)
+    private LocalDate birth;
+
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "onboarding_status", nullable = false)
     @Builder.Default
     private OnboardingStatus onboardingStatus = OnboardingStatus.NEW;
@@ -100,5 +107,6 @@ public class User extends BaseEntity {
     public void updateRegion(String region) { this.region = region; }
     public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }
+    public void updateUserInform(Gender gender, LocalDate birth) { this.gender = gender; this.birth = birth; }
     public void updateOnboardingStatus(OnboardingStatus status) { this.onboardingStatus = status; }
 }

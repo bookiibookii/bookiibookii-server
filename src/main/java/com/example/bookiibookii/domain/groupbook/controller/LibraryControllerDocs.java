@@ -43,7 +43,7 @@ public interface LibraryControllerDocs {
         
         - **조회 조건**: 현재 로그인한 사용자의 GroupBook 중 삭제되지 않은(removedAt IS NULL) 목록을 반환합니다.
         - **주요 포함 정보**:
-            - **유저북 ID**: `groupBookId` (서재 내 고유 식별자)
+            - **그룹북 ID**: `groupBookId` (서재 내 고유 식별자)
             - **도서 정보**: 책 ID, 제목, 저자, 이미지 URL
             - **호스트 정보**: 호스트 ID, 닉네임, 프로필 이미지(Presigned URL)
             - **일정 정보**: 그룹 시작일(`startDate`), **실제 독서 종료일(`endDate`)**, 그룹 독서 기간(`duration`)

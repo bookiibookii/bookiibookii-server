@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
 import java.util.List;
 
 public interface PolicyDocumentRepository extends JpaRepository<PolicyDocument, Long> {
@@ -19,10 +18,10 @@ public interface PolicyDocumentRepository extends JpaRepository<PolicyDocument, 
             from PolicyDocument p2
             where p2.type = p.type
               and p2.effectiveFrom <= :now
+            order by p2.effectiveFrom desc, p2.id desc
+            limit 1
         )
         order by p.required desc, p.type asc
     """)
     List<PolicyDocument> findCurrentPolicies(@Param("now") LocalDateTime now);
-
-    List<PolicyDocument> findByIdIn(Collection<Long> ids);
 }

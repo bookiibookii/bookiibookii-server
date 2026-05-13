@@ -38,9 +38,9 @@ public class PolicyAgreementService {
                 .map(PolicyDocument::getId)
                 .toList();
 
-        Map<Long, UserPolicyAgreement> agreementMap =
+        Map<Long, UserPolicyAgreement> latestAgreementMap =
                 userPolicyAgreementRepository
-                        .findByUserIdAndPolicyDocumentIdIn(userId, policyDocumentIds)
+                        .findLatestByUserIdAndPolicyDocumentIds(userId, policyDocumentIds)
                         .stream()
                         .collect(Collectors.toMap(
                                 agreement -> agreement.getPolicyDocument().getId(),
@@ -49,11 +49,11 @@ public class PolicyAgreementService {
 
         List<PolicyResponseDTO.PolicyAgreementStatusItem> items = currentPolicies.stream()
                 .map(policy -> {
-                    UserPolicyAgreement agreement = agreementMap.get(policy.getId());
+                    UserPolicyAgreement latestAgreement = latestAgreementMap.get(policy.getId());
 
-                    boolean agreed = agreement != null && agreement.isAgreed();
-                    LocalDateTime agreedAt = agreement != null
-                            ? agreement.getAgreedAt()
+                    boolean agreed = latestAgreement != null && latestAgreement.isAgreed();
+                    LocalDateTime actedAt = latestAgreement != null
+                            ? latestAgreement.getActedAt()
                             : null;
 
                     return new PolicyResponseDTO.PolicyAgreementStatusItem(
@@ -65,7 +65,7 @@ public class PolicyAgreementService {
                             policy.isRequired(),
                             policy.getEffectiveFrom(),
                             agreed,
-                            agreedAt
+                            actedAt
                     );
                 })
                 .toList();
@@ -110,29 +110,29 @@ public class PolicyAgreementService {
                 requestedAgreementMap
         );
 
+        List<UserPolicyAgreement> agreementsToSave = new ArrayList<>();
         List<Long> agreedPolicyDocumentIds = new ArrayList<>();
 
         for (PolicyRequestDTO.AgreePolicyItem item : request.agreements()) {
             PolicyDocument policyDocument = currentPolicyMap.get(item.policyDocumentId());
 
-            UserPolicyAgreement agreement = userPolicyAgreementRepository
-                    .findByUserIdAndPolicyDocumentId(userId, item.policyDocumentId())
-                    .orElseGet(() -> UserPolicyAgreement.agree(user, policyDocument));
+            UserPolicyAgreement agreement;
 
             if (Boolean.TRUE.equals(item.agreed())) {
-                agreement.agree();
+                agreement = UserPolicyAgreement.agree(user, policyDocument);
                 agreedPolicyDocumentIds.add(policyDocument.getId());
             } else {
-                agreement.disagree();
+                agreement = UserPolicyAgreement.disagree(user, policyDocument);
             }
 
-            userPolicyAgreementRepository.save(agreement);
+            agreementsToSave.add(agreement);
         }
+
+        userPolicyAgreementRepository.saveAll(agreementsToSave);
 
         return new PolicyResponseDTO.AgreePolicies(agreedPolicyDocumentIds);
     }
 
-    // 내부 메서드
     private void validateOnlyCurrentPoliciesRequested(
             Set<Long> requestedPolicyIds,
             Set<Long> currentPolicyIds

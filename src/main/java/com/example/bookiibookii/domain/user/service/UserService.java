@@ -24,6 +24,8 @@ import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.groupbook.dto.res.GroupBookResponseDTO;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookQueryRepository;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
+import com.example.bookiibookii.domain.location.dto.res.UserLocationResDTO;
+import com.example.bookiibookii.domain.location.service.UserLocationService;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -51,6 +53,7 @@ public class UserService {
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
     private final BookService bookService;
+    private final UserLocationService userLocationService;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -267,6 +270,9 @@ public class UserService {
         // UserBook 조회
         List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findUserBooks(userId);
 
+        // 등록된 장소 조회 (교환 장소 + 배송지)
+        List<UserLocationResDTO.UserLocationDto> locations = userLocationService.getMyLocations(userId);
+
         return UserResponseDTO.UserProfileResDTO.builder()
                 .userId(userId)
                 .profileImageUrl(profileImageUrl)
@@ -277,6 +283,7 @@ public class UserService {
                 .groups(groupList)
                 .books(recentBooks)
                 .userBooks(userBooks)
+                .locations(locations)
                 .build();
     }
 
@@ -314,6 +321,14 @@ public class UserService {
 
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());
+        }
+
+        if (request.locationIdsToDelete() != null) {
+            request.locationIdsToDelete().forEach(id -> userLocationService.deleteLocation(userId, id));
+        }
+
+        if (request.locationsToAdd() != null) {
+            request.locationsToAdd().forEach(addReq -> userLocationService.addLocation(userId, addReq));
         }
     }
 

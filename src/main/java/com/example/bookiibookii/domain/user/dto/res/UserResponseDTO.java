@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.user.dto.res;
 
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
+import com.example.bookiibookii.domain.location.dto.res.UserLocationResDTO;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.groupbook.dto.res.GroupBookResponseDTO;
 import lombok.Builder;
@@ -19,7 +20,8 @@ public class UserResponseDTO {
             Integer relayGroup,
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<GroupBookResponseDTO.MypageBookDto> books,
-            List<UserBookDto> userBooks
+            List<UserBookDto> userBooks,
+            List<UserLocationResDTO.UserLocationDto> locations
     ){}
 
     public record UserBookDto (

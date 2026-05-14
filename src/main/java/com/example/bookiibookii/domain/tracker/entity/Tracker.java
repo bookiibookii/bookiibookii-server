@@ -121,24 +121,4 @@ public class Tracker extends BaseEntity {
         this.completedAt = LocalDateTime.now();
     }
 
-    public void extensionDays(int days) {
-        if (days <= 0) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);
-        }
-        if (this.trackerStatus != TrackerStatus.MY_BOOK_READING && this.trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        if (this.extensionCount >= 1) {
-            throw new TrackerException(TrackerErrorCode.EXTENSION_LIMIT_EXCEEDED);
-        }
-
-        if( this.endDate == null){
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        else {
-            this.endDate = this.endDate.plusDays(days);
-        }
-        this.extensionCount += 1;
-        this.extensionDays += days;
-    }
 }

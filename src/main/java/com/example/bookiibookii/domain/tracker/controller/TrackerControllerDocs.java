@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -40,29 +39,6 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @GetMapping("/me/trackers/host")
-    @Operation(
-            summary = "내가 호스트인 트래커 리스트 조회",
-            description = """
-            내가 호스트로 참여 중인 트래커 목록을 조회합니다.
-            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
-            """
-    )
-    ApiResponse<List<TrackerListResponseDTO>> getHostTrackers(
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
-    @GetMapping("/me/trackers/guest")
-    @Operation(
-            summary = "내가 게스트인 트래커 리스트 조회",
-            description = """
-            내가 게스트로 참여 중인 트래커 목록을 조회합니다.
-            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
-            """
-    )
-    ApiResponse<List<TrackerListResponseDTO>> getGuestTrackers(
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
 
     @GetMapping("/{groupId}/tracker")
     @Operation(summary = "트래킹 상세 현황 조회")
@@ -71,12 +47,6 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    /*@Operation(summary = "트래킹 히스토리(이력) 조회")
-    @GetMapping("/{groupId}/tracker/histories")
-    ApiResponse<List<TrackerHistoryResponse>> getTrackerHistories(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );*/
 
     // --- 2. 이미지 관련 ---
 
@@ -119,14 +89,6 @@ public interface TrackerControllerDocs {
     @Operation(summary = "독서 시작 등록", description = "도서 수령 후 실제 독서를 시작할 때 호출합니다.")
     ApiResponse<TrackerDetailResponseDTO> registerReading(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
-    @PatchMapping("/{groupId}/tracker/extension")
-    @Operation(summary = "독서 기간 연장 신청", description = "현재 주자의 독서 기간을 연장합니다. (최대 1회 가능)")
-    ApiResponse<TrackerDetailResponseDTO> registerExtension(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(description = "연장할 일수", example = "3") @RequestParam(defaultValue = "3") int days,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 

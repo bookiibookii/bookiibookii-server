@@ -84,26 +84,6 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    // --- 3. 배송/수령/독서 상태  ---
-    @PatchMapping("/{groupId}/tracker/reading")
-    @Operation(summary = "독서 시작 등록", description = "도서 수령 후 실제 독서를 시작할 때 호출합니다.")
-    ApiResponse<TrackerDetailResponseDTO> registerReading(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
-    @PatchMapping("/{groupId}/tracker/done")
-    @Operation(summary = "독서 완료 등록", description = "도서를 다 읽었을 때 호출합니다. 이후 후기 작성이 가능해집니다.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독서 완료 등록 성공",
-                    content = @Content(schema = @Schema(implementation = TrackerDetailResponseDTO.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "독서 완료 등록실패", content = @Content)
-    })
-    ApiResponse<TrackerDetailResponseDTO> registerReadingDone(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
 
     @PostMapping("/{groupId}/tracker/delivery")
     @Operation(summary = "배송 시작 등록", description = "책 읽기를 완료하고 다음 주자에게 배송을 시작할 때 정보를 등록합니다. " +

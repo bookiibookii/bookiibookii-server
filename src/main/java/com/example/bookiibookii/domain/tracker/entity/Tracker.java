@@ -55,22 +55,7 @@ public class Tracker extends BaseEntity {
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
     private List<Delivery> deliveries = new ArrayList<>();
 
-    // READY → MY_BOOK_READING (첫 멤버가 읽기 시작)
-    public void startFirstReading() {
-        if (this.trackerStatus != TrackerStatus.READY) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        this.trackerStatus = TrackerStatus.MY_BOOK_READING;
-        this.startedAt = LocalDateTime.now();
-    }
 
-    // EXCHANGED → PARTNER_BOOK_READING (첫 멤버가 2차 읽기 시작)
-    public void startSecondReading() {
-        if (this.trackerStatus != TrackerStatus.EXCHANGED) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        this.trackerStatus = TrackerStatus.PARTNER_BOOK_READING;
-    }
 
     // 양측 MY_BOOK_READ_DONE → MY_BOOK_REVIEWING
     public void completeFirstReading() {

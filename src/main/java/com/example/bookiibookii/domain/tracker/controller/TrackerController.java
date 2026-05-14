@@ -91,25 +91,6 @@ public class TrackerController implements TrackerControllerDocs {
     }
 
 
-    // --- 독서 단계 관련 ---
-
-    public ApiResponse<TrackerDetailResponseDTO> registerReading(
-            @PathVariable Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        trackerService.registerReading(groupId, user);
-        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_READING_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
-    }
-
-    public ApiResponse<TrackerDetailResponseDTO> registerReadingDone(
-            @PathVariable Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        trackerService.registerReadingDone(groupId, user);
-        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_DONE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
-    }
-
-
     // --- 직접 교환(Meeting) 관련 ---
     public ApiResponse<TrackerMeetingResponseDTO> getMeetingDetail(
             @PathVariable Long groupId,

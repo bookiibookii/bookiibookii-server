@@ -278,59 +278,6 @@ public class TrackerService {
         return dates;
     }
 
-    // --- 독서 단계 ---
-
-    @Transactional
-    public void registerReading(Long groupId, User user) {
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        MatchedMember me = getMyMatchedMember(groupId, user.getId());
-        TrackerStatus status = tracker.getTrackerStatus();
-
-        if (status == TrackerStatus.READY || status == TrackerStatus.MY_BOOK_READING) {
-            if (me.getReadingStatus() != ReadingStatus.IDLE) {
-                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-            }
-            if (status == TrackerStatus.READY) {
-                tracker.startFirstReading();
-            }
-            me.updateReadingStatus(ReadingStatus.MY_BOOK_READING);
-        } else if (status == TrackerStatus.EXCHANGED || status == TrackerStatus.PARTNER_BOOK_READING) {
-            if (me.getReadingStatus() != ReadingStatus.MY_BOOK_REVIEW_DONE) {
-                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-            }
-            if (status == TrackerStatus.EXCHANGED) {
-                tracker.startSecondReading();
-            }
-            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READING);
-        } else {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-
-        publisher.publish(new TrackerNotificationEvent(READING_STARTED, user.getId(), groupId, null));
-    }
-
-    @Transactional
-    public void registerReadingDone(Long groupId, User user) {
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        MatchedMember me = getMyMatchedMember(groupId, user.getId());
-
-        if (tracker.getTrackerStatus() == TrackerStatus.MY_BOOK_READING
-                && me.getReadingStatus() == ReadingStatus.MY_BOOK_READING) {
-            me.updateReadingStatus(ReadingStatus.MY_BOOK_READ_DONE);
-        } else if (tracker.getTrackerStatus() == TrackerStatus.PARTNER_BOOK_READING
-                && me.getReadingStatus() == ReadingStatus.PARTNER_BOOK_READING) {
-            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READ_DONE);
-        } else {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-
-        publisher.publish(new TrackerNotificationEvent(READING_FINISHED, user.getId(), groupId, null));
-    }
-
     // --- 택배 배송/수령 (PARCEL) ---
 
     @Transactional

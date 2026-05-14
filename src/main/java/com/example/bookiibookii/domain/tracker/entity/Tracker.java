@@ -55,22 +55,7 @@ public class Tracker extends BaseEntity {
     @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
     private List<Delivery> deliveries = new ArrayList<>();
 
-    // READY → MY_BOOK_READING (첫 멤버가 읽기 시작)
-    public void startFirstReading() {
-        if (this.trackerStatus != TrackerStatus.READY) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        this.trackerStatus = TrackerStatus.MY_BOOK_READING;
-        this.startedAt = LocalDateTime.now();
-    }
 
-    // EXCHANGED → PARTNER_BOOK_READING (첫 멤버가 2차 읽기 시작)
-    public void startSecondReading() {
-        if (this.trackerStatus != TrackerStatus.EXCHANGED) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        this.trackerStatus = TrackerStatus.PARTNER_BOOK_READING;
-    }
 
     // 양측 MY_BOOK_READ_DONE → MY_BOOK_REVIEWING
     public void completeFirstReading() {
@@ -121,24 +106,4 @@ public class Tracker extends BaseEntity {
         this.completedAt = LocalDateTime.now();
     }
 
-    public void extensionDays(int days) {
-        if (days <= 0) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_DAYS);
-        }
-        if (this.trackerStatus != TrackerStatus.MY_BOOK_READING && this.trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        if (this.extensionCount >= 1) {
-            throw new TrackerException(TrackerErrorCode.EXTENSION_LIMIT_EXCEEDED);
-        }
-
-        if( this.endDate == null){
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
-        }
-        else {
-            this.endDate = this.endDate.plusDays(days);
-        }
-        this.extensionCount += 1;
-        this.extensionDays += days;
-    }
 }

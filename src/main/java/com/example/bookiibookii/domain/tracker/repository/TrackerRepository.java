@@ -36,16 +36,4 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
             "ORDER BY t.createdAt DESC")
     List<Tracker> findAllByUserIdWithDetails(@Param("userId") Long userId);
 
-    @Query("SELECT DISTINCT t FROM Tracker t " +
-            "JOIN FETCH t.group g " +
-            "LEFT JOIN FETCH t.deliveries " +
-            "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
-            "JOIN GroupBook ub ON ub.group = g AND ub.user.id = :userId " +
-            "WHERE mm.role = :role " +
-            "AND ub.rating IS NULL " +
-            "ORDER BY t.createdAt DESC")
-    List<Tracker> findAllByUserIdAndRoleWithDetails(
-            @Param("userId") Long userId,
-            @Param("role") RoleStatus role
-    );
 }

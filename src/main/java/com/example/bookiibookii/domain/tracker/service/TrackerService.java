@@ -78,26 +78,6 @@ public class TrackerService {
     private static final int TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES = 60;
 
-    // --- Helpers ---
-
-    private void validateGroupMember(Long groupId, Long userId) {
-        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
-            throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER);
-        }
-    }
-
-    private MatchedMember getMyMatchedMember(Long groupId, Long userId) {
-        return matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
-    }
-
-    private MatchedMember getPartnerMember(Long groupId, Long myMemberId) {
-        return matchedMemberRepository.findAllByGroup_GroupId(groupId).stream()
-                .filter(mm -> !mm.getId().equals(myMemberId))
-                .findFirst()
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
-    }
-
     // --- 이미지 관련 ---
 
     public PresignedUrlResponseDTO getPresignedPutUrlForTrackerImage(Long groupId, User user) {
@@ -242,15 +222,7 @@ public class TrackerService {
         return convertToResponseList(trackerRepository.findAllByUserIdWithDetails(userId), userId);
     }
 
-    @Transactional(readOnly = true)
-    public List<TrackerListResponseDTO> getHostTrackerList(Long userId) {
-        return convertToResponseList(trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.HOST), userId);
-    }
 
-    @Transactional(readOnly = true)
-    public List<TrackerListResponseDTO> getGuestTrackerList(Long userId) {
-        return convertToResponseList(trackerRepository.findAllByUserIdAndRoleWithDetails(userId, RoleStatus.GUEST), userId);
-    }
 
    private List<TrackerListResponseDTO> convertToResponseList(List<Tracker> trackers, Long userId) {
       return trackers.stream()
@@ -264,22 +236,6 @@ public class TrackerService {
               .collect(Collectors.toList());
   }
 
-    private int calculateUserReadingRate(Long userId, Groups group) {
-        return group.getMatchedMember().stream()
-                .filter(mm -> mm.getUser().getId().equals(userId))
-                .findFirst()
-                .map(mm -> mm.getCurrentReadingRate() != null ? mm.getCurrentReadingRate() : 0)
-                .orElse(0);
-    }
-
-    private int calculateGroupAverageRate(Groups group) {
-        List<MatchedMember> members = group.getMatchedMember();
-        if (members == null || members.isEmpty()) return 0;
-        double totalSum = members.stream()
-                .mapToDouble(mm -> mm.getCurrentReadingRate() != null ? mm.getCurrentReadingRate() : 0)
-                .sum();
-        return (int) (totalSum / members.size());
-    }
 
     private String findTargetNickName(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()
@@ -373,18 +329,6 @@ public class TrackerService {
         }
 
         publisher.publish(new TrackerNotificationEvent(READING_FINISHED, user.getId(), groupId, null));
-    }
-
-    @Transactional
-    public void registerExtensionDays(Long groupId, int days, User user) {
-        validateGroupMember(groupId, user.getId());
-
-        Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        tracker.extensionDays(days);
-
-        publisher.publish(new TrackerNotificationEvent(EXTEND_REQUESTED, user.getId(), groupId, tracker.getEndDate()));
     }
 
     // --- 택배 배송/수령 (PARCEL) ---
@@ -594,7 +538,6 @@ public class TrackerService {
     }
 
     // --- 내부 유틸 ---
-
     private void validateTrackerImageS3Key(String s3Key) {
         if (!trackerImageValidationService.isValidS3Key(s3Key)) {
             throw new TrackerImageException(TrackerImageErrorCode.INVALID_S3_KEY_FORMAT);
@@ -605,5 +548,24 @@ public class TrackerService {
         if (trackingImageRepository.existsByS3Key(s3Key)) {
             throw new TrackerImageException(TrackerImageErrorCode.DUPLICATE_S3_KEY);
         }
+    }
+
+    // --- Helpers ---
+    private void validateGroupMember(Long groupId, Long userId) {
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER);
+        }
+    }
+
+    private MatchedMember getMyMatchedMember(Long groupId, Long userId) {
+        return matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private MatchedMember getPartnerMember(Long groupId, Long myMemberId) {
+        return matchedMemberRepository.findAllByGroup_GroupId(groupId).stream()
+                .filter(mm -> !mm.getId().equals(myMemberId))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
     }
 }

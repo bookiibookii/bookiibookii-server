@@ -55,7 +55,10 @@ public class GroupQueryRepository {
     }
 
     private OrderSpecifier<?>[] getSortOrder(GroupSortType sort) {
-        return new OrderSpecifier[]{new OrderSpecifier<>(Order.DESC, groups.createdAt)};
+        return new OrderSpecifier[]{
+                new OrderSpecifier<>(Order.DESC, groups.createdAt),
+                new OrderSpecifier<>(Order.DESC, groups.groupId)
+        };
     }
 
     private BooleanExpression containsRegions(List<String> regions) {
@@ -111,7 +114,10 @@ public class GroupQueryRepository {
 
     }
 
-    private OrderSpecifier<?> getSearchSortOrder(GroupSortType sort) {
-        return groups.createdAt.desc();
+    private OrderSpecifier<?>[] getSearchSortOrder(GroupSortType sort) {
+        return new OrderSpecifier[]{
+                new OrderSpecifier<>(Order.DESC, groups.createdAt),
+                new OrderSpecifier<>(Order.DESC, groups.groupId)
+        };
     }
 }

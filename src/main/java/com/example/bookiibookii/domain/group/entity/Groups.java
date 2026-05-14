@@ -73,6 +73,7 @@ public class Groups extends BaseEntity {
     private List<Application> applications = new ArrayList<>();
 
     @Builder.Default
+    @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedMember> matchedMember = new ArrayList<>();
 

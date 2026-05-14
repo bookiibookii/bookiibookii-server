@@ -7,10 +7,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(
-        name = "user_location",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "location_id", "type"})
-)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

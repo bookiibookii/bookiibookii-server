@@ -7,7 +7,6 @@ import com.example.bookiibookii.domain.location.entity.UserLocation;
 import com.example.bookiibookii.domain.location.enums.LocationType;
 import com.example.bookiibookii.domain.location.exception.LocationException;
 import com.example.bookiibookii.domain.location.exception.code.LocationErrorCode;
-import com.example.bookiibookii.domain.location.repository.LocationRepository;
 import com.example.bookiibookii.domain.location.repository.UserLocationRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.exception.UserException;
@@ -27,7 +26,7 @@ public class UserLocationService {
     private static final int MAX_LOCATION_COUNT = 2;
 
     private final UserLocationRepository userLocationRepository;
-    private final LocationRepository locationRepository;
+    private final LocationService locationService;
     private final UserRepository userRepository;
 
     public List<UserLocationDto> getMyLocations(Long userId) {
@@ -43,14 +42,7 @@ public class UserLocationService {
 
         validateAddRequest(userId, req);
 
-        Location location = locationRepository.findByAddress(req.address())
-                .orElseGet(() -> locationRepository.save(
-                        Location.builder()
-                                .placeName(req.placeName())
-                                .address(req.address())
-                                .zipCode(req.zipCode())
-                                .build()
-                ));
+        Location location = locationService.findOrCreate(req.placeName(), req.address(), req.zipCode());
 
         userLocationRepository.save(
                 UserLocation.builder()

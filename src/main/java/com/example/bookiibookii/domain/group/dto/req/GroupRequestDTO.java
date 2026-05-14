@@ -57,12 +57,12 @@ public class GroupRequestDTO {
     public record FilterDTO(
             @Schema(description = "거래 방식 필터 (DIRECT: 직거래, DELIVERY: 택배)", example = "[\"DIRECT\"]")
             List<TradeType> tradeTypes,
-            @Schema(description = "장소 필터 (지역 이름 리스트)", example = "[\"동작구\", \"관악구\"]")
-            List<String> meetPlace,
+            @Schema(description = "지역 필터 (시+구 형태 리스트)", example = "[\"인천시 미추홀구\", \"인천시 부평구\"]")
+            List<String> regions,
             @Schema(description = "카테고리 필터 (도서 장르)", example = "[\"ECON_BIZ\", \"SOCIETY\"]")
             List<CustomCategory> categories,
-            @Schema(description = "정렬 방식 (LATEST: 최신순, POPULAR: 인기순, RECOMMEND: 추천순)", example = "LATEST")
-            GroupSortType sort, // LATEST, POPULAR, RECOMMEND
+            @Schema(description = "정렬 방식 (LATEST: 최신순)", example = "LATEST")
+            GroupSortType sort,
             @Schema(description = "페이지 번호 (0부터 시작)", example = "0")
             @Min(0) int page,
             @Schema(description = "한 페이지에 불러올 개수", example = "10")

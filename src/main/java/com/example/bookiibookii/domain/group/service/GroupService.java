@@ -442,6 +442,7 @@ public class GroupService {
 
                     return GroupResponseDTO.GroupSummaryDTO.builder()
                             .groupId(group.getGroupId())
+                            .groupName(group.getGroupName())
                             .title(group.getBook().getTitle())
                             .author(group.getBook().getAuthor())
                             .genre(group.getBook().getCategory().getLabel())
@@ -449,31 +450,21 @@ public class GroupService {
                             .bookImage(group.getBook().getImage())
                             .hostNickname(group.getHost().getNickName())
                             .groupStatus(group.getGroupStatus().name())
-                            .currentCount(group.getMatchedMember().size()) // matchedMember는 메인 쿼리에서 fetchJoin 권장
+                            .currentCount(group.getMatchedMember().size())
                             .maxCapacity(group.getMaxCapacity())
                             .waitingCount(waitingCount)
                             .isHot(isHot)
-                            .groupType(group.getGroupType().name())
                             .tradeType(group.getTradeType().name())
                             .pictureBadge(determinePictureBadge(group))
                             .readingPeriod(group.getReadingPeriod())
-                            .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .build();
                 }).toList();
 
         return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, groupsSlice.getNumber(), groupsSlice.hasNext());
     }
 
-    // 배지 텍스트 결정 로직
     private String determinePictureBadge(Groups group) {
-        if (group.getTradeType() == TradeType.DELIVERY) return "택배";
-
-        // 직접교환: 지역 정보 노출 (예: 서울 마포구 -> 마포구)
-        String region = group.getPreferRegion();
-        if (region == null || region.isBlank()) return "지역미정";
-
-        String[] parts = region.split(" ");
-        return parts[parts.length - 1];
+        return group.getTradeType() == TradeType.DELIVERY ? "택배" : "직접";
     }
 
     //그룹검색
@@ -522,6 +513,7 @@ public class GroupService {
 
                     return GroupResponseDTO.GroupSummaryDTO.builder()
                             .groupId(group.getGroupId())
+                            .groupName(group.getGroupName())
                             .title(group.getBook().getTitle())
                             .author(group.getBook().getAuthor())
                             .genre(group.getBook().getCategory().getLabel())
@@ -533,10 +525,8 @@ public class GroupService {
                             .maxCapacity(group.getMaxCapacity())
                             .waitingCount(waitingCount)
                             .isHot(isHot)
-                            .groupType(group.getGroupType().name())
                             .tradeType(group.getTradeType().name())
                             .readingPeriod(group.getReadingPeriod())
-                            .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                             .pictureBadge(determinePictureBadge(group))
                             .build();
                 }).toList();

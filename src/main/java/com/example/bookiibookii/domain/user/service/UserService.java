@@ -47,7 +47,6 @@ public class UserService {
     private final UserImageS3Service userImageS3Service;
     private final GroupBookRepository groupBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final AddressRepository addressRepository;
     private final GroupBookQueryRepository groupBookQueryRepository;
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
@@ -259,14 +258,6 @@ public class UserService {
                 PageRequest.of(0, 3)
         );
 
-        // Address 정보 조회
-        Address address = addressRepository.findByUserId(userId).orElse(null);
-        String receiverName = address != null ? address.getReceiverName() : null;
-        String phone = address != null ? address.getPhone() : null;
-        String zipCode = address != null ? address.getZipCode() : null;
-        String addressValue = address != null ? address.getAddress() : null;
-        String addressDetail = address != null ? address.getAddressDetail() : null;
-
         String profileImageUrl = null;
         if (user.getUserImage() != null) {
             profileImageUrl = userImageS3Service.generatePresignedGetUrl(
@@ -286,11 +277,6 @@ public class UserService {
                 .groups(groupList)
                 .books(recentBooks)
                 .userBooks(userBooks)
-                .receiverName(receiverName)
-                .phone(phone)
-                .zipCode(zipCode)
-                .address(addressValue)
-                .addressDetail(addressDetail)
                 .build();
     }
 
@@ -325,34 +311,9 @@ public class UserService {
             requireAvailableNickname(request.nickname());
             user.updateName(request.nickname());
         }
-        user.updateIntroduction(request.introduction());
 
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());
-        }
-
-        replaceUserBooks(user, request.userBooks());
-
-        Address address = addressRepository.findByUserId(userId).orElse(null);
-
-        if (address == null) {
-            address = Address.builder()
-                    .user(user)
-                    .receiverName(request.receiverName())
-                    .phone(request.phone())
-                    .zipCode(request.zipCode())
-                    .address(request.address())
-                    .addressDetail(request.addressDetail())
-                    .build();
-            addressRepository.save(address);
-        } else {
-            address.updateAddressInfo(
-                    request.receiverName(),
-                    request.phone(),
-                    request.zipCode(),
-                    request.address(),
-                    request.addressDetail()
-            );
         }
     }
 

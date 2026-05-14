@@ -19,14 +19,7 @@ public class UserResponseDTO {
             Integer relayGroup,
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<GroupBookResponseDTO.MypageBookDto> books,
-            List<UserBookDto> userBooks,
-            String receiverName,
-            String phone,
-            String zipCode,
-            String address,
-            String addressDetail,
-            String region,
-            String meetPlace
+            List<UserBookDto> userBooks
     ){}
 
     public record UserBookDto (

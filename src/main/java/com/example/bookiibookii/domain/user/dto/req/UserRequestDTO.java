@@ -45,19 +45,6 @@ public class UserRequestDTO {
             @Schema(description = "프로필 이미지 S3 키. Presigned URL로 업로드 후 받은 값. 미전달 시 프로필 이미지 변경 안 함.", example = "image/users/1/550e8400-e29b-41d4-a716-446655440000")
             String s3Key,
 
-            @NotBlank
-            String receiverName,
-            @NotBlank
-            @Pattern(regexp = "^\\d{2,3}-\\d{3,4}-\\d{4}$", message = "전화번호 형식이 올바르지 않습니다.")
-            String phone,
-            @NotBlank
-            String zipCode,
-            @NotBlank
-            String address,
-            @NotBlank
-            String addressDetail,
-            String meetPlace,
-            String region,
             List<BookReqDTO.UserPickISBN> userBooks
     ){}
 }

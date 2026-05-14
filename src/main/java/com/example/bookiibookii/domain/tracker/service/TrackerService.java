@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.Location;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
@@ -10,7 +9,8 @@ import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
-import com.example.bookiibookii.domain.group.repository.LocationRepository;
+import com.example.bookiibookii.domain.location.entity.Location;
+import com.example.bookiibookii.domain.location.service.LocationService;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
@@ -71,7 +71,7 @@ public class TrackerService {
     private final GroupBookRepository groupBookRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
-    private final LocationRepository locationRepository;
+    private final LocationService locationService;
     private final TrackerConverter trackerConverter;
     private final DomainEventPublisher publisher;
 
@@ -148,20 +148,12 @@ public class TrackerService {
 
         // DIRECT 거래 그룹의 경우 교환/반납 단계 미팅 레코드 사전 생성
         if (group.getTradeType() == TradeType.DIRECT) {
-            Location defaultLocation = Location.builder()
-                    .id(UUID.randomUUID().toString())
-                    .placeName(group.getPreferRegion())
-                    .build();
-            locationRepository.save(defaultLocation);
-
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
-                    .location(defaultLocation)
                     .trackerStatus(TrackerStatus.EXCHANGING)
                     .build());
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
-                    .location(defaultLocation)
                     .trackerStatus(TrackerStatus.RETURNING)
                     .build());
         }
@@ -396,7 +388,7 @@ public class TrackerService {
                     Location loc = meeting.getLocation();
                     return new TrackerMeetingResponseDTO(
                             meeting.getMeetingTime(),
-                            loc != null ? loc.getPlaceName() : null,
+                            loc != null ? loc.getPlaceName() : tracker.getGroup().getPreferRegion(),
                             loc != null ? loc.getAddress() : null
                     );
                 })
@@ -423,19 +415,12 @@ public class TrackerService {
         Meeting meeting = meetingRepository.findByTrackerIdAndStatusNative(tracker.getId(), meetingPhaseStatus.name())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
 
-        Location newLocation = Location.builder()
-                .id(UUID.randomUUID().toString())
-                .placeName(request.placeName())
-                .address(request.address())
-                .addressDetail(request.addressDetail())
-                .zipCode(request.zipCode())
-                .build();
-        locationRepository.save(newLocation);
+        Location location = locationService.findOrCreate(request.placeName(), request.address(), request.zipCode());
 
         if (meeting.getMeetingTime() != null) {
             meeting.resetConfirmation();
         }
-        meeting.setMeetingDetails(newLocation, request.meetingTime());
+        meeting.setMeetingDetails(location, request.meetingTime());
 
         // 첫 번째로 미팅을 등록하면 교환/반납 단계로 진입
         if (currentStatus == TrackerStatus.MY_BOOK_REVIEWING) {

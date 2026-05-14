@@ -2,7 +2,7 @@ package com.example.bookiibookii.domain.tracker.converter;
 
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.Location;
+import com.example.bookiibookii.domain.location.entity.Location;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.GroupType;

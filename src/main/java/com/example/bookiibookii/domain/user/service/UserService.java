@@ -291,8 +291,6 @@ public class UserService {
                 .zipCode(zipCode)
                 .address(addressValue)
                 .addressDetail(addressDetail)
-                .region(user.getRegion())
-                .meetPlace(user.getMeetPlace())
                 .build();
     }
 
@@ -328,8 +326,6 @@ public class UserService {
             user.updateName(request.nickname());
         }
         user.updateIntroduction(request.introduction());
-        user.updateRegion(request.region());
-        user.updateMeetPlace(request.meetPlace());
 
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());

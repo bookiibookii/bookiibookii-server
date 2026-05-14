@@ -57,12 +57,6 @@ public class User extends BaseEntity {
     @Builder.Default
     private Role role = USER;
 
-    @Column(name = "meet_place")
-    private String meetPlace;
-
-    @Column(name = "region")
-    private String region;
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<UserTag> userTags = new ArrayList<>();
@@ -106,8 +100,6 @@ public class User extends BaseEntity {
         this.status = Status.ACTIVE;
     }
     public void updateName(String name) { this.nickName = name; }
-    public void updateRegion(String region) { this.region = region; }
-    public void updateMeetPlace(String meetPlace) { this.meetPlace = meetPlace; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }
     public void updateUserInform(Gender gender, LocalDate birth) { this.gender = gender; this.birth = birth; }
     public void updateOnboardingStatus(OnboardingStatus status) { this.onboardingStatus = status; }

@@ -123,10 +123,10 @@ public interface UserControllerDocs {
     @Operation(
             summary = "마이페이지 정보 수정 API",
             description = """
-            닉네임, 프로필 이미지, 교환 장소, 배송지를 저장합니다.
+            닉네임, 프로필 이미지, 자기소개, 배송지, 교환 장소를 한 번에 수정합니다.
 
-            - 교환 장소·배송지: locationsToAdd(추가 목록), locationIdsToDelete(삭제할 ID 목록)로 전달. null이면 변경 없음.
-            - 삭제 후 추가 순서로 처리되므로, 교체(삭제+추가)도 한 번에 가능.
+            - 배송지·교환 장소: ToAdd(추가 목록), IdsToDelete(삭제할 ID 목록)로 전달. null이면 변경 없음.
+            - 삭제 후 추가 순서로 처리되므로 교체(삭제+추가)도 한 번에 가능.
             """
     )
     @ApiResponses({

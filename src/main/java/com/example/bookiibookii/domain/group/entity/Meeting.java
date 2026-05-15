@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.group.enums.ConfirmationStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.location.entity.Location;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -37,8 +37,8 @@ public class Meeting extends BaseEntity {
     private Tracker tracker;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tracker_status", nullable = false)
-    private TrackerStatus trackerStatus;
+    @Column(name = "reading_status", nullable = false)
+    private ReadingStatus readingStatus;
 
     @Column(name = "meeting_time")
     private LocalDateTime meetingTime;

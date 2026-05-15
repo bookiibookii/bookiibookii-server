@@ -12,7 +12,7 @@ import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +39,7 @@ public class TrackerConverter {
                 .trackerId(tracker.getId())
                 .bookTitle(tracker.getGroup().getBook().getTitle())
                 .partnerNickname(partnerUser.getNickName())
-                .trackerStatus(tracker.getTrackerStatus())
+                .readingStatus(tracker.getReadingStatus())
                 .startDate(tracker.getStartDate())
                 .endDate(tracker.getEndDate())
                 .startedAt(tracker.getStartedAt())
@@ -111,7 +111,7 @@ public class TrackerConverter {
                     .partnerNickname(targetNickname)
                     .hostProfileImageUrl(hostProfileImageUrl)
                     .guestProfileImageUrls(guestProfileImageUrls)
-                    .trackerStatus(tracker.getTrackerStatus())
+                    // .trackerStatus(tracker.getReadingStatus()) todo : 메서드 파라미터 바꾸기
                     .stepDates(stepDates)
                     .build());
         }
@@ -121,14 +121,14 @@ public class TrackerConverter {
 
     public int calculateRemainingDays(Tracker tracker, Meeting latestMeeting) {
         LocalDate today = LocalDate.now();
-        TrackerStatus status = tracker.getTrackerStatus();
+        ReadingStatus status = tracker.getReadingStatus();
 
-        if (status == TrackerStatus.MY_BOOK_READING || status == TrackerStatus.PARTNER_BOOK_READING) {
+        if (status == ReadingStatus.MY_BOOK_READING || status == ReadingStatus.PARTNER_BOOK_READING) {
             if (tracker.getEndDate() == null) return 0;
             return (int) Math.max(0, ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate()));
         }
 
-        if ((status == TrackerStatus.EXCHANGING || status == TrackerStatus.RETURNING)
+        if ((status == ReadingStatus.EXCHANGING || status == ReadingStatus.RETURNING)
                 && latestMeeting != null && latestMeeting.getMeetingTime() != null) {
             return (int) Math.max(0, ChronoUnit.DAYS.between(today, latestMeeting.getMeetingTime().toLocalDate()));
         }

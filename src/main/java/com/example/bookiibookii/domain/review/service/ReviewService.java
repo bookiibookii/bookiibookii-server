@@ -18,7 +18,6 @@ import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -89,11 +88,11 @@ public class ReviewService {
         }
     }
 
-    /**
+    /*
      * 2. [릴레이 중간] 책 리뷰 생성 (1차/2차 독서 후, 교환·반납 전)
      * 책 리뷰를 저장하고 ReadingStatus를 REVIEW_DONE/REVIEW_DONE_2로 전환합니다.
      * 양측 모두 완료되면 TrackerStatus가 READ_DONE/READ_DONE_2로 자동 전환됩니다.
-     */
+
     @Transactional
     public void createMidRelayBookReview(Long groupBookId, ReviewRequestDTO.BookReviewDTO request, User user) {
         validateRating(request.bookRating());
@@ -110,8 +109,8 @@ public class ReviewService {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
 
-        TrackerStatus trackerStatus = tracker.getTrackerStatus();
-        if (trackerStatus != TrackerStatus.MY_BOOK_READING && trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
+        ReadingStatus readingStatus = tracker.getReadingStatus();
+        if (readingStatus != ReadingStatus.MY_BOOK_READING && readingStatus != ReadingStatus.PARTNER_BOOK_READING) {
             throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 단계가 아님
         }
 
@@ -125,7 +124,7 @@ public class ReviewService {
 
         groupBook.updateReview(request.bookRating(), request.bookComment());
 
-        if (trackerStatus == TrackerStatus.MY_BOOK_READING) {
+        if (readingStatus == ReadingStatus.MY_BOOK_READING) {
             if (me.getReadingStatus() != ReadingStatus.MY_BOOK_READ_DONE) {
                 throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 미완료
             }
@@ -144,7 +143,7 @@ public class ReviewService {
         }
 
         publisher.publish(new TrackerNotificationEvent(REVIEW_DONE_CONFIRMED, user.getId(), groupId, null));
-    }
+    } */
 
     /**
      * 3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후)
@@ -231,7 +230,7 @@ public class ReviewService {
     private Tracker ensureTrackerReturned(Long groupId) {
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
-        if (tracker.getTrackerStatus() != TrackerStatus.COMPLETED) {
+        if (tracker.getReadingStatus() != ReadingStatus.COMPLETED) {
             throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED);
         }
 

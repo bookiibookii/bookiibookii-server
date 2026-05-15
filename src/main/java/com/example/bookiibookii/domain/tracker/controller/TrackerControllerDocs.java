@@ -72,7 +72,7 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-
+    /*
     @PostMapping("/{groupId}/tracker/delivery")
     @Operation(summary = "배송 시작 등록", description = "책 읽기를 완료하고 다음 주자에게 배송을 시작할 때 정보를 등록합니다. " +
             "배송 인증 이미지는 Presigned URL로 S3 업로드 후 발급받은 s3Key(형식: image/trackers/{uuid})를 전달하세요. TrackerImage(SENDER_PROOF)로 저장됩니다.")
@@ -135,7 +135,6 @@ public interface TrackerControllerDocs {
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
-
-
+    */
 
 }

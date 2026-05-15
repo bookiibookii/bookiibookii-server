@@ -28,7 +28,6 @@ import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackingImage;
 import com.example.bookiibookii.domain.tracker.enums.DeliveryStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.TrackerImageException;
@@ -117,7 +116,7 @@ public class TrackerService {
 
         Tracker tracker = Tracker.builder()
                 .group(group)
-                .trackerStatus(TrackerStatus.READY)
+                .readingStatus(ReadingStatus.MY_BOOK_READING)
                 .startDate(group.getStartDate().atStartOfDay())
                 .endDate(group.getStartDate().atStartOfDay().plusDays(group.getReadingPeriod()))
                 .extensionCount(0)
@@ -130,11 +129,11 @@ public class TrackerService {
         if (group.getTradeType() == TradeType.DIRECT) {
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
-                    .trackerStatus(TrackerStatus.EXCHANGING)
+                    .readingStatus(ReadingStatus.EXCHANGING)
                     .build());
             meetingRepository.save(Meeting.builder()
                     .tracker(tracker)
-                    .trackerStatus(TrackerStatus.RETURNING)
+                    .readingStatus(ReadingStatus.RETURNING)
                     .build());
         }
 
@@ -156,7 +155,7 @@ public class TrackerService {
 
         Meeting latestMeeting = null;
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
-            TrackerStatus meetingStatus = resolveMeetingStatus(tracker.getTrackerStatus());
+            ReadingStatus meetingStatus = resolveMeetingStatus(tracker.getReadingStatus());
             if (meetingStatus != null) {
                 latestMeeting = meetingRepository.findByTrackerIdAndStatusNative(
                         tracker.getId(), meetingStatus.name()).orElse(null);
@@ -170,10 +169,10 @@ public class TrackerService {
         return trackerConverter.toDetailResponse(tracker, latestMeeting, latestShipping, partnerMember.getUser());
     }
 
-    private TrackerStatus resolveMeetingStatus(TrackerStatus current) {
+    private ReadingStatus resolveMeetingStatus(ReadingStatus current) {
         return switch (current) {
-            case MY_BOOK_REVIEWING, EXCHANGING -> TrackerStatus.EXCHANGING;
-            case PARTNER_BOOK_REVIEWING, RETURNING -> TrackerStatus.RETURNING;
+            case MY_BOOK_REVIEWING, EXCHANGING -> ReadingStatus.EXCHANGING;
+            case PARTNER_BOOK_REVIEWING, RETURNING -> ReadingStatus.RETURNING;
             default -> null;
         };
     }
@@ -251,7 +250,7 @@ public class TrackerService {
     }
 
     // --- 택배 배송/수령 (PARCEL) ---
-
+    /*
     @Transactional
     public void registerShipping(Long groupId, TrackerShippingRequestDTO request, User user) {
         Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
@@ -259,26 +258,26 @@ public class TrackerService {
 
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         MatchedMember partner = getPartnerMember(groupId, me.getId());
-        TrackerStatus status = tracker.getTrackerStatus();
+        ReadingStatus status = tracker.getReadingStatus();
 
-        if (status == TrackerStatus.MY_BOOK_REVIEWING || status == TrackerStatus.EXCHANGING) {
+        if (status == ReadingStatus.MY_BOOK_REVIEWING || status == ReadingStatus.EXCHANGING) {
             if (me.getReadingStatus() != ReadingStatus.MY_BOOK_REVIEW_DONE) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
             if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
-            if (status == TrackerStatus.MY_BOOK_REVIEWING) {
+            if (status == ReadingStatus.MY_BOOK_REVIEWING) {
                 tracker.startExchanging(); // MY_BOOK_REVIEWING → EXCHANGING
             }
-        } else if (status == TrackerStatus.PARTNER_BOOK_REVIEWING || status == TrackerStatus.RETURNING) {
+        } else if (status == ReadingStatus.PARTNER_BOOK_REVIEWING || status == ReadingStatus.RETURNING) {
             if (me.getReadingStatus() != ReadingStatus.PARTNER_BOOK_REVIEW_DONE) {
                 throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
             }
             if (deliveryRepository.existsByTrackerAndSenderIdAndDeliveryStatus(tracker, me.getId(), DeliveryStatus.SHIPPING)) {
                 throw new TrackerException(TrackerErrorCode.ALREADY_SHIPPED);
             }
-            if (status == TrackerStatus.PARTNER_BOOK_REVIEWING) {
+            if (status == ReadingStatus.PARTNER_BOOK_REVIEWING) {
                 tracker.startReturning(); // PARTNER_BOOK_REVIEWING → RETURNING
             }
         } else {
@@ -313,9 +312,9 @@ public class TrackerService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
-        TrackerStatus status = tracker.getTrackerStatus();
+        ReadingStatus status = tracker.getReadingStatus();
 
-        if (status != TrackerStatus.EXCHANGING && status != TrackerStatus.RETURNING) {
+        if (status != ReadingStatus.EXCHANGING && status != ReadingStatus.RETURNING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
@@ -334,7 +333,7 @@ public class TrackerService {
 
         // 남은 SHIPPING 배송이 없으면 → 양측 수령 완료 → 다음 단계 진행
         if (!deliveryRepository.existsByTrackerAndDeliveryStatus(tracker, DeliveryStatus.SHIPPING)) {
-            if (status == TrackerStatus.EXCHANGING) {
+            if (status == ReadingStatus.EXCHANGING) {
                 tracker.completeExchange(); // EXCHANGING → EXCHANGED
             } else {
                 me.updateReadingStatus(ReadingStatus.DONE);
@@ -358,7 +357,7 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
 
-        TrackerStatus meetingStatus = resolveMeetingStatus(tracker.getTrackerStatus());
+        ReadingStatus meetingStatus = resolveMeetingStatus(tracker.getReadingStatus());
         if (meetingStatus == null) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
@@ -386,8 +385,8 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
 
-        TrackerStatus currentStatus = tracker.getTrackerStatus();
-        TrackerStatus meetingPhaseStatus = resolveMeetingStatus(currentStatus);
+        ReadingStatus currentStatus = tracker.getReadingStatus();
+        ReadingStatus meetingPhaseStatus = resolveMeetingStatus(currentStatus);
         if (meetingPhaseStatus == null) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
@@ -403,9 +402,9 @@ public class TrackerService {
         meeting.setMeetingDetails(location, request.meetingTime());
 
         // 첫 번째로 미팅을 등록하면 교환/반납 단계로 진입
-        if (currentStatus == TrackerStatus.MY_BOOK_REVIEWING) {
+        if (currentStatus == ReadingStatus.MY_BOOK_REVIEWING) {
             tracker.startExchanging(); // MY_BOOK_REVIEWING → EXCHANGING
-        } else if (currentStatus == TrackerStatus.PARTNER_BOOK_REVIEWING) {
+        } else if (currentStatus == ReadingStatus.PARTNER_BOOK_REVIEWING) {
             tracker.startReturning(); // PARTNER_BOOK_REVIEWING → RETURNING
         }
     }
@@ -419,8 +418,8 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRADE_TYPE);
         }
 
-        TrackerStatus currentStatus = tracker.getTrackerStatus();
-        if (currentStatus != TrackerStatus.EXCHANGING && currentStatus != TrackerStatus.RETURNING) {
+        ReadingStatus currentStatus = tracker.getReadingStatus();
+        if (currentStatus != ReadingStatus.EXCHANGING && currentStatus != ReadingStatus.RETURNING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
@@ -433,7 +432,7 @@ public class TrackerService {
         meeting.confirm(userRole);
 
         if (meeting.isFullyConfirmed()) {
-            if (currentStatus == TrackerStatus.EXCHANGING) {
+            if (currentStatus == ReadingStatus.EXCHANGING) {
                 tracker.completeExchange(); // EXCHANGING → EXCHANGED
             } else {
                 // 반납 완료 시 양측 ReadingStatus → DONE
@@ -447,7 +446,7 @@ public class TrackerService {
         } else {
             log.info("상대방 확인 대기 중.");
         }
-    }
+    } */
 
     // --- 내부 유틸 ---
     private void validateTrackerImageS3Key(String s3Key) {

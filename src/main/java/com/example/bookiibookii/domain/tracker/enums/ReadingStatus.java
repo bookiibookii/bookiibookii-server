@@ -7,14 +7,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ReadingStatus {
 
-    IDLE("초기"),
     MY_BOOK_READING("자신의 책 읽는 중"),
-    MY_BOOK_READ_DONE("자신의 책 읽기 완료"),
-    MY_BOOK_REVIEW_DONE("자신의 책 후기 완료, 교환 준비"),
+    MY_BOOK_REVIEWING("1차 독서 완료, 후기 작성 중"),
+    EXCHANGING("자신의 책 후기 작성 완료, 1차 교환 진행 중"),
+    EXCHANGED("1차 교환 완료"),
     PARTNER_BOOK_READING("파트너 책 읽는 중"),
-    PARTNER_BOOK_READ_DONE("파트너 책 읽기 완료"),
-    PARTNER_BOOK_REVIEW_DONE("파트너 책 후기 완료, 반납 준비"),
-    DONE("반납 완료");
+    PARTNER_BOOK_REVIEWING("2차 독서 완료, 후기 작성 중"),
+    RETURNING("파트너 책 후기 작성 완료, 2차 교환(반납) 진행 중"),
+    COMPLETED("릴레이 종료");
 
     private final String description;
 }

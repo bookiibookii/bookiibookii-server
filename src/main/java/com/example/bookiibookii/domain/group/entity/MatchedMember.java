@@ -2,6 +2,8 @@ package com.example.bookiibookii.domain.group.entity;
 
 import com.example.bookiibookii.domain.group.enums.MemberStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -43,11 +45,12 @@ public class MatchedMember extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "reading_status")
     @Builder.Default
-    private ReadingStatus readingStatus = ReadingStatus.IDLE;
+    private ReadingStatus readingStatus = ReadingStatus.MY_BOOK_READING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "exchange_status")
     @Builder.Default
-    @Column(name = "current_reading_rate", nullable = false)
-    private Integer currentReadingRate = 0;
+    private ExchangeStatus exchangeStatus = ExchangeStatus.NOT_STARTED;
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
@@ -64,13 +67,4 @@ public class MatchedMember extends BaseEntity {
         this.isReviewWritten = true;
     }
 
-    public void updateReadingRate(int newRate) {
-        int normalized = Math.min(100, Math.max(0,newRate));
-        this.currentReadingRate = normalized;
-    }
-
-    public void completeReading() {
-        this.currentReadingRate = 100;
-        this.completedAt = LocalDateTime.now();
-    }
 }

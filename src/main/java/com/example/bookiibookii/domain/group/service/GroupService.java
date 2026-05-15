@@ -118,7 +118,7 @@ public class GroupService {
                 .group(savedGroup)
                 .user(host)
                 .role(RoleStatus.HOST)
-                .currentReadingRate(0)
+                // .currentReadingRate(0)
                 .build();
 
         matchedMemberRepository.save(hostMember);

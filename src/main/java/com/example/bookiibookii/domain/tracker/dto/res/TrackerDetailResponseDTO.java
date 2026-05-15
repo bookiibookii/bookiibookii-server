@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.tracker.dto.res;
 
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class TrackerDetailResponseDTO {
     private String bookTitle;
     private String partnerNickname;
-    private TrackerStatus trackerStatus;
+    private ReadingStatus readingStatus;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDateTime startedAt;

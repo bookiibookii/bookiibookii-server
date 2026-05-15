@@ -123,7 +123,7 @@ public class ApplicationService {
                     .group(group)
                     .user(application.getGuest())
                     .role(RoleStatus.GUEST)
-                    .currentReadingRate(0)
+                    // .currentReadingRate(0)
                     .build();
             matchedMemberRepository.save(newMember);
 

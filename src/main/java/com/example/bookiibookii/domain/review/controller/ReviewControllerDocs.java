@@ -38,6 +38,7 @@ public interface ReviewControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user
     );
 
+    /*
     @Operation(
             summary = "릴레이 중간 책 리뷰 작성 (1차/2차 독서 완료 후)",
             description = """
@@ -77,7 +78,7 @@ public interface ReviewControllerDocs {
             @PathVariable Long groupBookId,
             @RequestBody @Valid ReviewRequestDTO.RelayReviewDTO request,
             @AuthenticationPrincipal(expression = "user") User user
-    );
+    );*/
 
     @Operation(
             summary = "내 이어읽기 리뷰 히스토리 조회",

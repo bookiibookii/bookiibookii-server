@@ -25,6 +25,7 @@ public interface MemberBookLibraryControllerDocs {
         - **그룹당 2권**: 한 그룹에 참여한 멤버는 서로 다른 책을 가진 MemberBook 최대 2건이 각각 별도 항목으로 노출됩니다.
         - **주요 포함 정보**:
             - **멤버북 ID**: `memberBookId` (서재 내 고유 식별자)
+            - **본인 책 여부**: `isMine` (true: 내가 가져온 책, false: 상대/호스트 책)
             - **도서 정보**: 책 ID, 제목, 저자, 이미지 URL (MemberBook에 연결된 책)
             - **호스트 정보**: 호스트 ID, 닉네임, 프로필 이미지(Presigned URL)
             - **일정 정보**: 그룹 시작일(`startDate`), **실제 독서 종료일(`endDate`)**, 그룹 독서 기간(`duration`)

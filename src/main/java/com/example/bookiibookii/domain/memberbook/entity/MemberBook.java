@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.memberbook.entity;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -42,6 +43,15 @@ public class MemberBook extends BaseEntity {
     @JoinColumn(name = "matchedmember_id", nullable = false)
     private MatchedMember matchedMember;
 
+    /**
+     * MatchedMember 기준으로 이 MemberBook이 본인 책인지 여부.
+     * - HOST: group.book와 동일하면 내 책
+     * - GUEST: group.book와 다르면 내 책
+     */
+    @Column(name = "is_mine", nullable = false)
+    @Builder.Default
+    private boolean isMine = false;
+
     /** 독서 진행률(0.0 ~ 100.0) */
     @Column(name = "progress_rate", nullable = false)
     @Builder.Default
@@ -54,6 +64,11 @@ public class MemberBook extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "memberBook", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Cards> cards = new ArrayList<>();
+
+    public static boolean resolveIsMine(MatchedMember matchedMember, Book book) {
+        boolean isGroupBook = book.getId().equals(matchedMember.getGroup().getBook().getId());
+        return matchedMember.getRole() == RoleStatus.HOST ? isGroupBook : !isGroupBook;
+    }
 
     public void markRemoved() {
         this.removedAt = LocalDateTime.now();

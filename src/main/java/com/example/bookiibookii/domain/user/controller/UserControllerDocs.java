@@ -1,6 +1,9 @@
 package com.example.bookiibookii.domain.user.controller;
 
+import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
+import com.example.bookiibookii.domain.user.dto.req.BookshelfRequestDTO;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
+import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -12,6 +15,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -134,5 +140,97 @@ public interface UserControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "닉네임 검증 실패")
     })
     ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
+
+    @Operation(
+            summary = "나의 책장 조회 API",
+            description = """
+            - completedBooks: 완독한 책 목록 (완독날짜, 책 제목, 작가, 장르, 별점)
+            - favoriteBooks: 온보딩에서 등록한 인생 책 (최대 3개)
+            - representativeBooks: 나를 대표하는 책 (최대 7개, displayOrder 순)
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "나의 책장 조회 성공")
+    })
+    @GetMapping("/api/mypage/bookshelf")
+    ApiResponse<BookshelfResponseDTO.BookshelfResDTO> getBookshelf(@AuthenticationPrincipal User user);
+
+    @Operation(
+            summary = "인생 책 등록 API",
+            description = """
+            인생 책을 등록합니다. (최대 3개)
+            - isbn13으로 책을 식별하며, DB에 없는 책은 자동으로 등록됩니다.
+            - 이미 대표책으로만 등록된 책이면 인생책 플래그만 추가합니다.
+            - 이미 인생책으로 등록된 책이면 400 오류를 반환합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 등록 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "3개 초과 또는 이미 등록된 책")
+    })
+    @PostMapping("/api/mypage/bookshelf/favorites")
+    ApiResponse<Void> addFavoriteBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookReqDTO.UserPickISBN request);
+
+    @Operation(
+            summary = "인생 책 삭제 API",
+            description = """
+            나의 책장에서 인생 책을 삭제합니다.
+            - 대표책으로도 등록된 경우 대표책은 유지되고, 인생책 상태만 해제됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 인생 책을 찾을 수 없음")
+    })
+    @DeleteMapping("/api/mypage/bookshelf/favorites/{userBookId}")
+    ApiResponse<Void> deleteFavoriteBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
+
+    @Operation(
+            summary = "대표책 등록 API",
+            description = """
+            나를 대표하는 책을 등록합니다. (최대 7개)
+            - userBookId: 인생책 목록에서 선택 시 (FavoriteBookDto.userBookId)
+            - groupBookId: 완독책 목록에서 선택 시 (CompletedBookDto.groupBookId) — 별점 등록 완료 필수
+            - 둘 중 하나만 전달하세요.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대표책 등록 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "7개 초과 또는 별점 없는 완독책"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "책을 찾을 수 없음")
+    })
+    @PostMapping("/api/mypage/bookshelf/representatives")
+    ApiResponse<Void> addRepresentativeBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.AddRepresentativeReqDTO request);
+
+    @Operation(
+            summary = "대표책 삭제 API",
+            description = """
+            나를 대표하는 책을 삭제합니다.
+            - 인생책이기도 한 경우 → displayOrder만 해제 (인생책 유지)
+            - 대표책으로만 등록된 경우 → 행 완전 삭제
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대표책 삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 대표책을 찾을 수 없음")
+    })
+    @DeleteMapping("/api/mypage/bookshelf/representatives/{userBookId}")
+    ApiResponse<Void> deleteRepresentativeBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
+
+    @Operation(
+            summary = "대표책 순서 변경 API",
+            description = """
+            드래그한 책을 원하는 위치에 삽입합니다. 사이에 있는 책들은 자동으로 한 칸씩 밀립니다.
+            - userBookId: 드래그한 책의 userBookId
+            - targetOrder: 드롭한 위치 (1~7)
+            - 예시: 3번 책을 1번으로 드래그 → {"userBookId": 3, "targetOrder": 1}
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "순서 변경 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "targetOrder가 유효 범위(1~현재 대표책 수) 초과")
+    })
+    @PatchMapping("/api/mypage/bookshelf/representatives/order")
+    ApiResponse<Void> reorderRepresentativeBooks(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.MoveRepresentativeReqDTO request);
 
 }

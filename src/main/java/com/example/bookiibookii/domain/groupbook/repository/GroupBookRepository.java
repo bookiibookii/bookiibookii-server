@@ -74,4 +74,16 @@ public interface GroupBookRepository extends JpaRepository<GroupBook, Long> {
     // 특정 그룹의 모든 멤버가 가진 GroupBook 목록 조회 (트래커 할당용)
     List<GroupBook> findAllByGroup_GroupId(Long groupId);
 
+    @Query("""
+        SELECT gb FROM GroupBook gb
+        JOIN FETCH gb.group g
+        JOIN FETCH g.book
+        WHERE gb.user.id = :userId
+        AND gb.removedAt IS NULL
+        AND g.groupStatus = com.example.bookiibookii.domain.group.enums.GroupStatus.COMPLETED
+        ORDER BY gb.updatedAt DESC
+    """)
+    List<GroupBook> findCompletedBooksByUserId(@Param("userId") Long userId);
+
+    boolean existsByUser_IdAndBook_IdAndRatingIsNotNull(Long userId, Long bookId);
 }

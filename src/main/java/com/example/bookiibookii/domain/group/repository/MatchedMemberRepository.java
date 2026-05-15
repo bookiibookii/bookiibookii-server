@@ -108,4 +108,12 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
 
     @Query("select mm.user.id from MatchedMember mm where mm.group.groupId = :groupId")
     List<Long> findUserIdsByGroupId(@Param("groupId") Long groupId);
+
+    @Query("""
+        SELECT mm FROM MatchedMember mm
+        JOIN FETCH mm.group
+        WHERE mm.user.id = :userId
+        AND mm.completedAt IS NOT NULL
+    """)
+    List<MatchedMember> findCompletedByUserId(@Param("userId") Long userId);
 }

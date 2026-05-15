@@ -172,4 +172,15 @@ public class UserController implements UserControllerDocs{
         bookshelfService.deleteRepresentativeBook(user.getId(), userBookId);
         return ApiResponse.onSuccess(UserSuccessCode.REPRESENTATIVE_BOOK_DELETE_SUCCESS, null);
     }
+
+    // 대표책 순서 변경
+    @Override
+    @PatchMapping("/api/mypage/bookshelf/representatives/order")
+    public ApiResponse<Void> reorderRepresentativeBooks(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody BookshelfRequestDTO.MoveRepresentativeReqDTO request
+    ) {
+        bookshelfService.reorderRepresentativeBooks(user.getId(), request.userBookId(), request.targetOrder());
+        return ApiResponse.onSuccess(UserSuccessCode.REPRESENTATIVE_BOOK_REORDER_SUCCESS, null);
+    }
 }

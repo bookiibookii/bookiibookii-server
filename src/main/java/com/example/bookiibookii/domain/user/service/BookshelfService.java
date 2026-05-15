@@ -242,4 +242,47 @@ public class BookshelfService {
             userBookRepository.delete(userBook);
         }
     }
+
+    // 대표책 순서 변경 (드래그앤드롭)
+    @Transactional
+    public void reorderRepresentativeBooks(Long userId, Long userBookId, Integer targetOrder) {
+        UserBook dragged = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
+
+        if (dragged.getDisplayOrder() == null) {
+            throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
+        }
+
+        int sourceOrder = dragged.getDisplayOrder();
+        if (sourceOrder == targetOrder) return;
+
+        long totalCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+        if (targetOrder < 1 || targetOrder > totalCount) {
+            throw new UserException(UserErrorCode.INVALID_REPRESENTATIVE_ORDER);
+        }
+
+        int low = Math.min(sourceOrder, targetOrder);
+        int high = Math.max(sourceOrder, targetOrder);
+        int shift = sourceOrder > targetOrder ? 1 : -1;
+
+        // 영향받는 범위의 현재 순서를 메모리에 보관
+        List<UserBook> affected = userBookRepository.findRepresentativeBooks(userId).stream()
+                .filter(ub -> ub.getDisplayOrder() >= low && ub.getDisplayOrder() <= high)
+                .toList();
+        List<Long> affectedIds = affected.stream().map(UserBook::getId).toList();
+        Map<Long, Integer> snapshotOrders = affected.stream()
+                .collect(Collectors.toMap(UserBook::getId, UserBook::getDisplayOrder));
+
+        // UNIQUE 제약 충돌 방지: 해당 범위 null 초기화 (DB 반영 + 1차 캐시 초기화)
+        userBookRepository.clearDisplayOrderInRange(userId, low, high);
+
+        // 초기화 후 재조회하여 새 순서 세팅
+        userBookRepository.findAllById(affectedIds).forEach(ub -> {
+            if (ub.getId().equals(userBookId)) {
+                ub.updateDisplayOrder(targetOrder);
+            } else {
+                ub.updateDisplayOrder(snapshotOrders.get(ub.getId()) + shift);
+            }
+        });
+    }
 }

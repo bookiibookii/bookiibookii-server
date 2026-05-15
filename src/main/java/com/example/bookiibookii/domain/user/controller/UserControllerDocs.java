@@ -17,6 +17,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -215,5 +216,21 @@ public interface UserControllerDocs {
     })
     @DeleteMapping("/api/mypage/bookshelf/representatives/{userBookId}")
     ApiResponse<Void> deleteRepresentativeBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
+
+    @Operation(
+            summary = "대표책 순서 변경 API",
+            description = """
+            드래그한 책을 원하는 위치에 삽입합니다. 사이에 있는 책들은 자동으로 한 칸씩 밀립니다.
+            - userBookId: 드래그한 책의 userBookId
+            - targetOrder: 드롭한 위치 (1~7)
+            - 예시: 3번 책을 1번으로 드래그 → {"userBookId": 3, "targetOrder": 1}
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "순서 변경 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "targetOrder가 유효 범위(1~현재 대표책 수) 초과")
+    })
+    @PatchMapping("/api/mypage/bookshelf/representatives/order")
+    ApiResponse<Void> reorderRepresentativeBooks(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.MoveRepresentativeReqDTO request);
 
 }

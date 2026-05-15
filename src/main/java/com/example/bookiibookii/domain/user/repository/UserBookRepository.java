@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBook;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -51,4 +52,12 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     int findMaxDisplayOrderByUserId(@Param("userId") Long userId);
 
     long countByUser_IdAndIsFavoriteTrue(Long userId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE UserBook ub SET ub.displayOrder = null
+        WHERE ub.user.id = :userId
+        AND ub.displayOrder BETWEEN :low AND :high
+    """)
+    void clearDisplayOrderInRange(@Param("userId") Long userId, @Param("low") int low, @Param("high") int high);
 }

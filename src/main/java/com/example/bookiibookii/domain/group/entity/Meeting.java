@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.group.entity;
 
 import com.example.bookiibookii.domain.group.enums.ConfirmationStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.location.entity.Location;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;

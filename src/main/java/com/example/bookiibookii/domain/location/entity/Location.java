@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.group.entity;
+package com.example.bookiibookii.domain.location.entity;
 
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -7,24 +7,22 @@ import lombok.*;
 @Entity
 @Table(name = "location")
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 public class Location extends BaseEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "location_id")
-    private String id;
+    private Long id;
 
-    @Column(name = "place_name")
+    @Column(name = "place_name", nullable = false, length = 100)
     private String placeName;
 
-    @Column(name = "address")
+    @Column(name = "address", nullable = false, unique = true, length = 200)
     private String address;
 
-    @Column(name = "address_detail")
-    private String addressDetail;
-
-    @Column(name = "zip_code", length = 10)
+    @Column(name = "zip_code", nullable = false, length = 10)
     private String zipCode;
 }

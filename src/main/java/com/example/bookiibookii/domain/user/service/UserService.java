@@ -24,6 +24,11 @@ import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.groupbook.dto.res.GroupBookResponseDTO;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookQueryRepository;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
+import com.example.bookiibookii.domain.location.dto.res.UserDeliveryResDTO;
+import com.example.bookiibookii.domain.location.dto.res.UserExchangeResDTO;
+import com.example.bookiibookii.domain.location.service.UserDeliveryService;
+import com.example.bookiibookii.domain.location.service.UserExchangeService;
+
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -47,11 +52,12 @@ public class UserService {
     private final UserImageS3Service userImageS3Service;
     private final GroupBookRepository groupBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final AddressRepository addressRepository;
     private final GroupBookQueryRepository groupBookQueryRepository;
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
     private final BookService bookService;
+    private final UserDeliveryService userDeliveryService;
+    private final UserExchangeService userExchangeService;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -259,14 +265,6 @@ public class UserService {
                 PageRequest.of(0, 3)
         );
 
-        // Address 정보 조회
-        Address address = addressRepository.findByUserId(userId).orElse(null);
-        String receiverName = address != null ? address.getReceiverName() : null;
-        String phone = address != null ? address.getPhone() : null;
-        String zipCode = address != null ? address.getZipCode() : null;
-        String addressValue = address != null ? address.getAddress() : null;
-        String addressDetail = address != null ? address.getAddressDetail() : null;
-
         String profileImageUrl = null;
         if (user.getUserImage() != null) {
             profileImageUrl = userImageS3Service.generatePresignedGetUrl(
@@ -275,6 +273,9 @@ public class UserService {
 
         // UserBook 조회
         List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findUserBooks(userId);
+
+        List<UserDeliveryResDTO.UserDeliveryDto> deliveries = userDeliveryService.getMyDeliveries(userId);
+        List<UserExchangeResDTO.UserExchangeDto> exchanges = userExchangeService.getMyExchanges(userId);
 
         return UserResponseDTO.UserProfileResDTO.builder()
                 .userId(userId)
@@ -286,13 +287,8 @@ public class UserService {
                 .groups(groupList)
                 .books(recentBooks)
                 .userBooks(userBooks)
-                .receiverName(receiverName)
-                .phone(phone)
-                .zipCode(zipCode)
-                .address(addressValue)
-                .addressDetail(addressDetail)
-                .region(user.getRegion())
-                .meetPlace(user.getMeetPlace())
+                .deliveries(deliveries)
+                .exchanges(exchanges)
                 .build();
     }
 
@@ -327,36 +323,23 @@ public class UserService {
             requireAvailableNickname(request.nickname());
             user.updateName(request.nickname());
         }
-        user.updateIntroduction(request.introduction());
-        user.updateRegion(request.region());
-        user.updateMeetPlace(request.meetPlace());
 
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        replaceUserBooks(user, request.userBooks());
+        if (request.deliveryIdsToDelete() != null) {
+            request.deliveryIdsToDelete().forEach(id -> userDeliveryService.deleteDelivery(userId, id));
+        }
+        if (request.deliveriesToAdd() != null) {
+            request.deliveriesToAdd().forEach(req -> userDeliveryService.addDelivery(userId, req));
+        }
 
-        Address address = addressRepository.findByUserId(userId).orElse(null);
-
-        if (address == null) {
-            address = Address.builder()
-                    .user(user)
-                    .receiverName(request.receiverName())
-                    .phone(request.phone())
-                    .zipCode(request.zipCode())
-                    .address(request.address())
-                    .addressDetail(request.addressDetail())
-                    .build();
-            addressRepository.save(address);
-        } else {
-            address.updateAddressInfo(
-                    request.receiverName(),
-                    request.phone(),
-                    request.zipCode(),
-                    request.address(),
-                    request.addressDetail()
-            );
+        if (request.exchangeIdsToDelete() != null) {
+            request.exchangeIdsToDelete().forEach(id -> userExchangeService.deleteExchange(userId, id));
+        }
+        if (request.exchangesToAdd() != null) {
+            request.exchangesToAdd().forEach(req -> userExchangeService.addExchange(userId, req));
         }
     }
 

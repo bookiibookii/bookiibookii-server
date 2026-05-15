@@ -27,13 +27,13 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     Slice<Groups> findAllWithBookAndHost(Pageable pageable);
 
     // 지역별 필터링 조회 (Slice 적용) 그룹리스트api용?
-    @Query("select g from Groups g " +
-            "join fetch g.book " +
-            "join fetch g.host h " +
-            "where h.region = :region " +
-            "and g.tradeType = 'DIRECT' " +
-            "and g.groupStatus != 'DELETED'")
-    Slice<Groups> findAllByHostRegion(@Param("region") String region, Pageable pageable);
+//    @Query("select g from Groups g " +
+//            "join fetch g.book " +
+//            "join fetch g.host h " +
+//            "where h.region = :region " +
+//            "and g.tradeType = 'DIRECT' " +
+//            "and g.groupStatus != 'DELETED'")
+//    Slice<Groups> findAllByHostRegion(@Param("region") String region, Pageable pageable);
 
     // [추가] 동시성 제어를 위한 비관적 락 메서드
     @Lock(LockModeType.PESSIMISTIC_WRITE)

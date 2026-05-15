@@ -123,16 +123,15 @@ public interface UserControllerDocs {
     @Operation(
             summary = "마이페이지 정보 수정 API",
             description = """
-            유저의 닉네임, 프로필 이미지, 주소 정보를 생성·업데이트합니다.
+            닉네임, 프로필 이미지, 자기소개, 배송지, 교환 장소를 한 번에 수정합니다.
 
-            - **프로필 이미지 변경**: `POST /api/users/me/image/presigned-url` 로 Presigned PUT URL 발급 후, 발급된 presignedPutUrl로 S3에 업로드하고, 응답의 s3Key를 본 API 요청 body의 s3Key에 넣어 호출하세요. s3Key를 보내지 않으면 프로필 이미지는 변경되지 않습니다.
-            - s3Key 형식: image/users/{userId}/{uuid}
+            - 배송지·교환 장소: ToAdd(추가 목록), IdsToDelete(삭제할 ID 목록)로 전달. null이면 변경 없음.
+            - 삭제 후 추가 순서로 처리되므로 교체(삭제+추가)도 한 번에 가능.
             """
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "마이페이지 설정 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 설정 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "전화번호 형식이 올바르지 않습니다.")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "닉네임 검증 실패")
     })
     ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
 

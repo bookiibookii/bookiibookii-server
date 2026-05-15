@@ -1,7 +1,5 @@
 package com.example.bookiibookii.domain.memberbook.entity;
 
-import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,13 +17,10 @@ public class Cards extends BaseEntity {
     @Column(name = "card_id")
     private Long id;
 
+    /** 이 카드가 속한 멤버의 책 (그룹당 멤버·책 조합) */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "group_id", nullable = false)
-    private Groups group;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "matchedmember_id", nullable = false)
-    private MatchedMember matchedMember;
+    @JoinColumn(name = "member_book_id", nullable = false)
+    private MemberBook memberBook;
 
     @Column(name = "page")
     private Integer page;

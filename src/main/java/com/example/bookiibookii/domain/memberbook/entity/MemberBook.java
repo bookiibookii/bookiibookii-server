@@ -8,6 +8,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -48,6 +50,10 @@ public class MemberBook extends BaseEntity {
     /** 서재에서 제거한 시점. null이면 목록에 노출, 값이 있으면 라이브러리에서 제외 */
     @Column(name = "removed_at")
     private LocalDateTime removedAt;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "memberBook", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Cards> cards = new ArrayList<>();
 
     public void markRemoved() {
         this.removedAt = LocalDateTime.now();

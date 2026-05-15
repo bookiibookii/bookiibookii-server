@@ -534,7 +534,7 @@ public class CardService {
                     int newRate = calculateUserReadingRate(userId, group);
 
                     // 3. MatchedMember 엔티티의 필드 업데이트 (필드명은 예시입니다)
-                    mm.updateReadingRate(newRate);
+                  //  mm.updateReadingRate(newRate);
 
                 });
     }

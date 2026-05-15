@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/groups")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class TrackerController implements TrackerControllerDocs {
 
@@ -59,6 +59,7 @@ public class TrackerController implements TrackerControllerDocs {
         return ApiResponse.onSuccess(TrackerImageSuccessCode.TRACKING_PRESIGNED_URL_ISSUED, responseDTO);
     }
 
+    /*
     // --- 배송 및 수령 관련 ---
     @PostMapping("/{groupId}/tracker/delivery")
     public ApiResponse<TrackerDetailResponseDTO> registerShipping(
@@ -104,5 +105,5 @@ public class TrackerController implements TrackerControllerDocs {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_MEETING_DONE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
     }
 
-
+    */
 }

@@ -32,9 +32,9 @@ public class ReviewController implements ReviewControllerDocs {
         return ApiResponse.onSuccess(ReviewSuccessCode.BOOK_REVIEW_CREATED, null);
     }
 
-    /**
-     * 2. [릴레이 중간] 책 리뷰 생성 (1차/2차 독서 완료 후)
-     */
+   /* /
+      2. [릴레이 중간] 책 리뷰 생성 (1차/2차 독서 완료 후)
+
     @PostMapping("/relay/{groupBookId}/book")
     public ApiResponse<Void> createMidRelayBookReview(
             @PathVariable Long groupBookId,
@@ -45,9 +45,9 @@ public class ReviewController implements ReviewControllerDocs {
         return ApiResponse.onSuccess(ReviewSuccessCode.BOOK_REVIEW_CREATED, null);
     }
 
-    /**
-     * 3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후, 파트너 리뷰 포함)
-     */
+
+   //   3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후, 파트너 리뷰 포함)
+
     @PostMapping("/relay/{groupBookId}")
     public ApiResponse<Void> createRelayReview(
             @PathVariable Long groupBookId,
@@ -56,7 +56,7 @@ public class ReviewController implements ReviewControllerDocs {
     ) {
         reviewService.createRelayReview(groupBookId, request, user);
         return ApiResponse.onSuccess(ReviewSuccessCode.GROUP_REVIEW_CREATED, null);
-    }
+    } */
 
     /**
      * 3. 내 릴레이 리뷰 기록 조회

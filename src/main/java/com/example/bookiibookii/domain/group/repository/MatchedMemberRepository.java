@@ -51,8 +51,10 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     // 참여 시간 순 정렬 (TrackerService에서 순서 계산용)
     List<MatchedMember> findAllByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);
 
-    // 가장 먼저 참여한 멤버 조회 (호스트)
+    // 가장 먼저 참여한 멤버 조회
     Optional<MatchedMember> findFirstByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);
+
+    Optional<MatchedMember> findByGroup_GroupIdAndRole(Long groupId, RoleStatus role);
 
 
     interface WriterRow {

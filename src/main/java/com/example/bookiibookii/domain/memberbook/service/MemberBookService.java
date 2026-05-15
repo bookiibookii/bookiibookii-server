@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.memberbook.service;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.memberbook.exception.MemberBookException;
@@ -28,7 +29,7 @@ public class MemberBookService {
      */
     public void createLibraryOnMatch(Groups group, MatchedMember guestMember, Book guestBook) {
         MatchedMember hostMember = matchedMemberRepository
-                .findFirstByGroup_GroupIdOrderByCreatedAtAsc(group.getGroupId())
+                .findByGroup_GroupIdAndRole(group.getGroupId(), RoleStatus.HOST)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         Book hostBook = group.getBook();

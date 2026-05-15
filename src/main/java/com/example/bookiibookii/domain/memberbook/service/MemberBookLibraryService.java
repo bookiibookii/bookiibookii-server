@@ -52,15 +52,19 @@ public class MemberBookLibraryService {
     public List<LibraryMemberBookResponseDTO> getLibraryMemberBooks(Long userId) {
         List<MemberBook> memberBooks = memberBookRepository.findAllByMatchedMember_User_IdWithGroupAndBookAndHost(userId);
 
-        if (memberBooks.isEmpty()) {
+        List<MemberBook> validMemberBooks = memberBooks.stream()
+                .filter(this::isValidForLibraryList)
+                .toList();
+
+        if (validMemberBooks.isEmpty()) {
             return List.of();
         }
 
-        List<Long> memberBookIds = memberBooks.stream().map(MemberBook::getId).toList();
+        List<Long> memberBookIds = validMemberBooks.stream().map(MemberBook::getId).toList();
         Map<Long, BookReview> reviewMap = bookReviewRepository.findByMemberBook_IdIn(memberBookIds).stream()
                 .collect(Collectors.toMap(br -> br.getMemberBook().getId(), br -> br));
 
-        List<Long> groupIds = memberBooks.stream()
+        List<Long> groupIds = validMemberBooks.stream()
                 .map(mb -> mb.getGroup().getGroupId())
                 .distinct()
                 .toList();
@@ -68,7 +72,7 @@ public class MemberBookLibraryService {
         Map<Long, Tracker> trackerMap = trackerRepository.findByGroup_GroupIdIn(groupIds).stream()
                 .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t));
 
-        return memberBooks.stream()
+        return validMemberBooks.stream()
                 .map(mb -> toLibraryMemberBookResponseDTO(
                         mb,
                         reviewMap.get(mb.getId()),
@@ -77,15 +81,25 @@ public class MemberBookLibraryService {
                 .toList();
     }
 
+    private boolean isValidForLibraryList(MemberBook memberBook) {
+        if (memberBook.getGroup() != null && memberBook.getBook() != null && memberBook.getGroup().getHost() != null) {
+            return true;
+        }
+        log.warn(
+                "라이브러리 목록에서 제외: memberBookId={}, hasGroup={}, hasBook={}, hasHost={}",
+                memberBook.getId(),
+                memberBook.getGroup() != null,
+                memberBook.getBook() != null,
+                memberBook.getGroup() != null && memberBook.getGroup().getHost() != null
+        );
+        return false;
+    }
+
     private LibraryMemberBookResponseDTO toLibraryMemberBookResponseDTO(
             MemberBook memberBook,
             BookReview bookReview,
             Tracker tracker
     ) {
-        if (memberBook.getGroup() == null || memberBook.getBook() == null || memberBook.getGroup().getHost() == null) {
-            throw new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND);
-        }
-
         var group = memberBook.getGroup();
         var book = memberBook.getBook();
         var host = group.getHost();

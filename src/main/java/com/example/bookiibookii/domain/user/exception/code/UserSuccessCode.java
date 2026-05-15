@@ -23,6 +23,12 @@ public enum UserSuccessCode implements BaseCode {
     GET_BOOKSHELF_SUCCESS(HttpStatus.OK,
             "USER200_5",
             "나의 책장 조회에 성공했습니다."),
+    FAVORITE_BOOK_ADD_SUCCESS(HttpStatus.OK,
+            "USER200_6",
+            "인생 책 등록에 성공했습니다."),
+    FAVORITE_BOOK_DELETE_SUCCESS(HttpStatus.OK,
+            "USER200_7",
+            "인생 책 삭제에 성공했습니다."),
     ;
     private final HttpStatus status;
     private final String code;

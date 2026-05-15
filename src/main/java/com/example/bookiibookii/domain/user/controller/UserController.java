@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.user.controller;
 
+import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
@@ -123,5 +124,27 @@ public class UserController implements UserControllerDocs{
     ) {
         BookshelfResponseDTO.BookshelfResDTO result = bookshelfService.getBookshelf(user.getId());
         return ApiResponse.onSuccess(UserSuccessCode.GET_BOOKSHELF_SUCCESS, result);
+    }
+
+    // 인생 책 등록
+    @Override
+    @PostMapping("/api/mypage/bookshelf/favorites")
+    public ApiResponse<Void> addFavoriteBook(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody BookReqDTO.UserPickISBN request
+    ) {
+        bookshelfService.addFavoriteBook(user.getId(), request.isbn13());
+        return ApiResponse.onSuccess(UserSuccessCode.FAVORITE_BOOK_ADD_SUCCESS, null);
+    }
+
+    // 인생 책 삭제
+    @Override
+    @DeleteMapping("/api/mypage/bookshelf/favorites/{userBookId}")
+    public ApiResponse<Void> deleteFavoriteBook(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long userBookId
+    ) {
+        bookshelfService.deleteFavoriteBook(user.getId(), userBookId);
+        return ApiResponse.onSuccess(UserSuccessCode.FAVORITE_BOOK_DELETE_SUCCESS, null);
     }
 }

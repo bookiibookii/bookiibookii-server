@@ -1,8 +1,5 @@
 package com.example.bookiibookii.domain.user.service;
 
-import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
-import com.example.bookiibookii.domain.book.entity.Book;
-import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
@@ -55,7 +52,7 @@ public class UserService {
     private final GroupBookQueryRepository groupBookQueryRepository;
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
-    private final BookService bookService;
+    private final BookshelfService bookshelfService;
     private final UserDeliveryService userDeliveryService;
     private final UserExchangeService userExchangeService;
 
@@ -110,7 +107,7 @@ public class UserService {
 
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-        addUserBooks(user, request.userBooks(), true);
+        bookshelfService.replaceAllFavoriteBooks(user, request.userBooks());
         user.updateIntroduction(request.introduction());
         user.updateUserInform(request.gender(), request.birth());
 
@@ -118,69 +115,6 @@ public class UserService {
         userTagRepository.saveAll(userTags);
 
         user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
-    }
-
-    private void addUserBooks(User user, List<BookReqDTO.UserPickISBN> isbnList, boolean is_favorite) {
-        List<String> distinctIsbns = isbnList.stream()
-                .filter(Objects::nonNull)
-                .map(BookReqDTO.UserPickISBN::isbn13)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-
-        userBookRepository.deleteAllByUser(user);
-
-        if (distinctIsbns.isEmpty()) return;
-
-        List<UserBook> picks = distinctIsbns.stream()
-                .map(bookService::getOrCreateByIsbn13)
-                .map(book -> UserBook.create(user, book, is_favorite))
-                .toList();
-
-        userBookRepository.saveAll(picks);
-    }
-
-    private void replaceUserBooks(User user, List<BookReqDTO.UserPickISBN> picks, boolean is_favorite) {
-        List<BookReqDTO.UserPickISBN> safePicks =
-                picks == null ? List.of() : picks;
-
-        List<String> distinctIsbns = safePicks.stream()
-                .map(BookReqDTO.UserPickISBN::isbn13)
-                .filter(isbn -> isbn != null && !isbn.isBlank()).distinct().toList();
-
-        if (distinctIsbns.size() > 7) {
-            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
-        }
-
-        List<UserBook> existingUserBooks = userBookRepository.findByUser(user);
-
-        // 기존 bookId set
-        Set<Long> existingBookIds = existingUserBooks.stream()
-                .map(up -> up.getBook().getId())
-                .collect(Collectors.toSet());
-
-        // 새 book 목록
-        List<Book> books = distinctIsbns.stream()
-                .map(bookService::getOrCreateByIsbn13)
-                .toList();
-
-        Set<Long> newBookIds = books.stream()
-                .map(Book::getId)
-                .collect(Collectors.toSet());
-
-        // 삭제 대상
-        List<UserBook> toDelete = existingUserBooks.stream()
-                .filter(up -> !newBookIds.contains(up.getBook().getId()))
-                .toList();
-
-        // 추가 대상
-        List<UserBook> toAdd = books.stream()
-                .filter(book -> !existingBookIds.contains(book.getId()))
-                .map(book -> UserBook.create(user, book, is_favorite))
-                .toList();
-
-        userBookRepository.deleteAll(toDelete);
-        userBookRepository.saveAll(toAdd);
     }
 
     // 온보딩 스킵 상태로 업데이트

@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.user.controller;
 
+import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -150,5 +152,35 @@ public interface UserControllerDocs {
     })
     @GetMapping("/api/mypage/bookshelf")
     ApiResponse<BookshelfResponseDTO.BookshelfResDTO> getBookshelf(@AuthenticationPrincipal User user);
+
+    @Operation(
+            summary = "인생 책 등록 API",
+            description = """
+            인생 책을 등록합니다. (최대 3개)
+            - isbn13으로 책을 식별하며, DB에 없는 책은 자동으로 등록됩니다.
+            - 이미 대표책으로만 등록된 책이면 인생책 플래그만 추가합니다.
+            - 이미 인생책으로 등록된 책이면 400 오류를 반환합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 등록 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "3개 초과 또는 이미 등록된 책")
+    })
+    @PostMapping("/api/mypage/bookshelf/favorites")
+    ApiResponse<Void> addFavoriteBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookReqDTO.UserPickISBN request);
+
+    @Operation(
+            summary = "인생 책 삭제 API",
+            description = """
+            나의 책장에서 인생 책을 삭제합니다.
+            - 대표책으로도 등록된 경우 대표책까지 삭제됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 인생 책을 찾을 수 없음")
+    })
+    @DeleteMapping("/api/mypage/bookshelf/favorites/{userBookId}")
+    ApiResponse<Void> deleteFavoriteBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
 
 }

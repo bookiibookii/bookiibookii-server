@@ -32,7 +32,16 @@ public enum UserErrorCode implements BaseCode {
             "소셜 사용자 생성 중 일시적인 충돌이 발생했습니다. 다시 시도해주세요."),
     USER_PICK_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST,
             "USER400_4",
-            "책은 최대 7개까지 설정 가능합니다.")
+            "책은 최대 7개까지 설정 가능합니다."),
+    FAVORITE_BOOK_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST,
+            "USER400_5",
+            "인생 책은 최대 3개까지 등록 가능합니다."),
+    FAVORITE_BOOK_ALREADY_EXISTS(HttpStatus.BAD_REQUEST,
+            "USER400_6",
+            "이미 인생 책으로 등록된 책입니다."),
+    USER_BOOK_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "USER404_2",
+            "등록된 책을 찾을 수 없습니다.")
     ;
     private final HttpStatus status;
     private final String code;

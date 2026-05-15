@@ -45,7 +45,21 @@ public class UserBook extends BaseEntity {
                 .build();
     }
 
+    // 온보딩: 인생책 + 대표책 동시 등록
+    public static UserBook createFavorite(User user, Book book, Integer displayOrder) {
+        return UserBook.builder()
+                .user(user)
+                .book(book)
+                .isFavorite(true)
+                .displayOrder(displayOrder)
+                .build();
+    }
+
     public void updateDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public void updateIsFavorite(boolean isFavorite) {
+        this.isFavorite = isFavorite;
     }
 }

@@ -4,6 +4,9 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "cards")
 @Getter
@@ -30,6 +33,10 @@ public class Cards extends BaseEntity {
 
     @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)
     private CardImages cardImages;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CardReaction> cardReactions = new ArrayList<>();
 
     public void updatePage(Integer page) {
         this.page = page;

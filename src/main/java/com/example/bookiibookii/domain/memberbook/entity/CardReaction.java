@@ -12,8 +12,8 @@ import java.util.Objects;
 @Table(
         name = "card_reaction",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_card_reaction_matchedmember_card",
-                columnNames = {"matchedmember_id", "card_id"}
+                name = "uk_card_reaction_matchedmember_card_reaction",
+                columnNames = {"matchedmember_id", "card_id", "reaction"}
         )
 )
 @Getter
@@ -50,7 +50,4 @@ public class CardReaction extends BaseEntity {
                 .build();
     }
 
-    public void updateReaction(CardReactionType reaction) {
-        this.reaction = Objects.requireNonNull(reaction, "reaction must not be null");
-    }
 }

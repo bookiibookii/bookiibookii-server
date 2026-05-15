@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageSuccessCode;
@@ -51,15 +50,6 @@ public class TrackerController implements TrackerControllerDocs {
         return ApiResponse.onSuccess(TrackerImageSuccessCode.TRACKING_IMAGE_FOUND, response);
     }
 
-    @GetMapping("/{groupId}/tracker/images/received")
-    public ApiResponse<TrackerImageGetResponseDTO> getReceivedProofImageUrl(
-            @PathVariable Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        TrackerImageGetResponseDTO response = trackerService.getReceivedProofImageUrl(groupId, user);
-        return ApiResponse.onSuccess(TrackerImageSuccessCode.RECEIVED_IMAGE_FOUND, response);
-    }
-
     @PostMapping("/{groupId}/tracker/images/presigned-url")
     public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForTrackerImage(
             @PathVariable Long groupId,
@@ -80,16 +70,7 @@ public class TrackerController implements TrackerControllerDocs {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_SHIPPING_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
     }
 
-    @PatchMapping("/{groupId}/tracker/reception")
-    public ApiResponse<TrackerDetailResponseDTO> registerReceive(
-            @PathVariable Long groupId,
-            @RequestBody @Valid TrackerReceiveRequestDTO request,
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        trackerService.registerReceive(groupId, request, user);
-        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_RECEIVE_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
-    }
-
+    // todo : 이미지 없는 수령 완료 처리 추가
 
     // --- 직접 교환(Meeting) 관련 ---
     public ApiResponse<TrackerMeetingResponseDTO> getMeetingDetail(

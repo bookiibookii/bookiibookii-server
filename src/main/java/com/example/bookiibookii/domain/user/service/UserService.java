@@ -110,7 +110,7 @@ public class UserService {
 
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-        addUserBooks(user, request.userBooks(), true);
+        addUserBooks(user, request.userBooks(), true, true);
         user.updateIntroduction(request.introduction());
         user.updateUserInform(request.gender(), request.birth());
 
@@ -120,7 +120,7 @@ public class UserService {
         user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
     }
 
-    private void addUserBooks(User user, List<BookReqDTO.UserPickISBN> isbnList, boolean is_onboarding) {
+    private void addUserBooks(User user, List<BookReqDTO.UserPickISBN> isbnList, boolean is_favorite, boolean is_display) {
         List<String> distinctIsbns = isbnList.stream()
                 .filter(Objects::nonNull)
                 .map(BookReqDTO.UserPickISBN::isbn13)
@@ -134,13 +134,13 @@ public class UserService {
 
         List<UserBook> picks = distinctIsbns.stream()
                 .map(bookService::getOrCreateByIsbn13)
-                .map(book -> UserBook.create(user, book, true))
+                .map(book -> UserBook.create(user, book, is_favorite, is_display))
                 .toList();
 
         userBookRepository.saveAll(picks);
     }
 
-    private void replaceUserBooks(User user, List<BookReqDTO.UserPickISBN> picks) {
+    private void replaceUserBooks(User user, List<BookReqDTO.UserPickISBN> picks, boolean is_favorite, boolean is_display) {
         List<BookReqDTO.UserPickISBN> safePicks =
                 picks == null ? List.of() : picks;
 
@@ -176,7 +176,7 @@ public class UserService {
         // 추가 대상
         List<UserBook> toAdd = books.stream()
                 .filter(book -> !existingBookIds.contains(book.getId()))
-                .map(book -> UserBook.create(user, book, false))
+                .map(book -> UserBook.create(user, book, is_favorite, is_display))
                 .toList();
 
         userBookRepository.deleteAll(toDelete);

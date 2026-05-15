@@ -164,6 +164,13 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
-        userBookRepository.delete(userBook);
+        boolean shouldKeep = userBook.getDisplayOrder() != null
+                || groupBookRepository.existsByUser_IdAndBook_IdAndRatingIsNotNull(userId, userBook.getBook().getId());
+
+        if (shouldKeep) {
+            userBook.updateIsFavorite(false);
+        } else {
+            userBookRepository.delete(userBook);
+        }
     }
 }

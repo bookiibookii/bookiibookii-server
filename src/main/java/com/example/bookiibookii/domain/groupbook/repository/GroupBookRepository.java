@@ -84,4 +84,6 @@ public interface GroupBookRepository extends JpaRepository<GroupBook, Long> {
         ORDER BY gb.updatedAt DESC
     """)
     List<GroupBook> findCompletedBooksByUserId(@Param("userId") Long userId);
+
+    boolean existsByUser_IdAndBook_IdAndRatingIsNotNull(Long userId, Long bookId);
 }

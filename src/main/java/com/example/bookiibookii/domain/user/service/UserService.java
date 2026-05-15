@@ -24,8 +24,11 @@ import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.groupbook.dto.res.GroupBookResponseDTO;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookQueryRepository;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
-import com.example.bookiibookii.domain.location.dto.res.UserLocationResDTO;
-import com.example.bookiibookii.domain.location.service.UserLocationService;
+import com.example.bookiibookii.domain.location.dto.res.UserDeliveryResDTO;
+import com.example.bookiibookii.domain.location.dto.res.UserExchangeResDTO;
+import com.example.bookiibookii.domain.location.service.UserDeliveryService;
+import com.example.bookiibookii.domain.location.service.UserExchangeService;
+
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,7 +56,8 @@ public class UserService {
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
     private final BookService bookService;
-    private final UserLocationService userLocationService;
+    private final UserDeliveryService userDeliveryService;
+    private final UserExchangeService userExchangeService;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -270,8 +274,8 @@ public class UserService {
         // UserBook 조회
         List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findUserBooks(userId);
 
-        // 등록된 장소 조회 (교환 장소 + 배송지)
-        List<UserLocationResDTO.UserLocationDto> locations = userLocationService.getMyLocations(userId);
+        List<UserDeliveryResDTO.UserDeliveryDto> deliveries = userDeliveryService.getMyDeliveries(userId);
+        List<UserExchangeResDTO.UserExchangeDto> exchanges = userExchangeService.getMyExchanges(userId);
 
         return UserResponseDTO.UserProfileResDTO.builder()
                 .userId(userId)
@@ -283,7 +287,8 @@ public class UserService {
                 .groups(groupList)
                 .books(recentBooks)
                 .userBooks(userBooks)
-                .locations(locations)
+                .deliveries(deliveries)
+                .exchanges(exchanges)
                 .build();
     }
 
@@ -323,12 +328,18 @@ public class UserService {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        if (request.locationIdsToDelete() != null) {
-            request.locationIdsToDelete().forEach(id -> userLocationService.deleteLocation(userId, id));
+        if (request.deliveryIdsToDelete() != null) {
+            request.deliveryIdsToDelete().forEach(id -> userDeliveryService.deleteDelivery(userId, id));
+        }
+        if (request.deliveriesToAdd() != null) {
+            request.deliveriesToAdd().forEach(req -> userDeliveryService.addDelivery(userId, req));
         }
 
-        if (request.locationsToAdd() != null) {
-            request.locationsToAdd().forEach(addReq -> userLocationService.addLocation(userId, addReq));
+        if (request.exchangeIdsToDelete() != null) {
+            request.exchangeIdsToDelete().forEach(id -> userExchangeService.deleteExchange(userId, id));
+        }
+        if (request.exchangesToAdd() != null) {
+            request.exchangesToAdd().forEach(req -> userExchangeService.addExchange(userId, req));
         }
     }
 

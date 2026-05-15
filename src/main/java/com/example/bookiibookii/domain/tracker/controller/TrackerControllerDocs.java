@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -61,17 +60,6 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @Operation(summary = "수령 인증 사진 보기", description = "배송한 사람이 수령한 사람이 올린 수령 인증(RECEIVER_PROOF) 이미지를 조회합니다. Presigned GET URL을 반환하며, 같은 그룹 멤버만 조회 가능합니다.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "수령 인증 이미지 없음", content = @Content)
-    })
-    @GetMapping("/{groupId}/tracker/images/received")
-    ApiResponse<TrackerImageGetResponseDTO> getReceivedProofImageUrl(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
     @Operation(summary = "트래커 인증 이미지 업로드용 Presigned URL 발급", description = "배송 인증(SENDER_PROOF) 또는 수령 인증(RECEIVER_PROOF) 이미지를 S3에 업로드하기 위한 Presigned PUT URL을 발급합니다. " +
             "발급된 presignedPutUrl로 PUT 요청 후 받은 s3Key를 배송 시작 등록 또는 도서 수령 완료 API에 전달하세요. URL 유효 시간은 10분입니다.")
     @ApiResponses(value = {
@@ -98,19 +86,6 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-
-    @PatchMapping("/{groupId}/tracker/reception")
-    @Operation(summary = "도서 수령 완료 처리", description = "배송 중인 도서를 수령했을 때 호출합니다. " +
-            "수령 인증 이미지는 Presigned URL로 S3 업로드 후 발급받은 s3Key를 전달하세요. TrackerImage(RECEIVER_PROOF)로 저장됩니다.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수령 완료 처리 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 입력값(s3Key 형식/중복/S3 미존재)", content = @Content)
-    })
-    ApiResponse<TrackerDetailResponseDTO> registerReceive(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody @Valid TrackerReceiveRequestDTO request,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
 
     // --- 4. 직접 교환(Meeting) 관련 ---
     @GetMapping("/{groupId}/tracker/meetings")

@@ -104,26 +104,6 @@ public class TrackerService {
         return TrackerImageGetResponseDTO.builder().presignedGetUrl(presignedGetUrl).build();
     }
 
-    public TrackerImageGetResponseDTO getReceivedProofImageUrl(Long groupId, User user) {
-        validateGroupMember(groupId, user.getId());
-        MatchedMember me = getMyMatchedMember(groupId, user.getId());
-
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        // 내가 보낸 배송이 RETURNED 되었을 때 수령인이 올린 이미지(최신)를 반환
-        Delivery myReturnedDelivery = deliveryRepository
-                .findTopByTrackerAndSenderIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.RETURNED)
-                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
-
-        TrackingImage image = trackingImageRepository
-                .findTopByDelivery_IdOrderByCreatedAtDesc(myReturnedDelivery.getId())
-                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.RECEIVED_IMAGE_NOT_FOUND));
-
-        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(image.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
-        return TrackerImageGetResponseDTO.builder().presignedGetUrl(presignedGetUrl).build();
-    }
-
     // --- 트래커 생성 ---
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

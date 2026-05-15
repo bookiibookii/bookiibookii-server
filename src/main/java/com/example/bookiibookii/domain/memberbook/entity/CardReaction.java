@@ -6,6 +6,8 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Objects;
+
 @Entity
 @Table(
         name = "card_reaction",
@@ -22,7 +24,7 @@ public class CardReaction extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "card_comment_id")
+    @Column(name = "card_reaction_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -34,10 +36,21 @@ public class CardReaction extends BaseEntity {
     private MatchedMember matchedMember;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reaction", length = 30)
+    @Column(name = "reaction", length = 30, nullable = false)
     private CardReactionType reaction;
 
+    public static CardReaction create(Cards card, MatchedMember matchedMember, CardReactionType reaction) {
+        Objects.requireNonNull(card, "card must not be null");
+        Objects.requireNonNull(matchedMember, "matchedMember must not be null");
+        Objects.requireNonNull(reaction, "reaction must not be null");
+        return CardReaction.builder()
+                .card(card)
+                .matchedMember(matchedMember)
+                .reaction(reaction)
+                .build();
+    }
+
     public void updateReaction(CardReactionType reaction) {
-        this.reaction = reaction;
+        this.reaction = Objects.requireNonNull(reaction, "reaction must not be null");
     }
 }

@@ -41,6 +41,9 @@ public class MemberReview extends BaseEntity {
     private String comment;
 
     public void updateReview(MemberReviewReaction reaction, String comment) {
+        if (comment != null && comment.length() > 255) {
+            throw new IllegalArgumentException("Comment cannot exceed 255 characters");
+        }
         this.reaction = reaction;
         this.comment = comment;
     }

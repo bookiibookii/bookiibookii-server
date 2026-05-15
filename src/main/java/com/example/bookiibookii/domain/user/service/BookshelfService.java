@@ -134,12 +134,14 @@ public class BookshelfService {
     // 인생 책 등록
     @Transactional
     public void addFavoriteBook(Long userId, String isbn13) {
+        // 같은 유저의 동시 요청 직렬화: 카운트 확인과 저장을 동일 잠금 범위에서 수행
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
         if (userBookRepository.countByUser_IdAndIsFavoriteTrue(userId) >= MAX_FAVORITE_BOOKS) {
             throw new UserException(UserErrorCode.FAVORITE_BOOK_LIMIT_EXCEEDED);
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
         Book book = bookService.getOrCreateByIsbn13(isbn13);
 
         Optional<UserBook> existing = userBookRepository.findByUser_IdAndBook_Id(userId, book.getId());
@@ -161,6 +163,10 @@ public class BookshelfService {
         if (userBookId == null && groupBookId == null) {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
+
+        // 같은 유저의 동시 요청 직렬화
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         if (userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId) >= MAX_REPRESENTATIVE_BOOKS) {
             throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);

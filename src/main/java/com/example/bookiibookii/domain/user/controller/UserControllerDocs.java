@@ -175,7 +175,7 @@ public interface UserControllerDocs {
             summary = "인생 책 삭제 API",
             description = """
             나의 책장에서 인생 책을 삭제합니다.
-            - 대표책으로도 등록된 경우 대표책까지 삭제됩니다.
+            - 대표책으로도 등록된 경우 대표책은 유지되고, 인생책 상태만 해제됩니다.
             """
     )
     @ApiResponses({

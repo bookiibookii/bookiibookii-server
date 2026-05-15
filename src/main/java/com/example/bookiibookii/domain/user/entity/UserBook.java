@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.user.entity;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 
 @Entity
@@ -34,6 +36,8 @@ public class UserBook extends BaseEntity {
     private boolean isFavorite;
 
     @Column(name = "display_order")
+    @Min(1)
+    @Max(7)
     private Integer displayOrder; // 대표책 순서 1~7, null = 대표책 아님
 
     public static UserBook create(User user, Book book, boolean isFavorite) {

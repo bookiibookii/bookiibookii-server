@@ -57,7 +57,7 @@ public class UserExchangeService {
     @Transactional
     public void deleteExchange(Long userId, Long userExchangeId) {
         UserExchange userExchange = userExchangeRepository
-                .findByUserExchangeIdAndUser_Id(userExchangeId, userId)
+                .findByIdAndUser_Id(userExchangeId, userId)
                 .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
 
         userExchangeRepository.delete(userExchange);

@@ -59,7 +59,7 @@ public class UserDeliveryService {
     @Transactional
     public void deleteDelivery(Long userId, Long userDeliveryId) {
         UserDelivery userDelivery = userDeliveryRepository
-                .findByUserDeliveryIdAndUser_Id(userDeliveryId, userId)
+                .findByIdAndUser_Id(userDeliveryId, userId)
                 .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
 
         userDeliveryRepository.delete(userDelivery);

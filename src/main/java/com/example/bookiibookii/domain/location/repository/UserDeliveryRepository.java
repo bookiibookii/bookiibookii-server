@@ -17,5 +17,5 @@ public interface UserDeliveryRepository extends JpaRepository<UserDelivery, Long
 
     long countByUser_Id(Long userId);
 
-    Optional<UserDelivery> findByUserDeliveryIdAndUser_Id(Long Id, Long userId);
+    Optional<UserDelivery> findByIdAndUser_Id(Long id, Long userId);
 }

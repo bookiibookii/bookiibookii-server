@@ -2,12 +2,14 @@ package com.example.bookiibookii.domain.user.controller;
 
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
+import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.user.exception.code.UserImageSuccessCode;
 import com.example.bookiibookii.domain.user.exception.code.UserSuccessCode;
+import com.example.bookiibookii.domain.user.service.BookshelfService;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.service.UserService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -30,6 +32,7 @@ public class UserController implements UserControllerDocs{
 
     private final UserService userService;
     private final UserImageS3Service userImageS3Service;
+    private final BookshelfService bookshelfService;
 
     // 사용자 이미지 업로드용 Presigned URL 발급
     @Override
@@ -110,5 +113,15 @@ public class UserController implements UserControllerDocs{
         UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(targetUserId, statuses);
 
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    // 나의 책장 조회
+    @Override
+    @GetMapping("/api/mypage/bookshelf")
+    public ApiResponse<BookshelfResponseDTO.BookshelfResDTO> getBookshelf(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        BookshelfResponseDTO.BookshelfResDTO result = bookshelfService.getBookshelf(user.getId());
+        return ApiResponse.onSuccess(UserSuccessCode.GET_BOOKSHELF_SUCCESS, result);
     }
 }

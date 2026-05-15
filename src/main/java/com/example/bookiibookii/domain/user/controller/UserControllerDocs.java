@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.user.controller;
 
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
+import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -134,5 +136,19 @@ public interface UserControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "닉네임 검증 실패")
     })
     ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
+
+    @Operation(
+            summary = "나의 책장 조회 API",
+            description = """
+            - completedBooks: 완독한 책 목록 (완독날짜, 책 제목, 작가, 장르, 별점)
+            - favoriteBooks: 온보딩에서 등록한 인생 책 (최대 3개)
+            - representativeBooks: 나를 대표하는 책 (최대 7개, displayOrder 순)
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "나의 책장 조회 성공")
+    })
+    @GetMapping("/api/mypage/bookshelf")
+    ApiResponse<BookshelfResponseDTO.BookshelfResDTO> getBookshelf(@AuthenticationPrincipal User user);
 
 }

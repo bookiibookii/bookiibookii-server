@@ -1,0 +1,31 @@
+package com.example.bookiibookii.domain.memberbook.controller;
+
+import com.example.bookiibookii.domain.memberbook.dto.res.LibraryMemberBookResponseDTO;
+import com.example.bookiibookii.domain.memberbook.service.MemberBookLibraryService;
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.global.apiPayload.ApiResponse;
+import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/library")
+@RequiredArgsConstructor
+public class MemberBookLibraryController implements MemberBookLibraryControllerDocs {
+
+    private final MemberBookLibraryService memberBookLibraryService;
+
+    @Override
+    @GetMapping("/memberbooks")
+    public ApiResponse<List<LibraryMemberBookResponseDTO>> getLibraryMemberBooks(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        List<LibraryMemberBookResponseDTO> result = memberBookLibraryService.getLibraryMemberBooks(user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.FOUND, result);
+    }
+}

@@ -33,15 +33,11 @@ public class UserBook extends BaseEntity {
     @Column(name = "is_favorite", nullable = false)
     private boolean isFavorite;
 
-    @Column(name = "is_display", nullable = false)
-    private boolean isDisplay;
-
-    public static UserBook create(User user, Book book, boolean isFavorite, boolean isDisplay) {
+    public static UserBook create(User user, Book book, boolean isFavorite) {
         return UserBook.builder()
                 .user(user)
                 .book(book)
                 .isFavorite(isFavorite)
-                .isDisplay(isDisplay)
                 .build();
     }
 }

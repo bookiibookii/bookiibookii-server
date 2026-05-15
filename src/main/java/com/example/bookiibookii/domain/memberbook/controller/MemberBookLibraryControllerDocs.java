@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
@@ -38,5 +40,26 @@ public interface MemberBookLibraryControllerDocs {
     @GetMapping("/memberbooks")
     ApiResponse<List<LibraryMemberBookResponseDTO>> getLibraryMemberBooks(
             @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(
+            summary = "서재에서 멤버북 제거",
+            description = """
+            내 서재에서 해당 MemberBook(책) 1건을 제거합니다. 소프트 삭제이며, 그룹·카드·상대 멤버 데이터는 삭제되지 않습니다.
+
+            - **제거 단위**: `memberBookId` 1건 (그룹당 최대 2권이면 책마다 각각 제거)
+            - **권한**: 본인 MatchedMember에 연결된 MemberBook만 제거 가능
+            - **그룹 내 다른 멤버**: 해당 그룹·카드·자신의 다른 MemberBook은 계속 조회 가능
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "제거 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "MemberBook 없음 또는 소유자가 아님")
+    })
+    @DeleteMapping("/memberbooks/{memberBookId}")
+    ApiResponse<Void> removeFromLibrary(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long memberBookId
     );
 }

@@ -33,6 +33,17 @@ public class MemberBookLibraryService {
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
     /**
+     * 서재에서만 제거(소프트 삭제). 그룹·카드·상대 MemberBook은 삭제되지 않습니다.
+     * 본인 MatchedMember에 속한 MemberBook만 제거할 수 있습니다.
+     */
+    @Transactional
+    public void removeFromLibrary(Long memberBookId, Long userId) {
+        MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_Id(memberBookId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
+        memberBook.markRemoved();
+    }
+
+    /**
      * 현재 사용자의 라이브러리(MemberBook 목록)를 조회합니다.
      * matchedMember.user_id = userId 이고 removedAt IS NULL 인 MemberBook만 반환합니다.
      * 그룹당 최대 2권(멤버북)이 각각 별도 항목으로 노출됩니다.

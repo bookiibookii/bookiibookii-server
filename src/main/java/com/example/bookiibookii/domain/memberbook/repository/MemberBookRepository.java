@@ -7,9 +7,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
+
+    Optional<MemberBook> findByIdAndMatchedMember_User_Id(Long id, Long userId);
 
     @Query("""
         SELECT DISTINCT mb FROM MemberBook mb

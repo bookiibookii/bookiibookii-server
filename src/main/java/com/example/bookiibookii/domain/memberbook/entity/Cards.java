@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.memberbook.entity;
 
+import com.example.bookiibookii.domain.memberbook.enums.CardType;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,11 +26,18 @@ public class Cards extends BaseEntity {
     @JoinColumn(name = "member_book_id", nullable = false)
     private MemberBook memberBook;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "card_type", nullable = false)
+    private CardType cardType;
+
     @Column(name = "page")
     private Integer page;
 
-    @Column(name = "memo", length = 255)
+    @Column(name = "memo", length = 110)
     private String memo;
+
+    @Column(name = "quotation", length = 140)
+    private String quotation;
 
     @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)
     private CardImages cardImages;
@@ -44,5 +52,9 @@ public class Cards extends BaseEntity {
 
     public void updateMemo(String memo) {
         this.memo = memo;
+    }
+
+    public void updateQuotation(String quotation) {
+        this.quotation = quotation;
     }
 }

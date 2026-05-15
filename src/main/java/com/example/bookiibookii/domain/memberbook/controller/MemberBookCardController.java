@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.memberbook.controller;
 
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
+import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookCardSuccessCode;
 import com.example.bookiibookii.domain.memberbook.service.MemberBookCardService;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,5 +51,17 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
         MemberCardCreateResponseDTO response = memberBookCardService.createCard(
                 memberBookId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_CREATED, response);
+    }
+
+    @Override
+    @PatchMapping("/cards/{cardId}")
+    public ApiResponse<MemberCardCreateResponseDTO> updateCard(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId,
+            @Valid @RequestBody MemberCardUpdateRequestDTO request
+    ) {
+        MemberCardCreateResponseDTO response = memberBookCardService.updateCard(
+                cardId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_UPDATED, response);
     }
 }

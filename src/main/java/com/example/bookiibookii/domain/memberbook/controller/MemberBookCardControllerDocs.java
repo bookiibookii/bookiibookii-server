@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.memberbook.controller;
 
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
+import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -19,14 +21,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface MemberBookCardControllerDocs {
 
     @Operation(
-            summary = "독서카드 생성 전 이미지 업로드용 Presigned URL 발급",
+            summary = "독서카드 이미지 업로드용 Presigned URL 발급",
             description = """
-            IMAGE 타입 독서카드 생성 전 S3 업로드용 presigned URL을 발급합니다.
+            IMAGE 타입 독서카드의 S3 업로드용 presigned URL을 발급합니다. **생성·이미지 수정 모두 동일 API**를 사용합니다.
 
             - 본인 MatchedMember에 연결된 memberBookId만 사용 가능합니다.
             - s3Key 형식: image/cards/{uuid}
             - URL은 10분간 유효합니다.
-            - 업로드 완료 후 s3Key를 독서카드 생성 API body에 전달하세요.
+            - 업로드 완료 후 s3Key를 독서카드 **생성** 또는 **수정**(IMAGE 타입, s3Key 변경) API body에 전달하세요.
+            - 카드 수정 전용 presigned URL API는 별도로 두지 않습니다.
             """
     )
     @ApiResponses({
@@ -64,5 +67,30 @@ public interface MemberBookCardControllerDocs {
             @Parameter(description = "멤버북 식별자(ID)", example = "1")
             @PathVariable Long memberBookId,
             @Valid @RequestBody MemberCardCreateRequestDTO request
+    );
+
+    @Operation(
+            summary = "멤버북 독서카드 수정",
+            description = """
+            memberBook 도메인 독서카드를 부분 수정합니다. 전달한 필드만 변경됩니다.
+
+            - **엔드포인트**: `PATCH /api/member-books/cards/{cardId}`
+            - **TEXT**: page, memo, quotation (null이면 해당 필드 미변경, quotation은 빈 문자열 불가)
+            - **IMAGE**: page, memo, s3Key (null이면 미변경). 이미지 변경 시 생성용 presigned URL API로 업로드 후 s3Key 전달
+            - 본인이 소유한 MemberBook에 속한 카드만 수정 가능합니다.
+            - 응답 형식은 생성 API와 동일합니다 (`MemberCardCreateResponseDTO`).
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "독서카드 수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "독서카드 없음 또는 소유권 없음")
+    })
+    @PatchMapping("/cards/{cardId}")
+    ApiResponse<MemberCardCreateResponseDTO> updateCard(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "독서카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId,
+            @Valid @RequestBody MemberCardUpdateRequestDTO request
     );
 }

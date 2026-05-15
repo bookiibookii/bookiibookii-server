@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.groupbook.exception.code.CardImageErrorCo
 import com.example.bookiibookii.domain.groupbook.service.CardImageS3Service;
 import com.example.bookiibookii.domain.groupbook.service.CardImageValidationService;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
+import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardImageResponseDTO;
 import com.example.bookiibookii.domain.memberbook.entity.CardImages;
@@ -21,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +58,63 @@ public class MemberBookCardService {
             case TEXT -> createTextCard(memberBook, request, page, presignedGetUrlExpirationMinutes);
             case IMAGE -> createImageCard(memberBook, request, page, presignedGetUrlExpirationMinutes);
         };
+    }
+
+    public MemberCardCreateResponseDTO updateCard(
+            Long cardId,
+            Long userId,
+            MemberCardUpdateRequestDTO request,
+            int presignedGetUrlExpirationMinutes
+    ) {
+        Cards card = getCardForOwner(cardId, userId);
+        MemberBook memberBook = card.getMemberBook();
+
+        if (memberBook.getRemovedAt() != null) {
+            throw new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_REMOVED);
+        }
+
+        if (request.getPage() != null) {
+            validatePage(request.getPage(), memberBook.getBook().getTotalPages());
+            card.updatePage(request.getPage());
+        }
+        if (request.getMemo() != null) {
+            card.updateMemo(request.getMemo());
+        }
+
+        CardImages cardImage = card.getCardImages();
+
+        if (card.getCardType() == CardType.TEXT) {
+            if (request.getS3Key() != null && !request.getS3Key().isBlank()) {
+                throw new MemberBookException(MemberBookErrorCode.S3_KEY_NOT_ALLOWED_FOR_TEXT);
+            }
+            if (request.getQuotation() != null) {
+                if (request.getQuotation().isBlank()) {
+                    throw new MemberBookException(MemberBookErrorCode.QUOTATION_REQUIRED);
+                }
+                card.updateQuotation(request.getQuotation().trim());
+            }
+        } else {
+            if (request.getQuotation() != null) {
+                throw new MemberBookException(MemberBookErrorCode.QUOTATION_NOT_ALLOWED_FOR_IMAGE);
+            }
+            if (request.getS3Key() != null && !request.getS3Key().isBlank()) {
+                cardImage = updateCardImage(card, request.getS3Key());
+            }
+        }
+
+        recalculateMemberBookProgressRate(memberBook);
+        cardsRepository.flush();
+
+        if (cardImage == null && card.getCardType() == CardType.IMAGE) {
+            cardImage = cardImagesRepository.findByCard_Id(cardId).orElse(null);
+        }
+
+        return buildResponse(card, cardImage, presignedGetUrlExpirationMinutes);
+    }
+
+    private Cards getCardForOwner(Long cardId, Long userId) {
+        return cardsRepository.findByIdAndOwnerUserId(cardId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND));
     }
 
     private MemberBook validateMemberBookForCardCreation(Long memberBookId, Long userId) {
@@ -103,7 +163,7 @@ public class MemberBookCardService {
             throw new MemberBookException(MemberBookErrorCode.S3_KEY_REQUIRED);
         }
 
-        validateS3Key(s3Key);
+        validateS3KeyForCreate(s3Key);
 
         Cards savedCard = cardsRepository.save(
                 Cards.builder()
@@ -129,7 +189,7 @@ public class MemberBookCardService {
         return buildResponse(savedCard, cardImage, presignedGetUrlExpirationMinutes);
     }
 
-    private void validateS3Key(String s3Key) {
+    private void validateS3KeyForCreate(String s3Key) {
         if (!cardImageValidationService.isValidS3Key(s3Key)) {
             throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
         }
@@ -137,6 +197,43 @@ public class MemberBookCardService {
             throw new CardImageException(CardImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
         }
         if (cardImagesRepository.existsByS3Key(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+        }
+    }
+
+    private CardImages updateCardImage(Cards card, String s3Key) {
+        if (!cardImageValidationService.isValidS3Key(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.INVALID_S3_KEY_FORMAT);
+        }
+        if (!cardImageS3Service.doesImageExist(s3Key)) {
+            throw new CardImageException(CardImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
+        }
+        if (cardImagesRepository.existsByS3KeyAndCard_IdNot(s3Key, card.getId())) {
+            throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+        }
+
+        Optional<CardImages> existingImageOpt = cardImagesRepository.findByCard_Id(card.getId());
+
+        if (existingImageOpt.isPresent()) {
+            CardImages existingImage = existingImageOpt.get();
+            if (existingImage.getS3Key().equals(s3Key)) {
+                return existingImage;
+            }
+            existingImage.updateS3Key(s3Key);
+            try {
+                return cardImagesRepository.saveAndFlush(existingImage);
+            } catch (DataIntegrityViolationException e) {
+                throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
+            }
+        }
+
+        CardImages newCardImage = CardImages.builder()
+                .card(card)
+                .s3Key(s3Key)
+                .build();
+        try {
+            return cardImagesRepository.saveAndFlush(newCardImage);
+        } catch (DataIntegrityViolationException e) {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
     }
@@ -154,10 +251,12 @@ public class MemberBookCardService {
     }
 
     private void updateMemberBookProgressRate(MemberBook memberBook, Integer page) {
-        if (page == null) {
-            return;
+        if (page != null) {
+            recalculateMemberBookProgressRate(memberBook);
         }
+    }
 
+    private void recalculateMemberBookProgressRate(MemberBook memberBook) {
         Integer totalPages = memberBook.getBook().getTotalPages();
         if (totalPages == null || totalPages <= 0) {
             return;
@@ -166,7 +265,11 @@ public class MemberBookCardService {
         Integer maxPage = cardsRepository.findTopByMemberBook_IdOrderByPageDesc(memberBook.getId())
                 .map(Cards::getPage)
                 .filter(p -> p != null && p > 0)
-                .orElse(page);
+                .orElse(null);
+
+        if (maxPage == null) {
+            return;
+        }
 
         int rate = (maxPage * 100) / totalPages;
         memberBook.updateProgressRate(rate);

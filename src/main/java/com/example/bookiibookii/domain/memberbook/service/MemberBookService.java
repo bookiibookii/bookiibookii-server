@@ -56,6 +56,7 @@ public class MemberBookService {
                             .group(matchedMember.getGroup())
                             .book(book)
                             .matchedMember(matchedMember)
+                            .isMine(MemberBook.resolveIsMine(matchedMember, book))
                             .build()
             );
         } catch (DataIntegrityViolationException e) {

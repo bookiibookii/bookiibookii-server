@@ -14,6 +14,17 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
 
     Optional<MemberBook> findByIdAndMatchedMember_User_Id(Long id, Long userId);
 
+    @Query("""
+        SELECT mb FROM MemberBook mb
+        JOIN FETCH mb.matchedMember mm
+        JOIN FETCH mb.book
+        WHERE mb.id = :id AND mm.user.id = :userId
+        """)
+    Optional<MemberBook> findByIdAndMatchedMember_User_IdWithBook(
+            @Param("id") Long id,
+            @Param("userId") Long userId
+    );
+
     Optional<MemberBook> findByMatchedMember_IdAndBook_Id(Long matchedMemberId, Long bookId);
 
     boolean existsByMatchedMember_IdAndBook_Id(Long matchedMemberId, Long bookId);

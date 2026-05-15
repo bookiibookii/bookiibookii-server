@@ -39,7 +39,7 @@ public class Cards extends BaseEntity {
     @Column(name = "quotation", length = 140)
     private String quotation;
 
-    @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true, optional = false)
+    @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
     private CardImages cardImages;
 
     @Builder.Default

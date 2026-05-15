@@ -45,5 +45,10 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
 
     Optional<UserBook> findByUser_IdAndBook_Id(Long userId, Long bookId);
 
+    long countByUser_IdAndDisplayOrderIsNotNull(Long userId);
+
+    @Query("SELECT COALESCE(MAX(ub.displayOrder), 0) FROM UserBook ub WHERE ub.user.id = :userId")
+    int findMaxDisplayOrderByUserId(@Param("userId") Long userId);
+
     long countByUser_IdAndIsFavoriteTrue(Long userId);
 }

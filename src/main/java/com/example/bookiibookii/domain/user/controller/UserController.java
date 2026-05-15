@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.user.controller;
 
 import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.user.dto.req.BookshelfRequestDTO;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
@@ -146,5 +147,18 @@ public class UserController implements UserControllerDocs{
     ) {
         bookshelfService.deleteFavoriteBook(user.getId(), userBookId);
         return ApiResponse.onSuccess(UserSuccessCode.FAVORITE_BOOK_DELETE_SUCCESS, null);
+    }
+
+    // 대표책 등록
+    @Override
+    @PostMapping("/api/mypage/bookshelf/representatives")
+    public ApiResponse<Void> addRepresentativeBook(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody BookshelfRequestDTO.AddRepresentativeReqDTO request
+    ) {
+        bookshelfService.addRepresentativeBook(
+                user.getId(), request.userBookId(), request.groupBookId()
+        );
+        return ApiResponse.onSuccess(UserSuccessCode.REPRESENTATIVE_BOOK_ADD_SUCCESS, null);
     }
 }

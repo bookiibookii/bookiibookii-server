@@ -55,6 +55,16 @@ public class UserBook extends BaseEntity {
                 .build();
     }
 
+    // 완독책을 대표책으로 등록 (인생책 아님)
+    public static UserBook createRepresentative(User user, Book book, Integer displayOrder) {
+        return UserBook.builder()
+                .user(user)
+                .book(book)
+                .isFavorite(false)
+                .displayOrder(displayOrder)
+                .build();
+    }
+
     public void updateDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
     }

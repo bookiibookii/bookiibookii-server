@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.user.controller;
 
 import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
+import com.example.bookiibookii.domain.user.dto.req.BookshelfRequestDTO;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
@@ -182,5 +183,22 @@ public interface UserControllerDocs {
     })
     @DeleteMapping("/api/mypage/bookshelf/favorites/{userBookId}")
     ApiResponse<Void> deleteFavoriteBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
+
+    @Operation(
+            summary = "대표책 등록 API",
+            description = """
+            나를 대표하는 책을 등록합니다. (최대 7개)
+            - userBookId: 인생책 목록에서 선택 시 (FavoriteBookDto.userBookId)
+            - groupBookId: 완독책 목록에서 선택 시 (CompletedBookDto.groupBookId) — 별점 등록 완료 필수
+            - 둘 중 하나만 전달하세요.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대표책 등록 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "7개 초과 또는 별점 없는 완독책"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "책을 찾을 수 없음")
+    })
+    @PostMapping("/api/mypage/bookshelf/representatives")
+    ApiResponse<Void> addRepresentativeBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.AddRepresentativeReqDTO request);
 
 }

@@ -38,6 +38,7 @@ public class BookshelfService {
     private final BookService bookService;
 
     private static final int MAX_FAVORITE_BOOKS = 3;
+    private static final int MAX_REPRESENTATIVE_BOOKS = 7;
 
     public BookshelfResponseDTO.BookshelfResDTO getBookshelf(Long userId) {
         return BookshelfResponseDTO.BookshelfResDTO.builder()
@@ -152,6 +153,55 @@ public class BookshelfService {
         }
 
         userBookRepository.save(UserBook.create(user, book, true));
+    }
+
+    // 대표책 등록
+    @Transactional
+    public void addRepresentativeBook(Long userId, Long userBookId, Long groupBookId) {
+        if (userBookId == null && groupBookId == null) {
+            throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
+        }
+
+        if (userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId) >= MAX_REPRESENTATIVE_BOOKS) {
+            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
+        }
+
+        int nextOrder = userBookRepository.findMaxDisplayOrderByUserId(userId) + 1;
+
+        if (userBookId != null) {
+            addRepresentativeFromFavorite(userId, userBookId, nextOrder);
+        } else {
+            addRepresentativeFromCompleted(userId, groupBookId, nextOrder);
+        }
+    }
+
+    // 인생책을 대표책으로 등록
+    private void addRepresentativeFromFavorite(Long userId, Long userBookId, int nextOrder) {
+        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
+        if (!userBook.isFavorite()) {
+            throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
+        }
+        userBook.updateDisplayOrder(nextOrder);
+    }
+
+    // 완독책을 대표책으로 등록
+    private void addRepresentativeFromCompleted(Long userId, Long groupBookId, int nextOrder) {
+        GroupBook groupBook = groupBookRepository.findByIdAndUser_Id(groupBookId, userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
+        if (groupBook.getRating() == null) {
+            throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
+        }
+
+        Book book = groupBook.getBook();
+        Optional<UserBook> existing = userBookRepository.findByUser_IdAndBook_Id(userId, book.getId());
+        if (existing.isPresent()) {
+            existing.get().updateDisplayOrder(nextOrder);
+        } else {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+            userBookRepository.save(UserBook.createRepresentative(user, book, nextOrder));
+        }
     }
 
     // 인생 책 삭제

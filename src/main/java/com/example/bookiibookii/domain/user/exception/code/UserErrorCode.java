@@ -41,7 +41,10 @@ public enum UserErrorCode implements BaseCode {
             "이미 인생 책으로 등록된 책입니다."),
     USER_BOOK_NOT_FOUND(HttpStatus.NOT_FOUND,
             "USER404_2",
-            "등록된 책을 찾을 수 없습니다.")
+            "등록된 책을 찾을 수 없습니다."),
+    NOT_ELIGIBLE_FOR_REPRESENTATIVE(HttpStatus.BAD_REQUEST,
+            "USER400_7",
+            "대표책으로 등록할 수 없는 책입니다. 인생책이거나 별점을 등록한 완독책만 가능합니다.")
     ;
     private final HttpStatus status;
     private final String code;

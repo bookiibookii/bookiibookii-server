@@ -214,6 +214,11 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
+        // 인생책 최소 1권 유지
+        if (userBookRepository.countByUser_IdAndIsFavoriteTrue(userId) <= 1) {
+            throw new UserException(UserErrorCode.FAVORITE_BOOK_MIN_REQUIRED);
+        }
+
         boolean shouldKeep = userBook.getDisplayOrder() != null
                 || groupBookRepository.existsByUser_IdAndBook_IdAndRatingIsNotNull(userId, userBook.getBook().getId());
 
@@ -234,11 +239,15 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
+        // 대표책에 인생책 최소 1권 유지: 삭제 대상이 인생책이고 마지막 인생-대표책인 경우 차단
+        if (userBook.isFavorite()
+                && userBookRepository.countByUser_IdAndIsFavoriteTrueAndDisplayOrderIsNotNull(userId) <= 1) {
+            throw new UserException(UserErrorCode.REPRESENTATIVE_MUST_CONTAIN_FAVORITE);
+        }
+
         if (userBook.isFavorite()) {
-            // 인생책이기도 하면 → displayOrder만 해제
             userBook.updateDisplayOrder(null);
         } else {
-            // 대표책으로만 등록된 경우 → 행 삭제
             userBookRepository.delete(userBook);
         }
     }

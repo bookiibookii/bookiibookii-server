@@ -47,7 +47,13 @@ public enum UserErrorCode implements BaseCode {
             "대표책으로 등록할 수 없는 책입니다. 인생책이거나 별점을 등록한 완독책만 가능합니다."),
     INVALID_REPRESENTATIVE_ORDER(HttpStatus.BAD_REQUEST,
             "USER400_8",
-            "대표책 순서가 유효하지 않습니다. 현재 대표책 전체를 중복 없이 포함해야 합니다.")
+            "대표책 순서가 유효하지 않습니다. 현재 대표책 전체를 중복 없이 포함해야 합니다."),
+    FAVORITE_BOOK_MIN_REQUIRED(HttpStatus.BAD_REQUEST,
+            "USER400_9",
+            "인생 책은 최소 1권 이상 등록되어 있어야 합니다. 다른 책으로 먼저 교체해 주세요."),
+    REPRESENTATIVE_MUST_CONTAIN_FAVORITE(HttpStatus.BAD_REQUEST,
+            "USER400_10",
+            "대표 책에 인생 책이 최소 1권 포함되어 있어야 합니다.")
     ;
     private final HttpStatus status;
     private final String code;

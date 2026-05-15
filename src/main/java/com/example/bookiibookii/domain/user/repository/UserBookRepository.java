@@ -53,6 +53,8 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
 
     long countByUser_IdAndIsFavoriteTrue(Long userId);
 
+    long countByUser_IdAndIsFavoriteTrueAndDisplayOrderIsNotNull(Long userId);
+
     @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE UserBook ub SET ub.displayOrder = null

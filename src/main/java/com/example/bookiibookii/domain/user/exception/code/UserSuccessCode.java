@@ -32,6 +32,9 @@ public enum UserSuccessCode implements BaseCode {
     REPRESENTATIVE_BOOK_ADD_SUCCESS(HttpStatus.OK,
             "USER200_8",
             "대표 책 등록에 성공했습니다."),
+    REPRESENTATIVE_BOOK_DELETE_SUCCESS(HttpStatus.OK,
+            "USER200_9",
+            "대표 책 삭제에 성공했습니다."),
     ;
     private final HttpStatus status;
     private final String code;

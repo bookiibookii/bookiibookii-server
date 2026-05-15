@@ -161,4 +161,15 @@ public class UserController implements UserControllerDocs{
         );
         return ApiResponse.onSuccess(UserSuccessCode.REPRESENTATIVE_BOOK_ADD_SUCCESS, null);
     }
+
+    // 대표책 삭제
+    @Override
+    @DeleteMapping("/api/mypage/bookshelf/representatives/{userBookId}")
+    public ApiResponse<Void> deleteRepresentativeBook(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long userBookId
+    ) {
+        bookshelfService.deleteRepresentativeBook(user.getId(), userBookId);
+        return ApiResponse.onSuccess(UserSuccessCode.REPRESENTATIVE_BOOK_DELETE_SUCCESS, null);
+    }
 }

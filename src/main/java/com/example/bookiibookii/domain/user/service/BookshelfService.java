@@ -223,4 +223,23 @@ public class BookshelfService {
             userBookRepository.delete(userBook);
         }
     }
+
+    // 대표책 삭제
+    @Transactional
+    public void deleteRepresentativeBook(Long userId, Long userBookId) {
+        UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
+
+        if (userBook.getDisplayOrder() == null) {
+            throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
+        }
+
+        if (userBook.isFavorite()) {
+            // 인생책이기도 하면 → displayOrder만 해제
+            userBook.updateDisplayOrder(null);
+        } else {
+            // 대표책으로만 등록된 경우 → 행 삭제
+            userBookRepository.delete(userBook);
+        }
+    }
 }

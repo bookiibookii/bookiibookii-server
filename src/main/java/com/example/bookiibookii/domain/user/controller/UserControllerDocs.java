@@ -201,4 +201,19 @@ public interface UserControllerDocs {
     @PostMapping("/api/mypage/bookshelf/representatives")
     ApiResponse<Void> addRepresentativeBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.AddRepresentativeReqDTO request);
 
+    @Operation(
+            summary = "대표책 삭제 API",
+            description = """
+            나를 대표하는 책을 삭제합니다.
+            - 인생책이기도 한 경우 → displayOrder만 해제 (인생책 유지)
+            - 대표책으로만 등록된 경우 → 행 완전 삭제
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대표책 삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 대표책을 찾을 수 없음")
+    })
+    @DeleteMapping("/api/mypage/bookshelf/representatives/{userBookId}")
+    ApiResponse<Void> deleteRepresentativeBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
+
 }

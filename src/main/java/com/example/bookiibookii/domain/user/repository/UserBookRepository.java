@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBook;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,4 +27,16 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
         order by up.createdAt desc
     """)
     List<UserResponseDTO.UserBookDto> findUserBooks(Long userId);
+
+    @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId AND ub.isFavorite = true")
+    List<UserBook> findFavoriteBooksByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT ub FROM UserBook ub
+        JOIN FETCH ub.book
+        WHERE ub.user.id = :userId
+        AND ub.displayOrder IS NOT NULL
+        ORDER BY ub.displayOrder ASC
+    """)
+    List<UserBook> findRepresentativeBooks(@Param("userId") Long userId);
 }

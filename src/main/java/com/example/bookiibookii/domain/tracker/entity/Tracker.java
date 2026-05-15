@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.tracker.entity;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.global.entity.BaseEntity;
@@ -32,7 +32,7 @@ public class Tracker extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TrackerStatus trackerStatus;
+    private ReadingStatus readingStatus;
 
     @Column(nullable = false)
     private LocalDateTime startDate;
@@ -59,50 +59,50 @@ public class Tracker extends BaseEntity {
 
     // 양측 MY_BOOK_READ_DONE → MY_BOOK_REVIEWING
     public void completeFirstReading() {
-        if (this.trackerStatus != TrackerStatus.MY_BOOK_READING) {
+        if (this.readingStatus != ReadingStatus.MY_BOOK_READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.MY_BOOK_REVIEWING;
+        this.readingStatus = ReadingStatus.MY_BOOK_REVIEWING;
     }
 
     // 양측 PARTNER_BOOK_READ_DONE → PARTNER_BOOK_REVIEWING
     public void completeSecondReading() {
-        if (this.trackerStatus != TrackerStatus.PARTNER_BOOK_READING) {
+        if (this.readingStatus != ReadingStatus.PARTNER_BOOK_READING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.PARTNER_BOOK_REVIEWING;
+        this.readingStatus = ReadingStatus.PARTNER_BOOK_REVIEWING;
     }
 
     // MY_BOOK_REVIEWING → EXCHANGING (첫 배송 등록 시)
     public void startExchanging() {
-        if (this.trackerStatus != TrackerStatus.MY_BOOK_REVIEWING) {
+        if (this.readingStatus != ReadingStatus.MY_BOOK_REVIEWING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.EXCHANGING;
+        this.readingStatus = ReadingStatus.EXCHANGING;
     }
 
     // EXCHANGING → EXCHANGED (양측 수령 완료)
     public void completeExchange() {
-        if (this.trackerStatus != TrackerStatus.EXCHANGING) {
+        if (this.readingStatus != ReadingStatus.EXCHANGING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.EXCHANGED;
+        this.readingStatus = ReadingStatus.EXCHANGED;
     }
 
     // PARTNER_BOOK_REVIEWING → RETURNING (첫 반납 배송 등록 시)
     public void startReturning() {
-        if (this.trackerStatus != TrackerStatus.PARTNER_BOOK_REVIEWING) {
+        if (this.readingStatus != ReadingStatus.PARTNER_BOOK_REVIEWING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.RETURNING;
+        this.readingStatus = ReadingStatus.RETURNING;
     }
 
     // RETURNING → COMPLETED (양측 반납 수령 완료)
     public void completeRelay() {
-        if (this.trackerStatus != TrackerStatus.RETURNING) {
+        if (this.readingStatus != ReadingStatus.RETURNING) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
-        this.trackerStatus = TrackerStatus.COMPLETED;
+        this.readingStatus = ReadingStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
     }
 

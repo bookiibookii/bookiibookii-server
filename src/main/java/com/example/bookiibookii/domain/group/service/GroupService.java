@@ -123,7 +123,7 @@ public class GroupService {
 
         matchedMemberRepository.save(hostMember);
 
-        // 방장 서재(GroupBook)에 추가
+        // 방장 서재(GroupBook, 마이그레이션 호환). MemberBook은 매칭 수락 시 4건 일괄 생성.
         groupBookService.createForParticipation(host, savedGroup);
 
         List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());

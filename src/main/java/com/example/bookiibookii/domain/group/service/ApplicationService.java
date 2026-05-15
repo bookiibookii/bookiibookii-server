@@ -24,6 +24,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.groupbook.service.GroupBookService;
+import com.example.bookiibookii.domain.memberbook.service.MemberBookService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -49,6 +50,7 @@ public class ApplicationService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher publisher;
     private final GroupBookService groupBookService;
+    private final MemberBookService memberBookService;
     private final UserImageS3Service userImageS3Service;
     private final BookService bookService;
 
@@ -125,7 +127,8 @@ public class ApplicationService {
                     .build();
             matchedMemberRepository.save(newMember);
 
-            // 서재(GroupBook) 추가
+            // 서재: MemberBook 4건(멤버당 2권) + GroupBook(마이그레이션 호환)
+            memberBookService.createLibraryOnMatch(group, newMember, application.getBook());
             groupBookService.createForParticipation(application.getGuest(), group);
 
             // 개별 수락 알림 발송

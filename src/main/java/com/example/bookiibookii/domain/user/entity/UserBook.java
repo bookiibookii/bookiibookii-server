@@ -33,11 +33,19 @@ public class UserBook extends BaseEntity {
     @Column(name = "is_favorite", nullable = false)
     private boolean isFavorite;
 
+    @Column(name = "display_order")
+    private Integer displayOrder; // 대표책 순서 1~7, null = 대표책 아님
+
     public static UserBook create(User user, Book book, boolean isFavorite) {
         return UserBook.builder()
                 .user(user)
                 .book(book)
                 .isFavorite(isFavorite)
+                .displayOrder(null)
                 .build();
+    }
+
+    public void updateDisplayOrder(Integer displayOrder) {
+        this.displayOrder = displayOrder;
     }
 }

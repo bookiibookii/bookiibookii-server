@@ -110,7 +110,7 @@ public class UserService {
 
         List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-        addUserBooks(user, request.userBooks(), true, true);
+        addUserBooks(user, request.userBooks(), true);
         user.updateIntroduction(request.introduction());
         user.updateUserInform(request.gender(), request.birth());
 

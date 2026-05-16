@@ -1,5 +1,9 @@
 package com.example.bookiibookii.domain.memberbook.service;
 
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.groupbook.exception.CardImageException;
 import com.example.bookiibookii.domain.groupbook.exception.code.CardImageErrorCode;
@@ -9,6 +13,8 @@ import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateReques
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardImageResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
 import com.example.bookiibookii.domain.memberbook.entity.CardImages;
 import com.example.bookiibookii.domain.memberbook.entity.Cards;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
@@ -18,12 +24,17 @@ import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookError
 import com.example.bookiibookii.domain.memberbook.repository.CardImagesRepository;
 import com.example.bookiibookii.domain.memberbook.repository.CardsRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
+import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
+import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
+import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -33,8 +44,59 @@ public class MemberBookCardService {
     private final MemberBookRepository memberBookRepository;
     private final CardsRepository cardsRepository;
     private final CardImagesRepository cardImagesRepository;
+    private final MemberCardRepository memberCardRepository;
+    private final GroupsRepository groupsRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
+    private final TrackerRepository trackerRepository;
+    private final DeliveryRepository deliveryRepository;
     private final CardImageS3Service cardImageS3Service;
     private final CardImageValidationService cardImageValidationService;
+
+    @Transactional(readOnly = true)
+    public MemberCardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
+        groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
+        }
+
+        List<Cards> cards = cardsRepository.findByGroupIdWithMemberBookAndBookAndCreator(groupId);
+        Set<Long> hiddenCardIds = Set.copyOf(memberCardRepository.findHiddenCardIdsByUserId(userId));
+        cards = cards.stream()
+                .filter(c -> !hiddenCardIds.contains(c.getId()))
+                .toList();
+
+        List<Long> cardIds = cards.stream().map(Cards::getId).toList();
+        Set<Long> bookmarkedCardIds = cardIds.isEmpty()
+                ? Set.of()
+                : memberCardRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
+
+        List<MemberCardResponseDTO> cardDTOs = cards.stream()
+                .map(card -> buildListItemResponse(
+                        card,
+                        presignedGetUrlExpirationMinutes,
+                        bookmarkedCardIds.contains(card.getId())
+                ))
+                .toList();
+
+        var trackerOpt = trackerRepository.findByGroupId(groupId);
+        MemberCardListResponseDTO.CurrentBookOwnerDto currentBookOwner = trackerOpt
+                .flatMap(t -> deliveryRepository.findTopByTrackerOrderByCreatedAtDesc(t))
+                .filter(d -> d.getReceiver() != null && d.getReceiver().getUser() != null)
+                .map(d -> MemberCardListResponseDTO.CurrentBookOwnerDto.builder()
+                        .matchedMemberId(d.getReceiver().getId())
+                        .nickname(d.getReceiver().getUser().getNickName() != null
+                                ? d.getReceiver().getUser().getNickName() : "")
+                        .build())
+                .orElse(null);
+
+        return MemberCardListResponseDTO.builder()
+                .groupId(groupId)
+                .currentBookOwner(currentBookOwner)
+                .cards(cardDTOs)
+                .build();
+    }
 
     public PresignedUrlResponseDTO getPresignedPutUrlForNewCard(Long memberBookId, Long userId, int expirationMinutes) {
         validateMemberBookForCardCreation(memberBookId, userId);
@@ -275,28 +337,68 @@ public class MemberBookCardService {
         memberBook.updateProgressRate(rate);
     }
 
+    private MemberCardImageResponseDTO buildCardImageResponse(
+            CardImages cardImage,
+            int presignedGetUrlExpirationMinutes
+    ) {
+        if (cardImage == null) {
+            return null;
+        }
+        return MemberCardImageResponseDTO.builder()
+                .cardImageId(cardImage.getId())
+                .s3Key(cardImage.getS3Key())
+                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
+                        cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
+                .build();
+    }
+
+    private MemberCardResponseDTO buildListItemResponse(
+            Cards card,
+            int presignedGetUrlExpirationMinutes,
+            boolean isBookmarked
+    ) {
+        MemberBook memberBook = card.getMemberBook();
+        String bookTitle = "";
+        if (memberBook != null && memberBook.getBook() != null && memberBook.getBook().getTitle() != null) {
+            bookTitle = memberBook.getBook().getTitle();
+        }
+
+        String creatorName = "";
+        if (memberBook != null
+                && memberBook.getMatchedMember() != null
+                && memberBook.getMatchedMember().getUser() != null
+                && memberBook.getMatchedMember().getUser().getNickName() != null) {
+            creatorName = memberBook.getMatchedMember().getUser().getNickName();
+        }
+
+        return MemberCardResponseDTO.builder()
+                .cardId(card.getId())
+                .memberBookId(memberBook != null ? memberBook.getId() : null)
+                .cardType(card.getCardType())
+                .page(card.getPage())
+                .memo(card.getMemo())
+                .quotation(card.getQuotation())
+                .cardImage(buildCardImageResponse(card.getCardImages(), presignedGetUrlExpirationMinutes))
+                .createdAt(card.getCreatedAt())
+                .bookTitle(bookTitle)
+                .isMine(memberBook != null && memberBook.isMine())
+                .isBookmarked(isBookmarked)
+                .creatorName(creatorName)
+                .build();
+    }
+
     private MemberCardCreateResponseDTO buildResponse(
             Cards card,
             CardImages cardImage,
             int presignedGetUrlExpirationMinutes
     ) {
-        MemberCardImageResponseDTO imageDto = null;
-        if (cardImage != null) {
-            imageDto = MemberCardImageResponseDTO.builder()
-                    .cardImageId(cardImage.getId())
-                    .s3Key(cardImage.getS3Key())
-                    .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
-                            cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
-                    .build();
-        }
-
         return MemberCardCreateResponseDTO.builder()
                 .cardId(card.getId())
                 .cardType(card.getCardType())
                 .page(card.getPage())
                 .memo(card.getMemo())
                 .quotation(card.getQuotation())
-                .cardImage(imageDto)
+                .cardImage(buildCardImageResponse(cardImage, presignedGetUrlExpirationMinutes))
                 .createdAt(card.getCreatedAt())
                 .build();
     }

@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,12 +14,38 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "MemberBook Card", description = "멤버북 기준 독서카드 API")
 public interface MemberBookCardControllerDocs {
+
+    @Operation(
+            summary = "그룹 독서카드 목록 조회",
+            description = """
+            그룹에 속한 전체 멤버의 memberBook 독서카드를 한 번에 조회합니다.
+
+            - **엔드포인트**: `GET /api/member-books/group/{groupId}/cards`
+            - 그룹 멤버만 조회 가능합니다.
+            - 생성일 기준 오름차순으로 반환합니다.
+            - 내가 숨긴 카드(`MemberCard.hidden`)는 제외됩니다.
+            - 각 카드에 책 제목(`bookTitle`), 작성자(`creatorName`), 본인 책 여부(`isMine`), 북마크 여부(`isBookmarked`)가 포함됩니다.
+            - RELAY 그룹인 경우 `currentBookOwner`(현재 주자) 정보가 포함될 수 있습니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "그룹 멤버가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "그룹 없음")
+    })
+    @GetMapping("/group/{groupId}/cards")
+    ApiResponse<MemberCardListResponseDTO> getCardsByGroupId(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "그룹 식별자(ID)", example = "1")
+            @PathVariable Long groupId
+    );
 
     @Operation(
             summary = "독서카드 이미지 업로드용 Presigned URL 발급",

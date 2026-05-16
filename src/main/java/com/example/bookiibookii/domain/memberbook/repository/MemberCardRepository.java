@@ -1,0 +1,31 @@
+package com.example.bookiibookii.domain.memberbook.repository;
+
+import com.example.bookiibookii.domain.memberbook.entity.MemberCard;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Set;
+
+@Repository
+public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
+
+    @Query("""
+        SELECT mc.card.id FROM MemberCard mc
+        JOIN mc.matchedMember mm
+        WHERE mm.user.id = :userId AND mc.hidden = true
+        """)
+    List<Long> findHiddenCardIdsByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT mc.card.id FROM MemberCard mc
+        JOIN mc.matchedMember mm
+        WHERE mm.user.id = :userId AND mc.card.id IN :cardIds AND mc.bookmarked = true
+        """)
+    Set<Long> findBookmarkedCardIdsByUserIdAndCardIdIn(
+            @Param("userId") Long userId,
+            @Param("cardIds") List<Long> cardIds
+    );
+}

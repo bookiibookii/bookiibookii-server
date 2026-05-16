@@ -18,7 +18,9 @@ public enum MemberBookErrorCode implements BaseCode {
     INVALID_PAGE_VALUE(HttpStatus.BAD_REQUEST, "MB400_4", "페이지 번호는 0보다 커야 합니다."),
     PAGE_EXCEEDS_TOTAL(HttpStatus.BAD_REQUEST, "MB400_5", "입력하신 페이지가 도서의 전체 페이지를 초과합니다."),
     S3_KEY_NOT_ALLOWED_FOR_TEXT(HttpStatus.BAD_REQUEST, "MB400_6", "TEXT 타입 독서카드는 s3Key를 변경할 수 없습니다."),
-    QUOTATION_NOT_ALLOWED_FOR_IMAGE(HttpStatus.BAD_REQUEST, "MB400_7", "IMAGE 타입 독서카드는 quotation을 변경할 수 없습니다.");
+    QUOTATION_NOT_ALLOWED_FOR_IMAGE(HttpStatus.BAD_REQUEST, "MB400_7", "IMAGE 타입 독서카드는 quotation을 변경할 수 없습니다."),
+    BOOKMARKED_CARD_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "MB400_8", "북마크된 카드입니다. 북마크를 취소하고 카드를 삭제해주세요."),
+    MEMBER_CARD_STATE_CONFLICT(HttpStatus.CONFLICT, "MB409_1", "일시적인 충돌이 발생했습니다. 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String code;

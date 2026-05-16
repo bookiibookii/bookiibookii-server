@@ -1,5 +1,10 @@
 package com.example.bookiibookii.domain.memberbook.service;
 
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.groupbook.exception.CardImageException;
 import com.example.bookiibookii.domain.groupbook.exception.code.CardImageErrorCode;
@@ -9,22 +14,32 @@ import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateReques
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardImageResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
 import com.example.bookiibookii.domain.memberbook.entity.CardImages;
 import com.example.bookiibookii.domain.memberbook.entity.Cards;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.memberbook.entity.MemberCard;
 import com.example.bookiibookii.domain.memberbook.enums.CardType;
 import com.example.bookiibookii.domain.memberbook.exception.MemberBookException;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookErrorCode;
 import com.example.bookiibookii.domain.memberbook.repository.CardImagesRepository;
 import com.example.bookiibookii.domain.memberbook.repository.CardsRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
+import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -33,8 +48,103 @@ public class MemberBookCardService {
     private final MemberBookRepository memberBookRepository;
     private final CardsRepository cardsRepository;
     private final CardImagesRepository cardImagesRepository;
+    private final MemberCardRepository memberCardRepository;
+    private final GroupsRepository groupsRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
     private final CardImageS3Service cardImageS3Service;
     private final CardImageValidationService cardImageValidationService;
+    private final UserImageS3Service userImageS3Service;
+
+    @Transactional(readOnly = true)
+    public MemberCardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
+        groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+            throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
+        }
+
+        // member_card에서 현재 사용자·그룹 기준 숨김(소프트 삭제) 카드 ID를 먼저 조회
+        Set<Long> hiddenCardIds = Set.copyOf(
+                memberCardRepository.findHiddenCardIdsByUserIdAndGroupId(userId, groupId)
+        );
+
+        List<Cards> cards = cardsRepository.findByGroupIdWithMemberBookAndBookAndCreator(groupId);
+        if (!hiddenCardIds.isEmpty()) {
+            cards = cards.stream()
+                    .filter(c -> !hiddenCardIds.contains(c.getId()))
+                    .toList();
+        }
+
+        List<Long> cardIds = cards.stream().map(Cards::getId).toList();
+        Set<Long> bookmarkedCardIds = cardIds.isEmpty()
+                ? Set.of()
+                : memberCardRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
+
+        List<MemberCardResponseDTO> cardDTOs = cards.stream()
+                .map(card -> buildListItemResponse(
+                        card,
+                        presignedGetUrlExpirationMinutes,
+                        bookmarkedCardIds.contains(card.getId())
+                ))
+                .toList();
+
+        return MemberCardListResponseDTO.builder()
+                .groupId(groupId)
+                .cards(cardDTOs)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public MemberCardResponseDTO getCardDetail(Long cardId, Long userId, int presignedGetUrlExpirationMinutes) {
+        Cards card = getCardForDetail(cardId, userId);
+
+        Optional<MemberCard> stateOpt = memberCardRepository.findByUserIdAndCardId(userId, cardId);
+        if (stateOpt.map(MemberCard::isHidden).orElse(false)) {
+            throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+        }
+
+        boolean bookmarked = stateOpt.map(MemberCard::isBookmarked).orElse(false);
+        return buildListItemResponse(card, presignedGetUrlExpirationMinutes, bookmarked);
+    }
+
+    /**
+     * 카드를 내 화면에서만 숨김 처리(소프트 삭제). Cards 엔티티는 삭제되지 않으며, 그룹 멤버는 계속 조회할 수 있습니다.
+     * MemberCard가 없으면 생성 후 hidden=true로 설정합니다.
+     */
+    public void removeCardFromView(Long cardId, Long userId) {
+        Cards card = getCardForDetail(cardId, userId);
+        Long groupId = card.getMemberBook().getGroup().getGroupId();
+
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+        MemberCard state = memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                .orElseGet(() -> {
+                    try {
+                        return memberCardRepository.saveAndFlush(
+                                MemberCard.builder()
+                                        .card(card)
+                                        .matchedMember(matchedMember)
+                                        .bookmarked(false)
+                                        .hidden(false)
+                                        .build()
+                        );
+                    } catch (DataIntegrityViolationException e) {
+                        return memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                                .orElseThrow(() -> new MemberBookException(
+                                        MemberBookErrorCode.MEMBER_CARD_STATE_CONFLICT));
+                    }
+                });
+
+        if (state.isBookmarked()) {
+            throw new MemberBookException(MemberBookErrorCode.BOOKMARKED_CARD_CANNOT_DELETE);
+        }
+        if (state.isHidden()) {
+            return;
+        }
+        state.setHidden(true);
+    }
 
     public PresignedUrlResponseDTO getPresignedPutUrlForNewCard(Long memberBookId, Long userId, int expirationMinutes) {
         validateMemberBookForCardCreation(memberBookId, userId);
@@ -117,6 +227,28 @@ public class MemberBookCardService {
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND));
     }
 
+    private Cards getCardForDetail(Long cardId, Long userId) {
+        Cards card = cardsRepository.findByIdWithDetails(cardId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND));
+
+        MemberBook memberBook = card.getMemberBook();
+        if (memberBook == null || memberBook.getMatchedMember() == null || memberBook.getGroup() == null) {
+            throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+        }
+
+        Long ownerUserId = memberBook.getMatchedMember().getUser().getId();
+        Long groupId = memberBook.getGroup().getGroupId();
+
+        boolean isOwner = ownerUserId.equals(userId);
+        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+
+        if (!isOwner && !isGroupMember) {
+            throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+        }
+
+        return card;
+    }
+
     private MemberBook validateMemberBookForCardCreation(Long memberBookId, Long userId) {
         MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_IdWithBook(memberBookId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
@@ -149,7 +281,7 @@ public class MemberBookCardService {
         );
 
         updateMemberBookProgressRate(memberBook, page);
-        return buildResponse(savedCard, null, presignedGetUrlExpirationMinutes);
+        return buildResponse(loadCardWithCreator(savedCard.getId()), null, presignedGetUrlExpirationMinutes);
     }
 
     private MemberCardCreateResponseDTO createImageCard(
@@ -186,7 +318,12 @@ public class MemberBookCardService {
         }
 
         updateMemberBookProgressRate(memberBook, page);
-        return buildResponse(savedCard, cardImage, presignedGetUrlExpirationMinutes);
+        return buildResponse(loadCardWithCreator(savedCard.getId()), cardImage, presignedGetUrlExpirationMinutes);
+    }
+
+    private Cards loadCardWithCreator(Long cardId) {
+        return cardsRepository.findByIdWithDetails(cardId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND));
     }
 
     private void validateS3KeyForCreate(String s3Key) {
@@ -275,29 +412,102 @@ public class MemberBookCardService {
         memberBook.updateProgressRate(rate);
     }
 
+    private MemberCardImageResponseDTO buildCardImageResponse(
+            CardImages cardImage,
+            int presignedGetUrlExpirationMinutes
+    ) {
+        if (cardImage == null) {
+            return null;
+        }
+        String presignedGetUrl = null;
+        try {
+            presignedGetUrl = cardImageS3Service.generatePresignedGetUrl(
+                    cardImage.getS3Key(), presignedGetUrlExpirationMinutes);
+        } catch (Exception e) {
+            log.warn("카드 이미지 Presigned URL 생성 실패. cardImageId={}", cardImage.getId(), e);
+        }
+
+        return MemberCardImageResponseDTO.builder()
+                .cardImageId(cardImage.getId())
+                .s3Key(cardImage.getS3Key())
+                .presignedGetUrl(presignedGetUrl)
+                .build();
+    }
+
+    private MemberCardResponseDTO buildListItemResponse(
+            Cards card,
+            int presignedGetUrlExpirationMinutes,
+            boolean isBookmarked
+    ) {
+        MemberBook memberBook = card.getMemberBook();
+        String bookTitle = "";
+        if (memberBook != null && memberBook.getBook() != null && memberBook.getBook().getTitle() != null) {
+            bookTitle = memberBook.getBook().getTitle();
+        }
+
+        String creatorName = resolveCreatorName(memberBook);
+        String creatorProfileImageUrl = resolveCreatorProfileImageUrl(memberBook, presignedGetUrlExpirationMinutes);
+
+        return MemberCardResponseDTO.builder()
+                .cardId(card.getId())
+                .memberBookId(memberBook != null ? memberBook.getId() : null)
+                .cardType(card.getCardType())
+                .page(card.getPage())
+                .memo(card.getMemo())
+                .quotation(card.getQuotation())
+                .cardImage(buildCardImageResponse(card.getCardImages(), presignedGetUrlExpirationMinutes))
+                .createdAt(card.getCreatedAt())
+                .bookTitle(bookTitle)
+                .isMine(memberBook != null && memberBook.isMine())
+                .isBookmarked(isBookmarked)
+                .creatorName(creatorName)
+                .creatorProfileImageUrl(creatorProfileImageUrl)
+                .build();
+    }
+
     private MemberCardCreateResponseDTO buildResponse(
             Cards card,
             CardImages cardImage,
             int presignedGetUrlExpirationMinutes
     ) {
-        MemberCardImageResponseDTO imageDto = null;
-        if (cardImage != null) {
-            imageDto = MemberCardImageResponseDTO.builder()
-                    .cardImageId(cardImage.getId())
-                    .s3Key(cardImage.getS3Key())
-                    .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
-                            cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
-                    .build();
-        }
-
+        MemberBook memberBook = card.getMemberBook();
         return MemberCardCreateResponseDTO.builder()
                 .cardId(card.getId())
                 .cardType(card.getCardType())
                 .page(card.getPage())
                 .memo(card.getMemo())
                 .quotation(card.getQuotation())
-                .cardImage(imageDto)
+                .cardImage(buildCardImageResponse(cardImage, presignedGetUrlExpirationMinutes))
                 .createdAt(card.getCreatedAt())
+                .creatorName(resolveCreatorName(memberBook))
+                .creatorProfileImageUrl(resolveCreatorProfileImageUrl(memberBook, presignedGetUrlExpirationMinutes))
                 .build();
+    }
+
+    private String resolveCreatorName(MemberBook memberBook) {
+        if (memberBook == null
+                || memberBook.getMatchedMember() == null
+                || memberBook.getMatchedMember().getUser() == null
+                || memberBook.getMatchedMember().getUser().getNickName() == null) {
+            return "";
+        }
+        return memberBook.getMatchedMember().getUser().getNickName();
+    }
+
+    private String resolveCreatorProfileImageUrl(MemberBook memberBook, int presignedGetUrlExpirationMinutes) {
+        if (memberBook == null || memberBook.getMatchedMember() == null) {
+            return null;
+        }
+        User user = memberBook.getMatchedMember().getUser();
+        if (user == null || user.getUserImage() == null) {
+            return null;
+        }
+        try {
+            return userImageS3Service.generatePresignedGetUrl(
+                    user.getUserImage().getS3Key(), presignedGetUrlExpirationMinutes);
+        } catch (Exception e) {
+            log.warn("작성자 프로필 이미지 Presigned URL 생성 실패", e);
+            return null;
+        }
     }
 }

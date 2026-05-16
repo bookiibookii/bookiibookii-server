@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @Builder
 public class LibraryMemberBookResponseDTO {
     private Long groupId;
+    private String groupName;
     private Long memberBookId;
     /** MatchedMember 기준 본인 책 여부 (false면 상대/호스트 책) */
     private boolean isMine;

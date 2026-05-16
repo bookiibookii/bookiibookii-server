@@ -12,7 +12,8 @@ public enum MemberBookCardSuccessCode implements BaseCode {
     PRESIGNED_URL_ISSUED(HttpStatus.OK, "MBCARD200_1", "카드 이미지 업로드용 Presigned URL을 발급했습니다."),
     CARD_CREATED(HttpStatus.CREATED, "MBCARD201_1", "독서카드를 생성했습니다."),
     CARD_UPDATED(HttpStatus.OK, "MBCARD200_2", "독서카드를 수정했습니다."),
-    CARDS_FOUND(HttpStatus.OK, "MBCARD200_3", "독서카드 목록을 조회했습니다.");
+    CARDS_FOUND(HttpStatus.OK, "MBCARD200_3", "독서카드 목록을 조회했습니다."),
+    CARD_FOUND(HttpStatus.OK, "MBCARD200_4", "독서카드를 조회했습니다.");
 
     private final HttpStatus status;
     private final String code;

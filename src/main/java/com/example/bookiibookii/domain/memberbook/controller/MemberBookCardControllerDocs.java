@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateReques
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,6 +46,28 @@ public interface MemberBookCardControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "그룹 식별자(ID)", example = "1")
             @PathVariable Long groupId
+    );
+
+    @Operation(
+            summary = "멤버북 독서카드 상세 조회",
+            description = """
+            memberBook 도메인 독서카드 한 건의 상세 정보를 조회합니다.
+
+            - **엔드포인트**: `GET /api/member-books/cards/detail/{cardId}`
+            - 카드 소유자(MemberBook 소유자)이거나 같은 그룹 멤버만 조회 가능합니다.
+            - 내가 숨긴 카드는 404로 처리됩니다.
+            - 응답 형식은 목록 항목과 동일합니다 (`MemberCardResponseDTO`).
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드 없음 또는 접근 권한 없음")
+    })
+    @GetMapping("/cards/detail/{cardId}")
+    ApiResponse<MemberCardResponseDTO> getCardDetail(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "독서카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId
     );
 
     @Operation(

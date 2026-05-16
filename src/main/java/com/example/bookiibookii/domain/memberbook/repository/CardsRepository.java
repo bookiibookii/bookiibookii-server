@@ -40,4 +40,16 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
     List<Cards> findByGroupIdWithMemberBookAndBookAndCreator(
             @Param("groupId") Long groupId
     );
+
+    @Query("""
+        SELECT c FROM Cards c
+        LEFT JOIN FETCH c.cardImages
+        JOIN FETCH c.memberBook mb
+        JOIN FETCH mb.book
+        JOIN FETCH mb.matchedMember mm
+        JOIN FETCH mm.user
+        JOIN FETCH mb.group
+        WHERE c.id = :cardId
+        """)
+    Optional<Cards> findByIdWithDetails(@Param("cardId") Long cardId);
 }

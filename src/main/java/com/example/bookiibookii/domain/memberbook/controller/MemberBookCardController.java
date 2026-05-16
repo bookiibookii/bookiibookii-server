@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateReques
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookCardSuccessCode;
 import com.example.bookiibookii.domain.memberbook.service.MemberBookCardService;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -41,6 +42,17 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
         MemberCardListResponseDTO response = memberBookCardService.getCardsByGroupId(
                 groupId, user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARDS_FOUND, response);
+    }
+
+    @Override
+    @GetMapping("/cards/detail/{cardId}")
+    public ApiResponse<MemberCardResponseDTO> getCardDetail(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        MemberCardResponseDTO response = memberBookCardService.getCardDetail(
+                cardId, user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_FOUND, response);
     }
 
     @Override

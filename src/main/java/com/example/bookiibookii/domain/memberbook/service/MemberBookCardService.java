@@ -18,6 +18,7 @@ import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
 import com.example.bookiibookii.domain.memberbook.entity.CardImages;
 import com.example.bookiibookii.domain.memberbook.entity.Cards;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.memberbook.entity.MemberCard;
 import com.example.bookiibookii.domain.memberbook.enums.CardType;
 import com.example.bookiibookii.domain.memberbook.exception.MemberBookException;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookErrorCode;
@@ -96,6 +97,19 @@ public class MemberBookCardService {
                 .currentBookOwner(currentBookOwner)
                 .cards(cardDTOs)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public MemberCardResponseDTO getCardDetail(Long cardId, Long userId, int presignedGetUrlExpirationMinutes) {
+        Cards card = getCardForDetail(cardId, userId);
+
+        Optional<MemberCard> stateOpt = memberCardRepository.findByUserIdAndCardId(userId, cardId);
+        if (stateOpt.map(MemberCard::isHidden).orElse(false)) {
+            throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+        }
+
+        boolean bookmarked = stateOpt.map(MemberCard::isBookmarked).orElse(false);
+        return buildListItemResponse(card, presignedGetUrlExpirationMinutes, bookmarked);
     }
 
     public PresignedUrlResponseDTO getPresignedPutUrlForNewCard(Long memberBookId, Long userId, int expirationMinutes) {
@@ -177,6 +191,28 @@ public class MemberBookCardService {
     private Cards getCardForOwner(Long cardId, Long userId) {
         return cardsRepository.findByIdAndOwnerUserId(cardId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND));
+    }
+
+    private Cards getCardForDetail(Long cardId, Long userId) {
+        Cards card = cardsRepository.findByIdWithDetails(cardId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND));
+
+        MemberBook memberBook = card.getMemberBook();
+        if (memberBook == null || memberBook.getMatchedMember() == null || memberBook.getGroup() == null) {
+            throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+        }
+
+        Long ownerUserId = memberBook.getMatchedMember().getUser().getId();
+        Long groupId = memberBook.getGroup().getGroupId();
+
+        boolean isOwner = ownerUserId.equals(userId);
+        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+
+        if (!isOwner && !isGroupMember) {
+            throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+        }
+
+        return card;
     }
 
     private MemberBook validateMemberBookForCardCreation(Long memberBookId, Long userId) {

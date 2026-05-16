@@ -27,7 +27,10 @@ import com.example.bookiibookii.domain.memberbook.repository.CardImagesRepositor
 import com.example.bookiibookii.domain.memberbook.repository.CardsRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -49,6 +53,7 @@ public class MemberBookCardService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final CardImageS3Service cardImageS3Service;
     private final CardImageValidationService cardImageValidationService;
+    private final UserImageS3Service userImageS3Service;
 
     @Transactional(readOnly = true)
     public MemberCardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
@@ -276,7 +281,7 @@ public class MemberBookCardService {
         );
 
         updateMemberBookProgressRate(memberBook, page);
-        return buildResponse(savedCard, null, presignedGetUrlExpirationMinutes);
+        return buildResponse(loadCardWithCreator(savedCard.getId()), null, presignedGetUrlExpirationMinutes);
     }
 
     private MemberCardCreateResponseDTO createImageCard(
@@ -313,7 +318,12 @@ public class MemberBookCardService {
         }
 
         updateMemberBookProgressRate(memberBook, page);
-        return buildResponse(savedCard, cardImage, presignedGetUrlExpirationMinutes);
+        return buildResponse(loadCardWithCreator(savedCard.getId()), cardImage, presignedGetUrlExpirationMinutes);
+    }
+
+    private Cards loadCardWithCreator(Long cardId) {
+        return cardsRepository.findByIdWithDetails(cardId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND));
     }
 
     private void validateS3KeyForCreate(String s3Key) {
@@ -428,13 +438,8 @@ public class MemberBookCardService {
             bookTitle = memberBook.getBook().getTitle();
         }
 
-        String creatorName = "";
-        if (memberBook != null
-                && memberBook.getMatchedMember() != null
-                && memberBook.getMatchedMember().getUser() != null
-                && memberBook.getMatchedMember().getUser().getNickName() != null) {
-            creatorName = memberBook.getMatchedMember().getUser().getNickName();
-        }
+        String creatorName = resolveCreatorName(memberBook);
+        String creatorProfileImageUrl = resolveCreatorProfileImageUrl(memberBook, presignedGetUrlExpirationMinutes);
 
         return MemberCardResponseDTO.builder()
                 .cardId(card.getId())
@@ -449,6 +454,7 @@ public class MemberBookCardService {
                 .isMine(memberBook != null && memberBook.isMine())
                 .isBookmarked(isBookmarked)
                 .creatorName(creatorName)
+                .creatorProfileImageUrl(creatorProfileImageUrl)
                 .build();
     }
 
@@ -457,6 +463,7 @@ public class MemberBookCardService {
             CardImages cardImage,
             int presignedGetUrlExpirationMinutes
     ) {
+        MemberBook memberBook = card.getMemberBook();
         return MemberCardCreateResponseDTO.builder()
                 .cardId(card.getId())
                 .cardType(card.getCardType())
@@ -465,6 +472,35 @@ public class MemberBookCardService {
                 .quotation(card.getQuotation())
                 .cardImage(buildCardImageResponse(cardImage, presignedGetUrlExpirationMinutes))
                 .createdAt(card.getCreatedAt())
+                .creatorName(resolveCreatorName(memberBook))
+                .creatorProfileImageUrl(resolveCreatorProfileImageUrl(memberBook, presignedGetUrlExpirationMinutes))
                 .build();
+    }
+
+    private String resolveCreatorName(MemberBook memberBook) {
+        if (memberBook == null
+                || memberBook.getMatchedMember() == null
+                || memberBook.getMatchedMember().getUser() == null
+                || memberBook.getMatchedMember().getUser().getNickName() == null) {
+            return "";
+        }
+        return memberBook.getMatchedMember().getUser().getNickName();
+    }
+
+    private String resolveCreatorProfileImageUrl(MemberBook memberBook, int presignedGetUrlExpirationMinutes) {
+        if (memberBook == null || memberBook.getMatchedMember() == null) {
+            return null;
+        }
+        User user = memberBook.getMatchedMember().getUser();
+        if (user == null || user.getUserImage() == null) {
+            return null;
+        }
+        try {
+            return userImageS3Service.generatePresignedGetUrl(
+                    user.getUserImage().getS3Key(), presignedGetUrlExpirationMinutes);
+        } catch (Exception e) {
+            log.warn("작성자 프로필 이미지 Presigned URL 생성 실패", e);
+            return null;
+        }
     }
 }

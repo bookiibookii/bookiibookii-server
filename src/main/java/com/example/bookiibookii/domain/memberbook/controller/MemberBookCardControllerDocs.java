@@ -33,7 +33,7 @@ public interface MemberBookCardControllerDocs {
             - 그룹 멤버만 조회 가능합니다.
             - 생성일 기준 오름차순으로 반환합니다.
             - 목록 조회 전 `member_card`에서 현재 사용자·그룹 기준 `hidden=true`인 카드를 먼저 조회하고 제외합니다(소프트 삭제).
-            - 각 카드에 책 제목(`bookTitle`), 작성자(`creatorName`), 본인 책 여부(`isMine`), 북마크 여부(`isBookmarked`)가 포함됩니다.
+            - 각 카드에 책 제목(`bookTitle`), 작성자(`creatorName`, `creatorProfileImageUrl`), 본인 책 여부(`isMine`), 북마크 여부(`isBookmarked`)가 포함됩니다.
             """
     )
     @ApiResponses({

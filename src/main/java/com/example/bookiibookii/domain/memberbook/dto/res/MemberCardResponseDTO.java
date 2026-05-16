@@ -21,4 +21,5 @@ public class MemberCardResponseDTO {
     private Boolean isMine;
     private Boolean isBookmarked;
     private String creatorName;
+    private String creatorProfileImageUrl;
 }

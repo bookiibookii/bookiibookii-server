@@ -16,4 +16,6 @@ public class MemberCardCreateResponseDTO {
     private String quotation;
     private MemberCardImageResponseDTO cardImage;
     private LocalDateTime createdAt;
+    private String creatorName;
+    private String creatorProfileImageUrl;
 }

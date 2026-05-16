@@ -18,6 +18,8 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         SELECT c FROM Cards c
         JOIN FETCH c.memberBook mb
         JOIN FETCH mb.matchedMember mm
+        JOIN FETCH mm.user u
+        LEFT JOIN FETCH u.userImage
         JOIN FETCH mb.book
         LEFT JOIN FETCH c.cardImages
         WHERE c.id = :cardId AND mm.user.id = :userId
@@ -33,7 +35,8 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         JOIN FETCH c.memberBook mb
         JOIN FETCH mb.book
         JOIN FETCH mb.matchedMember mm
-        JOIN FETCH mm.user
+        JOIN FETCH mm.user u
+        LEFT JOIN FETCH u.userImage
         WHERE mb.group.groupId = :groupId
         ORDER BY c.createdAt ASC
         """)
@@ -47,7 +50,8 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         JOIN FETCH c.memberBook mb
         JOIN FETCH mb.book
         JOIN FETCH mb.matchedMember mm
-        JOIN FETCH mm.user
+        JOIN FETCH mm.user u
+        LEFT JOIN FETCH u.userImage
         JOIN FETCH mb.group
         WHERE c.id = :cardId
         """)

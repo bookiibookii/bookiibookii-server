@@ -1,7 +1,5 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageSuccessCode;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerSuccessCode;
@@ -9,8 +7,6 @@ import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO
 import com.example.bookiibookii.domain.tracker.service.TrackerService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
-import io.swagger.v3.oas.annotations.Parameter;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +21,12 @@ public class TrackerController implements TrackerControllerDocs {
     private final TrackerService trackerService;
 
     @GetMapping("/me/trackers")
-    public ApiResponse<List<TrackerListResponseDTO>> getTrackerList(
+    public ApiResponse<List<TrackerListItemResDTO>> getTrackerList(
             @AuthenticationPrincipal(expression = "user") User user) {
-        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_LIST_GET_OK, trackerService.getTrackerList(user.getId()));
+        return ApiResponse.onSuccess(
+                TrackerSuccessCode.TRACKER_LIST_GET_OK,
+                trackerService.getTrackerList(user)
+        );
     }
 
     // --- 트래커 상세 조회 ---

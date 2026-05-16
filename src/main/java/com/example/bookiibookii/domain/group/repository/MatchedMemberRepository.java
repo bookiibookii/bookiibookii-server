@@ -116,4 +116,30 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
         AND mm.completedAt IS NOT NULL
     """)
     List<MatchedMember> findCompletedByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        select distinct mm
+        from MatchedMember mm
+        join fetch mm.group g
+        join fetch g.book
+        join fetch mm.user u
+        left join fetch u.userImage
+        join fetch mm.currentMemberBook mcb
+        join fetch mcb.book mb
+        join fetch mcb.matchedMember mcbReader
+        join fetch mcbReader.user mcbReaderUser
+        left join fetch mcbReaderUser.userImage
+        left join fetch g.matchedMember gm
+        left join fetch gm.user gu
+        left join fetch gu.userImage
+        left join fetch gm.currentMemberBook pcb
+        left join fetch pcb.book pb
+        left join fetch pcb.matchedMember pcbReader
+        left join fetch pcbReader.user pcbReaderUser
+        left join fetch pcbReaderUser.userImage
+        where mm.user.id = :memberId
+          and mm.currentMemberBook is not null
+        order by mm.createdAt desc
+    """)
+    List<MatchedMember> findAllTrackerItemsByMemberId(@Param("memberId") Long memberId);
 }

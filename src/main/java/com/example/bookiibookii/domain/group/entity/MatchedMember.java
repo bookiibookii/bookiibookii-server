@@ -11,6 +11,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "matchedmember")
@@ -33,6 +35,16 @@ public class MatchedMember extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    // 그룹 내에서 거치는 책 2권
+    @Builder.Default
+    @OneToMany(mappedBy = "matchedMember")
+    private List<MemberBook> memberBooks = new ArrayList<>();
+
+    // 현재 내가 읽고있는 책 포인터 (1차교환 전 : 내 소유 책 / 1차교환 이후 : 파트너 책)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_member_book_id")
+    private MemberBook currentMemberBook;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private RoleStatus role;
@@ -52,6 +64,11 @@ public class MatchedMember extends BaseEntity {
     @Builder.Default
     private ExchangeStatus exchangeStatus = ExchangeStatus.NOT_STARTED;
 
+    // 독서 시작 날짜 (교환독서 내 1차 읽는중, 2차 읽는중 시작 시점으로 설정)
+    @Column(name = "reading_started_at")
+    private LocalDateTime readingStartedAt;
+
+    // 이거 모르겠음
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
@@ -65,6 +82,42 @@ public class MatchedMember extends BaseEntity {
 
     public void markReviewAsWritten() {
         this.isReviewWritten = true;
+    }
+
+    public void startMatchedReading(MemberBook initialBook, LocalDateTime matchedAt) {
+        validateCurrentBook(initialBook);
+
+        if (!initialBook.isMine()) {
+            throw new IllegalArgumentException("초기 현재 책은 본인 소유 책이어야 합니다.");
+        }
+
+        if (matchedAt == null) {
+            throw new IllegalArgumentException("매칭 완료 시각은 null일 수 없습니다.");
+        }
+
+        this.currentMemberBook = initialBook;
+        this.readingStartedAt = matchedAt;
+    }
+
+    public void changeCurrentBook(MemberBook nextBook) {
+        validateCurrentBook(nextBook);
+
+        this.currentMemberBook = nextBook;
+        this.readingStartedAt = LocalDateTime.now();
+    }
+
+    public void changeCurrentMemberBook(MemberBook memberBook) {
+        changeCurrentBook(memberBook);
+    }
+
+    private void validateCurrentBook(MemberBook memberBook) {
+        if (memberBook == null) {
+            throw new IllegalArgumentException("현재 책은 null로 변경할 수 없습니다.");
+        }
+
+        if (!memberBook.isOwnedBy(this)) {
+            throw new IllegalArgumentException("현재 책은 자신의 MemberBook 중에서만 선택할 수 있습니다.");
+        }
     }
 
 }

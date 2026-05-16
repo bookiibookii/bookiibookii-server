@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.memberbook.service;
 
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
@@ -62,11 +63,17 @@ public class MemberBookCardService {
             throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
         }
 
+        // member_card에서 현재 사용자·그룹 기준 숨김(소프트 삭제) 카드 ID를 먼저 조회
+        Set<Long> hiddenCardIds = Set.copyOf(
+                memberCardRepository.findHiddenCardIdsByUserIdAndGroupId(userId, groupId)
+        );
+
         List<Cards> cards = cardsRepository.findByGroupIdWithMemberBookAndBookAndCreator(groupId);
-        Set<Long> hiddenCardIds = Set.copyOf(memberCardRepository.findHiddenCardIdsByUserId(userId));
-        cards = cards.stream()
-                .filter(c -> !hiddenCardIds.contains(c.getId()))
-                .toList();
+        if (!hiddenCardIds.isEmpty()) {
+            cards = cards.stream()
+                    .filter(c -> !hiddenCardIds.contains(c.getId()))
+                    .toList();
+        }
 
         List<Long> cardIds = cards.stream().map(Cards::getId).toList();
         Set<Long> bookmarkedCardIds = cardIds.isEmpty()
@@ -110,6 +117,44 @@ public class MemberBookCardService {
 
         boolean bookmarked = stateOpt.map(MemberCard::isBookmarked).orElse(false);
         return buildListItemResponse(card, presignedGetUrlExpirationMinutes, bookmarked);
+    }
+
+    /**
+     * 카드를 내 화면에서만 숨김 처리(소프트 삭제). Cards 엔티티는 삭제되지 않으며, 그룹 멤버는 계속 조회할 수 있습니다.
+     * MemberCard가 없으면 생성 후 hidden=true로 설정합니다.
+     */
+    public void removeCardFromView(Long cardId, Long userId) {
+        Cards card = getCardForDetail(cardId, userId);
+        Long groupId = card.getMemberBook().getGroup().getGroupId();
+
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+        MemberCard state = memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                .orElseGet(() -> {
+                    try {
+                        return memberCardRepository.saveAndFlush(
+                                MemberCard.builder()
+                                        .card(card)
+                                        .matchedMember(matchedMember)
+                                        .bookmarked(false)
+                                        .hidden(false)
+                                        .build()
+                        );
+                    } catch (DataIntegrityViolationException e) {
+                        return memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                                .orElseThrow(() -> new MemberBookException(
+                                        MemberBookErrorCode.MEMBER_CARD_STATE_CONFLICT));
+                    }
+                });
+
+        if (state.isBookmarked()) {
+            throw new MemberBookException(MemberBookErrorCode.BOOKMARKED_CARD_CANNOT_DELETE);
+        }
+        if (state.isHidden()) {
+            return;
+        }
+        state.setHidden(true);
     }
 
     public PresignedUrlResponseDTO getPresignedPutUrlForNewCard(Long memberBookId, Long userId, int expirationMinutes) {

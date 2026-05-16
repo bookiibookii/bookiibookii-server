@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,7 +32,7 @@ public interface MemberBookCardControllerDocs {
             - **엔드포인트**: `GET /api/member-books/group/{groupId}/cards`
             - 그룹 멤버만 조회 가능합니다.
             - 생성일 기준 오름차순으로 반환합니다.
-            - 내가 숨긴 카드(`MemberCard.hidden`)는 제외됩니다.
+            - 목록 조회 전 `member_card`에서 현재 사용자·그룹 기준 `hidden=true`인 카드를 먼저 조회하고 제외합니다(소프트 삭제).
             - 각 카드에 책 제목(`bookTitle`), 작성자(`creatorName`), 본인 책 여부(`isMine`), 북마크 여부(`isBookmarked`)가 포함됩니다.
             - RELAY 그룹인 경우 `currentBookOwner`(현재 주자) 정보가 포함될 수 있습니다.
             """
@@ -142,5 +143,28 @@ public interface MemberBookCardControllerDocs {
             @Parameter(description = "독서카드 식별자(ID)", example = "1")
             @PathVariable Long cardId,
             @Valid @RequestBody MemberCardUpdateRequestDTO request
+    );
+
+    @Operation(
+            summary = "멤버북 독서카드 내 화면에서 제거",
+            description = """
+            그룹 내 공유된 독서카드를 내 화면에서만 숨깁니다. Cards/Cards 데이터는 삭제되지 않으며, 다른 멤버는 계속 조회할 수 있습니다.
+
+            - **엔드포인트**: `DELETE /api/member-books/cards/{cardId}`
+            - `MemberCard`가 없으면 생성하고 `hidden=true`로 설정합니다.
+            - 카드 소유자 또는 그룹 멤버만 호출 가능합니다. 이미 숨긴 카드는 무시됩니다(멱등).
+            - 북마크된 카드는 삭제할 수 없습니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "제거 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "북마크된 카드"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드 없음 또는 접근 권한 없음")
+    })
+    @DeleteMapping("/cards/{cardId}")
+    ApiResponse<Void> removeCardFromView(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "독서카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId
     );
 }

@@ -23,6 +23,18 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
     @Query("""
         SELECT mc.card.id FROM MemberCard mc
         JOIN mc.matchedMember mm
+        WHERE mm.user.id = :userId AND mm.group.groupId = :groupId AND mc.hidden = true
+        """)
+    List<Long> findHiddenCardIdsByUserIdAndGroupId(
+            @Param("userId") Long userId,
+            @Param("groupId") Long groupId
+    );
+
+    Optional<MemberCard> findByMatchedMember_IdAndCard_Id(Long matchedMemberId, Long cardId);
+
+    @Query("""
+        SELECT mc.card.id FROM MemberCard mc
+        JOIN mc.matchedMember mm
         WHERE mm.user.id = :userId AND mc.card.id IN :cardIds AND mc.bookmarked = true
         """)
     Set<Long> findBookmarkedCardIdsByUserIdAndCardIdIn(

@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -88,5 +89,15 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
         MemberCardCreateResponseDTO response = memberBookCardService.updateCard(
                 cardId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_UPDATED, response);
+    }
+
+    @Override
+    @DeleteMapping("/cards/{cardId}")
+    public ApiResponse<Void> removeCardFromView(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        memberBookCardService.removeCardFromView(cardId, user.getId());
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_REMOVED_FROM_VIEW, null);
     }
 }

@@ -419,11 +419,18 @@ public class MemberBookCardService {
         if (cardImage == null) {
             return null;
         }
+        String presignedGetUrl = null;
+        try {
+            presignedGetUrl = cardImageS3Service.generatePresignedGetUrl(
+                    cardImage.getS3Key(), presignedGetUrlExpirationMinutes);
+        } catch (Exception e) {
+            log.warn("카드 이미지 Presigned URL 생성 실패. cardImageId={}", cardImage.getId(), e);
+        }
+
         return MemberCardImageResponseDTO.builder()
                 .cardImageId(cardImage.getId())
                 .s3Key(cardImage.getS3Key())
-                .presignedGetUrl(cardImageS3Service.generatePresignedGetUrl(
-                        cardImage.getS3Key(), presignedGetUrlExpirationMinutes))
+                .presignedGetUrl(presignedGetUrl)
                 .build();
     }
 

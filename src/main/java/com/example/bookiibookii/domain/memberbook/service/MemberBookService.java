@@ -14,6 +14,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -27,17 +30,29 @@ public class MemberBookService {
      * - 방장: 내 책(group.book) + 상대 책(application.book)
      * - 게스트: 내 책(application.book) + 상대 책(group.book)
      */
-    public void createLibraryOnMatch(Groups group, MatchedMember guestMember, Book guestBook) {
+    public void createLibraryOnMatch(
+            Groups group,
+            MatchedMember guestMember,
+            Book guestBook,
+            LocalDateTime matchedAt
+    ) {
         MatchedMember hostMember = matchedMemberRepository
                 .findByGroup_GroupIdAndRole(group.getGroupId(), RoleStatus.HOST)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         Book hostBook = group.getBook();
 
-        createIfAbsent(hostMember, hostBook);
-        createIfAbsent(hostMember, guestBook);
-        createIfAbsent(guestMember, guestBook);
-        createIfAbsent(guestMember, hostBook);
+        List<MemberBook> hostBooks = List.of(
+                createIfAbsent(hostMember, hostBook),
+                createIfAbsent(hostMember, guestBook)
+        );
+        List<MemberBook> guestBooks = List.of(
+                createIfAbsent(guestMember, guestBook),
+                createIfAbsent(guestMember, hostBook)
+        );
+
+        hostMember.startMatchedReading(findMyBook(hostBooks), matchedAt);
+        guestMember.startMatchedReading(findMyBook(guestBooks), matchedAt);
     }
 
     /**
@@ -64,5 +79,12 @@ public class MemberBookService {
                     .findByMatchedMember_IdAndBook_Id(matchedMember.getId(), book.getId())
                     .orElseThrow(() -> e);
         }
+    }
+
+    private MemberBook findMyBook(List<MemberBook> memberBooks) {
+        return memberBooks.stream()
+                .filter(MemberBook::isMyBook)
+                .findFirst()
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
     }
 }

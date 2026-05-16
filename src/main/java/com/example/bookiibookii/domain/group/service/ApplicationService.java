@@ -127,8 +127,10 @@ public class ApplicationService {
                     .build();
             matchedMemberRepository.save(newMember);
 
+            LocalDateTime matchedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+
             // 서재: MemberBook 4건(멤버당 2권) + GroupBook(마이그레이션 호환)
-            memberBookService.createLibraryOnMatch(group, newMember, application.getBook());
+            memberBookService.createLibraryOnMatch(group, newMember, application.getBook(), matchedAt);
             groupBookService.createForParticipation(application.getGuest(), group);
 
             // 개별 수락 알림 발송

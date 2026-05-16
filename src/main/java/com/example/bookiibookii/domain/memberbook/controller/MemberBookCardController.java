@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.memberbook.controller;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardBookmarkResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
@@ -89,6 +90,19 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
         MemberCardCreateResponseDTO response = memberBookCardService.updateCard(
                 cardId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_UPDATED, response);
+    }
+
+    @Override
+    @PatchMapping("/cards/{cardId}/bookmark")
+    public ApiResponse<MemberCardBookmarkResponseDTO> toggleBookmark(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        boolean bookmarked = memberBookCardService.toggleBookmark(cardId, user.getId());
+        return ApiResponse.onSuccess(
+                MemberBookCardSuccessCode.BOOKMARK_TOGGLED,
+                MemberCardBookmarkResponseDTO.builder().bookmarked(bookmarked).build()
+        );
     }
 
     @Override

@@ -109,6 +109,41 @@ public class MemberBookCardService {
     }
 
     /**
+     * 카드 북마크 토글. 조회 가능한 카드만 북마크 가능(소유자 또는 그룹 멤버).
+     * MemberCard가 없으면 생성 후 bookmarked를 토글합니다.
+     *
+     * @return 토글 후 북마크 여부 (true = 북마크됨, false = 북마크 해제됨)
+     */
+    public boolean toggleBookmark(Long cardId, Long userId) {
+        Cards card = getCardForDetail(cardId, userId);
+        Long groupId = card.getMemberBook().getGroup().getGroupId();
+
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+        MemberCard state = memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                .orElseGet(() -> {
+                    try {
+                        return memberCardRepository.saveAndFlush(
+                                MemberCard.builder()
+                                        .card(card)
+                                        .matchedMember(matchedMember)
+                                        .bookmarked(false)
+                                        .hidden(false)
+                                        .build()
+                        );
+                    } catch (DataIntegrityViolationException e) {
+                        return memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                                .orElseThrow(() -> new MemberBookException(
+                                        MemberBookErrorCode.MEMBER_CARD_STATE_CONFLICT));
+                    }
+                });
+
+        state.setBookmarked(!state.isBookmarked());
+        return state.isBookmarked();
+    }
+
+    /**
      * 카드를 내 화면에서만 숨김 처리(소프트 삭제). Cards 엔티티는 삭제되지 않으며, 그룹 멤버는 계속 조회할 수 있습니다.
      * MemberCard가 없으면 생성 후 hidden=true로 설정합니다.
      */

@@ -27,6 +27,7 @@ public interface MemberBookLibraryControllerDocs {
             - **멤버북 ID**: `memberBookId` (서재 내 고유 식별자)
             - **본인 책 여부**: `isMine` (true: 내가 가져온 책, false: 상대/호스트 책)
             - **도서 정보**: 책 ID, 제목, 저자, 이미지 URL (MemberBook에 연결된 책)
+            - **그룹 정보**: 그룹 ID, 그룹명(`groupName`)
             - **호스트 정보**: 호스트 ID, 닉네임, 프로필 이미지(Presigned URL)
             - **일정 정보**: 그룹 시작일(`startDate`), **실제 독서 종료일(`endDate`)**, 그룹 독서 기간(`duration`)
             - **진행률**: `progressRate` (0.0 ~ 100.0)

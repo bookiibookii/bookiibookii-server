@@ -126,6 +126,7 @@ public class MemberBookLibraryService {
 
         return LibraryMemberBookResponseDTO.builder()
                 .groupId(group.getGroupId())
+                .groupName(group.getGroupName())
                 .memberBookId(memberBook.getId())
                 .isMine(memberBook.isMine())
                 .bookId(book.getId())

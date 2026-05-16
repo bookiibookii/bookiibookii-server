@@ -34,7 +34,6 @@ public interface MemberBookCardControllerDocs {
             - 생성일 기준 오름차순으로 반환합니다.
             - 목록 조회 전 `member_card`에서 현재 사용자·그룹 기준 `hidden=true`인 카드를 먼저 조회하고 제외합니다(소프트 삭제).
             - 각 카드에 책 제목(`bookTitle`), 작성자(`creatorName`), 본인 책 여부(`isMine`), 북마크 여부(`isBookmarked`)가 포함됩니다.
-            - RELAY 그룹인 경우 `currentBookOwner`(현재 주자) 정보가 포함될 수 있습니다.
             """
     )
     @ApiResponses({
@@ -148,7 +147,7 @@ public interface MemberBookCardControllerDocs {
     @Operation(
             summary = "멤버북 독서카드 내 화면에서 제거",
             description = """
-            그룹 내 공유된 독서카드를 내 화면에서만 숨깁니다. Cards/Cards 데이터는 삭제되지 않으며, 다른 멤버는 계속 조회할 수 있습니다.
+            그룹 내 공유된 독서카드를 내 화면에서만 숨깁니다. Cards 데이터는 삭제되지 않으며, 다른 멤버는 계속 조회할 수 있습니다.
 
             - **엔드포인트**: `DELETE /api/member-books/cards/{cardId}`
             - `MemberCard`가 없으면 생성하고 `hidden=true`로 설정합니다.

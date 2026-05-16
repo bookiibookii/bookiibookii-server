@@ -27,8 +27,6 @@ import com.example.bookiibookii.domain.memberbook.repository.CardImagesRepositor
 import com.example.bookiibookii.domain.memberbook.repository.CardsRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
-import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
-import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -49,8 +47,6 @@ public class MemberBookCardService {
     private final MemberCardRepository memberCardRepository;
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final TrackerRepository trackerRepository;
-    private final DeliveryRepository deliveryRepository;
     private final CardImageS3Service cardImageS3Service;
     private final CardImageValidationService cardImageValidationService;
 
@@ -88,20 +84,8 @@ public class MemberBookCardService {
                 ))
                 .toList();
 
-        var trackerOpt = trackerRepository.findByGroupId(groupId);
-        MemberCardListResponseDTO.CurrentBookOwnerDto currentBookOwner = trackerOpt
-                .flatMap(t -> deliveryRepository.findTopByTrackerOrderByCreatedAtDesc(t))
-                .filter(d -> d.getReceiver() != null && d.getReceiver().getUser() != null)
-                .map(d -> MemberCardListResponseDTO.CurrentBookOwnerDto.builder()
-                        .matchedMemberId(d.getReceiver().getId())
-                        .nickname(d.getReceiver().getUser().getNickName() != null
-                                ? d.getReceiver().getUser().getNickName() : "")
-                        .build())
-                .orElse(null);
-
         return MemberCardListResponseDTO.builder()
                 .groupId(groupId)
-                .currentBookOwner(currentBookOwner)
                 .cards(cardDTOs)
                 .build();
     }

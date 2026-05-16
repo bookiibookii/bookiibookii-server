@@ -77,4 +77,12 @@ public class MemberBook extends BaseEntity {
     public void updateProgressRate(double newRate) {
         this.progressRate = Math.min(100.0, Math.max(0.0, newRate));
     }
+
+    public boolean isOwnedBy(MatchedMember matchedMember) {
+        return this.matchedMember.getId().equals(matchedMember.getId());
+    }
+
+    public boolean isMyBook() {
+        return isMine;
+    }
 }

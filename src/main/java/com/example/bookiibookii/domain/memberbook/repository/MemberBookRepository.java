@@ -25,10 +25,6 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
             @Param("userId") Long userId
     );
 
-    Optional<MemberBook> findByMatchedMember_IdAndBook_Id(Long matchedMemberId, Long bookId);
-
-    boolean existsByMatchedMember_IdAndBook_Id(Long matchedMemberId, Long bookId);
-
     @Query("""
         SELECT DISTINCT mb FROM MemberBook mb
         JOIN FETCH mb.matchedMember mm
@@ -41,4 +37,10 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
         ORDER BY mb.updatedAt DESC
         """)
     List<MemberBook> findAllByMatchedMember_User_IdWithGroupAndBookAndHost(@Param("userId") Long userId);
+
+    Optional<MemberBook> findByMatchedMember_IdAndBook_IdAndIsMine(
+            Long matchedMemberId,
+            Long bookId,
+            boolean isMine
+    );
 }

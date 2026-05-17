@@ -5,12 +5,16 @@ import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.exception.TrackerException;
+import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "matchedmember")
@@ -33,6 +37,16 @@ public class MatchedMember extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    // 그룹 내에서 거치는 책 2권
+    @Builder.Default
+    @OneToMany(mappedBy = "matchedMember")
+    private List<MemberBook> memberBooks = new ArrayList<>();
+
+    // 현재 내가 읽고있는 책 포인터 (1차교환 전 : 내 소유 책 / 1차교환 이후 : 파트너 책)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_member_book_id")
+    private MemberBook currentMemberBook;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private RoleStatus role;
@@ -52,6 +66,11 @@ public class MatchedMember extends BaseEntity {
     @Builder.Default
     private ExchangeStatus exchangeStatus = ExchangeStatus.NOT_STARTED;
 
+    // 독서 시작 날짜 (교환독서 내 1차 읽는중, 2차 읽는중 시작 시점으로 설정)
+    @Column(name = "reading_started_at")
+    private LocalDateTime readingStartedAt;
+
+    // 이거 모르겠음
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
@@ -67,4 +86,42 @@ public class MatchedMember extends BaseEntity {
         this.isReviewWritten = true;
     }
 
+    public void startMatchedReading(MemberBook initialBook, LocalDateTime matchedAt) {
+        validateCurrentBook(initialBook);
+
+        if (!initialBook.isMine()) {
+            throw new TrackerException(TrackerErrorCode.INITIAL_CURRENT_BOOK_NOT_MY_BOOK);
+        }
+
+        if (matchedAt == null) {
+            throw new TrackerException(TrackerErrorCode.MATCHED_AT_REQUIRED);
+        }
+
+        this.currentMemberBook = initialBook;
+        this.readingStartedAt = matchedAt;
+    }
+    public void changeCurrentBook(MemberBook nextBook, LocalDateTime changedAt) {
+        validateCurrentBook(nextBook);
+
+        if (changedAt == null) {
+            throw new TrackerException(TrackerErrorCode.INVALID_READING_STARTED_AT);
+        }
+
+        this.currentMemberBook = nextBook;
+        this.readingStartedAt = changedAt;
+    }
+
+    public void changeCurrentMemberBook(MemberBook memberBook, LocalDateTime changedAt) {
+        changeCurrentBook(memberBook, changedAt);
+    }
+
+    private void validateCurrentBook(MemberBook memberBook) {
+        if (memberBook == null) {
+            throw new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK);
+        }
+
+        if (!memberBook.isOwnedBy(this)) {
+            throw new TrackerException(TrackerErrorCode.INVALID_CURRENT_BOOK_OWNER);
+        }
+    }
 }

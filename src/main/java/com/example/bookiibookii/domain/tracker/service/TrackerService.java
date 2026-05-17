@@ -21,13 +21,14 @@ import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponseDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerListItemResDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackingImage;
 import com.example.bookiibookii.domain.tracker.enums.DeliveryStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.TrackerImageException;
@@ -36,6 +37,10 @@ import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageErrorC
 import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackingImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
+import com.example.bookiibookii.domain.tracker.resolver.TrackerDisplayStatusResolver;
+import com.example.bookiibookii.domain.tracker.resolver.TrackerDueDateResolver;
+import com.example.bookiibookii.domain.tracker.resolver.TrackerPartnerResolver;
+import com.example.bookiibookii.domain.tracker.resolver.UserProfileImageUrlResolver;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
@@ -50,6 +55,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -70,12 +76,41 @@ public class TrackerService {
     private final GroupBookRepository groupBookRepository;
     private final GroupsRepository groupsRepository;
     private final MeetingRepository meetingRepository;
-    private final LocationService locationService;
     private final TrackerConverter trackerConverter;
-    private final DomainEventPublisher publisher;
+    private final TrackerPartnerResolver trackerPartnerResolver;
+    private final TrackerDisplayStatusResolver trackerDisplayStatusResolver;
+    private final TrackerDueDateResolver trackerDueDateResolver;
+    private final UserProfileImageUrlResolver userProfileImageUrlResolver;
 
     private static final int TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES = 60;
+
+    // 트래커 리스트 조회
+    public List<TrackerListItemResDTO> getTrackerList(User user) {
+        return matchedMemberRepository.findAllTrackerItemsByMemberId(user.getId()).stream()
+                .map(me -> {
+                    MatchedMember partner = trackerPartnerResolver.resolve(me.getGroup(), me);
+                    if (partner.getCurrentMemberBook() == null) {
+                        throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
+                    }
+
+                    TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
+                            me.getReadingStatus(),
+                            me.getExchangeStatus(),
+                            me.getGroup().getTradeType()
+                    );
+
+                    return TrackerConverter.toListItem(
+                            me,
+                            partner,
+                            displayStatus,
+                            trackerDueDateResolver.calculate(displayStatus, me.getGroup()),
+                            userProfileImageUrlResolver.resolve(me.getCurrentMemberBook().getMatchedMember().getUser()),
+                            userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser())
+                    );
+                })
+                .toList();
+    }
 
     // --- 이미지 관련 ---
 
@@ -187,26 +222,6 @@ public class TrackerService {
                 .findFirst()
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
     }
-
-    @Transactional(readOnly = true)
-    public List<TrackerListResponseDTO> getTrackerList(Long userId) {
-        return convertToResponseList(trackerRepository.findAllByUserIdWithDetails(userId), userId);
-    }
-
-
-
-   private List<TrackerListResponseDTO> convertToResponseList(List<Tracker> trackers, Long userId) {
-      return trackers.stream()
-              .map(tracker -> {
-                  Groups group = tracker.getGroup();
-                  List<String> stepDates = buildStepDates(tracker);
-                  String targetNickname = findTargetNickName(tracker, userId);
-
-                  return trackerConverter.toListResponse(tracker, group, targetNickname, stepDates, 0, 0);
-              })
-              .collect(Collectors.toList());
-  }
-
 
     private String findTargetNickName(Tracker tracker, Long userId) {
         return tracker.getGroup().getMatchedMember().stream()

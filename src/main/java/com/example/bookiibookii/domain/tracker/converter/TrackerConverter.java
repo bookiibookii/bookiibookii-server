@@ -1,34 +1,72 @@
 package com.example.bookiibookii.domain.tracker.converter;
 
-import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.location.entity.Location;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
-import com.example.bookiibookii.domain.group.enums.GroupType;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.tracker.dto.BookInfo;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerListItemResDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class TrackerConverter {
 
-    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+    // 트래커 리스트 조회
+    public static TrackerListItemResDTO toListItem(
+            MatchedMember me,
+            MatchedMember partner,
+            TrackerDisplayStatus displayStatus,
+            Integer remainingDays,
+            String myCurrentReaderProfileImageUrl,
+            String partnerCurrentReaderProfileImageUrl
+    ) {
+        Groups group = me.getGroup();
 
-    private final UserImageS3Service userImageS3Service;
+        return TrackerListItemResDTO.builder()
+                .groupId(group.getGroupId())
+                .groupName(group.getGroupName())
+                .displayStatus(displayStatus)
+                .tradeType(group.getTradeType())
+                .remainingDays(remainingDays)
+                .myCurrentBook(toBookInfo(me.getCurrentMemberBook(), myCurrentReaderProfileImageUrl))
+                .partnerCurrentBook(toBookInfo(partner.getCurrentMemberBook(), partnerCurrentReaderProfileImageUrl))
+                .build();
+    }
+
+    public static BookInfo toBookInfo(MemberBook memberBook, String currentReaderProfileImageUrl) {
+        Book book = memberBook.getBook();
+        User currentReader = memberBook.getMatchedMember().getUser();
+
+        return BookInfo.builder()
+                .title(book.getTitle())
+                .image(book.getImage())
+                .isOwnerBook(memberBook.isMine())
+                .currentReaderNickname(currentReader.getNickName())
+                .currentReaderProfileImageUrl(currentReaderProfileImageUrl)
+                .currentReadingRate(toReadingRate(memberBook.getProgressRate()))
+                .build();
+    }
+
+    private static int toReadingRate(Double progressRate) {
+        if (progressRate == null) {
+            return 0;
+        }
+        return (int) Math.round(progressRate);
+    }
 
     public TrackerDetailResponseDTO toDetailResponse(Tracker tracker, Meeting latestMeeting,
                                                      Delivery latestShippingDelivery, User partnerUser) {
@@ -69,51 +107,6 @@ public class TrackerConverter {
                         .placeName(tracker.getGroup().getPreferRegion())
                         .build());
             }
-        }
-
-        return builder.build();
-    }
-
-    public TrackerListResponseDTO toListResponse(Tracker tracker, Groups group,
-                                                 String targetNickname, List<String> stepDates,
-                                                 Integer myRate, Integer groupRate) {
-
-        String groupType = group.getGroupType().toString();
-        Book book = group.getBook();
-
-        TrackerListResponseDTO.TrackerListResponseDTOBuilder builder = TrackerListResponseDTO.builder()
-                .groupId(group.getGroupId())
-                .groupType(groupType)
-                .bookTitle(book != null ? book.getTitle() : null)
-                .bookImage(book != null ? book.getImage() : null)
-                .bookAuthor(book != null ? book.getAuthor() : null)
-                .bookCategory(book != null && book.getCategory() != null ? book.getCategory().toString() : null)
-                .tradeType(group.getTradeType());
-
-        if (group.getGroupType() == GroupType.RELAY) {
-            List<String> guestProfileImageUrls = group.getMatchedMember().stream()
-                    .filter(mm -> !mm.getRole().equals(RoleStatus.HOST))
-                    .map(MatchedMember::getUser)
-                    .map(user -> {
-                        if (user.getUserImage() == null) return null;
-                        return userImageS3Service.generatePresignedGetUrl(
-                                user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
-                    })
-                    .toList();
-
-            String hostProfileImageUrl = null;
-            if (group.getHost().getUserImage() != null) {
-                hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
-                        group.getHost().getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
-            }
-
-            builder.relayDetail(TrackerListResponseDTO.RelayDetail.builder()
-                    .partnerNickname(targetNickname)
-                    .hostProfileImageUrl(hostProfileImageUrl)
-                    .guestProfileImageUrls(guestProfileImageUrls)
-                    // .trackerStatus(tracker.getReadingStatus()) todo : 메서드 파라미터 바꾸기
-                    .stepDates(stepDates)
-                    .build());
         }
 
         return builder.build();

@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
+import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
@@ -13,6 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -35,6 +38,14 @@ public interface TrackerControllerDocs {
     @Operation(summary = "트래킹 상세 현황 조회")
     ApiResponse<TrackerDetailResDTO> getTrackerDetail(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @PatchMapping("/trackers/{groupId}/reading-progress")
+    @Operation(summary = "독서 진행률 기록")
+    ApiResponse<ReadingProgressResponseDTO> updateReadingProgress(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @RequestBody ReadingProgressRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 

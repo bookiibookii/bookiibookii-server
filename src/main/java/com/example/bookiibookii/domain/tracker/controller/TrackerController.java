@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.res.*;
+import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageSuccessCode;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerSuccessCode;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
@@ -37,6 +38,17 @@ public class TrackerController implements TrackerControllerDocs {
         return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_DETAIL_GET_OK, trackerService.getTrackerDetail(groupId, user));
     }
 
+    @PatchMapping("/trackers/{groupId}/reading-progress")
+    public ApiResponse<ReadingProgressResponseDTO> updateReadingProgress(
+            @PathVariable Long groupId,
+            @RequestBody ReadingProgressRequestDTO request,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        return ApiResponse.onSuccess(
+                TrackerSuccessCode.TRACKER_READING_PROGRESS_OK,
+                trackerService.updateReadingProgress(groupId, request, user)
+        );
+    }
 
     // --- 이미지 관련 (Proof/Presigned) ---
     @GetMapping("/{groupId}/tracker/images/delivery")

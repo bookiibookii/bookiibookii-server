@@ -3,7 +3,6 @@ package com.example.bookiibookii.domain.memberbook.entity;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -16,8 +15,8 @@ import java.util.List;
 @Table(
         name = "member_book",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_member_book_matchedmember_book",
-                columnNames = {"matchedmember_id", "book_id"}
+                name = "uk_member_book_matchedmember_book_is_mine",
+                columnNames = {"matchedmember_id", "book_id", "is_mine"}
         )
 )
 @Getter
@@ -45,8 +44,7 @@ public class MemberBook extends BaseEntity {
 
     /**
      * MatchedMember 기준으로 이 MemberBook이 본인 책인지 여부.
-     * - HOST: group.book와 동일하면 내 책
-     * - GUEST: group.book와 다르면 내 책
+     * 같은 Book도 내 책과 상대 책 역할로 동시에 존재할 수 있으므로 책 ID로 추론하지 않습니다.
      */
     @Column(name = "is_mine", nullable = false)
     @Builder.Default
@@ -64,11 +62,6 @@ public class MemberBook extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "memberBook", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Cards> cards = new ArrayList<>();
-
-    public static boolean resolveIsMine(MatchedMember matchedMember, Book book) {
-        boolean isGroupBook = book.getId().equals(matchedMember.getGroup().getBook().getId());
-        return matchedMember.getRole() == RoleStatus.HOST ? isGroupBook : !isGroupBook;
-    }
 
     public void markRemoved() {
         this.removedAt = LocalDateTime.now();

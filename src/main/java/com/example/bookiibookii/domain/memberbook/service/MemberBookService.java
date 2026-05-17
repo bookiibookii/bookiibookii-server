@@ -43,12 +43,13 @@ public class MemberBookService {
         Book hostBook = group.getBook();
 
         List<MemberBook> hostBooks = List.of(
-                createIfAbsent(hostMember, hostBook),
-                createIfAbsent(hostMember, guestBook)
+                createIfAbsent(hostMember, hostBook, true),
+                createIfAbsent(hostMember, guestBook, false)
         );
+
         List<MemberBook> guestBooks = List.of(
-                createIfAbsent(guestMember, guestBook),
-                createIfAbsent(guestMember, hostBook)
+                createIfAbsent(guestMember, guestBook, true),
+                createIfAbsent(guestMember, hostBook, false)
         );
 
         hostMember.startMatchedReading(findMyBook(hostBooks), matchedAt);
@@ -56,27 +57,35 @@ public class MemberBookService {
     }
 
     /**
-     * MatchedMember×book 조합이 없을 때만 MemberBook을 생성합니다.
+     * MatchedMember×book×isMine 조합이 없을 때만 MemberBook을 생성합니다.
      */
-    public MemberBook createIfAbsent(MatchedMember matchedMember, Book book) {
+    public MemberBook createIfAbsent(MatchedMember matchedMember, Book book, boolean isMine) {
         return memberBookRepository
-                .findByMatchedMember_IdAndBook_Id(matchedMember.getId(), book.getId())
-                .orElseGet(() -> saveMemberBook(matchedMember, book));
+                .findByMatchedMember_IdAndBook_IdAndIsMine(
+                        matchedMember.getId(),
+                        book.getId(),
+                        isMine
+                )
+                .orElseGet(() -> saveMemberBook(matchedMember, book, isMine));
     }
 
-    private MemberBook saveMemberBook(MatchedMember matchedMember, Book book) {
+    private MemberBook saveMemberBook(MatchedMember matchedMember, Book book, boolean isMine) {
         try {
             return memberBookRepository.save(
                     MemberBook.builder()
                             .group(matchedMember.getGroup())
                             .book(book)
                             .matchedMember(matchedMember)
-                            .isMine(MemberBook.resolveIsMine(matchedMember, book))
+                            .isMine(isMine)
                             .build()
             );
         } catch (DataIntegrityViolationException e) {
             return memberBookRepository
-                    .findByMatchedMember_IdAndBook_Id(matchedMember.getId(), book.getId())
+                    .findByMatchedMember_IdAndBook_IdAndIsMine(
+                            matchedMember.getId(),
+                            book.getId(),
+                            isMine
+                    )
                     .orElseThrow(() -> e);
         }
     }

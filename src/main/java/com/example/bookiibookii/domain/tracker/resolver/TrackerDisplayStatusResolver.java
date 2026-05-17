@@ -63,8 +63,11 @@ public class TrackerDisplayStatusResolver {
             case MEETING_SCHEDULE_WAITING, NOT_STARTED ->
                     TrackerDisplayStatus.MEETING_REQUIRED;
 
-            case MEETING_SCHEDULED, MEETING_COMPLETED, MEETING_FAILED ->
+            case MEETING_SCHEDULED, MEETING_COMPLETED ->
                     TrackerDisplayStatus.EXCHANGING;
+
+            case MEETING_FAILED ->
+                    TrackerDisplayStatus.MEETING_REQUIRED;
 
             default ->
                     TrackerDisplayStatus.MEETING_REQUIRED;
@@ -92,10 +95,8 @@ public class TrackerDisplayStatusResolver {
         }
 
         return switch (safeExchangeStatus(exchangeStatus)) {
-            case MEETING_SCHEDULE_WAITING, NOT_STARTED ->
-                    TrackerDisplayStatus.MEETING_REQUIRED;
 
-            case MEETING_SCHEDULED, MEETING_COMPLETED, MEETING_FAILED ->
+            case MEETING_SCHEDULED, MEETING_COMPLETED ->
                     TrackerDisplayStatus.EXCHANGING;
 
             default ->

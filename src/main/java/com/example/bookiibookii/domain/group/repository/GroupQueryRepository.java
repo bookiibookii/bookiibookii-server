@@ -184,4 +184,20 @@ public class GroupQueryRepository {
                 .limit(limit)
                 .fetch();
     }
+
+    /** 섹션3 — 베스트셀러 isbn13 목록에 해당하는 모집 중 그룹 (최신순, 본인 호스트 제외) */
+    public List<Groups> findBestsellerGroups(Long userId, List<String> isbn13List) {
+        if (isbn13List == null || isbn13List.isEmpty()) return List.of();
+        return queryFactory
+                .selectFrom(groups)
+                .join(groups.book, book).fetchJoin()
+                .join(groups.host, user).fetchJoin()
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId),
+                        book.isbn13.in(isbn13List)
+                )
+                .orderBy(groups.createdAt.desc(), groups.groupId.desc())
+                .fetch();
+    }
 }

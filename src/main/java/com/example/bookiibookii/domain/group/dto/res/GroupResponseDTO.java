@@ -183,10 +183,17 @@ public class GroupResponseDTO {
             List<HomeGroupCardDTO> groups
     ) {}
 
+    /** 섹션3 — 베스트셀러 기반 그룹 추천 */
+    @Builder
+    public record BestsellerSectionDTO(
+            List<HomeGroupCardDTO> groups
+    ) {}
+
     @Builder
     public record HomeResponseDTO(
             List<HomeGroupCardDTO> newGroups,
             CategorySectionDTO categorySection,
+            BestsellerSectionDTO bestsellerSection,
             RegionSectionDTO regionSection
     ) {}
 }

@@ -50,10 +50,10 @@ public class MemberBook extends BaseEntity {
     @Builder.Default
     private boolean isMine = false;
 
-    /** 독서 진행률(0.0 ~ 100.0) */
-    @Column(name = "progress_rate", nullable = false)
+    /** 현재 읽은 페이지 */
+    @Column(name = "current_page", nullable = false)
     @Builder.Default
-    private Double progressRate = 0.0;
+    private Integer currentPage = 0;
 
     /** 서재에서 제거한 시점. null이면 목록에 노출, 값이 있으면 라이브러리에서 제외 */
     @Column(name = "removed_at")
@@ -67,8 +67,8 @@ public class MemberBook extends BaseEntity {
         this.removedAt = LocalDateTime.now();
     }
 
-    public void updateProgressRate(double newRate) {
-        this.progressRate = Math.min(100.0, Math.max(0.0, newRate));
+    public void updateCurrentPage(int currentPage) {
+        this.currentPage = Math.max(0, currentPage);
     }
 
     public boolean isOwnedBy(MatchedMember matchedMember) {

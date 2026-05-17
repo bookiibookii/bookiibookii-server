@@ -16,6 +16,7 @@ import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
+import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
@@ -44,8 +45,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -141,6 +144,52 @@ public class TrackerService {
                 userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser()),
                 trackerStepAssembler.assemble(me)
         );
+    }
+
+    @Transactional
+    public ReadingProgressResponseDTO updateReadingProgress(Long groupId, ReadingProgressRequestDTO request, User user) {
+        if (request == null || request.currentPage() == null || request.currentPage() < 0) {
+            throw new TrackerException(TrackerErrorCode.INVALID_READING_PROGRESS);
+        }
+
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        if (me.getCurrentMemberBook() == null || me.getCurrentMemberBook().getBook() == null) {
+            throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
+        }
+
+        Integer totalPages = me.getCurrentMemberBook().getBook().getTotalPages();
+        if (totalPages == null || totalPages <= 0) {
+            throw new TrackerException(TrackerErrorCode.INVALID_BOOK_TOTAL_PAGES);
+        }
+
+        if (request.currentPage() > totalPages) {
+            throw new TrackerException(TrackerErrorCode.INVALID_READING_PROGRESS);
+        }
+
+        int normalizedPage = request.currentPage();
+        ReadingStatus currentStatus = me.getReadingStatus();
+        validateReadingProgressStatus(currentStatus, normalizedPage, totalPages);
+
+        me.getCurrentMemberBook().updateCurrentPage(normalizedPage);
+
+        if (normalizedPage == totalPages) {
+            if (currentStatus == ReadingStatus.MY_BOOK_READING) {
+                me.updateReadingStatus(ReadingStatus.MY_BOOK_REVIEWING);
+            } else if (currentStatus == ReadingStatus.PARTNER_BOOK_READING) {
+                me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_REVIEWING);
+            }
+        }
+
+        ReadingStatus updatedStatus = me.getReadingStatus();
+        return ReadingProgressResponseDTO.builder()
+                .memberBookId(me.getCurrentMemberBook().getId())
+                .currentPage(me.getCurrentMemberBook().getCurrentPage())
+                .totalPages(totalPages)
+                .progressRate(calculateProgressRate(me.getCurrentMemberBook().getCurrentPage(), totalPages))
+                .readingStatus(updatedStatus)
+                .readingStatusText(updatedStatus.getDescription())
+                .dDay(calculateReadingDDay(updatedStatus, me.getGroup()))
+                .build();
     }
 
     // --- 이미지 관련 ---
@@ -271,6 +320,40 @@ public class TrackerService {
         }
 
         return dates;
+    }
+
+    private void validateReadingProgressStatus(ReadingStatus status, int normalizedPage, int totalPages) {
+        if (status == ReadingStatus.MY_BOOK_READING || status == ReadingStatus.PARTNER_BOOK_READING) {
+            return;
+        }
+
+        if ((status == ReadingStatus.MY_BOOK_REVIEWING || status == ReadingStatus.PARTNER_BOOK_REVIEWING)
+                && normalizedPage == totalPages) {
+            return;
+        }
+
+        throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+    }
+
+    private int calculateProgressRate(Integer currentPage, Integer totalPages) {
+        if (currentPage == null || totalPages == null || totalPages <= 0) {
+            return 0;
+        }
+        int normalizedPage = Math.min(Math.max(currentPage, 0), totalPages);
+        return (normalizedPage * 100) / totalPages;
+    }
+
+    private Integer calculateReadingDDay(ReadingStatus readingStatus, Groups group) {
+        if (readingStatus != ReadingStatus.MY_BOOK_READING
+                && readingStatus != ReadingStatus.PARTNER_BOOK_READING) {
+            return null;
+        }
+        if (group.getStartDate() == null || group.getReadingPeriod() == null) {
+            return null;
+        }
+
+        LocalDate dueDate = group.getStartDate().plusDays(group.getReadingPeriod());
+        return Math.max((int) ChronoUnit.DAYS.between(LocalDate.now(), dueDate), 0);
     }
 
     // --- 택배 배송/수령 (PARCEL) ---

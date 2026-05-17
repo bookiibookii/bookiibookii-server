@@ -23,6 +23,8 @@ public enum TrackerErrorCode implements BaseCode {
     INVALID_READING_STARTED_AT(HttpStatus.BAD_REQUEST, "TRACKER400_11", "책 전환 시각은 null일 수 없습니다."),
     INITIAL_CURRENT_BOOK_NOT_MY_BOOK(HttpStatus.BAD_REQUEST, "TRACKER400_12", "초기 현재 책은 본인 소유 책이어야 합니다."),
     MATCHED_AT_REQUIRED(HttpStatus.BAD_REQUEST, "TRACKER400_13", "매칭 완료 시각은 null일 수 없습니다."),
+    INVALID_READING_PROGRESS(HttpStatus.BAD_REQUEST, "TRACKER400_14", "유효하지 않은 독서 진행 페이지입니다."),
+    INVALID_BOOK_TOTAL_PAGES(HttpStatus.BAD_REQUEST, "TRACKER400_15", "책의 전체 페이지 수가 유효하지 않습니다."),
 
 
     // --- 403 FORBIDDEN ---

@@ -89,18 +89,20 @@ public class TrackerConverter {
                 .title(book.getTitle())
                 .image(book.getImage())
                 .totalPages(book.getTotalPages())
+                .currentPage(memberBook.getCurrentPage())
                 .isOwnerBook(memberBook.isMine())
                 .currentReaderNickname(currentReader.getNickName())
                 .currentReaderProfileImageUrl(currentReaderProfileImageUrl)
-                .currentReadingRate(toReadingRate(memberBook.getProgressRate()))
+                .currentReadingRate(calculateProgressRate(memberBook.getCurrentPage(), book.getTotalPages()))
                 .build();
     }
 
-    private static int toReadingRate(Double progressRate) {
-        if (progressRate == null) {
+    private static int calculateProgressRate(Integer currentPage, Integer totalPages) {
+        if (currentPage == null || totalPages == null || totalPages <= 0) {
             return 0;
         }
-        return (int) Math.round(progressRate);
+        int normalizedPage = Math.min(Math.max(currentPage, 0), totalPages);
+        return (normalizedPage * 100) / totalPages;
     }
 
     private static String resolveDisplayStatusText(

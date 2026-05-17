@@ -27,7 +27,7 @@ public class LibraryMemberBookResponseDTO {
     private LocalDate startDate;
     private LocalDate endDate;
     private Integer duration;
-    private Double progressRate;
+    private Integer progressRate;
     private Double rating;
     private String comment;
 }

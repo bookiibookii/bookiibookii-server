@@ -19,7 +19,6 @@ import java.util.List;
 @Tag(name = "Tracker", description = "도서 트래킹 관련 API (상태 조회 및 이력 관리)")
 public interface TrackerControllerDocs {
 
-    // --- 1. 조회 관련 ---
     @GetMapping("/me/trackers")
     @Operation(
             summary = "나의 트래커 전체 리스트 조회",
@@ -32,10 +31,9 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-
-    @GetMapping("/{groupId}/tracker")
+    @GetMapping("/trackers/{groupId}/tracker")
     @Operation(summary = "트래킹 상세 현황 조회")
-    ApiResponse<TrackerDetailResponseDTO> getTrackerDetail(
+    ApiResponse<TrackerDetailResDTO> getTrackerDetail(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );

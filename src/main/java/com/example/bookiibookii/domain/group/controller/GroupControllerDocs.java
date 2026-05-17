@@ -102,4 +102,18 @@ public interface GroupControllerDocs {
     })
     ApiResponse<List<String>> getPopularKeywords();
 
+    @Operation(summary = "그룹 홈 화면 조회 API",
+            description = """
+                    그룹 홈 화면의 섹션별 추천 그룹을 한 번에 조회합니다.
+                    - newGroups: 최근 생성된 모집 중 그룹 (최대 5개)
+                    - categorySection: 새로고침마다 랜덤 카테고리 1개를 골라 해당 카테고리 그룹 추천 (최대 9개). 추천 가능한 카테고리가 없으면 category=null
+                    - regionSection: 사용자 교환 장소(구/군) 기반 직접교환 그룹 (최대 15개). 교환 장소 미설정 시 region=null
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공")
+    })
+    ApiResponse<GroupResponseDTO.HomeResponseDTO> getHome(
+            @AuthenticationPrincipal User user
+    );
+
 }

@@ -1,7 +1,10 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.book.entity.Book;
+import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.book.service.BookService;
+import com.example.bookiibookii.domain.location.entity.UserExchange;
+import com.example.bookiibookii.domain.location.repository.UserExchangeRepository;
 import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
@@ -35,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DELETED;
@@ -57,9 +61,15 @@ public class GroupService {
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
+    private final UserExchangeRepository userExchangeRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
     private static final Set<Tag> READING_STYLE_TAGS = Set.of(Tag.MEMO, Tag.POSTIT, Tag.PHOTO, Tag.All_ROUNDER);
+
+    // 그룹 홈 화면 섹션별 노출 개수
+    private static final int HOME_NEW_GROUP_LIMIT = 5;       // 섹션1: 신규 그룹
+    private static final int HOME_CATEGORY_GROUP_LIMIT = 9;  // 섹션2: 카테고리 추천 (3개씩 3페이지)
+    private static final int HOME_REGION_GROUP_LIMIT = 15;   // 섹션5: 위치 기반 (3개씩 5페이지)
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -562,6 +572,99 @@ public class GroupService {
 
         // 현재 user를 제외한 나머지 멤버 조회
         return matchedMemberQueryRepository.findMemberDtosByGroupId(groupId, userId);
+    }
+
+    // ===== 그룹 홈 화면 조회 =====
+    @Transactional(readOnly = true)
+    public GroupResponseDTO.HomeResponseDTO getHome(User user) {
+        if (user == null) {
+            throw new UserException(UserErrorCode.NOT_FOUND);
+        }
+
+        Long userId = user.getId();
+
+        // 섹션1: 최근 생성된 그룹 (본인 호스트 제외)
+        List<GroupResponseDTO.HomeGroupCardDTO> newGroups = groupQueryRepository.findRecentGroups(userId, HOME_NEW_GROUP_LIMIT)
+                .stream().map(this::toHomeCard).toList();
+
+        // 섹션2: 카테고리 추천 그룹 (본인 호스트 제외)
+        GroupResponseDTO.CategorySectionDTO categorySection = buildCategorySection(userId);
+
+        // 섹션5: 위치 기반 그룹 (본인 호스트 제외)
+        GroupResponseDTO.RegionSectionDTO regionSection = buildRegionSection(userId);
+
+        return GroupResponseDTO.HomeResponseDTO.builder()
+                .newGroups(newGroups)
+                .categorySection(categorySection)
+                .regionSection(regionSection)
+                .build();
+    }
+
+    // 섹션2: 그룹이 존재하는 카테고리 중 랜덤 1개를 골라 해당 카테고리 그룹을 추천
+    private GroupResponseDTO.CategorySectionDTO buildCategorySection(Long userId) {
+        List<CustomCategory> candidates = groupQueryRepository.findCategoriesWithRecruitingGroups(userId);
+        if (candidates.isEmpty()) {
+            return GroupResponseDTO.CategorySectionDTO.builder()
+                    .category(null)
+                    .groups(List.of())
+                    .build();
+        }
+
+        CustomCategory picked = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+        List<GroupResponseDTO.HomeGroupCardDTO> groups =
+                groupQueryRepository.findRandomGroupsByCategory(userId, picked, HOME_CATEGORY_GROUP_LIMIT)
+                        .stream().map(this::toHomeCard).toList();
+
+        return GroupResponseDTO.CategorySectionDTO.builder()
+                .category(picked.getLabel())
+                .groups(groups)
+                .build();
+    }
+
+    // 섹션5: 사용자 교환 장소(구/군)에서 열린 직접교환 그룹을 추천
+    private GroupResponseDTO.RegionSectionDTO buildRegionSection(Long userId) {
+        List<UserExchange> exchanges = userExchangeRepository.findByUserIdWithLocation(userId);
+        String district = exchanges.isEmpty() ? null
+                : extractDistrict(exchanges.get(0).getLocation().getAddress());
+
+        if (district == null) {
+            return GroupResponseDTO.RegionSectionDTO.builder()
+                    .region(null)
+                    .groups(List.of())
+                    .build();
+        }
+
+        List<GroupResponseDTO.HomeGroupCardDTO> groups =
+                groupQueryRepository.findRegionGroups(userId, district, HOME_REGION_GROUP_LIMIT)
+                        .stream().map(this::toHomeCard).toList();
+
+        return GroupResponseDTO.RegionSectionDTO.builder()
+                .region(district)
+                .groups(groups)
+                .build();
+    }
+
+    // 주소 문자열에서 구/군 토큰 추출 (예: "서울특별시 동작구 흑석로 84" -> "동작구")
+    private String extractDistrict(String address) {
+        if (address == null || address.isBlank()) {
+            return null;
+        }
+        for (String token : address.trim().split("\\s+")) {
+            if (token.endsWith("구") || token.endsWith("군")) {
+                return token;
+            }
+        }
+        return null;
+    }
+
+    private GroupResponseDTO.HomeGroupCardDTO toHomeCard(Groups group) {
+        return GroupResponseDTO.HomeGroupCardDTO.builder()
+                .groupId(group.getGroupId())
+                .groupName(group.getGroupName())
+                .hostNickname(group.getHost().getNickName())
+                .bookImage(group.getBook().getImage())
+                .readingPeriod(group.getReadingPeriod())
+                .build();
     }
 }
 

@@ -91,5 +91,13 @@ public class GroupController implements GroupControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 
+    //그룹 홈 화면 조회 API
+    @GetMapping("/home")
+    public ApiResponse<GroupResponseDTO.HomeResponseDTO> getHome(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        GroupResponseDTO.HomeResponseDTO result = groupService.getHome(user);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
 
 }

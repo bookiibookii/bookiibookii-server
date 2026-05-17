@@ -156,4 +156,37 @@ public class GroupResponseDTO {
             GroupStatus groupStatus,
             List<String> groupTags
     ){}
+
+    // ===== 그룹 홈 화면 (GET /api/groups/home) =====
+
+    /** 홈 화면 전 섹션 공통 그룹 카드 */
+    @Builder
+    public record HomeGroupCardDTO(
+            Long groupId,
+            String groupName,
+            String hostNickname,
+            String bookImage,
+            Integer readingPeriod
+    ) {}
+
+    /** 섹션2 — 카테고리 추천 그룹. category가 null이면 추천 가능한 카테고리 없음 */
+    @Builder
+    public record CategorySectionDTO(
+            String category,
+            List<HomeGroupCardDTO> groups
+    ) {}
+
+    /** 섹션5 — 위치 기반 직접교환 그룹. region이 null이면 사용자 교환 장소 미설정 */
+    @Builder
+    public record RegionSectionDTO(
+            String region,
+            List<HomeGroupCardDTO> groups
+    ) {}
+
+    @Builder
+    public record HomeResponseDTO(
+            List<HomeGroupCardDTO> newGroups,
+            CategorySectionDTO categorySection,
+            RegionSectionDTO regionSection
+    ) {}
 }

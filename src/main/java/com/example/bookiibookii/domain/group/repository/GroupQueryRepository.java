@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -119,5 +120,68 @@ public class GroupQueryRepository {
                 new OrderSpecifier<>(Order.DESC, groups.createdAt),
                 new OrderSpecifier<>(Order.DESC, groups.groupId)
         };
+    }
+
+    // ===== 그룹 홈 화면 (GET /api/groups/home) =====
+
+    /** 섹션1 — 최근 생성된 모집 중 그룹 (최신순, 본인 호스트 제외) */
+    public List<Groups> findRecentGroups(Long userId, int limit) {
+        return queryFactory
+                .selectFrom(groups)
+                .join(groups.book, book).fetchJoin()
+                .join(groups.host, user).fetchJoin()
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId)
+                )
+                .orderBy(groups.createdAt.desc(), groups.groupId.desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    /** 섹션2 — 모집 중 그룹이 1개 이상 존재하는 카테고리 목록 (본인 호스트 제외, 랜덤 추천 후보군) */
+    public List<CustomCategory> findCategoriesWithRecruitingGroups(Long userId) {
+        return queryFactory
+                .select(book.category).distinct()
+                .from(groups)
+                .join(groups.book, book)
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId)
+                )
+                .fetch();
+    }
+
+    /** 섹션2 — 특정 카테고리의 모집 중 그룹을 랜덤으로 조회 (본인 호스트 제외) */
+    public List<Groups> findRandomGroupsByCategory(Long userId, CustomCategory category, int limit) {
+        return queryFactory
+                .selectFrom(groups)
+                .join(groups.book, book).fetchJoin()
+                .join(groups.host, user).fetchJoin()
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId),
+                        book.category.eq(category)
+                )
+                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                .limit(limit)
+                .fetch();
+    }
+
+    /** 섹션5 — 사용자 지역(구/군)에서 열린 직접교환 모집 중 그룹 (최신순, 본인 호스트 제외) */
+    public List<Groups> findRegionGroups(Long userId, String region, int limit) {
+        return queryFactory
+                .selectFrom(groups)
+                .join(groups.book, book).fetchJoin()
+                .join(groups.host, user).fetchJoin()
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId),
+                        groups.tradeType.eq(TradeType.DIRECT),
+                        groups.preferRegion.contains(region)
+                )
+                .orderBy(groups.createdAt.desc(), groups.groupId.desc())
+                .limit(limit)
+                .fetch();
     }
 }

@@ -5,6 +5,8 @@ import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.exception.TrackerException;
+import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -99,25 +101,28 @@ public class MatchedMember extends BaseEntity {
         this.readingStartedAt = matchedAt;
     }
 
-    public void changeCurrentBook(MemberBook nextBook) {
+    public void changeCurrentBook(MemberBook nextBook, LocalDateTime changedAt) {
         validateCurrentBook(nextBook);
 
+        if (changedAt == null) {
+            throw new TrackerException(TrackerErrorCode.INVALID_READING_STARTED_AT);
+        }
+
         this.currentMemberBook = nextBook;
-        this.readingStartedAt = LocalDateTime.now();
+        this.readingStartedAt = changedAt;
     }
 
-    public void changeCurrentMemberBook(MemberBook memberBook) {
-        changeCurrentBook(memberBook);
+    public void changeCurrentMemberBook(MemberBook memberBook, LocalDateTime changedAt) {
+        changeCurrentBook(memberBook, changedAt);
     }
 
     private void validateCurrentBook(MemberBook memberBook) {
         if (memberBook == null) {
-            throw new IllegalArgumentException("현재 책은 null로 변경할 수 없습니다.");
+            throw new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK);
         }
 
         if (!memberBook.isOwnedBy(this)) {
-            throw new IllegalArgumentException("현재 책은 자신의 MemberBook 중에서만 선택할 수 있습니다.");
+            throw new TrackerException(TrackerErrorCode.INVALID_CURRENT_BOOK_OWNER);
         }
     }
-
 }

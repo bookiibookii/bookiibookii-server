@@ -17,6 +17,10 @@ public enum TrackerErrorCode implements BaseCode {
     INVALID_TRADE_TYPE(HttpStatus.BAD_REQUEST, "TRACKER400_5", "직접 교환 그룹이 아닙니다." ),
     TRACKER_NOT_CREATED(HttpStatus.BAD_REQUEST, "TRACKER400_6", "트래커 생성 중 에러 발생했습니다"),
     INVALID_PARTNER_COUNT(HttpStatus.BAD_REQUEST, "TRACKER400_7", "1:1 교환 그룹이 아니므로 파트너를 특정할 수 없습니다."),
+    INVALID_BOOK_CHANGE_TIME(HttpStatus.BAD_REQUEST, "TRACKER400_8","책 전환 시각은 null일 수 없습니다."),
+    INVALID_CURRENT_MEMBER_BOOK(HttpStatus.BAD_REQUEST,"TRACKER400_8", "현재 책은 null로 변경할 수 없습니다."),
+    INVALID_CURRENT_BOOK_OWNER(HttpStatus.BAD_REQUEST, "TRACKER400_9", "현재 책은 자신의 MemberBook 중에서만 선택할 수 있습니다."),
+    INVALID_READING_STARTED_AT(HttpStatus.BAD_REQUEST, "TRACKER400_10", "책 전환 시각은 null일 수 없습니다."),
 
     // --- 403 FORBIDDEN ---
     NOT_YOUR_TURN(HttpStatus.FORBIDDEN, "TRACKER403_1", "현재 독서 주자가 아닙니다."),

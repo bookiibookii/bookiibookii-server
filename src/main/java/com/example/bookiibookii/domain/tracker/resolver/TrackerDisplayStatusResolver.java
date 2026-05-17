@@ -97,7 +97,7 @@ public class TrackerDisplayStatusResolver {
         return switch (safeExchangeStatus(exchangeStatus)) {
 
             case MEETING_SCHEDULED, MEETING_COMPLETED ->
-                    TrackerDisplayStatus.EXCHANGING;
+                    TrackerDisplayStatus.RETURNING;
 
             default ->
                     TrackerDisplayStatus.MEETING_REQUIRED;

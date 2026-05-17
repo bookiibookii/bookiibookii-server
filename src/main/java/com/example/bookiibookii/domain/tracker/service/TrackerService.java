@@ -19,10 +19,7 @@ import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerImageGetResponseDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerListItemResDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerMeetingResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackingImage;
@@ -37,10 +34,7 @@ import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageErrorC
 import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackingImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
-import com.example.bookiibookii.domain.tracker.resolver.TrackerDisplayStatusResolver;
-import com.example.bookiibookii.domain.tracker.resolver.TrackerDueDateResolver;
-import com.example.bookiibookii.domain.tracker.resolver.TrackerPartnerResolver;
-import com.example.bookiibookii.domain.tracker.resolver.UserProfileImageUrlResolver;
+import com.example.bookiibookii.domain.tracker.resolver.*;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
@@ -81,6 +75,7 @@ public class TrackerService {
     private final TrackerDisplayStatusResolver trackerDisplayStatusResolver;
     private final TrackerDueDateResolver trackerDueDateResolver;
     private final UserProfileImageUrlResolver userProfileImageUrlResolver;
+    private final TrackerStepAssembler trackerStepAssembler;
 
     private static final int TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES = 60;
@@ -90,7 +85,7 @@ public class TrackerService {
         return matchedMemberRepository.findAllTrackerItemsByMemberId(user.getId()).stream()
                 .map(me -> {
                     MatchedMember partner = trackerPartnerResolver.resolve(me.getGroup(), me);
-                    if (partner.getCurrentMemberBook() == null) {
+                    if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null) {
                         throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
                     }
 
@@ -110,6 +105,42 @@ public class TrackerService {
                     );
                 })
                 .toList();
+    }
+
+    // 교환독서 상세조회
+    @Transactional(readOnly = true)
+    public TrackerDetailResDTO getTrackerDetail(Long groupId, User user) {
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllTrackerMembersByGroupId(groupId);
+
+        MatchedMember me = matchedMembers.stream()
+                .filter(matchedMember -> matchedMember.getUser().getId().equals(user.getId()))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        MatchedMember partner = matchedMembers.stream()
+                .filter(matchedMember -> !matchedMember.getUser().getId().equals(user.getId()))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
+
+        if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null) {
+            throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
+        }
+
+        TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
+                me.getReadingStatus(),
+                me.getExchangeStatus(),
+                me.getGroup().getTradeType()
+        );
+
+        return TrackerConverter.toDetail(
+                me,
+                partner,
+                displayStatus,
+                trackerDueDateResolver.calculate(displayStatus, me.getGroup()),
+                userProfileImageUrlResolver.resolve(me.getCurrentMemberBook().getMatchedMember().getUser()),
+                userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser()),
+                trackerStepAssembler.assemble(me)
+        );
     }
 
     // --- 이미지 관련 ---
@@ -180,29 +211,7 @@ public class TrackerService {
 
     // --- 트래커 조회 ---
 
-    @Transactional(readOnly = true)
-    public TrackerDetailResponseDTO getTrackerDetailByGroupId(Long groupId, User user) {
-        validateGroupMember(groupId, user.getId());
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
-        MatchedMember partnerMember = findPartnerForRelay(groupId, user.getId());
-
-        Meeting latestMeeting = null;
-        if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
-            ReadingStatus meetingStatus = resolveMeetingStatus(tracker.getReadingStatus());
-            if (meetingStatus != null) {
-                latestMeeting = meetingRepository.findByTrackerIdAndStatusNative(
-                        tracker.getId(), meetingStatus.name()).orElse(null);
-            }
-        }
-
-        Delivery latestShipping = deliveryRepository
-                .findTopByTrackerAndDeliveryStatusOrderByCreatedAtDesc(tracker, DeliveryStatus.SHIPPING)
-                .orElse(null);
-
-        return trackerConverter.toDetailResponse(tracker, latestMeeting, latestShipping, partnerMember.getUser());
-    }
 
     private ReadingStatus resolveMeetingStatus(ReadingStatus current) {
         return switch (current) {

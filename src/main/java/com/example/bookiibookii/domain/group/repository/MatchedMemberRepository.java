@@ -142,4 +142,17 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
         order by mm.createdAt desc
     """)
     List<MatchedMember> findAllTrackerItemsByMemberId(@Param("memberId") Long memberId);
+
+    @Query("""
+    select distinct mm
+    from MatchedMember mm
+    join fetch mm.group g
+    join fetch mm.user u
+    left join fetch mm.memberBooks mb
+    left join fetch mb.book b
+    join fetch mm.currentMemberBook cmb
+    join fetch cmb.book cb
+    where g.groupId = :groupId
+""")
+    List<MatchedMember> findAllTrackerMembersByGroupId(@Param("groupId") Long groupId);
 }

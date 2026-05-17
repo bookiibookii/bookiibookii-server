@@ -29,13 +29,12 @@ public class TrackerController implements TrackerControllerDocs {
         );
     }
 
-    // --- 트래커 상세 조회 ---
-    @GetMapping("/{groupId}/tracker")
-    public ApiResponse<TrackerDetailResponseDTO> getTrackerDetail(
+    @GetMapping("/trackers/{groupId}/tracker")
+    public ApiResponse<TrackerDetailResDTO> getTrackerDetail(
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_DETAIL_GET_OK, trackerService.getTrackerDetailByGroupId(groupId, user));
+        return ApiResponse.onSuccess(TrackerSuccessCode.TRACKER_DETAIL_GET_OK, trackerService.getTrackerDetail(groupId, user));
     }
 
 

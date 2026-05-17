@@ -85,7 +85,7 @@ public class TrackerService {
         return matchedMemberRepository.findAllTrackerItemsByMemberId(user.getId()).stream()
                 .map(me -> {
                     MatchedMember partner = trackerPartnerResolver.resolve(me.getGroup(), me);
-                    if (partner.getCurrentMemberBook() == null) {
+                    if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null) {
                         throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
                     }
 

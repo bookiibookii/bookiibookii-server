@@ -408,8 +408,7 @@ public class MemberBookCardService {
             return;
         }
 
-        int rate = (maxPage * 100) / totalPages;
-        memberBook.updateProgressRate(rate);
+        memberBook.updateCurrentPage(maxPage);
     }
 
     private MemberCardImageResponseDTO buildCardImageResponse(

@@ -88,6 +88,7 @@ public class TrackerConverter {
         return BookInfo.builder()
                 .title(book.getTitle())
                 .image(book.getImage())
+                .totalPages(book.getTotalPages())
                 .isOwnerBook(memberBook.isMine())
                 .currentReaderNickname(currentReader.getNickName())
                 .currentReaderProfileImageUrl(currentReaderProfileImageUrl)

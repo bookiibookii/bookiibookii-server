@@ -141,9 +141,17 @@ public class MemberBookLibraryService {
                 .startDate(group.getStartDate())
                 .endDate(finalEndDate)
                 .duration(group.getReadingPeriod())
-                .progressRate(memberBook.getProgressRate())
+                .progressRate(calculateProgressRate(memberBook.getCurrentPage(), book.getTotalPages()))
                 .rating(rating)
                 .comment(comment)
                 .build();
+    }
+
+    private int calculateProgressRate(Integer currentPage, Integer totalPages) {
+        if (currentPage == null || totalPages == null || totalPages <= 0) {
+            return 0;
+        }
+        int normalizedPage = Math.min(Math.max(currentPage, 0), totalPages);
+        return (normalizedPage * 100) / totalPages;
     }
 }

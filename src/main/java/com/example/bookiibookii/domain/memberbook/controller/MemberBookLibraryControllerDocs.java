@@ -30,7 +30,7 @@ public interface MemberBookLibraryControllerDocs {
             - **그룹 정보**: 그룹 ID, 그룹명(`groupName`)
             - **호스트 정보**: 호스트 ID, 닉네임, 프로필 이미지(Presigned URL)
             - **일정 정보**: 그룹 시작일(`startDate`), **실제 독서 종료일(`endDate`)**, 그룹 독서 기간(`duration`)
-            - **진행률**: `progressRate` (0.0 ~ 100.0)
+            - **진행률**: `progressRate` (0 ~ 100 정수 퍼센트)
             - **평가 정보**: BookReview 기준 별점(`rating`), 감상평(`comment`). 리뷰 미작성 시 null.
         - **참고**: `endDate`는 트래커의 실제 기록을 바탕으로 제공되며, 기록이 없는 경우 그룹 설정상의 종료일을 반환합니다.
         """

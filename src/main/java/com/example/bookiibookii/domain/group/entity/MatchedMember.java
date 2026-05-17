@@ -90,17 +90,16 @@ public class MatchedMember extends BaseEntity {
         validateCurrentBook(initialBook);
 
         if (!initialBook.isMine()) {
-            throw new IllegalArgumentException("초기 현재 책은 본인 소유 책이어야 합니다.");
+            throw new TrackerException(TrackerErrorCode.INITIAL_CURRENT_BOOK_NOT_MY_BOOK);
         }
 
         if (matchedAt == null) {
-            throw new IllegalArgumentException("매칭 완료 시각은 null일 수 없습니다.");
+            throw new TrackerException(TrackerErrorCode.MATCHED_AT_REQUIRED);
         }
 
         this.currentMemberBook = initialBook;
         this.readingStartedAt = matchedAt;
     }
-
     public void changeCurrentBook(MemberBook nextBook, LocalDateTime changedAt) {
         validateCurrentBook(nextBook);
 

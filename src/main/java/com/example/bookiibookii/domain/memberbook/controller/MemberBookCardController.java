@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Validated
 @RestController
 @RequestMapping("/api/member-books")
@@ -90,6 +92,16 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
         MemberCardCreateResponseDTO response = memberBookCardService.updateCard(
                 cardId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_UPDATED, response);
+    }
+
+    @Override
+    @GetMapping("/cards/bookmarks")
+    public ApiResponse<List<MemberCardResponseDTO>> getMyBookmarkedCards(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        List<MemberCardResponseDTO> list = memberBookCardService.getMyBookmarkedCards(
+                user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.BOOKMARKED_CARDS_FOUND, list);
     }
 
     @Override

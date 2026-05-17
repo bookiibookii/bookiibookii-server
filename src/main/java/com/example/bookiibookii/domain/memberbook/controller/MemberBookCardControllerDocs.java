@@ -146,6 +146,25 @@ public interface MemberBookCardControllerDocs {
     );
 
     @Operation(
+            summary = "내가 북마크한 멤버북 독서카드 목록 조회",
+            description = """
+            현재 로그인한 사용자가 북마크한 memberBook 독서카드 목록을 최신 북마크 순으로 반환합니다.
+
+            - **엔드포인트**: `GET /api/member-books/cards/bookmarks`
+            - 각 항목은 `MemberCardResponseDTO`이며 `isBookmarked`는 true입니다.
+            - 내 화면에서 숨긴 카드(`hidden=true`)는 목록에서 제외됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/cards/bookmarks")
+    ApiResponse<java.util.List<MemberCardResponseDTO>> getMyBookmarkedCards(
+            @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(
             summary = "멤버북 독서카드 북마크 토글",
             description = """
             memberBook 독서카드에 대한 북마크를 토글합니다. 터치 시 북마크 ↔ 해제가 전환됩니다.

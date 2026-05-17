@@ -144,6 +144,18 @@ public class MemberBookCardService {
     }
 
     /**
+     * 현재 사용자가 북마크한 memberBook 독서카드 목록을 최신 북마크 순으로 반환합니다.
+     * 내 화면에서 숨긴 카드(hidden=true)는 제외합니다.
+     */
+    @Transactional(readOnly = true)
+    public List<MemberCardResponseDTO> getMyBookmarkedCards(Long userId, int presignedGetUrlExpirationMinutes) {
+        return memberCardRepository.findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(mc -> buildListItemResponse(mc.getCard(), presignedGetUrlExpirationMinutes, true))
+                .toList();
+    }
+
+    /**
      * 카드를 내 화면에서만 숨김 처리(소프트 삭제). Cards 엔티티는 삭제되지 않으며, 그룹 멤버는 계속 조회할 수 있습니다.
      * MemberCard가 없으면 생성 후 hidden=true로 설정합니다.
      */

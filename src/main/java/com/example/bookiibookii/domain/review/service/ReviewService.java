@@ -77,15 +77,6 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
-        ReadingStatus currentStatus = me.getReadingStatus();
-        if (currentStatus == ReadingStatus.MY_BOOK_REVIEWING) {
-            me.updateReadingStatus(ReadingStatus.EXCHANGING);
-        } else if (currentStatus == ReadingStatus.PARTNER_BOOK_REVIEWING) {
-            me.updateReadingStatus(ReadingStatus.RETURNING);
-        } else {
-            throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
-        }
-
         if (bookReviewRepository.existsByMemberBookId(currentMemberBook.getId())) {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
@@ -101,6 +92,16 @@ public class ReviewService {
             bookReview = bookReviewRepository.save(bookReview);
         } catch (DataIntegrityViolationException e) {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        // 교환상태 변경
+        ReadingStatus currentStatus = me.getReadingStatus();
+        if (currentStatus == ReadingStatus.MY_BOOK_REVIEWING) {
+            me.updateReadingStatus(ReadingStatus.EXCHANGING);
+        } else if (currentStatus == ReadingStatus.PARTNER_BOOK_REVIEWING) {
+            me.updateReadingStatus(ReadingStatus.RETURNING);
+        } else {
+            throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
         }
 
         updateExchangeStatusIfAllMembersReady(group.getGroupId(), group.getTradeType());

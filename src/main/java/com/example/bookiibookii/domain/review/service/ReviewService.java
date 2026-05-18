@@ -86,7 +86,17 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
         }
 
-        BookReview bookReview = BookReview.create(me, currentMemberBook, request.star(), request.comment());
+        if (bookReviewRepository.existsByMemberBookId(currentMemberBook.getId())) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        BookReview bookReview = BookReview.create(
+                me,
+                currentMemberBook,
+                request.star(),
+                request.comment()
+        );
+
         try {
             bookReview = bookReviewRepository.save(bookReview);
         } catch (DataIntegrityViolationException e) {

@@ -15,4 +15,6 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
     boolean existsByMatchedMember_IdAndMemberBook_Id(Long matchedMemberId, Long memberBookId);
 
     Optional<BookReview> findByMatchedMember_IdAndMemberBook_Id(Long matchedMemberId, Long memberBookId);
+
+    boolean existsByMemberBookId(Long memberBookId);
 }

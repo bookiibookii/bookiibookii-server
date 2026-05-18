@@ -60,6 +60,10 @@ public class AuthService {
         // 유저 조회 or 생성
         User user = userService.findOrCreateSocialUser(socialUserInfo, social);
 
+        return issueLoginToken(user);
+    }
+
+    public AuthResponseDTO.LoginResponse issueLoginToken(User user) {
         Long userId = user.getId();
         String role = user.getRole().name();
 

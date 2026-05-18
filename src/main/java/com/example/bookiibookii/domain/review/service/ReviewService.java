@@ -4,25 +4,32 @@ import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
+import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
+import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
 import com.example.bookiibookii.domain.review.exception.ReviewException;
 import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
+import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,9 +54,81 @@ public class ReviewService {
     private final GroupBookRepository groupBookRepository;
     private final TrackerRepository trackerRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final BookReviewRepository bookReviewRepository;
     private final GroupReviewRepository groupReviewRepository;
     private final GroupsRepository groupsRepository;
     private final DomainEventPublisher publisher;
+
+    @Transactional
+    public BookReviewResponseDTO createBookReview(
+            Long groupId,
+            ReviewRequestDTO.BookReviewUpsertDTO request,
+            User user
+    ) {
+        validateRating(request.star());
+        validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
+
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        MatchedMember me = getMatchedMember(group.getGroupId(), user.getId());
+        MemberBook currentMemberBook = getCurrentMemberBook(me);
+
+        if (bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(me.getId(), currentMemberBook.getId())) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        if (bookReviewRepository.existsByMemberBookId(currentMemberBook.getId())) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        BookReview bookReview = BookReview.create(
+                me,
+                currentMemberBook,
+                request.star(),
+                request.comment()
+        );
+
+        try {
+            bookReview = bookReviewRepository.save(bookReview);
+        } catch (DataIntegrityViolationException e) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        // 교환상태 변경
+        ReadingStatus currentStatus = me.getReadingStatus();
+        if (currentStatus == ReadingStatus.MY_BOOK_REVIEWING) {
+            me.updateReadingStatus(ReadingStatus.EXCHANGING);
+        } else if (currentStatus == ReadingStatus.PARTNER_BOOK_REVIEWING) {
+            me.updateReadingStatus(ReadingStatus.RETURNING);
+        } else {
+            throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
+        }
+
+        updateExchangeStatusIfAllMembersReady(group.getGroupId(), group.getTradeType());
+
+        return BookReviewResponseDTO.from(bookReview);
+    }
+
+    @Transactional
+    public BookReviewResponseDTO updateMyBookReview(
+            Long groupId,
+            ReviewRequestDTO.BookReviewUpsertDTO request,
+            User user
+    ) {
+        validateRating(request.star());
+        validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
+
+        MatchedMember me = getMatchedMember(groupId, user.getId());
+        MemberBook currentMemberBook = getCurrentMemberBook(me);
+
+        BookReview bookReview = bookReviewRepository
+                .findByMatchedMember_IdAndMemberBook_Id(me.getId(), currentMemberBook.getId())
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.BOOK_REVIEW_NOT_FOUND));
+
+        bookReview.updateReview(request.star(), request.comment());
+
+        return BookReviewResponseDTO.from(bookReview);
+    }
 
     /**
      * 1. [함께 읽기] 리뷰 생성
@@ -237,6 +316,48 @@ public class ReviewService {
         return tracker;
     }
 
+    private MatchedMember getMatchedMember(Long groupId, Long userId) {
+        return matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private MemberBook getCurrentMemberBook(MatchedMember matchedMember) {
+        MemberBook currentMemberBook = matchedMember.getCurrentMemberBook();
+        if (currentMemberBook == null) {
+            throw new ReviewException(ReviewErrorCode.CURRENT_MEMBER_BOOK_NOT_FOUND);
+        }
+        return currentMemberBook;
+    }
+
+    private void updateExchangeStatusIfAllMembersReady(Long groupId, TradeType tradeType) {
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroup_GroupId(groupId);
+        if (matchedMembers.isEmpty()) {
+            throw new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND);
+        }
+        if (matchedMembers.size() != 2) {
+            return;
+        }
+
+        boolean allExchanging = matchedMembers.stream()
+                .allMatch(member -> member.getReadingStatus() == ReadingStatus.EXCHANGING);
+        boolean allReturning = matchedMembers.stream()
+                .allMatch(member -> member.getReadingStatus() == ReadingStatus.RETURNING);
+
+        if (!allExchanging && !allReturning) {
+            return;
+        }
+
+        ExchangeStatus initialExchangeStatus = resolveInitialExchangeStatus(tradeType);
+        matchedMembers.forEach(member -> member.updateExchangeStatus(initialExchangeStatus));
+    }
+
+    private ExchangeStatus resolveInitialExchangeStatus(TradeType tradeType) {
+        if (tradeType == TradeType.DIRECT) {
+            return ExchangeStatus.MEETING_SCHEDULE_WAITING;
+        }
+        return ExchangeStatus.TRACKING_REGISTER_WAITING;
+    }
+
     @Transactional(readOnly = true)
     public GroupReviewResponseDTO.GroupReviewDetailDTO getMyRelayReviewHistory(User user) {
         // 1. 내가 받은 리뷰 목록 조회 (RELAY 그룹만)
@@ -311,4 +432,3 @@ public class ReviewService {
                 .build();
     }
 }
-

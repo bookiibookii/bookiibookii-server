@@ -38,10 +38,10 @@ public class BookReview extends BaseEntity {
     @JoinColumn(name = "member_book_id", nullable = false)
     private MemberBook memberBook;
 
-    @Column(name = "star")
+    @Column(name = "star", nullable = false)
     private Double star;
 
-    @Column(name = "comment", length = 255)
+    @Column(name = "comment", length = 500)
     private String comment;
 
     public static BookReview create(
@@ -69,7 +69,7 @@ public class BookReview extends BaseEntity {
 
     private static void validateStar(Double star) {
         if (star == null) {
-            return;
+            throw new IllegalArgumentException("star must not be null");
         }
         if (star < STAR_MIN || star > STAR_MAX) {
             throw new IllegalArgumentException(

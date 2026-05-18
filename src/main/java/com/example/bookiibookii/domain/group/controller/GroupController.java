@@ -8,6 +8,7 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -66,7 +67,7 @@ public class GroupController implements GroupControllerDocs {
     @GetMapping
     public ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
             @AuthenticationPrincipal(expression = "user") User user, // 로그인 상태면 유저 정보
-            @ModelAttribute @Valid GroupRequestDTO.FilterDTO filter) {
+            @ParameterObject @ModelAttribute @Valid GroupRequestDTO.FilterDTO filter) {
 
         // 서비스에서 QueryDSL을 사용하여 필터링 및 추천 가중치가 적용된 목록
         GroupResponseDTO.GroupSliceResponseDTO result = groupService.getGroupList(user, filter);

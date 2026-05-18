@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -78,7 +79,7 @@ public interface GroupControllerDocs {
     })
     ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
             @AuthenticationPrincipal User user,
-            @ModelAttribute GroupRequestDTO.FilterDTO filter
+            @ParameterObject @ModelAttribute GroupRequestDTO.FilterDTO filter
     );
 
     @Operation(summary = "그룹 통합 검색 API", description = "제목, 저자, 태그를 기반으로 그룹을 통합 검색합니다. 결과 총 건수를 반환합니다.")

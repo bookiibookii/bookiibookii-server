@@ -1,8 +1,6 @@
 package com.example.bookiibookii.domain.group.repository;
 
 import com.example.bookiibookii.domain.group.entity.Meeting;
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -15,12 +13,28 @@ import java.util.Optional;
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
-    @Query(value = "SELECT * FROM meeting WHERE tracker_id = :trackerId AND reading_status = :status LIMIT 1", nativeQuery = true)
-    Optional<Meeting> findByTrackerIdAndStatusNative(@Param("trackerId") Long trackerId, @Param("status") String status);
+    boolean existsByGroup_GroupId(Long groupId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT m FROM Meeting m WHERE m.tracker.id = :trackerId AND m.readingStatus = :status")
-    Optional<Meeting> findByTrackerWithLock(@Param("trackerId") Long trackerId, @Param("status") ReadingStatus status);
+    @Query("""
+        select m
+        from Meeting m
+        join fetch m.group g
+        join fetch m.createdBy cb
+        join fetch cb.user
+        join fetch m.location
+        where g.groupId = :groupId
+    """)
+    Optional<Meeting> findByGroupIdForUpdate(@Param("groupId") Long groupId);
 
-    Optional<Meeting> findFirstByTrackerOrderByCreatedAtDesc(Tracker tracker);
+    @Query("""
+        select m
+        from Meeting m
+        join fetch m.group g
+        join fetch m.createdBy cb
+        join fetch cb.user
+        join fetch m.location
+        where g.groupId = :groupId
+    """)
+    Optional<Meeting> findByGroupId(@Param("groupId") Long groupId);
 }

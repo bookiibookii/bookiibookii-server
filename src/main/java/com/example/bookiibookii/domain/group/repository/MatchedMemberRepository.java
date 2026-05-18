@@ -5,7 +5,9 @@ import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -47,6 +49,20 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     List<WriterRow> findWriterRowsByGroupId(@Param("groupId") Long groupId);
 
     List<MatchedMember> findAllByGroup_GroupId(Long groupId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select distinct mm
+        from MatchedMember mm
+        join fetch mm.group g
+        join fetch mm.user u
+        left join fetch mm.currentMemberBook cmb
+        left join fetch cmb.book
+        left join fetch mm.memberBooks mb
+        left join fetch mb.book
+        where g.groupId = :groupId
+    """)
+    List<MatchedMember> findAllByGroupIdForUpdate(@Param("groupId") Long groupId);
 
     // 참여 시간 순 정렬 (TrackerService에서 순서 계산용)
     List<MatchedMember> findAllByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);

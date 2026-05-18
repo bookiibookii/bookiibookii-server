@@ -29,6 +29,14 @@ public class ReviewRequestDTO {
             String bookComment
     ) {}
 
+    public record BookReviewUpsertDTO(
+            @NotNull(message = "별점은 필수입니다.")
+            Double star,
+
+            @Size(max = 500, message = "책 리뷰는 500자 이내로 입력해주세요.")
+            String comment
+    ) {}
+
     /**
      * 2-B. 릴레이(Relay) 전용 통합 리뷰 DTO (릴레이 종료 후 파트너 리뷰 포함)
      * - 책 리뷰 필드와 파트너(상대방) 리뷰 필드를 모두 포함합니다.

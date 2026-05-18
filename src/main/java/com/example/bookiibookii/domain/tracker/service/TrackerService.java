@@ -2,7 +2,6 @@ package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
@@ -239,18 +238,6 @@ public class TrackerService {
                 .build();
 
         trackerRepository.save(tracker);
-
-        // DIRECT 거래 그룹의 경우 교환/반납 단계 미팅 레코드 사전 생성
-        if (group.getTradeType() == TradeType.DIRECT) {
-            meetingRepository.save(Meeting.builder()
-                    .tracker(tracker)
-                    .readingStatus(ReadingStatus.EXCHANGING)
-                    .build());
-            meetingRepository.save(Meeting.builder()
-                    .tracker(tracker)
-                    .readingStatus(ReadingStatus.RETURNING)
-                    .build());
-        }
 
         List<GroupBook> groupBooks = groupBookRepository.findAllByGroup_GroupId(event.groupId());
         if (!groupBooks.isEmpty()) {

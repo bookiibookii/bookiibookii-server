@@ -159,10 +159,10 @@ public class TrackerConverter {
         }
 
         if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
-            if (latestMeeting != null && latestMeeting.getMeetingTime() != null) {
+            if (latestMeeting != null && latestMeeting.getScheduledAt() != null) {
                 Location loc = latestMeeting.getLocation();
                 builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
-                        .meetingTime(latestMeeting.getMeetingTime())
+                        .meetingTime(latestMeeting.getScheduledAt())
                         .placeName(loc != null ? loc.getPlaceName() : null)
                         .address(loc != null ? loc.getAddress() : null)
                         .build());
@@ -186,8 +186,8 @@ public class TrackerConverter {
         }
 
         if ((status == ReadingStatus.EXCHANGING || status == ReadingStatus.RETURNING)
-                && latestMeeting != null && latestMeeting.getMeetingTime() != null) {
-            return (int) Math.max(0, ChronoUnit.DAYS.between(today, latestMeeting.getMeetingTime().toLocalDate()));
+                && latestMeeting != null && latestMeeting.getScheduledAt() != null) {
+            return (int) Math.max(0, ChronoUnit.DAYS.between(today, latestMeeting.getScheduledAt().toLocalDate()));
         }
 
         return 0;

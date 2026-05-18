@@ -82,6 +82,10 @@ public class MatchedMember extends BaseEntity {
         this.readingStatus = newStatus;
     }
 
+    public void updateExchangeStatus(ExchangeStatus newStatus) {
+        this.exchangeStatus = newStatus;
+    }
+
     public void markReviewAsWritten() {
         this.isReviewWritten = true;
     }

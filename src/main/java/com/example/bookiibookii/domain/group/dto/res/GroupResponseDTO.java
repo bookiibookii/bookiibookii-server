@@ -165,6 +165,7 @@ public class GroupResponseDTO {
             Long groupId,
             String groupName,
             String hostNickname,
+            String hostProfileImageUrl,
             String bookImage,
             Integer readingPeriod
     ) {}

@@ -25,6 +25,7 @@ public enum TrackerErrorCode implements BaseCode {
     MATCHED_AT_REQUIRED(HttpStatus.BAD_REQUEST, "TRACKER400_13", "매칭 완료 시각은 null일 수 없습니다."),
     INVALID_READING_PROGRESS(HttpStatus.BAD_REQUEST, "TRACKER400_14", "유효하지 않은 독서 진행 페이지입니다."),
     INVALID_BOOK_TOTAL_PAGES(HttpStatus.BAD_REQUEST, "TRACKER400_15", "책의 전체 페이지 수가 유효하지 않습니다."),
+    INVALID_MEETING_PHASE(HttpStatus.BAD_REQUEST, "TRACKER400_16", "직접 교환 약속을 처리할 수 있는 교환 단계가 아닙니다."),
 
 
     // --- 403 FORBIDDEN ---
@@ -33,6 +34,7 @@ public enum TrackerErrorCode implements BaseCode {
     NOT_TRACKER_OWNER(HttpStatus.FORBIDDEN, "TRACKER403_3", "해당 트래커를 조작할 권한이 없습니다. 현재 도서 소유자만 가능합니다."),
     TRACKER_ALREADY_EXISTS(HttpStatus.FORBIDDEN, "TRACKER403_4" , "이미 트래커가 존재하는 그룹입니다." ),
     NOT_RELAY_GROUP(HttpStatus.FORBIDDEN, "TRACKER403_5", "릴레이(1:1) 그룹에서만 조회가 가능합니다."),
+    NOT_GROUP_HOST(HttpStatus.FORBIDDEN, "TRACKER403_6", "그룹 HOST만 약속을 등록하거나 수정할 수 있습니다."),
     // --- 404 NOT_FOUND ---
     TRACKER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_1", "해당 트래커를 찾을 수 없습니다."),
     NEXT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_2", "다음 순번 주자를 찾을 수 없습니다."),
@@ -41,7 +43,9 @@ public enum TrackerErrorCode implements BaseCode {
     PARTNER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_5", "상대방 파트너 정보를 찾을 수 없습니다."),
 
     // --- 409 CONFLICT ---
-    ALREADY_SHIPPED(HttpStatus.CONFLICT, "TRACKER409_1", "이미 이번 교환 단계에서 배송을 등록했습니다.");
+    ALREADY_SHIPPED(HttpStatus.CONFLICT, "TRACKER409_1", "이미 이번 교환 단계에서 배송을 등록했습니다."),
+    MEETING_ALREADY_EXISTS(HttpStatus.CONFLICT, "TRACKER409_2", "이미 등록된 직접 교환 약속이 있습니다."),
+    MEETING_ALREADY_COMPLETED(HttpStatus.CONFLICT, "TRACKER409_3", "이미 교환 완료 처리되었습니다.");
 
     private final HttpStatus status;
     private final String code;

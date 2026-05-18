@@ -697,6 +697,7 @@ public class GroupService {
                 .groupId(group.getGroupId())
                 .groupName(group.getGroupName())
                 .hostNickname(group.getHost().getNickName())
+                .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
                 .bookImage(group.getBook().getImage())
                 .readingPeriod(group.getReadingPeriod())
                 .build();

@@ -1,81 +1,103 @@
 package com.example.bookiibookii.domain.group.entity;
 
-import com.example.bookiibookii.domain.group.enums.ConfirmationStatus;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.location.entity.Location;
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.global.entity.BaseEntity;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
-
+@Entity
 @Table(
         name = "meeting",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_tracker_status",
-                        columnNames = {"tracker_id", "tracker_status"}
-                )
-        }
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_meeting_group",
+                columnNames = "group_id"
+        )
 )
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
-@Entity
 public class Meeting extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long meetingId;
+    @Column(name = "meeting_id")
+    private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tracker_id", nullable = false)
-    private Tracker tracker;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "group_id", nullable = false)
+    private Groups group;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "reading_status", nullable = false)
-    private ReadingStatus readingStatus;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_matchedmember_id", nullable = false)
+    private MatchedMember createdBy;
 
-    @Column(name = "meeting_time")
-    private LocalDateTime meetingTime;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "host_confirmation_status", nullable = false)
-    @Builder.Default
-    private ConfirmationStatus hostConfirmationStatus = ConfirmationStatus.PENDING;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "guest_confirmation_status", nullable = false)
-    @Builder.Default
-    private ConfirmationStatus guestConfirmationStatus = ConfirmationStatus.PENDING;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 
-    public void confirm(RoleStatus role) {
-        if (role == RoleStatus.HOST) this.hostConfirmationStatus = ConfirmationStatus.CONFIRMED;
-        if (role == RoleStatus.GUEST) this.guestConfirmationStatus = ConfirmationStatus.CONFIRMED;
+    @Column(name = "address_detail", length = 200)
+    private String addressDetail;
+
+    @Column(name = "scheduled_at", nullable = false)
+    private LocalDateTime scheduledAt;
+
+    public static Meeting create(
+            Groups group,
+            MatchedMember createdBy,
+            Location location,
+            String addressDetail,
+            LocalDateTime scheduledAt
+    ) {
+        validate(group, createdBy, location, scheduledAt);
+
+        return Meeting.builder()
+                .group(group)
+                .createdBy(createdBy)
+                .location(location)
+                .addressDetail(addressDetail)
+                .scheduledAt(scheduledAt)
+                .build();
     }
 
-    public boolean isFullyConfirmed() {
-        return hostConfirmationStatus == ConfirmationStatus.CONFIRMED &&
-                guestConfirmationStatus == ConfirmationStatus.CONFIRMED;
-    }
+    public void update(
+            Location location,
+            String addressDetail,
+            LocalDateTime scheduledAt
+    ) {
+        Objects.requireNonNull(location, "location must not be null");
+        Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
 
-    public void setMeetingDetails(Location location, LocalDateTime time) {
         this.location = location;
-        this.meetingTime = time;
+        this.addressDetail = addressDetail;
+        this.scheduledAt = scheduledAt;
     }
 
-    public void resetConfirmation() {
-        this.hostConfirmationStatus = ConfirmationStatus.PENDING;
-        this.guestConfirmationStatus = ConfirmationStatus.PENDING;
-        this.meetingTime = null;
-        this.location = null;
+    private static void validate(
+            Groups group,
+            MatchedMember createdBy,
+            Location location,
+            LocalDateTime scheduledAt
+    ) {
+        Objects.requireNonNull(group, "group must not be null");
+        Objects.requireNonNull(createdBy, "createdBy must not be null");
+        Objects.requireNonNull(location, "location must not be null");
+        Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
     }
 }

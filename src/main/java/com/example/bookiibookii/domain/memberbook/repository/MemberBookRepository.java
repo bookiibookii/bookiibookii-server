@@ -38,6 +38,22 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
         """)
     List<MemberBook> findAllByMatchedMember_User_IdWithGroupAndBookAndHost(@Param("userId") Long userId);
 
+    @Query("""
+        SELECT DISTINCT mb FROM MemberBook mb
+        JOIN FETCH mb.matchedMember mm
+        JOIN FETCH mb.group g
+        JOIN FETCH mb.book b
+        JOIN FETCH g.host h
+        LEFT JOIN FETCH h.userImage
+        WHERE mm.user.id = :userId
+        AND mb.removedAt IS NULL
+        AND (g.groupName LIKE %:keyword%
+             OR b.title LIKE %:keyword%
+             OR b.author LIKE %:keyword%)
+        ORDER BY mb.updatedAt DESC
+        """)
+    List<MemberBook> searchMyLibrary(@Param("userId") Long userId, @Param("keyword") String keyword);
+
     Optional<MemberBook> findByMatchedMember_IdAndBook_IdAndIsMine(
             Long matchedMemberId,
             Long bookId,

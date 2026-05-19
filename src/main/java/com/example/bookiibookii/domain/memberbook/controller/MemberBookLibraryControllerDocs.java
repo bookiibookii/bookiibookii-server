@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.memberbook.controller;
 
+import com.example.bookiibookii.domain.memberbook.dto.req.LibraryMemberBookRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.LibraryMemberBookResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
@@ -42,6 +44,27 @@ public interface MemberBookLibraryControllerDocs {
     @GetMapping("/memberbooks")
     ApiResponse<List<LibraryMemberBookResponseDTO>> getLibraryMemberBooks(
             @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(
+            summary = "라이브러리 멤버북 검색",
+            description = """
+        현재 사용자의 라이브러리(MemberBook)에서 그룹명, 도서명, 저자명 키워드로 검색합니다.
+
+        - **엔드포인트**: `GET /api/library/memberbooks/search?keyword=`
+        - **검색 대상**: `groupName`, `title`, `author` (부분 일치, 대소문자 구분 DB 설정에 따름)
+        - **검색어 미입력·공백**: 전체 멤버북 목록 조회와 동일 (`GET /api/library/memberbooks`)
+        - **응답**: `LibraryMemberBookResponseDTO` 목록 (목록 조회 API와 동일 스키마, `groupName` 포함)
+        """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "검색 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/memberbooks/search")
+    ApiResponse<List<LibraryMemberBookResponseDTO>> searchLibraryMemberBooks(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @ModelAttribute LibraryMemberBookRequestDTO.SearchDTO request
     );
 
     @Operation(

@@ -24,18 +24,6 @@ public interface GroupBookRepository extends JpaRepository<GroupBook, Long> {
     Optional<GroupBook> findByUser_IdAndGroup_GroupId(Long userId, Long groupId);
 
     @Query("""
-        SELECT DISTINCT ub FROM GroupBook ub
-        JOIN FETCH ub.group g
-        JOIN FETCH g.book
-        JOIN FETCH g.host h
-        LEFT JOIN FETCH h.userImage
-        WHERE ub.user.id = :userId
-        AND ub.removedAt IS NULL
-        ORDER BY ub.updatedAt DESC
-        """)
-    List<GroupBook> findAllByUser_IdWithGroupAndBookAndHost(@Param("userId") Long userId);
-
-    @Query("""
         SELECT g.book.title
         FROM GroupBook ub
         JOIN ub.group g
@@ -47,25 +35,6 @@ public interface GroupBookRepository extends JpaRepository<GroupBook, Long> {
 
     // 완독한 책 개수 (서재에서 제거한 항목 제외)
     Long countByUser_IdAndRemovedAtIsNull(Long userId);
-
-
-
-    //검색로직
-    @Query("""
-    SELECT DISTINCT ub FROM GroupBook ub
-    JOIN FETCH ub.group g
-    JOIN FETCH g.book b
-    JOIN FETCH g.host h
-    LEFT JOIN FETCH h.userImage
-    WHERE ub.user.id = :userId
-    AND ub.removedAt IS NULL
-    AND (b.title LIKE %:keyword% 
-         OR b.author LIKE %:keyword% 
-         OR ub.comment LIKE %:keyword%)
-    ORDER BY ub.updatedAt DESC
-    """)
-    List<GroupBook> searchMyLibrary(@Param("userId") Long userId, @Param("keyword") String keyword);
-
 
     @Query("SELECT ub FROM GroupBook ub JOIN FETCH ub.user JOIN FETCH ub.group WHERE ub.group.groupId IN :groupIds")
     List<GroupBook> findByGroup_GroupIdInWithUserAndGroup(@Param("groupIds") List<Long> groupIds);

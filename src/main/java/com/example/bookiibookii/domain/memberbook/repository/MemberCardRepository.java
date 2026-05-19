@@ -64,7 +64,7 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
         JOIN FETCH creatorMm.user u
         LEFT JOIN FETCH u.userImage
         WHERE mm.user.id = :userId AND mc.bookmarked = true AND mc.hidden = false
-        ORDER BY mc.createdAt DESC
+        ORDER BY mc.updatedAt DESC
         """)
     List<MemberCard> findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(
             @Param("userId") Long userId

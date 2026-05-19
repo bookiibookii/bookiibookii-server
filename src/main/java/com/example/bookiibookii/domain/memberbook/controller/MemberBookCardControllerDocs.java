@@ -172,12 +172,14 @@ public interface MemberBookCardControllerDocs {
             - **엔드포인트**: `PATCH /api/member-books/cards/{cardId}/bookmark`
             - 카드 소유자이거나 같은 그룹 멤버만 북마크 가능합니다.
             - `MemberCard`가 없으면 생성한 뒤 `bookmarked`를 토글합니다.
+            - 내 화면에서 숨긴 카드(`hidden=true`)는 북마크 토글 불가 (`MB400_9`).
             - 응답 `bookmarked`: true = 북마크됨, false = 북마크 해제됨.
             - 목록·상세 조회(`MemberCardResponseDTO`)의 `isBookmarked`에 반영됩니다.
             """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "토글 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "숨긴 카드 북마크 시도 (MB400_9)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드 없음 또는 접근 권한 없음")
     })
     @PatchMapping("/cards/{cardId}/bookmark")

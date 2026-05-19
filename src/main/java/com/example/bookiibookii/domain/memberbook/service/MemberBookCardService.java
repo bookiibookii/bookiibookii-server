@@ -111,6 +111,7 @@ public class MemberBookCardService {
     /**
      * 카드 북마크 토글. 조회 가능한 카드만 북마크 가능(소유자 또는 그룹 멤버).
      * MemberCard가 없으면 생성 후 bookmarked를 토글합니다.
+     * 내 화면에서 숨긴 카드(hidden=true)는 북마크 토글 불가.
      *
      * @return 토글 후 북마크 여부 (true = 북마크됨, false = 북마크 해제됨)
      */
@@ -138,6 +139,10 @@ public class MemberBookCardService {
                                         MemberBookErrorCode.MEMBER_CARD_STATE_CONFLICT));
                     }
                 });
+
+        if (state.isHidden()) {
+            throw new MemberBookException(MemberBookErrorCode.HIDDEN_CARD_CANNOT_BOOKMARK);
+        }
 
         state.setBookmarked(!state.isBookmarked());
         return state.isBookmarked();

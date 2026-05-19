@@ -57,10 +57,11 @@ public class MemberBookLibraryService {
 
     @Transactional(readOnly = true)
     public List<LibraryMemberBookResponseDTO> searchLibraryMemberBooks(Long userId, String keyword) {
-        if (keyword == null || keyword.isBlank()) {
+        String normalizedKeyword = (keyword == null) ? null : keyword.trim();
+        if (normalizedKeyword == null || normalizedKeyword.isBlank()) {
             return getLibraryMemberBooks(userId);
         }
-        return toLibraryMemberBookResponseList(memberBookRepository.searchMyLibrary(userId, keyword));
+        return toLibraryMemberBookResponseList(memberBookRepository.searchMyLibrary(userId, normalizedKeyword));
     }
 
     private List<LibraryMemberBookResponseDTO> toLibraryMemberBookResponseList(List<MemberBook> memberBooks) {

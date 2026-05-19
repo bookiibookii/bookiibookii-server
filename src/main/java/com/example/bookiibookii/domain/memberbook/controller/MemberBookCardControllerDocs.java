@@ -176,11 +176,12 @@ public interface MemberBookCardControllerDocs {
             - **요청 body**: `{ "reaction": "LIKE" }` — `CardReactionType` (LIKE, SAD, CHEERUP, FEELYOU, AWESOME, FUN)
             - 동일 리액션을 다시 누르면 취소됩니다(토글). 응답 `active`: true = 적용, false = 취소.
             - 카드 소유자이거나 같은 그룹 멤버만 가능합니다.
+            - 내 화면에서 숨긴 카드(`hidden=true`)는 404로 처리됩니다(상세 조회와 동일).
             """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "토글 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드 없음, 그룹 멤버 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드 없음, 그룹 멤버 아님, 숨긴 카드"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "동시 요청 충돌 (MB409_2)")
     })
     @PatchMapping("/cards/{cardId}/reactions")

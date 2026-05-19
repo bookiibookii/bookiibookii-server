@@ -128,6 +128,7 @@ public class MemberBookCardService {
     /**
      * 독서카드 리액션 토글. 그룹 MatchedMember(본인 포함)만 가능.
      * 동일 리액션을 다시 누르면 취소됩니다.
+     * 내 화면에서 숨긴 카드(hidden=true)는 리액션 토글 불가.
      */
     public MemberCardReactionToggleResponseDTO toggleReaction(
             Long cardId,
@@ -139,6 +140,12 @@ public class MemberBookCardService {
 
         MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+        memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                .filter(MemberCard::isHidden)
+                .ifPresent(mc -> {
+                    throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+                });
 
         Optional<CardReaction> existing = cardReactionRepository.findByMatchedMember_IdAndCard_IdAndReaction(
                 matchedMember.getId(), cardId, reaction);

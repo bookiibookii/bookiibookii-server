@@ -21,7 +21,8 @@ public enum MemberBookErrorCode implements BaseCode {
     QUOTATION_NOT_ALLOWED_FOR_IMAGE(HttpStatus.BAD_REQUEST, "MB400_7", "IMAGE 타입 독서카드는 quotation을 변경할 수 없습니다."),
     BOOKMARKED_CARD_CANNOT_DELETE(HttpStatus.BAD_REQUEST, "MB400_8", "북마크된 카드입니다. 북마크를 취소하고 카드를 삭제해주세요."),
     HIDDEN_CARD_CANNOT_BOOKMARK(HttpStatus.BAD_REQUEST, "MB400_9", "내 화면에서 숨긴 카드는 북마크할 수 없습니다."),
-    MEMBER_CARD_STATE_CONFLICT(HttpStatus.CONFLICT, "MB409_1", "일시적인 충돌이 발생했습니다. 다시 시도해주세요.");
+    MEMBER_CARD_STATE_CONFLICT(HttpStatus.CONFLICT, "MB409_1", "일시적인 충돌이 발생했습니다. 다시 시도해주세요."),
+    CARD_REACTION_STATE_CONFLICT(HttpStatus.CONFLICT, "MB409_2", "일시적인 충돌이 발생했습니다. 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String code;

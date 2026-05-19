@@ -76,4 +76,30 @@ public class ApplicationResponseDTO {
         private String canceledAt; //취소한 시간
     }
 
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MyApplicationCardDTO {
+        private Long groupId;
+        private String groupName;
+        private String hostNickname;
+        private String hostProfileImageUrl;
+        private String bookImage;
+        private String bookTitle;
+        private String author;
+        private Integer readingPeriod;
+        private String applicationStatus; // PENDING / REJECTED
+    }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MyApplicationListDTO {
+        @Builder.Default
+        private List<MyApplicationCardDTO> applicationList = new ArrayList<>();
+        private Integer totalCount;
+    }
+
 }

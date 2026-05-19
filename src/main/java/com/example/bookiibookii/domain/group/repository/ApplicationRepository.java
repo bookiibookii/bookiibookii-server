@@ -79,5 +79,19 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     // 내가 게스트로 '신청 중'인 개수
     long countByGuestIdAndApplicationStatus(Long guestId, ApplicationStatus status);
 
+    // 내가 신청한 그룹 목록 조회 (PENDING/REJECTED, 그룹이 아직 RECRUITING 상태인 것만)
+    @Query("""
+        SELECT a FROM Application a
+        JOIN FETCH a.group g
+        JOIN FETCH g.book
+        JOIN FETCH g.host h
+        LEFT JOIN FETCH h.userImage
+        WHERE a.guest.id = :userId
+          AND a.applicationStatus IN ('PENDING', 'REJECTED')
+          AND g.groupStatus = 'RECRUITING'
+        ORDER BY a.createdAt DESC
+    """)
+    List<Application> findMyActiveApplications(@Param("userId") Long userId);
+
 }
 

@@ -15,15 +15,20 @@ import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateReques
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardImageResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardReactionCountDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardReactionToggleResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
 import com.example.bookiibookii.domain.memberbook.entity.CardImages;
+import com.example.bookiibookii.domain.memberbook.entity.CardReaction;
 import com.example.bookiibookii.domain.memberbook.entity.Cards;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.memberbook.entity.MemberCard;
+import com.example.bookiibookii.domain.memberbook.enums.CardReactionType;
 import com.example.bookiibookii.domain.memberbook.enums.CardType;
 import com.example.bookiibookii.domain.memberbook.exception.MemberBookException;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookErrorCode;
 import com.example.bookiibookii.domain.memberbook.repository.CardImagesRepository;
+import com.example.bookiibookii.domain.memberbook.repository.CardReactionRepository;
 import com.example.bookiibookii.domain.memberbook.repository.CardsRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
@@ -35,7 +40,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,6 +61,7 @@ public class MemberBookCardService {
     private final CardsRepository cardsRepository;
     private final CardImagesRepository cardImagesRepository;
     private final MemberCardRepository memberCardRepository;
+    private final CardReactionRepository cardReactionRepository;
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final CardImageS3Service cardImageS3Service;
@@ -81,11 +94,14 @@ public class MemberBookCardService {
                 ? Set.of()
                 : memberCardRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
 
+        CardReactionContext reactionContext = loadCardReactionContext(userId, cardIds);
+
         List<MemberCardResponseDTO> cardDTOs = cards.stream()
                 .map(card -> buildListItemResponse(
                         card,
                         presignedGetUrlExpirationMinutes,
-                        bookmarkedCardIds.contains(card.getId())
+                        bookmarkedCardIds.contains(card.getId()),
+                        reactionContext
                 ))
                 .toList();
 
@@ -105,7 +121,63 @@ public class MemberBookCardService {
         }
 
         boolean bookmarked = stateOpt.map(MemberCard::isBookmarked).orElse(false);
-        return buildListItemResponse(card, presignedGetUrlExpirationMinutes, bookmarked);
+        CardReactionContext reactionContext = loadCardReactionContext(userId, List.of(cardId));
+        return buildListItemResponse(card, presignedGetUrlExpirationMinutes, bookmarked, reactionContext);
+    }
+
+    /**
+     * 독서카드 리액션 토글. 그룹 MatchedMember(본인 포함)만 가능.
+     * 동일 리액션을 다시 누르면 취소됩니다.
+     * 내 화면에서 숨긴 카드(hidden=true)는 리액션 토글 불가.
+     */
+    public MemberCardReactionToggleResponseDTO toggleReaction(
+            Long cardId,
+            Long userId,
+            CardReactionType reaction
+    ) {
+        Cards card = getCardForDetail(cardId, userId);
+        Long groupId = card.getMemberBook().getGroup().getGroupId();
+
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+        memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                .filter(MemberCard::isHidden)
+                .ifPresent(mc -> {
+                    throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);
+                });
+
+        Optional<CardReaction> existing = cardReactionRepository.findByMatchedMember_IdAndCard_IdAndReaction(
+                matchedMember.getId(), cardId, reaction);
+
+        if (existing.isPresent()) {
+            cardReactionRepository.delete(existing.get());
+            return MemberCardReactionToggleResponseDTO.builder()
+                    .reaction(reaction)
+                    .active(false)
+                    .build();
+        }
+
+        try {
+            cardReactionRepository.saveAndFlush(CardReaction.create(card, matchedMember, reaction));
+            return MemberCardReactionToggleResponseDTO.builder()
+                    .reaction(reaction)
+                    .active(true)
+                    .build();
+        } catch (DataIntegrityViolationException e) {
+            cardReactionRepository.findByMatchedMember_IdAndCard_IdAndReaction(
+                            matchedMember.getId(), cardId, reaction)
+                    .ifPresentOrElse(
+                            cardReactionRepository::delete,
+                            () -> {
+                                throw new MemberBookException(MemberBookErrorCode.CARD_REACTION_STATE_CONFLICT);
+                            }
+                    );
+            return MemberCardReactionToggleResponseDTO.builder()
+                    .reaction(reaction)
+                    .active(false)
+                    .build();
+        }
     }
 
     /**
@@ -154,9 +226,17 @@ public class MemberBookCardService {
      */
     @Transactional(readOnly = true)
     public List<MemberCardResponseDTO> getMyBookmarkedCards(Long userId, int presignedGetUrlExpirationMinutes) {
-        return memberCardRepository.findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(userId)
+        List<Cards> cards = memberCardRepository.findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(mc -> buildListItemResponse(mc.getCard(), presignedGetUrlExpirationMinutes, true))
+                .map(MemberCard::getCard)
+                .toList();
+
+        List<Long> cardIds = cards.stream().map(Cards::getId).toList();
+        CardReactionContext reactionContext = loadCardReactionContext(userId, cardIds);
+
+        return cards.stream()
+                .map(card -> buildListItemResponse(
+                        card, presignedGetUrlExpirationMinutes, true, reactionContext))
                 .toList();
     }
 
@@ -488,7 +568,8 @@ public class MemberBookCardService {
     private MemberCardResponseDTO buildListItemResponse(
             Cards card,
             int presignedGetUrlExpirationMinutes,
-            boolean isBookmarked
+            boolean isBookmarked,
+            CardReactionContext reactionContext
     ) {
         MemberBook memberBook = card.getMemberBook();
         String bookTitle = "";
@@ -498,6 +579,7 @@ public class MemberBookCardService {
 
         String creatorName = resolveCreatorName(memberBook);
         String creatorProfileImageUrl = resolveCreatorProfileImageUrl(memberBook, presignedGetUrlExpirationMinutes);
+        CardReactionView reactionView = reactionContext.get(card.getId());
 
         return MemberCardResponseDTO.builder()
                 .cardId(card.getId())
@@ -513,7 +595,70 @@ public class MemberBookCardService {
                 .isBookmarked(isBookmarked)
                 .creatorName(creatorName)
                 .creatorProfileImageUrl(creatorProfileImageUrl)
+                .reactionCounts(buildReactionCounts(reactionView.counts()))
+                .myReactions(reactionView.myReactions())
                 .build();
+    }
+
+    private CardReactionContext loadCardReactionContext(Long userId, List<Long> cardIds) {
+        if (cardIds.isEmpty()) {
+            return CardReactionContext.empty();
+        }
+
+        Map<Long, Map<CardReactionType, Long>> countsByCardId = new HashMap<>();
+        for (Object[] row : cardReactionRepository.countByCardIdsGroupByReaction(cardIds)) {
+            Long cardId = (Long) row[0];
+            CardReactionType type = (CardReactionType) row[1];
+            Long count = (Long) row[2];
+            countsByCardId
+                    .computeIfAbsent(cardId, id -> new EnumMap<>(CardReactionType.class))
+                    .put(type, count);
+        }
+
+        Map<Long, Set<CardReactionType>> myReactionsByCardId = new HashMap<>();
+        for (CardReaction cardReaction : cardReactionRepository.findByUserIdAndCardIdIn(userId, cardIds)) {
+            myReactionsByCardId
+                    .computeIfAbsent(cardReaction.getCard().getId(), id -> EnumSet.noneOf(CardReactionType.class))
+                    .add(cardReaction.getReaction());
+        }
+
+        Map<Long, CardReactionView> byCardId = new HashMap<>();
+        Set<Long> allCardIds = new HashSet<>(cardIds);
+        allCardIds.addAll(countsByCardId.keySet());
+        allCardIds.addAll(myReactionsByCardId.keySet());
+
+        for (Long cardId : allCardIds) {
+            Map<CardReactionType, Long> counts = countsByCardId.getOrDefault(cardId, Map.of());
+            List<CardReactionType> myReactions = new ArrayList<>(myReactionsByCardId.getOrDefault(cardId, Set.of()));
+            byCardId.put(cardId, new CardReactionView(counts, myReactions));
+        }
+
+        return new CardReactionContext(byCardId);
+    }
+
+    private List<MemberCardReactionCountDTO> buildReactionCounts(Map<CardReactionType, Long> counts) {
+        return Arrays.stream(CardReactionType.values())
+                .map(type -> MemberCardReactionCountDTO.builder()
+                        .reaction(type)
+                        .count(counts.getOrDefault(type, 0L))
+                        .build())
+                .toList();
+    }
+
+    private record CardReactionView(Map<CardReactionType, Long> counts, List<CardReactionType> myReactions) {
+        static CardReactionView empty() {
+            return new CardReactionView(Map.of(), List.of());
+        }
+    }
+
+    private record CardReactionContext(Map<Long, CardReactionView> byCardId) {
+        static CardReactionContext empty() {
+            return new CardReactionContext(Map.of());
+        }
+
+        CardReactionView get(Long cardId) {
+            return byCardId.getOrDefault(cardId, CardReactionView.empty());
+        }
     }
 
     private MemberCardCreateResponseDTO buildResponse(

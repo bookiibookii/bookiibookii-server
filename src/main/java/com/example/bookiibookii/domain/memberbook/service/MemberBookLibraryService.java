@@ -50,8 +50,21 @@ public class MemberBookLibraryService {
      */
     @Transactional(readOnly = true)
     public List<LibraryMemberBookResponseDTO> getLibraryMemberBooks(Long userId) {
-        List<MemberBook> memberBooks = memberBookRepository.findAllByMatchedMember_User_IdWithGroupAndBookAndHost(userId);
+        return toLibraryMemberBookResponseList(
+                memberBookRepository.findAllByMatchedMember_User_IdWithGroupAndBookAndHost(userId)
+        );
+    }
 
+    @Transactional(readOnly = true)
+    public List<LibraryMemberBookResponseDTO> searchLibraryMemberBooks(Long userId, String keyword) {
+        String normalizedKeyword = (keyword == null) ? null : keyword.trim();
+        if (normalizedKeyword == null || normalizedKeyword.isBlank()) {
+            return getLibraryMemberBooks(userId);
+        }
+        return toLibraryMemberBookResponseList(memberBookRepository.searchMyLibrary(userId, normalizedKeyword));
+    }
+
+    private List<LibraryMemberBookResponseDTO> toLibraryMemberBookResponseList(List<MemberBook> memberBooks) {
         List<MemberBook> validMemberBooks = memberBooks.stream()
                 .filter(this::isValidForLibraryList)
                 .toList();

@@ -2,8 +2,10 @@ package com.example.bookiibookii.domain.memberbook.controller;
 
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
+import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardReactionToggleRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardBookmarkResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardReactionToggleResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
@@ -102,6 +104,18 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
         List<MemberCardResponseDTO> list = memberBookCardService.getMyBookmarkedCards(
                 user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.BOOKMARKED_CARDS_FOUND, list);
+    }
+
+    @Override
+    @PatchMapping("/cards/{cardId}/reactions")
+    public ApiResponse<MemberCardReactionToggleResponseDTO> toggleReaction(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId,
+            @Valid @RequestBody MemberCardReactionToggleRequestDTO request
+    ) {
+        MemberCardReactionToggleResponseDTO response = memberBookCardService.toggleReaction(
+                cardId, user.getId(), request.getReaction());
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.REACTION_TOGGLED, response);
     }
 
     @Override

@@ -18,9 +18,9 @@ import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
-import com.example.bookiibookii.domain.groupbook.dto.res.GroupBookResponseDTO;
-import com.example.bookiibookii.domain.groupbook.repository.GroupBookQueryRepository;
-import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberBookResponseDTO;
+import com.example.bookiibookii.domain.memberbook.repository.MemberBookQueryRepository;
+import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
 import com.example.bookiibookii.domain.location.dto.res.UserDeliveryResDTO;
 import com.example.bookiibookii.domain.location.dto.res.UserExchangeResDTO;
 import com.example.bookiibookii.domain.location.service.UserDeliveryService;
@@ -47,9 +47,9 @@ public class UserService {
     private final UserImageRepository userImageRepository;
     private final UserImageValidationService userImageValidationService;
     private final UserImageS3Service userImageS3Service;
-    private final GroupBookRepository groupBookRepository;
+    private final MemberBookRepository memberBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final GroupBookQueryRepository groupBookQueryRepository;
+    private final MemberBookQueryRepository memberBookQueryRepository;
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
     private final BookshelfService bookshelfService;
@@ -181,7 +181,7 @@ public class UserService {
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         // 완독 수 (로직에 따라 조건 추가 가능)
-        Long completeBookCount = groupBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
+        Long completeBookCount = memberBookRepository.countByMatchedMember_User_IdAndRemovedAtIsNull(userId);
         // 참여한 그룹 수 (타입별)
         Long relayCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.RELAY);
 
@@ -194,7 +194,7 @@ public class UserService {
                 .collect(Collectors.toList());
 
         // 최근 읽은 책 조회 (최대 3개)
-        List<GroupBookResponseDTO.MypageBookDto> recentBooks = groupBookQueryRepository.findRecentBooksWithRating(
+        List<MemberBookResponseDTO.MypageBookDto> recentBooks = memberBookQueryRepository.findRecentBooksWithRating(
                 userId,
                 PageRequest.of(0, 3)
         );

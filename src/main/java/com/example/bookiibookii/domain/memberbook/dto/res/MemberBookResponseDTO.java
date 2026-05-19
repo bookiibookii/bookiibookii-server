@@ -1,10 +1,11 @@
-package com.example.bookiibookii.domain.groupbook.dto.res;
+package com.example.bookiibookii.domain.memberbook.dto.res;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-public class GroupBookResponseDTO {
+public class MemberBookResponseDTO {
+
     @Getter
     @Builder
     @AllArgsConstructor

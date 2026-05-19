@@ -5,8 +5,10 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
-import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
+import com.example.bookiibookii.domain.review.entity.BookReview;
+import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBook;
@@ -32,7 +34,8 @@ import java.util.stream.Collectors;
 public class BookshelfService {
 
     private final UserBookRepository userBookRepository;
-    private final GroupBookRepository groupBookRepository;
+    private final MemberBookRepository memberBookRepository;
+    private final BookReviewRepository bookReviewRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final UserRepository userRepository;
     private final BookService bookService;
@@ -50,7 +53,14 @@ public class BookshelfService {
 
     // 완독 + 리뷰 완료 책 목록 조회
     private List<BookshelfResponseDTO.CompletedBookDto> buildCompletedBooks(Long userId) {
-        List<GroupBook> groupBooks = groupBookRepository.findCompletedBooksByUserId(userId);
+        List<MemberBook> memberBooks = memberBookRepository.findCompletedBooksByUserId(userId);
+
+        Map<Long, BookReview> reviewByMemberBookId = memberBooks.isEmpty()
+                ? Map.of()
+                : bookReviewRepository.findByMemberBook_IdIn(
+                        memberBooks.stream().map(MemberBook::getId).toList()
+                ).stream()
+                .collect(Collectors.toMap(br -> br.getMemberBook().getId(), br -> br));
 
         Map<Long, LocalDateTime> completionDateByGroupId = matchedMemberRepository
                 .findCompletedByUserId(userId)
@@ -61,17 +71,18 @@ public class BookshelfService {
                         (a, b) -> a
                 ));
 
-        return groupBooks.stream()
-                .map(gb -> {
-                    var book = gb.getGroup().getBook();
-                    LocalDateTime completedAt = completionDateByGroupId.get(gb.getGroup().getGroupId());
+        return memberBooks.stream()
+                .map(mb -> {
+                    var book = mb.getBook();
+                    BookReview review = reviewByMemberBookId.get(mb.getId());
+                    LocalDateTime completedAt = completionDateByGroupId.get(mb.getGroup().getGroupId());
                     return new BookshelfResponseDTO.CompletedBookDto(
-                            gb.getId(),
+                            mb.getId(),
                             book.getTitle(),
                             book.getAuthor(),
                             book.getImage(),
                             book.getCategory() != null ? book.getCategory().name() : null,
-                            gb.getRating(),
+                            review != null ? review.getStar() : null,
                             completedAt != null ? completedAt.toLocalDate() : null
                     );
                 })
@@ -159,8 +170,8 @@ public class BookshelfService {
 
     // 대표책 등록
     @Transactional
-    public void addRepresentativeBook(Long userId, Long userBookId, Long groupBookId) {
-        if (userBookId == null && groupBookId == null) {
+    public void addRepresentativeBook(Long userId, Long userBookId, Long memberBookId) {
+        if (userBookId == null && memberBookId == null) {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
@@ -177,7 +188,7 @@ public class BookshelfService {
         if (userBookId != null) {
             addRepresentativeFromFavorite(userId, userBookId, nextOrder);
         } else {
-            addRepresentativeFromCompleted(userId, groupBookId, nextOrder);
+            addRepresentativeFromCompleted(userId, memberBookId, nextOrder);
         }
     }
 
@@ -192,14 +203,19 @@ public class BookshelfService {
     }
 
     // 완독책을 대표책으로 등록
-    private void addRepresentativeFromCompleted(Long userId, Long groupBookId, int nextOrder) {
-        GroupBook groupBook = groupBookRepository.findByIdAndUser_Id(groupBookId, userId)
+    private void addRepresentativeFromCompleted(Long userId, Long memberBookId, int nextOrder) {
+        MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_IdWithBook(memberBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
-        if (groupBook.getRating() == null) {
+
+        boolean hasReview = bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
+                memberBook.getMatchedMember().getId(),
+                memberBook.getId()
+        );
+        if (!hasReview) {
             throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
         }
 
-        Book book = groupBook.getBook();
+        Book book = memberBook.getBook();
         Optional<UserBook> existing = userBookRepository.findByUser_IdAndBook_Id(userId, book.getId());
         if (existing.isPresent()) {
             existing.get().updateDisplayOrder(nextOrder);
@@ -226,7 +242,8 @@ public class BookshelfService {
         }
 
         boolean shouldKeep = userBook.getDisplayOrder() != null
-                || groupBookRepository.existsByUser_IdAndBook_IdAndRatingIsNotNull(userId, userBook.getBook().getId());
+                || memberBookRepository.existsByMatchedMember_User_IdAndBook_IdWithReview(
+                        userId, userBook.getBook().getId());
 
         if (shouldKeep) {
             userBook.updateIsFavorite(false);

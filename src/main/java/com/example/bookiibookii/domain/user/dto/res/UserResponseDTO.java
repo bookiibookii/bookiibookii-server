@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
 import com.example.bookiibookii.domain.location.dto.res.UserDeliveryResDTO;
 import com.example.bookiibookii.domain.location.dto.res.UserExchangeResDTO;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
-import com.example.bookiibookii.domain.groupbook.dto.res.GroupBookResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberBookResponseDTO;
 import lombok.Builder;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public class UserResponseDTO {
             Integer completeBook,
             Integer relayGroup,
             List<GroupResponseDTO.MypageGroupDto> groups,
-            List<GroupBookResponseDTO.MypageBookDto> books,
+            List<MemberBookResponseDTO.MypageBookDto> books,
             List<UserBookDto> userBooks,
             List<UserDeliveryResDTO.UserDeliveryDto> deliveries,
             List<UserExchangeResDTO.UserExchangeDto> exchanges

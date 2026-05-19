@@ -59,4 +59,32 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
             Long bookId,
             boolean isMine
     );
+
+    long countByMatchedMember_User_IdAndRemovedAtIsNull(Long userId);
+
+    @Query("""
+        SELECT mb FROM MemberBook mb
+        JOIN FETCH mb.group g
+        JOIN FETCH mb.book
+        JOIN FETCH mb.matchedMember mm
+        WHERE mm.user.id = :userId
+        AND mb.removedAt IS NULL
+        AND g.groupStatus = com.example.bookiibookii.domain.group.enums.GroupStatus.COMPLETED
+        ORDER BY mb.updatedAt DESC
+        """)
+    List<MemberBook> findCompletedBooksByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT CASE WHEN COUNT(br) > 0 THEN true ELSE false END
+        FROM MemberBook mb
+        JOIN mb.matchedMember mm
+        JOIN BookReview br ON br.memberBook = mb
+        WHERE mm.user.id = :userId
+        AND mb.book.id = :bookId
+        AND mb.removedAt IS NULL
+        """)
+    boolean existsByMatchedMember_User_IdAndBook_IdWithReview(
+            @Param("userId") Long userId,
+            @Param("bookId") Long bookId
+    );
 }

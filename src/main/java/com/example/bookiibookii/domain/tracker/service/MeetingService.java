@@ -70,12 +70,12 @@ public class MeetingService {
     public MeetingResponseDTO updateMeeting(Long groupId, MeetingRequestDTO request, User user) {
         getDirectGroupForUpdate(groupId);
         List<MatchedMember> members = getMembersForUpdate(groupId);
+        Meeting meeting = meetingRepository.findByGroupIdForUpdate(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
         MatchedMember me = findMe(members, user.getId());
         validateHost(me);
         validateMeetingPhase(members);
 
-        Meeting meeting = meetingRepository.findByGroupIdForUpdate(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
         Location location = getLocation(request.locationId());
         meeting.update(location, request.addressDetail(), request.scheduledAt());
 

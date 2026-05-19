@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.memberbook.controller;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardBookmarkResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Validated
 @RestController
@@ -89,6 +92,29 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
         MemberCardCreateResponseDTO response = memberBookCardService.updateCard(
                 cardId, user.getId(), request, PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARD_UPDATED, response);
+    }
+
+    @Override
+    @GetMapping("/cards/bookmarks")
+    public ApiResponse<List<MemberCardResponseDTO>> getMyBookmarkedCards(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        List<MemberCardResponseDTO> list = memberBookCardService.getMyBookmarkedCards(
+                user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.BOOKMARKED_CARDS_FOUND, list);
+    }
+
+    @Override
+    @PatchMapping("/cards/{cardId}/bookmark")
+    public ApiResponse<MemberCardBookmarkResponseDTO> toggleBookmark(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        boolean bookmarked = memberBookCardService.toggleBookmark(cardId, user.getId());
+        return ApiResponse.onSuccess(
+                MemberBookCardSuccessCode.BOOKMARK_TOGGLED,
+                MemberCardBookmarkResponseDTO.builder().bookmarked(bookmarked).build()
+        );
     }
 
     @Override

@@ -51,4 +51,22 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
             @Param("userId") Long userId,
             @Param("cardId") Long cardId
     );
+
+    /** 북마크 목록용: bookmarked = true, hidden = false 인 MemberCard + card·image·book·작성자 fetch */
+    @Query("""
+        SELECT mc FROM MemberCard mc
+        JOIN FETCH mc.matchedMember mm
+        JOIN FETCH mc.card c
+        LEFT JOIN FETCH c.cardImages
+        JOIN FETCH c.memberBook mb
+        JOIN FETCH mb.book
+        JOIN FETCH mb.matchedMember creatorMm
+        JOIN FETCH creatorMm.user u
+        LEFT JOIN FETCH u.userImage
+        WHERE mm.user.id = :userId AND mc.bookmarked = true AND mc.hidden = false
+        ORDER BY mc.updatedAt DESC
+        """)
+    List<MemberCard> findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(
+            @Param("userId") Long userId
+    );
 }

@@ -293,6 +293,41 @@ public class ApplicationService {
                 .build();
     }
 
+    // 내가 신청한 그룹 목록 조회
+    public ApplicationResponseDTO.MyApplicationListDTO getMyApplicationList(Long userId) {
+        List<Application> applications = applicationRepository.findMyActiveApplications(userId);
+
+        List<ApplicationResponseDTO.MyApplicationCardDTO> cards = applications.stream()
+                .map(this::toMyApplicationCardDTO)
+                .collect(Collectors.toList());
+
+        return ApplicationResponseDTO.MyApplicationListDTO.builder()
+                .applicationList(cards)
+                .totalCount(cards.size())
+                .build();
+    }
+
+    private ApplicationResponseDTO.MyApplicationCardDTO toMyApplicationCardDTO(Application application) {
+        Groups group = application.getGroup();
+        String hostProfileImageUrl = null;
+        if (group.getHost().getUserImage() != null) {
+            hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                    group.getHost().getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        }
+
+        return ApplicationResponseDTO.MyApplicationCardDTO.builder()
+                .groupId(group.getGroupId())
+                .groupName(group.getGroupName())
+                .hostNickname(group.getHost().getNickName())
+                .hostProfileImageUrl(hostProfileImageUrl)
+                .bookImage(group.getBook().getImage())
+                .bookTitle(group.getBook().getTitle())
+                .author(group.getBook().getAuthor())
+                .readingPeriod(group.getReadingPeriod())
+                .applicationStatus(application.getApplicationStatus().name())
+                .build();
+    }
+
     private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
         User guest = application.getGuest();
 

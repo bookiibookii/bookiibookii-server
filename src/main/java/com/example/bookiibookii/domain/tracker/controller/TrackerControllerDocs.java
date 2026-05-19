@@ -3,16 +3,12 @@ package com.example.bookiibookii.domain.tracker.controller;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,10 +21,7 @@ public interface TrackerControllerDocs {
     @GetMapping("/me/trackers")
     @Operation(
             summary = "나의 트래커 전체 리스트 조회",
-            description = """
-            나의 모든 트래커(RELAY/TOGETHER)를 조회합니다.
-            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
-            """
+            description = "나의 모든 트래커(RELAY/TOGETHER)를 조회합니다."
     )
     ApiResponse<List<TrackerListItemResDTO>> getTrackerList(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
@@ -46,32 +39,6 @@ public interface TrackerControllerDocs {
     ApiResponse<ReadingProgressResponseDTO> updateReadingProgress(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @RequestBody ReadingProgressRequestDTO request,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
-
-    // --- 2. 이미지 관련 ---
-
-    @Operation(summary = "배송 인증 사진 보기", description = "수령한 사람이 배송한 사람이 올린 배송 인증(SENDER_PROOF) 이미지를 조회합니다. Presigned GET URL을 반환하며, 같은 그룹 멤버만 조회 가능합니다.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "배송 인증 이미지 없음", content = @Content)
-    })
-    @GetMapping("/{groupId}/tracker/images/delivery")
-    ApiResponse<TrackerImageGetResponseDTO> getShippingProofImageUrl(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
-    );
-
-    @Operation(summary = "트래커 인증 이미지 업로드용 Presigned URL 발급", description = "배송 인증(SENDER_PROOF) 또는 수령 인증(RECEIVER_PROOF) 이미지를 S3에 업로드하기 위한 Presigned PUT URL을 발급합니다. " +
-            "발급된 presignedPutUrl로 PUT 요청 후 받은 s3Key를 배송 시작 등록 또는 도서 수령 완료 API에 전달하세요. URL 유효 시간은 10분입니다.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Presigned URL 발급 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "해당 그룹 멤버가 아님", content = @Content)
-    })
-    @PostMapping("/{groupId}/tracker/images/presigned-url")
-    ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForTrackerImage(
-            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 

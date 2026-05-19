@@ -33,9 +33,7 @@ public class TrackerConverter {
             MatchedMember me,
             MatchedMember partner,
             TrackerDisplayStatus displayStatus,
-            Integer remainingDays,
-            String myCurrentReaderProfileImageUrl,
-            String partnerCurrentReaderProfileImageUrl
+            Integer remainingDays
     ) {
         Groups group = me.getGroup();
 
@@ -45,8 +43,8 @@ public class TrackerConverter {
                 .displayStatus(displayStatus)
                 .tradeType(group.getTradeType())
                 .remainingDays(remainingDays)
-                .myCurrentBook(toBookInfo(me.getCurrentMemberBook(), myCurrentReaderProfileImageUrl))
-                .partnerCurrentBook(toBookInfo(partner.getCurrentMemberBook(), partnerCurrentReaderProfileImageUrl))
+                .myCurrentBook(toBookInfo(me.getCurrentMemberBook()))
+                .partnerCurrentBook(toBookInfo(partner.getCurrentMemberBook()))
                 .build();
     }
 
@@ -56,8 +54,6 @@ public class TrackerConverter {
             MatchedMember partner,
             TrackerDisplayStatus displayStatus,
             Integer dDay,
-            String myProfileImageUrl,
-            String partnerProfileImageUrl,
             List<TrackerStepInfo> steps
     ) {
         Groups group = me.getGroup();
@@ -69,19 +65,13 @@ public class TrackerConverter {
                 .displayStatus(displayStatus)
                 .displayStatusText(resolveDisplayStatusText(me, displayStatus))
                 .dDay(dDay)
-                .myBook(toBookInfo(
-                        me.getCurrentMemberBook(),
-                        myProfileImageUrl
-                ))
-                .partnerBook(toBookInfo(
-                        partner.getCurrentMemberBook(),
-                        partnerProfileImageUrl
-                ))
+                .myBook(toBookInfo(me.getCurrentMemberBook()))
+                .partnerBook(toBookInfo(partner.getCurrentMemberBook()))
                 .steps(steps)
                 .build();
     }
 
-    public static BookInfo toBookInfo(MemberBook memberBook, String currentReaderProfileImageUrl) {
+    public static BookInfo toBookInfo(MemberBook memberBook) {
         Book book = memberBook.getBook();
         User currentReader = memberBook.getMatchedMember().getUser();
 
@@ -92,7 +82,6 @@ public class TrackerConverter {
                 .currentPage(memberBook.getCurrentPage())
                 .isOwnerBook(memberBook.isMine())
                 .currentReaderNickname(currentReader.getNickName())
-                .currentReaderProfileImageUrl(currentReaderProfileImageUrl)
                 .currentReadingRate(calculateProgressRate(memberBook.getCurrentPage(), book.getTotalPages()))
                 .build();
     }

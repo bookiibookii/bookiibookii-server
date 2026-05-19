@@ -6,9 +6,6 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
 @Table(name = "delivery")
 @Getter
@@ -48,10 +45,6 @@ public class Delivery extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_matchedmember_id", nullable = false)
     private MatchedMember receiver;
-
-    @Builder.Default
-    @OneToMany(mappedBy = "delivery", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TrackingImage> trackingImages = new ArrayList<>();
 
     public void complete(LocalDateTime completedAt) {
         this.endDate = completedAt;

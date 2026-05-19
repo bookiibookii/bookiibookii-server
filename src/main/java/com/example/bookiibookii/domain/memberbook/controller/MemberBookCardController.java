@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.memberbook.controller;
 
-import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardReactionToggleRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;

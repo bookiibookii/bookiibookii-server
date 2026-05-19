@@ -2,9 +2,7 @@ package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
-import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageSuccessCode;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerSuccessCode;
-import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.tracker.service.TrackerService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -48,25 +46,6 @@ public class TrackerController implements TrackerControllerDocs {
                 TrackerSuccessCode.TRACKER_READING_PROGRESS_OK,
                 trackerService.updateReadingProgress(groupId, request, user)
         );
-    }
-
-    // --- 이미지 관련 (Proof/Presigned) ---
-    @GetMapping("/{groupId}/tracker/images/delivery")
-    public ApiResponse<TrackerImageGetResponseDTO> getShippingProofImageUrl(
-            @PathVariable Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        TrackerImageGetResponseDTO response = trackerService.getShippingProofImageUrl(groupId, user);
-        return ApiResponse.onSuccess(TrackerImageSuccessCode.TRACKING_IMAGE_FOUND, response);
-    }
-
-    @PostMapping("/{groupId}/tracker/images/presigned-url")
-    public ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForTrackerImage(
-            @PathVariable Long groupId,
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        PresignedUrlResponseDTO responseDTO = trackerService.getPresignedPutUrlForTrackerImage(groupId, user);
-        return ApiResponse.onSuccess(TrackerImageSuccessCode.TRACKING_PRESIGNED_URL_ISSUED, responseDTO);
     }
 
     /*

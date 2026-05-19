@@ -17,26 +17,20 @@ import com.example.bookiibookii.domain.notification.publisher.DomainEventPublish
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
-import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.entity.TrackingImage;
 import com.example.bookiibookii.domain.tracker.enums.DeliveryStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
-import com.example.bookiibookii.domain.tracker.exception.TrackerImageException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
-import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageErrorCode;
 import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
-import com.example.bookiibookii.domain.tracker.repository.TrackingImageRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.tracker.resolver.*;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,9 +59,6 @@ public class TrackerService {
 
     private final TrackerRepository trackerRepository;
     private final DeliveryRepository deliveryRepository;
-    private final TrackingImageRepository trackingImageRepository;
-    private final TrackerImageValidationService trackerImageValidationService;
-    private final TrackerImageS3Service trackerImageS3Service;
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupBookRepository groupBookRepository;
     private final GroupsRepository groupsRepository;
@@ -76,11 +67,7 @@ public class TrackerService {
     private final TrackerPartnerResolver trackerPartnerResolver;
     private final TrackerDisplayStatusResolver trackerDisplayStatusResolver;
     private final TrackerDueDateResolver trackerDueDateResolver;
-    private final UserProfileImageUrlResolver userProfileImageUrlResolver;
     private final TrackerStepAssembler trackerStepAssembler;
-
-    private static final int TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES = 10;
-    private static final int TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES = 60;
 
     // 트래커 리스트 조회
     public List<TrackerListItemResDTO> getTrackerList(User user) {
@@ -101,9 +88,7 @@ public class TrackerService {
                             me,
                             partner,
                             displayStatus,
-                            trackerDueDateResolver.calculate(displayStatus, me.getGroup()),
-                            userProfileImageUrlResolver.resolve(me.getCurrentMemberBook().getMatchedMember().getUser()),
-                            userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser())
+                            trackerDueDateResolver.calculate(displayStatus, me.getGroup())
                     );
                 })
                 .toList();
@@ -139,8 +124,6 @@ public class TrackerService {
                 partner,
                 displayStatus,
                 trackerDueDateResolver.calculate(displayStatus, me.getGroup()),
-                userProfileImageUrlResolver.resolve(me.getCurrentMemberBook().getMatchedMember().getUser()),
-                userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser()),
                 trackerStepAssembler.assemble(me)
         );
     }
@@ -189,32 +172,6 @@ public class TrackerService {
                 .readingStatusText(updatedStatus.getDescription())
                 .dDay(calculateReadingDDay(updatedStatus, me.getGroup()))
                 .build();
-    }
-
-    // --- 이미지 관련 ---
-
-    public PresignedUrlResponseDTO getPresignedPutUrlForTrackerImage(Long groupId, User user) {
-        validateGroupMember(groupId, user.getId());
-        return trackerImageS3Service.generatePresignedPutUrl(TRACKER_IMAGE_PRESIGNED_URL_EXPIRATION_MINUTES);
-    }
-
-    public TrackerImageGetResponseDTO getShippingProofImageUrl(Long groupId, User user) {
-        validateGroupMember(groupId, user.getId());
-        MatchedMember me = getMyMatchedMember(groupId, user.getId());
-
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        Delivery shippingDelivery = deliveryRepository
-                .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
-                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
-
-        TrackingImage image = trackingImageRepository
-                .findTopByDelivery_IdOrderByCreatedAtAsc(shippingDelivery.getId())
-                .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
-
-        String presignedGetUrl = trackerImageS3Service.generatePresignedGetUrl(image.getS3Key(), TRACKER_IMAGE_GET_URL_EXPIRATION_MINUTES);
-        return TrackerImageGetResponseDTO.builder().presignedGetUrl(presignedGetUrl).build();
     }
 
     // --- 트래커 생성 ---
@@ -378,8 +335,6 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
 
-        validateTrackerImageS3Key(request.s3Key());
-
         Delivery shippingDelivery = Delivery.builder()
                 .id(UUID.randomUUID().toString())
                 .tracker(tracker)
@@ -392,16 +347,11 @@ public class TrackerService {
                 .build();
         deliveryRepository.save(shippingDelivery);
 
-        trackingImageRepository.save(TrackingImage.builder()
-                .delivery(shippingDelivery)
-                .s3Key(request.s3Key())
-                .build());
-
         publisher.publish(new TrackerNotificationEvent(SHIPPING_REGISTERED, user.getId(), groupId, null));
     }
 
     @Transactional
-    public void registerReceive(Long groupId, TrackerReceiveRequestDTO request, User user) {
+    public void registerReceive(Long groupId, User user) {
         Tracker tracker = trackerRepository.findByGroupIdForUpdate(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
 
@@ -416,14 +366,7 @@ public class TrackerService {
                 .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS));
 
-        validateTrackerImageS3Key(request.s3Key());
-
         shippingDelivery.complete(LocalDateTime.now()); // SHIPPING → RETURNED
-
-        trackingImageRepository.save(TrackingImage.builder()
-                .delivery(shippingDelivery)
-                .s3Key(request.s3Key())
-                .build());
 
         // 남은 SHIPPING 배송이 없으면 → 양측 수령 완료 → 다음 단계 진행
         if (!deliveryRepository.existsByTrackerAndDeliveryStatus(tracker, DeliveryStatus.SHIPPING)) {
@@ -541,19 +484,6 @@ public class TrackerService {
             log.info("상대방 확인 대기 중.");
         }
     } */
-
-    // --- 내부 유틸 ---
-    private void validateTrackerImageS3Key(String s3Key) {
-        if (!trackerImageValidationService.isValidS3Key(s3Key)) {
-            throw new TrackerImageException(TrackerImageErrorCode.INVALID_S3_KEY_FORMAT);
-        }
-        if (!trackerImageS3Service.doesImageExist(s3Key)) {
-            throw new TrackerImageException(TrackerImageErrorCode.IMAGE_NOT_FOUND_IN_S3);
-        }
-        if (trackingImageRepository.existsByS3Key(s3Key)) {
-            throw new TrackerImageException(TrackerImageErrorCode.DUPLICATE_S3_KEY);
-        }
-    }
 
     // --- Helpers ---
     private void validateGroupMember(Long groupId, Long userId) {

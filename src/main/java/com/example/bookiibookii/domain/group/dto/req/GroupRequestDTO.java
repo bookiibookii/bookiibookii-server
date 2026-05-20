@@ -27,6 +27,8 @@ public class GroupRequestDTO {
         @NotNull(message = "교환 방식은 필수입니다.")
         @Schema(description = "교환 방식 (DIRECT: 직거래, DELIVERY: 택배 교환)", example = "DIRECT")
         private TradeType tradeType;
+        @Schema(description = "그룹 생성 시 선택한 장소 id. DELIVERY는 내 배송지 id, DIRECT는 내 희망교환장소 id입니다.", example = "1")
+        private Long selectedPlaceId;
         @Schema(description = "희망 교환 장소 또는 배송지 (직거래 시 필수, 마이페이지 사전 설정값)", example = "서울 동작구 상도동")
         private String preferRegion;
         @NotBlank(message = "그룹명은 필수입니다.")

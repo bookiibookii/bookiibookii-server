@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.repository;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.DeliveryStatus;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,4 +33,29 @@ public interface DeliveryRepository extends JpaRepository<Delivery, String> {
 
     boolean existsByTrackerAndSenderIdAndDeliveryStatus(Tracker tracker, Long senderId, DeliveryStatus status);
 
+    Optional<Delivery> findByGroup_GroupIdAndExchangeRoundAndSender_Id(
+            Long groupId,
+            ExchangeRound exchangeRound,
+            Long senderId
+    );
+
+    Optional<Delivery> findByGroup_GroupIdAndExchangeRoundAndSender_IdAndReceiver_Id(
+            Long groupId,
+            ExchangeRound exchangeRound,
+            Long senderId,
+            Long receiverId
+    );
+
+    boolean existsByGroup_GroupIdAndExchangeRoundAndSender_Id(
+            Long groupId,
+            ExchangeRound exchangeRound,
+            Long senderId
+    );
+
+    boolean existsByGroup_GroupIdAndExchangeRoundAndSender_IdAndReceiver_Id(
+            Long groupId,
+            ExchangeRound exchangeRound,
+            Long senderId,
+            Long receiverId
+    );
 }

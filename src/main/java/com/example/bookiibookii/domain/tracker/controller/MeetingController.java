@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.req.MeetingRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.MeetingDefaultPlaceResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingResponseDTO;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerSuccessCode;
 import com.example.bookiibookii.domain.tracker.service.MeetingService;
@@ -56,6 +57,17 @@ public class MeetingController implements MeetingControllerDocs {
         return ApiResponse.onSuccess(
                 TrackerSuccessCode.TRACKER_MEETING_GET_OK,
                 meetingService.getMeeting(groupId, user)
+        );
+    }
+
+    @GetMapping("/default-place")
+    public ApiResponse<MeetingDefaultPlaceResponseDTO> getDefaultPlace(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        return ApiResponse.onSuccess(
+                TrackerSuccessCode.TRACKER_MEETING_DEFAULT_PLACE_GET_OK,
+                meetingService.getDefaultPlace(groupId, user)
         );
     }
 

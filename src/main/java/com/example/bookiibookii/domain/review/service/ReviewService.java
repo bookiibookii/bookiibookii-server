@@ -26,6 +26,7 @@ import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
+import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,7 @@ public class ReviewService {
     private final GroupReviewRepository groupReviewRepository;
     private final GroupsRepository groupsRepository;
     private final DomainEventPublisher publisher;
+    private final DeliveryAddressService deliveryAddressService;
 
     @Transactional
     public BookReviewResponseDTO createBookReview(
@@ -349,6 +351,10 @@ public class ReviewService {
 
         ExchangeStatus initialExchangeStatus = resolveInitialExchangeStatus(tradeType);
         matchedMembers.forEach(member -> member.updateExchangeStatus(initialExchangeStatus));
+
+        if (tradeType == TradeType.DELIVERY && allExchanging) {
+            deliveryAddressService.createFirstExchangeAddressesIfAbsent(groupId);
+        }
     }
 
     private ExchangeStatus resolveInitialExchangeStatus(TradeType tradeType) {

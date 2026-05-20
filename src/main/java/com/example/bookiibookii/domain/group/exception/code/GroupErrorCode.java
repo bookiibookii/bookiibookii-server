@@ -39,12 +39,19 @@ public enum GroupErrorCode implements BaseCode {
     GROUP_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_20", "그룹명을 입력해야 합니다."),
     INVALID_RULES(HttpStatus.BAD_REQUEST, "GROUP400_21", "규칙은 1개 이상 5개 이하로 입력해야 합니다."),
     READING_STYLE_TAG_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_22", "독서 스타일 규칙은 1개 이상 선택해야 합니다."),
+    GROUP_SELECTED_PLACE_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_23", "그룹 생성 시 선택 장소가 필요합니다."),
+    INVALID_GROUP_SELECTED_PLACE(HttpStatus.BAD_REQUEST, "GROUP400_24", "그룹 교환 방식과 선택 장소가 일치하지 않습니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),
     HOST_CANNOT_APPLY(HttpStatus.FORBIDDEN, "GROUP403_2", "Host는 신청할 수 없습니다."),
     HOST_CANNOT_LEAVE(HttpStatus.FORBIDDEN, "GROUP403_3","Host는 그룹을 떠날 수 없습니다."),
-    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다.")
+    FORBIDDEN_GROUP_ACCESS(HttpStatus.FORBIDDEN, "GROUP403_4", "해당 그룹의 멤버가 아닙니다."),
+    NOT_MY_DELIVERY_ADDRESS(HttpStatus.FORBIDDEN, "GROUP403_5", "본인의 배송지만 선택할 수 있습니다."),
+    NOT_MY_EXCHANGE_PLACE(HttpStatus.FORBIDDEN, "GROUP403_6", "본인의 희망교환장소만 선택할 수 있습니다."),
+
+    // 404 Not Found
+    GROUP_SELECTED_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_7", "그룹 생성 시 선택한 장소를 찾을 수 없습니다.")
 
 ;
 
@@ -53,4 +60,3 @@ public enum GroupErrorCode implements BaseCode {
     private final String message;
 
 }
-

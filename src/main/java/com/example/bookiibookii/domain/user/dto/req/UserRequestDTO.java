@@ -1,11 +1,8 @@
 package com.example.bookiibookii.domain.user.dto.req;
 
 import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
-import com.example.bookiibookii.domain.location.dto.req.UserDeliveryReqDTO;
-import com.example.bookiibookii.domain.location.dto.req.UserExchangeReqDTO;
 import com.example.bookiibookii.domain.user.enums.Gender;
 import com.example.bookiibookii.domain.user.enums.Tag;
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -38,28 +35,19 @@ public class UserRequestDTO {
             String introduction
     ){}
 
-    public record MypageReqDTO (
+    public record MypageReqDTO(
             @NotBlank
             @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String nickname,
 
-            @Schema(description = "프로필 이미지 S3 키. Presigned URL로 업로드 후 받은 값. 미전달 시 프로필 이미지 변경 안 함.", example = "image/users/1/550e8400-e29b-41d4-a716-446655440000")
-            String s3Key,
+            @NotNull(message = "성별은 필수 입력 사항입니다.")
+            Gender gender,
 
-            String introduction,
+            @NotNull(message = "생년월일은 필수 입력 사항입니다.")
+            @Past(message = "과거 날짜만 입력 가능합니다.")
+            LocalDate birth,
 
-            @Schema(description = "추가할 배송지 목록. null이면 변경 없음.")
-            @Valid
-            List<UserDeliveryReqDTO.AddReqDTO> deliveriesToAdd,
-
-            @Schema(description = "삭제할 배송지 ID 목록. null이면 변경 없음.")
-            List<Long> deliveryIdsToDelete,
-
-            @Schema(description = "추가할 교환 장소 목록. null이면 변경 없음.")
-            @Valid
-            List<UserExchangeReqDTO.AddReqDTO> exchangesToAdd,
-
-            @Schema(description = "삭제할 교환 장소 ID 목록. null이면 변경 없음.")
-            List<Long> exchangeIdsToDelete
+            /** Presigned URL로 업로드 후 받은 s3Key. null이면 프로필 이미지 변경 안 함. */
+            String s3Key
     ){}
 }

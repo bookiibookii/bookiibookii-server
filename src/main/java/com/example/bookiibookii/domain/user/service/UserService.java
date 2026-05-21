@@ -14,8 +14,6 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
-import com.example.bookiibookii.domain.location.service.UserDeliveryService;
-import com.example.bookiibookii.domain.location.service.UserExchangeService;
 import com.example.bookiibookii.domain.review.entity.MemberReview;
 import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
@@ -47,8 +45,6 @@ public class UserService {
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
     private final BookshelfService bookshelfService;
-    private final UserDeliveryService userDeliveryService;
-    private final UserExchangeService userExchangeService;
     private final MemberReviewRepository memberReviewRepository;
 
     // 소셜 유저 조회 or 생성
@@ -251,19 +247,7 @@ public class UserService {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        if (request.deliveryIdsToDelete() != null) {
-            request.deliveryIdsToDelete().forEach(id -> userDeliveryService.deleteDelivery(userId, id));
-        }
-        if (request.deliveriesToAdd() != null) {
-            request.deliveriesToAdd().forEach(req -> userDeliveryService.addDelivery(userId, req));
-        }
-
-        if (request.exchangeIdsToDelete() != null) {
-            request.exchangeIdsToDelete().forEach(id -> userExchangeService.deleteExchange(userId, id));
-        }
-        if (request.exchangesToAdd() != null) {
-            request.exchangesToAdd().forEach(req -> userExchangeService.addExchange(userId, req));
-        }
+        user.updateUserInform(request.gender(), request.birth());
     }
 
     private void requireAvailableNickname(String nickname) {

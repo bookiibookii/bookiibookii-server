@@ -129,10 +129,8 @@ public interface UserControllerDocs {
     @Operation(
             summary = "마이페이지 정보 수정 API",
             description = """
-            닉네임, 프로필 이미지, 자기소개, 배송지, 교환 장소를 한 번에 수정합니다.
-
-            - 배송지·교환 장소: ToAdd(추가 목록), IdsToDelete(삭제할 ID 목록)로 전달. null이면 변경 없음.
-            - 삭제 후 추가 순서로 처리되므로 교체(삭제+추가)도 한 번에 가능.
+            닉네임, 성별, 생년월일, 프로필 이미지를 수정합니다.
+            - 프로필 이미지: /api/users/me/image/presigned-url로 Presigned URL 발급 후 업로드하고, s3Key를 전달합니다. null이면 변경 없음.
             """
     )
     @ApiResponses({

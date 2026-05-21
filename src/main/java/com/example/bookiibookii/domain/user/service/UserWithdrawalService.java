@@ -20,6 +20,16 @@ public class UserWithdrawalService {
     private final RedisUtil redisUtil;
 
     public void withdraw(User user, WithdrawalReason reason, String customReason) {
+        if (reason == null) {
+            throw new IllegalArgumentException("탈퇴 사유는 필수입니다.");
+        }
+        if (reason == WithdrawalReason.CUSTOM_INPUT && (customReason == null || customReason.isBlank())) {
+            throw new IllegalArgumentException("직접 입력 사유는 필수입니다.");
+        }
+        if (reason != WithdrawalReason.CUSTOM_INPUT) {
+            customReason = null;
+        }
+
         AgeGroup ageGroup = user.getBirth() != null
                 ? AgeGroup.from(user.getBirth())
                 : AgeGroup.FORTIES_AND_ABOVE;
@@ -30,7 +40,7 @@ public class UserWithdrawalService {
 
         UserWithdrawal withdrawal = UserWithdrawal.builder()
                 .reason(reason)
-                .customReason(reason == WithdrawalReason.CUSTOM_INPUT ? customReason : null)
+                .customReason(customReason)
                 .ageGroup(ageGroup)
                 .gender(gender)
                 .build();

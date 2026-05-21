@@ -100,6 +100,17 @@ public class UserController implements UserControllerDocs{
         return ApiResponse.onSuccess(UserSuccessCode.UPDATE_MYPAGE_SUCCESS, null);
     }
 
+    // 한줄 소개 수정
+    @Override
+    @PatchMapping("/api/mypage/introduction")
+    public ApiResponse<Void> updateIntroduction(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.UpdateIntroductionReqDTO request
+    ) {
+        userService.updateIntroduction(user.getId(), request.introduction());
+        return ApiResponse.onSuccess(UserSuccessCode.UPDATE_INTRODUCTION_SUCCESS, null);
+    }
+
     // 타 유저 프로필 조회
     @Override
     @GetMapping("/api/profiles/{nickname}")

@@ -140,6 +140,24 @@ public interface UserControllerDocs {
     ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
 
     @Operation(
+            summary = "한줄 소개 수정 API",
+            description = """
+            유저의 한줄 소개를 수정합니다.
+            - introduction: 최대 255자. null 또는 빈 문자열 전달 시 소개 삭제.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "한줄 소개 수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "255자 초과"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @PatchMapping("/api/mypage/introduction")
+    ApiResponse<Void> updateIntroduction(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.UpdateIntroductionReqDTO request
+    );
+
+    @Operation(
             summary = "나의 책장 조회 API",
             description = """
             - completedBooks: 완독한 책 목록 (완독날짜, 책 제목, 작가, 장르, 별점)

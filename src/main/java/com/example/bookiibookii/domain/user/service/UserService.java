@@ -225,6 +225,14 @@ public class UserService {
                 .build();
     }
 
+    // 한줄 소개 수정
+    @Transactional
+    public void updateIntroduction(Long userId, String introduction) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        user.updateIntroduction(introduction);
+    }
+
     // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)
     public Long findUserIdByNickname(String nickname) {
         return userRepository.findByNickName(nickname)

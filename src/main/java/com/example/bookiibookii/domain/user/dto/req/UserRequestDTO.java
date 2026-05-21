@@ -35,6 +35,11 @@ public class UserRequestDTO {
             String introduction
     ){}
 
+    public record UpdateIntroductionReqDTO(
+            @Size(max = 255, message = "한줄 소개는 255자 이하로 입력해주세요.")
+            String introduction
+    ) {}
+
     public record MypageReqDTO(
             @NotBlank
             @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")

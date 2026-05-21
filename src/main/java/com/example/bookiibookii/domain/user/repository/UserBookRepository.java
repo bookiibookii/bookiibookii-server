@@ -55,6 +55,20 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
 
     long countByUser_IdAndIsFavoriteTrueAndDisplayOrderIsNotNull(Long userId);
 
+    @Query("""
+        select new com.example.bookiibookii.domain.user.dto.res.UserResponseDTO$UserBookDto(
+            b.title,
+            b.author,
+            b.image
+        )
+        from UserBook ub
+        join ub.book b
+        where ub.user.id = :userId
+          and ub.displayOrder is not null
+        order by ub.displayOrder asc
+    """)
+    List<UserResponseDTO.UserBookDto> findRepresentativeUserBooks(@Param("userId") Long userId);
+
     @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE UserBook ub SET ub.displayOrder = null

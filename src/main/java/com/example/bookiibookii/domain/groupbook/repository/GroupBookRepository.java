@@ -55,4 +55,23 @@ public interface GroupBookRepository extends JpaRepository<GroupBook, Long> {
     List<GroupBook> findCompletedBooksByUserId(@Param("userId") Long userId);
 
     boolean existsByUser_IdAndBook_IdAndRatingIsNotNull(Long userId, Long bookId);
+
+    @Query("""
+        SELECT gb FROM GroupBook gb
+        JOIN FETCH gb.book
+        JOIN FETCH gb.group
+        WHERE gb.user.id = :userId
+          AND gb.rating IS NOT NULL
+          AND gb.removedAt IS NULL
+        ORDER BY gb.updatedAt DESC
+    """)
+    List<GroupBook> findReviewedBooksByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        SELECT COUNT(gb) FROM GroupBook gb
+        WHERE gb.user.id = :userId
+          AND gb.rating IS NOT NULL
+          AND gb.removedAt IS NULL
+    """)
+    long countReviewedBooksByUserId(@Param("userId") Long userId);
 }

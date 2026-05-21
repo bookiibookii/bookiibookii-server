@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.user.controller;
 
 import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
-import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.user.dto.req.BookshelfRequestDTO;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
@@ -23,8 +22,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Validated
 @RestController
@@ -88,8 +85,7 @@ public class UserController implements UserControllerDocs{
     public ApiResponse<UserResponseDTO.UserProfileResDTO> getMypage(
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        List<GroupStatus> statuses = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
-        UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(user.getId(), statuses);
+        UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(user.getId());
         return ApiResponse.onSuccess(UserSuccessCode.GET_MYPAGE_SUCCESS, result);
     }
 
@@ -111,9 +107,7 @@ public class UserController implements UserControllerDocs{
             @PathVariable("nickname") String nickname
     ) {
         Long targetUserId = userService.findUserIdByNickname(nickname);
-        List<GroupStatus> statuses = List.of(GroupStatus.RECRUITING);
-        UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(targetUserId, statuses);
-
+        UserResponseDTO.UserProfileResDTO result = userService.getProfileInfo(targetUserId);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 

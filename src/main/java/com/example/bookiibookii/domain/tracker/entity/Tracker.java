@@ -105,7 +105,7 @@ public class Tracker extends BaseEntity {
     public void extendReadingPeriod(LocalDate newEndDate) {
         if (this.readingStatus != ReadingStatus.MY_BOOK_READING
                 && this.readingStatus != ReadingStatus.PARTNER_BOOK_READING) {
-            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+            throw new TrackerException(TrackerErrorCode.NOT_READING_STAGE);
         }
         if (!newEndDate.isAfter(LocalDate.now())) {
             throw new TrackerException(TrackerErrorCode.INVALID_EXTENSION_DATE);

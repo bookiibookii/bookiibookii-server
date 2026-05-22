@@ -61,6 +61,14 @@ public interface TrackerControllerDocs {
             - newEndDate는 오늘보다 이후여야 합니다.
             """
     )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER200_23", description = "독서기간 수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER403_2", description = "해당 그룹의 멤버가 아닙니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER403_6", description = "HOST만 독서기간을 수정할 수 있습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER404_1", description = "트래커를 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER400_26", description = "독서단계가 아닙니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER400_25", description = "오늘 이후의 날짜를 선택해야 합니다.")
+    })
     ApiResponse<ExtendReadingPeriodResDTO> extendReadingPeriod(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @RequestBody ExtendReadingPeriodReqDTO request,

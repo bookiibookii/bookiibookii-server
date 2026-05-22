@@ -36,6 +36,7 @@ public enum TrackerErrorCode implements BaseCode {
     NOT_DIRECT_TRADE_GROUP(HttpStatus.BAD_REQUEST, "TRACKER400_23", "직접 교환 그룹이 아닙니다."),
     INVALID_GROUP_SELECTED_PLACE(HttpStatus.BAD_REQUEST, "TRACKER400_24", "그룹 선택 장소가 현재 기능에 적합하지 않습니다."),
     INVALID_EXTENSION_DATE(HttpStatus.BAD_REQUEST, "TRACKER400_25", "오늘 이후의 날짜를 선택해야 합니다."),
+    NOT_READING_STAGE(HttpStatus.BAD_REQUEST, "TRACKER400_26", "독서단계가 아닙니다."),
 
 
     // --- 403 FORBIDDEN ---

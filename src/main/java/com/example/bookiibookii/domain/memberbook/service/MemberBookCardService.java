@@ -71,7 +71,7 @@ public class MemberBookCardService {
         groupsRepository.findById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId)) {
             throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
         }
 
@@ -134,9 +134,9 @@ public class MemberBookCardService {
             CardReactionType reaction
     ) {
         Cards card = getCardForDetail(cardId, userId);
-        Long groupId = card.getMemberBook().getGroup().getGroupId();
+        Long groupId = card.getMemberBook().getGroup().getId();
 
-        MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
@@ -187,9 +187,9 @@ public class MemberBookCardService {
      */
     public boolean toggleBookmark(Long cardId, Long userId) {
         Cards card = getCardForDetail(cardId, userId);
-        Long groupId = card.getMemberBook().getGroup().getGroupId();
+        Long groupId = card.getMemberBook().getGroup().getId();
 
-        MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         MemberCard state = memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
@@ -244,9 +244,9 @@ public class MemberBookCardService {
      */
     public void removeCardFromView(Long cardId, Long userId) {
         Cards card = getCardForDetail(cardId, userId);
-        Long groupId = card.getMemberBook().getGroup().getGroupId();
+        Long groupId = card.getMemberBook().getGroup().getId();
 
-        MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         MemberCard state = memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
@@ -367,10 +367,10 @@ public class MemberBookCardService {
         }
 
         Long ownerUserId = memberBook.getMatchedMember().getUser().getId();
-        Long groupId = memberBook.getGroup().getGroupId();
+        Long groupId = memberBook.getGroup().getId();
 
         boolean isOwner = ownerUserId.equals(userId);
-        boolean isGroupMember = matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId);
+        boolean isGroupMember = matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId);
 
         if (!isOwner && !isGroupMember) {
             throw new MemberBookException(MemberBookErrorCode.MEMBER_CARD_NOT_FOUND);

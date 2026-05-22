@@ -37,7 +37,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
 
     // [추가] 동시성 제어를 위한 비관적 락 메서드
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select g from Groups g where g.groupId = :groupId and g.groupStatus != 'DELETED'")
+    @Query("select g from Groups g where g.id = :groupId and g.groupStatus != 'DELETED'")
     Optional<Groups> findByIdForUpdate(@Param("groupId") Long groupId);
 
     // 신청 시 동시성 제어용 — 락 + book/host fetch join
@@ -46,7 +46,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     select g from Groups g
     join fetch g.book
     join fetch g.host
-    where g.groupId = :groupId
+    where g.id = :groupId
     and g.groupStatus != 'DELETED'
     """)
     Optional<Groups> findByIdForUpdateWithBookAndHost(@Param("groupId") Long groupId);
@@ -57,7 +57,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
       select g
       from Groups g
       join fetch g.book
-      where g.groupId not in :excludedIds
+      where g.id not in :excludedIds
         and g.groupStatus = :status
         and g.host.id != :userId
       order by function('rand')
@@ -74,7 +74,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             "JOIN FETCH g.book " +
             "JOIN FETCH g.host h " +
             "LEFT JOIN FETCH h.userImage " +
-            "WHERE g.groupId = :groupId AND g.groupStatus != 'DELETED'")
+            "WHERE g.id = :groupId AND g.groupStatus != 'DELETED'")
     Optional<Groups> findDetailById(@Param("groupId") Long groupId);
 
     // fetch join 적용된 기본 그룹 조회
@@ -82,7 +82,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     select g from Groups g
     join fetch g.book
     join fetch g.host
-    where g.groupId = :groupId
+    where g.id = :groupId
     and g.groupStatus != 'DELETED'
     """)
     Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);

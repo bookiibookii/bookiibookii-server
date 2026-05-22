@@ -14,7 +14,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     select c
     from Comment c
     join fetch c.user u
-    where c.id = :commentId and c.group.groupId = :groupId
+    where c.id = :commentId and c.group.id = :groupId
     """)
     Optional<Comment> findByIdAndGroupIdWithUser(@Param("commentId") Long commentId,
                                                  @Param("groupId") Long groupId);
@@ -22,7 +22,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("""
     select c from Comment c
     join fetch c.user u
-    where c.group.groupId = :groupId
+    where c.group.id = :groupId
     and (
         c.secret = false
         or (c.secret = true and (c.user.id = :viewerId or c.secretTargetUserId = :viewerId))

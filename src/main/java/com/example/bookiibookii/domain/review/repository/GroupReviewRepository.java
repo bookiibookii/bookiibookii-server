@@ -26,7 +26,7 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
         SELECT CASE WHEN COUNT(gr) > 0 THEN true ELSE false END
         FROM GroupReview gr
         JOIN gr.reviewer mm
-        WHERE mm.group.groupId = :groupId
+        WHERE mm.group.id = :groupId
           AND mm.user.id = :reviewerUserId
     """)
     boolean existsByGroupIdAndReviewerUserId(@Param("groupId") Long groupId,
@@ -77,6 +77,6 @@ public interface GroupReviewRepository extends JpaRepository<GroupReview, Long> 
      */
     Optional<GroupReview> findByReviewer(MatchedMember reviewerMatchedMember);
 
-    @Query("SELECT COUNT(gr) FROM GroupReview gr WHERE gr.reviewer.group.groupId = :groupId")
+    @Query("SELECT COUNT(gr) FROM GroupReview gr WHERE gr.reviewer.group.id = :groupId")
     long countByGroupId(@Param("groupId") Long groupId);
 }

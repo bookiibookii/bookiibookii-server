@@ -1,7 +1,9 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
+import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
+import com.example.bookiibookii.domain.tracker.dto.res.ExtendReadingPeriodResDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +44,55 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
+
+    @PatchMapping("/trackers/{groupId}/reading-period")
+    @Operation(
+            summary = "독서기간 수정",
+            description = """
+            호스트만 독서기간을 수정할 수 있습니다.
+            - MY_BOOK_READING 또는 PARTNER_BOOK_READING 단계에서만 가능합니다.
+            - newEndDate는 오늘보다 이후여야 합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER200_23", description = "독서기간 수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER403_2", description = "해당 그룹의 멤버가 아닙니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER403_6", description = "HOST만 독서기간을 수정할 수 있습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER404_1", description = "트래커를 찾을 수 없습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER400_26", description = "독서단계가 아닙니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "TRACKER400_25", description = "오늘 이후의 날짜를 선택해야 합니다.")
+    })
+    ApiResponse<ExtendReadingPeriodResDTO> extendReadingPeriod(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @RequestBody ExtendReadingPeriodReqDTO request,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    // --- 2. 이미지 관련 ---
+
+    @Operation(summary = "배송 인증 사진 보기", description = "수령한 사람이 배송한 사람이 올린 배송 인증(SENDER_PROOF) 이미지를 조회합니다. Presigned GET URL을 반환하며, 같은 그룹 멤버만 조회 가능합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "배송 인증 이미지 없음", content = @Content)
+    })
+    @GetMapping("/{groupId}/tracker/images/delivery")
+    ApiResponse<TrackerImageGetResponseDTO> getShippingProofImageUrl(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @Operation(summary = "트래커 인증 이미지 업로드용 Presigned URL 발급", description = "배송 인증(SENDER_PROOF) 또는 수령 인증(RECEIVER_PROOF) 이미지를 S3에 업로드하기 위한 Presigned PUT URL을 발급합니다. " +
+            "발급된 presignedPutUrl로 PUT 요청 후 받은 s3Key를 배송 시작 등록 또는 도서 수령 완료 API에 전달하세요. URL 유효 시간은 10분입니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Presigned URL 발급 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "해당 그룹 멤버가 아님", content = @Content)
+    })
+    @PostMapping("/{groupId}/tracker/images/presigned-url")
+    ApiResponse<PresignedUrlResponseDTO> getPresignedPutUrlForTrackerImage(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
     /*
     @PostMapping("/{groupId}/tracker/delivery")
     @Operation(summary = "배송 시작 등록", description = "책 읽기를 완료하고 다음 주자에게 배송을 시작할 때 정보를 등록합니다. " +
@@ -71,9 +122,9 @@ public interface TrackerControllerDocs {
             description = """
             직접 교환 시 만날 장소와 시간을 등록하거나 수정합니다.
             
-            - **최초 등록 시**: 트래커 상태가 `EXCHANGING`(전달 시) 또는 `RETURNING`(반납 시)로 변경됩니다.
+            - **최초 등록 시**: 트래커 상태가 EXCHANGING(전달 시) 또는 RETURNING(반납 시)로 변경됩니다.
             - **수정 시**: 이미 약속이 있는 경우 기존 정보를 업데이트하며, 상대방의 수락 여부(isConfirmed)가 초기화됩니다.
-            - **응답**: 수정된 약속의 상세 정보(`TrackerMeetingResponse`)를 반환합니다.
+            - **응답**: 수정된 약속의 상세 정보(TrackerMeetingResponse)를 반환합니다.
             """
     )
     @ApiResponses(value = {
@@ -95,7 +146,7 @@ public interface TrackerControllerDocs {
     @Operation(
             summary = "직접 교환 완료 확인 (상호 확인)",
             description = "직접 교환 현장에서 책을 주고받은 후 양측(호스트, 게스트)이 각각 완료 버튼을 누릅니다. " +
-                    "두 명 모두 확인 시 소유권이 이전되며, 상태가 `EXCHANGED`(전달 시) 또는 `COMPLETED`(반납 시)로 즉시 변경됩니다."
+            "두 명 모두 확인 시 소유권이 이전되며, 상태가 EXCHANGED(전달 시) 또는 COMPLETED(반납 시)로 즉시 변경됩니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "교환 확인 처리 성공",

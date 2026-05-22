@@ -39,7 +39,7 @@ public class GroupCompletionService {
         }
 
         List<MatchedMember> lazyMembers = matchedMemberRepository
-                .findAllByGroup_GroupIdAndIsReviewWrittenFalse(groupId);
+                .findAllByGroup_IdAndIsReviewWrittenFalse(groupId);
 
         for (MatchedMember mm : lazyMembers) {
             if (group.getGroupType() == GroupType.RELAY) {
@@ -47,7 +47,7 @@ public class GroupCompletionService {
                 matchedMemberRepository.findPartnerUserId(groupId, mm.getUser().getId())
                         .ifPresent(partnerId -> {
                             // 파트너의 MatchedMember 엔티티 조회
-                            MatchedMember partnerMM = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerId)
+                            MatchedMember partnerMM = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, partnerId)
                                     .orElseThrow(() -> new GroupException(GroupErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
                             if (partnerMM != null) {

@@ -1,8 +1,7 @@
 package com.example.bookiibookii.domain.user.dto.res;
 
-import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.location.dto.res.UserDeliveryResDTO;
-import com.example.bookiibookii.domain.location.dto.res.UserExchangeResDTO;
+import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberBookResponseDTO;
 import lombok.Builder;
@@ -10,10 +9,10 @@ import lombok.Builder;
 import java.util.List;
 
 public class UserResponseDTO {
+
     @Builder
-    public record UserProfileResDTO  (
+    public record UserProfileResDTO(
             Long userId,
-            /** 프로필 이미지 표시용 Presigned GET URL. 없으면 null */
             String profileImageUrl,
             String nickname,
             String introduction,
@@ -22,22 +21,43 @@ public class UserResponseDTO {
             List<GroupResponseDTO.MypageGroupDto> groups,
             List<MemberBookResponseDTO.MypageBookDto> books,
             List<UserBookDto> userBooks,
-            List<UserDeliveryResDTO.UserDeliveryDto> deliveries,
-            List<UserExchangeResDTO.UserExchangeDto> exchanges
-    ){}
+            Integer bookReviewCount,
+            List<BookReviewSummaryDto> recentBookReviews,
+            Integer boomUpCount,
+            List<ReceivedMemberReviewDto> recentReceivedReviews
+    ) {}
 
-    public record UserBookDto (
+    public record UserBookDto(
             String title,
             String auth,
             String image
-    ){}
+    ) {}
 
     @Builder
-    public record NicknameValidationDTO  (
+    public record BookReviewSummaryDto(
+            String bookTitle,
+            String bookAuthor,
+            TradeType tradeType,
+            Double rating,
+            String comment,
+            String reviewDate
+    ) {}
+
+    @Builder
+    public record ReceivedMemberReviewDto(
+            String reviewerNickname,
+            String reviewerProfileUrl,
+            MemberReviewReaction reaction,
+            String comment,
+            String createdAt
+    ) {}
+
+    @Builder
+    public record NicknameValidationDTO(
             boolean isAvailable,
             String code,
             String message
-    ){
+    ) {
         public static NicknameValidationDTO from(NicknameStatus status) {
             return switch (status) {
                 case AVAILABLE -> NicknameValidationDTO.builder()

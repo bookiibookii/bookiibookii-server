@@ -26,6 +26,17 @@ public enum TrackerErrorCode implements BaseCode {
     INVALID_READING_PROGRESS(HttpStatus.BAD_REQUEST, "TRACKER400_14", "유효하지 않은 독서 진행 페이지입니다."),
     INVALID_BOOK_TOTAL_PAGES(HttpStatus.BAD_REQUEST, "TRACKER400_15", "책의 전체 페이지 수가 유효하지 않습니다."),
     INVALID_MEETING_PHASE(HttpStatus.BAD_REQUEST, "TRACKER400_16", "직접 교환 약속을 처리할 수 있는 교환 단계가 아닙니다."),
+   
+    NOT_PACKAGE_TRADE_GROUP(HttpStatus.BAD_REQUEST, "TRACKER400_17", "택배 교환 그룹이 아닙니다."),
+    NOT_EXCHANGE_STAGE(HttpStatus.BAD_REQUEST, "TRACKER400_18", "현재 교환 단계가 아닙니다."),
+    INVALID_GROUP_DELIVERY_PLACE(HttpStatus.BAD_REQUEST, "TRACKER400_19", "그룹 선택 장소가 택배 배송지로 유효하지 않습니다."),
+    INVALID_DELIVERY_COMPANY(HttpStatus.BAD_REQUEST, "TRACKER400_20", "지원하지 않는 택배사입니다."),
+    INVALID_TRACKING_NUMBER(HttpStatus.BAD_REQUEST, "TRACKER400_21", "운송장 번호는 숫자만 입력할 수 있습니다."),
+    DELIVERY_ADDRESS_CANNOT_BE_CHANGED(HttpStatus.BAD_REQUEST, "TRACKER400_22", "현재 단계에서는 배송지를 수정할 수 없습니다."),
+    NOT_DIRECT_TRADE_GROUP(HttpStatus.BAD_REQUEST, "TRACKER400_23", "직접 교환 그룹이 아닙니다."),
+    INVALID_GROUP_SELECTED_PLACE(HttpStatus.BAD_REQUEST, "TRACKER400_24", "그룹 선택 장소가 현재 기능에 적합하지 않습니다."),
+    INVALID_EXTENSION_DATE(HttpStatus.BAD_REQUEST, "TRACKER400_25", "오늘 이후의 날짜를 선택해야 합니다."),
+    NOT_READING_STAGE(HttpStatus.BAD_REQUEST, "TRACKER400_26", "독서단계가 아닙니다."),
 
 
     // --- 403 FORBIDDEN ---
@@ -41,11 +52,18 @@ public enum TrackerErrorCode implements BaseCode {
     FIRST_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_3", "첫 번째 주자를 찾을 수 없습니다."),
     MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_4", "예정된 약속이 없습니다."),
     PARTNER_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_5", "상대방 파트너 정보를 찾을 수 없습니다."),
+    DELIVERY_ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_6", "배송지 스냅샷을 찾을 수 없습니다."),
+    DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_7", "배송 정보를 찾을 수 없습니다."),
+    PARTNER_DELIVERY_NOT_REGISTERED(HttpStatus.NOT_FOUND, "TRACKER404_8", "상대방이 보낸 운송장이 아직 등록되지 않았습니다."),
+    GROUP_SELECTED_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "TRACKER404_9", "그룹 생성 시 선택한 장소 스냅샷을 찾을 수 없습니다."),
 
     // --- 409 CONFLICT ---
     ALREADY_SHIPPED(HttpStatus.CONFLICT, "TRACKER409_1", "이미 이번 교환 단계에서 배송을 등록했습니다."),
     MEETING_ALREADY_EXISTS(HttpStatus.CONFLICT, "TRACKER409_2", "이미 등록된 직접 교환 약속이 있습니다."),
-    MEETING_ALREADY_COMPLETED(HttpStatus.CONFLICT, "TRACKER409_3", "이미 교환 완료 처리되었습니다.");
+    MEETING_ALREADY_COMPLETED(HttpStatus.CONFLICT, "TRACKER409_3", "이미 교환 완료 처리되었습니다."),
+    DELIVERY_ADDRESS_ALREADY_USED(HttpStatus.CONFLICT, "TRACKER409_4", "이미 운송장에 사용된 배송지는 수정할 수 없습니다."),
+    DELIVERY_ALREADY_REGISTERED(HttpStatus.CONFLICT, "TRACKER409_5", "이미 운송장을 등록했습니다."),
+    DELIVERY_ALREADY_RECEIVED(HttpStatus.CONFLICT, "TRACKER409_6", "이미 수령 인증이 완료되었습니다.");
 
     private final HttpStatus status;
     private final String code;

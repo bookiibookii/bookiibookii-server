@@ -67,7 +67,7 @@ public class BookshelfService {
                 .findCompletedByUserId(userId)
                 .stream()
                 .collect(Collectors.toMap(
-                        mm -> mm.getGroup().getGroupId(),
+                        mm -> mm.getGroup().getId(),
                         MatchedMember::getCompletedAt,
                         (a, b) -> a
                 ));

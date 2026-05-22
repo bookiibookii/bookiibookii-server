@@ -46,10 +46,4 @@ public class AuthController implements AuthControllerDocs{
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
 
-    // 회원탈퇴
-    @DeleteMapping("/withdraw")
-    public ApiResponse<Void> withdraw(HttpServletRequest request) {
-        authService.withdraw(request);
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
-    }
 }

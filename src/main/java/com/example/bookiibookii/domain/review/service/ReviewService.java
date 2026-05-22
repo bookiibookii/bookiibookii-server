@@ -169,62 +169,6 @@ public class ReviewService {
         }
     }
 
-    /*
-     * 2. [릴레이 중간] 책 리뷰 생성 (1차/2차 독서 후, 교환·반납 전)
-     * 책 리뷰를 저장하고 ReadingStatus를 REVIEW_DONE/REVIEW_DONE_2로 전환합니다.
-     * 양측 모두 완료되면 TrackerStatus가 READ_DONE/READ_DONE_2로 자동 전환됩니다.
-
-    @Transactional
-    public void createMidRelayBookReview(Long groupBookId, ReviewRequestDTO.BookReviewDTO request, User user) {
-        validateRating(request.bookRating());
-        validateCommentLength(request.bookComment(), BOOK_COMMENT_MAX_LENGTH);
-
-        GroupBook groupBook = groupBookRepository.findById(groupBookId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.GROUP_BOOK_NOT_FOUND));
-        if (!groupBook.getUser().getId().equals(user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_GROUP_BOOK_OWNER);
-        }
-
-        Long groupId = groupBook.getGroup().getId();
-
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
-
-        ReadingStatus readingStatus = tracker.getReadingStatus();
-        if (readingStatus != ReadingStatus.MY_BOOK_READING && readingStatus != ReadingStatus.PARTNER_BOOK_READING) {
-            throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 단계가 아님
-        }
-
-        MatchedMember me = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, user.getId())
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
-
-        Long partnerUserId = matchedMemberRepository.findPartnerUserId(groupId, user.getId())
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
-        MatchedMember partner = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, partnerUserId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
-
-        groupBook.updateReview(request.bookRating(), request.bookComment());
-
-        if (readingStatus == ReadingStatus.MY_BOOK_READING) {
-            if (me.getReadingStatus() != ReadingStatus.MY_BOOK_READ_DONE) {
-                throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 미완료
-            }
-            me.updateReadingStatus(ReadingStatus.MY_BOOK_REVIEW_DONE);
-            if (partner.getReadingStatus() == ReadingStatus.MY_BOOK_REVIEW_DONE) {
-                tracker.completeFirstReading(); // READING → READ_DONE
-            }
-        } else {
-            if (me.getReadingStatus() != ReadingStatus.PARTNER_BOOK_READ_DONE) {
-                throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 미완료
-            }
-            me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_REVIEW_DONE);
-            if (partner.getReadingStatus() == ReadingStatus.PARTNER_BOOK_REVIEW_DONE) {
-                tracker.completeSecondReading(); // READING_2 → READ_DONE_2
-            }
-        }
-
-        publisher.publish(new TrackerNotificationEvent(REVIEW_DONE_CONFIRMED, user.getId(), groupId, null));
-    } */
 
     /**
      * 3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후)
@@ -354,6 +298,9 @@ public class ReviewService {
 
         if (tradeType == TradeType.DELIVERY && allExchanging) {
             deliveryAddressService.createFirstExchangeAddressesIfAbsent(groupId);
+        }
+        if (tradeType == TradeType.DELIVERY && allReturning) {
+            deliveryAddressService.createReturnExchangeAddressesIfAbsent(groupId);
         }
     }
 

@@ -14,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     // N+1 문제 해결: 신청서 + 신청자(User)
-    @Query("SELECT a DISTINCT FROM Application a " +
+    @Query("SELECT DISTINCT a FROM Application a " +
             "JOIN FETCH a.guest g " +
             "WHERE a.group.id = :groupId AND a.applicationStatus = 'PENDING'")
     List<Application> findAllWithGuestByGroupId(@Param("groupId") Long groupId);

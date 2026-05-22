@@ -24,7 +24,7 @@ public class MatchedMemberQueryRepository {
 
         return queryFactory
                 .select(Projections.constructor(GroupResponseDTO.GroupSummaryResponse.class,
-                        groups.id, groups.book.title, groups.host.nickName,
+                        groups.id, groups.groupName, groups.host.nickName,
                         // 호스트 여부
                         new CaseBuilder()
                                 .when(groups.host.id.eq(userId)).then(true)

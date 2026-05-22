@@ -3,7 +3,9 @@ package com.example.bookiibookii.domain.group.service;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.book.service.BookService;
+import com.example.bookiibookii.domain.location.entity.UserDelivery;
 import com.example.bookiibookii.domain.location.entity.UserExchange;
+import com.example.bookiibookii.domain.location.repository.UserDeliveryRepository;
 import com.example.bookiibookii.domain.location.repository.UserExchangeRepository;
 import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
@@ -64,6 +66,8 @@ public class GroupService {
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
     private final UserExchangeRepository userExchangeRepository;
+    private final UserDeliveryRepository userDeliveryRepository;
+    private final GroupPlaceRepository groupPlaceRepository;
     private final BestsellerIsbnRepository bestsellerIsbnRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
@@ -119,6 +123,12 @@ public class GroupService {
                 .build();
 
         Groups savedGroup = groupsRepository.save(group);
+        GroupPlace groupPlace = createGroupPlace(savedGroup, host, request);
+        group.setGroupPlace(groupPlace);
+        if (savedGroup.getPreferRegion() == null || savedGroup.getPreferRegion().isBlank()) {
+            savedGroup.setPreferRegion(groupPlace.getAddress());
+        }
+        groupPlaceRepository.save(groupPlace);
 
         // 규칙 저장 (모든 트레이드 타입 공통)
         request.getRules().forEach(rule ->
@@ -166,6 +176,14 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.INVALID_READING_PERIOD);
         }
 
+        if (request.getTradeType() == null) {
+            throw new GroupException(GroupErrorCode.INVALID_GROUP_TYPE);
+        }
+
+        if (request.getSelectedPlaceId() == null) {
+            throw new GroupException(GroupErrorCode.GROUP_SELECTED_PLACE_REQUIRED);
+        }
+
         // 소개글 선택 입력 — 값이 있을 때만 검증
         if (request.getGroupComment() != null && !request.getGroupComment().isBlank()) {
             if (request.getGroupComment().length() > 500) {
@@ -178,14 +196,52 @@ public class GroupService {
     }
 
     private void validatePolicy(User host, GroupRequestDTO.CreateDTO request) {
-        // 직접 교환 시 희망 교환 장소 필수
-        if (request.getTradeType() == TradeType.DIRECT
-                && (request.getPreferRegion() == null || request.getPreferRegion().isBlank())) {
-            throw new GroupException(GroupErrorCode.USER_LOCATION_NOT_FOUND);
-        }
-
         // 규칙 검증 (모든 트레이드 타입 공통)
         validateRules(request.getRules());
+    }
+
+    private GroupPlace createGroupPlace(Groups group, User host, GroupRequestDTO.CreateDTO request) {
+        if (request.getTradeType() == TradeType.DELIVERY) {
+            UserDelivery userDelivery = userDeliveryRepository
+                    .findById(request.getSelectedPlaceId())
+                    .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_SELECTED_PLACE_NOT_FOUND));
+
+            if (!userDelivery.getUser().getId().equals(host.getId())) {
+                throw new GroupException(GroupErrorCode.NOT_MY_DELIVERY_ADDRESS);
+            }
+
+            return GroupPlace.builder()
+                    .group(group)
+                    .sourceType(GroupPlaceSourceType.USER_DELIVERY)
+                    .placeName(userDelivery.getLocation().getPlaceName())
+                    .address(userDelivery.getLocation().getAddress())
+                    .zipCode(userDelivery.getLocation().getZipCode())
+                    .addressDetail(userDelivery.getAddressDetail())
+                    .receiverName(userDelivery.getReceiverName())
+                    .phoneNumber(userDelivery.getPhone())
+                    .build();
+        }
+
+        if (request.getTradeType() == TradeType.DIRECT) {
+            UserExchange userExchange = userExchangeRepository
+                    .findById(request.getSelectedPlaceId())
+                    .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_SELECTED_PLACE_NOT_FOUND));
+
+            if (!userExchange.getUser().getId().equals(host.getId())) {
+                throw new GroupException(GroupErrorCode.NOT_MY_EXCHANGE_PLACE);
+            }
+
+            return GroupPlace.builder()
+                    .group(group)
+                    .sourceType(GroupPlaceSourceType.USER_EXCHANGE)
+                    .placeName(userExchange.getLocation().getPlaceName())
+                    .address(userExchange.getLocation().getAddress())
+                    .zipCode(userExchange.getLocation().getZipCode())
+                    .addressDetail(userExchange.getAddressDetail())
+                    .build();
+        }
+
+        throw new GroupException(GroupErrorCode.INVALID_GROUP_SELECTED_PLACE);
     }
 
     private void validateRules(List<RuleDTO> rules) {
@@ -705,7 +761,4 @@ public class GroupService {
                 .build();
     }
 }
-
-
-
 

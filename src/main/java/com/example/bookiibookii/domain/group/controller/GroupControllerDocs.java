@@ -23,12 +23,24 @@ import java.util.List;
 
 @Tag(name = "Group", description = "그룹 생성 및 관리 관련 API")
 public interface GroupControllerDocs {
-    @Operation(summary = "그룹 생성 API", description = "새로운 독서 그룹을 생성합니다. 직접교환(DIRECT)인 경우 지역 정보가 필수이며, 함께읽기(TOGETHER)는 최대 8명까지 가능합니다.")
+    @Operation(
+            summary = "그룹 생성 API",
+            description = """
+                    새로운 독서 그룹을 생성합니다.
+                    selectedPlaceId는 tradeType에 따라 의미가 다릅니다.
+                    - DELIVERY: 내 배송지 id
+                    - DIRECT: 내 희망교환장소 id
+                    그룹 생성 시 선택 장소는 그룹 장소 스냅샷으로 복사 저장됩니다.
+                    """
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_4", description = "도서 미선택"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_5", description = "부적절한 시작 날짜"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_7", description = "호스트 장소 정보 없음")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_23", description = "선택 장소 필수"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_24", description = "교환 방식과 선택 장소 불일치"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_5", description = "본인 배송지가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_6", description = "본인 희망교환장소가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_7", description = "선택 장소 없음")
     })
     ApiResponse<GroupResponseDTO.CreateResultDTO> createGroup(
             @AuthenticationPrincipal User host,

@@ -53,12 +53,6 @@ public class Tracker extends BaseEntity {
     @Builder.Default
     private Integer extensionDays = 0;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
-    private List<Delivery> deliveries = new ArrayList<>();
-
-
-
     // 양측 MY_BOOK_READ_DONE → MY_BOOK_REVIEWING
     public void completeFirstReading() {
         if (this.readingStatus != ReadingStatus.MY_BOOK_READING) {

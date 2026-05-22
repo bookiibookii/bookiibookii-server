@@ -14,6 +14,7 @@ import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListItemResDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -39,14 +40,27 @@ public class TrackerConverter {
     ) {
         Groups group = me.getGroup();
 
+        // 실제 수령 전이어도 운송장 등록 시점부터 상대 책을 display 대상으로 전환한다.
+        boolean displayPartnerBookFromTrackingRegistration = me.getReadingStatus() == ReadingStatus.EXCHANGING
+                && (me.getExchangeStatus() == ExchangeStatus.TRACKING_REGISTERED
+                || me.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED);
+        MemberBook myDisplayBook = displayPartnerBookFromTrackingRegistration ? partner.getCurrentMemberBook() : me.getCurrentMemberBook();
+        MemberBook partnerDisplayBook = displayPartnerBookFromTrackingRegistration ? me.getCurrentMemberBook() : partner.getCurrentMemberBook();
+        String myDisplayProfileImageUrl = displayPartnerBookFromTrackingRegistration
+                ? partnerCurrentReaderProfileImageUrl
+                : myCurrentReaderProfileImageUrl;
+        String partnerDisplayProfileImageUrl = displayPartnerBookFromTrackingRegistration
+                ? myCurrentReaderProfileImageUrl
+                : partnerCurrentReaderProfileImageUrl;
+
         return TrackerListItemResDTO.builder()
                 .groupId(group.getGroupId())
                 .groupName(group.getGroupName())
                 .displayStatus(displayStatus)
                 .tradeType(group.getTradeType())
                 .remainingDays(remainingDays)
-                .myCurrentBook(toBookInfo(me.getCurrentMemberBook(), myCurrentReaderProfileImageUrl))
-                .partnerCurrentBook(toBookInfo(partner.getCurrentMemberBook(), partnerCurrentReaderProfileImageUrl))
+                .myCurrentBook(toBookInfo(myDisplayBook, myDisplayProfileImageUrl))
+                .partnerCurrentBook(toBookInfo(partnerDisplayBook, partnerDisplayProfileImageUrl))
                 .build();
     }
 
@@ -153,7 +167,9 @@ public class TrackerConverter {
 
         if (latestShippingDelivery != null) {
             builder.deliveryInfo(TrackerDetailResponseDTO.DeliveryInfo.builder()
-                    .deliveryCompany(latestShippingDelivery.getDeliveryCompany())
+                    .deliveryCompany(latestShippingDelivery.getDeliveryCompany() != null
+                            ? latestShippingDelivery.getDeliveryCompany().name()
+                            : null)
                     .trackingNumber(latestShippingDelivery.getTrackingNumber())
                     .build());
         }

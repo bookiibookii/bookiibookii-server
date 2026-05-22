@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.req.MeetingRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.MeetingDefaultPlaceResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -99,6 +100,32 @@ public interface MeetingControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "약속을 찾을 수 없음")
     })
     ApiResponse<MeetingResponseDTO> getMeeting(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @GetMapping("/default-place")
+    @Operation(
+            summary = "직접 교환 기본 장소 조회",
+            description = """
+            그룹 생성 시 선택한 희망교환장소를 약속 등록 기본값으로 조회합니다.
+            
+            - 직접교환 그룹에서만 가능합니다.
+            - 그룹 멤버만 조회할 수 있습니다.
+            - 그룹 선택 장소가 배송지인 경우 기본 장소로 사용할 수 없습니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "기본 장소 조회 성공",
+                    content = @Content(schema = @Schema(implementation = MeetingDefaultPlaceResponseDTO.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "직접교환 그룹이 아니거나 선택 장소가 부적합함"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "그룹 멤버가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "그룹 또는 선택 장소를 찾을 수 없음")
+    })
+    ApiResponse<MeetingDefaultPlaceResponseDTO> getDefaultPlace(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );

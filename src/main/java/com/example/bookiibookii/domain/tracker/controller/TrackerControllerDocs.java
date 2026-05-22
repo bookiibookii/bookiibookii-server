@@ -121,9 +121,9 @@ public interface TrackerControllerDocs {
             description = """
             직접 교환 시 만날 장소와 시간을 등록하거나 수정합니다.
             
-            - **최초 등록 시**: 트래커 상태가 `EXCHANGING`(전달 시) 또는 `RETURNING`(반납 시)로 변경됩니다.
+            - **최초 등록 시**: 트래커 상태가 EXCHANGING(전달 시) 또는 RETURNING(반납 시)로 변경됩니다.
             - **수정 시**: 이미 약속이 있는 경우 기존 정보를 업데이트하며, 상대방의 수락 여부(isConfirmed)가 초기화됩니다.
-            - **응답**: 수정된 약속의 상세 정보(`TrackerMeetingResponse`)를 반환합니다.
+            - **응답**: 수정된 약속의 상세 정보(TrackerMeetingResponse)를 반환합니다.
             """
     )
     @ApiResponses(value = {
@@ -145,7 +145,7 @@ public interface TrackerControllerDocs {
     @Operation(
             summary = "직접 교환 완료 확인 (상호 확인)",
             description = "직접 교환 현장에서 책을 주고받은 후 양측(호스트, 게스트)이 각각 완료 버튼을 누릅니다. " +
-                    "두 명 모두 확인 시 소유권이 이전되며, 상태가 `EXCHANGED`(전달 시) 또는 `COMPLETED`(반납 시)로 즉시 변경됩니다."
+            "두 명 모두 확인 시 소유권이 이전되며, 상태가 EXCHANGED(전달 시) 또는 COMPLETED(반납 시)로 즉시 변경됩니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "교환 확인 처리 성공",

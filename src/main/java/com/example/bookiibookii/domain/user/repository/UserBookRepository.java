@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.user.repository;
 
-import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBook;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,19 +15,6 @@ import java.util.Optional;
 public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     void deleteAllByUser(User user);
     List<UserBook> findByUser(User user);
-
-    @Query("""
-        select new com.example.bookiibookii.domain.user.dto.res.UserResponseDTO$UserBookDto(
-            b.title,
-            b.author,
-            b.image
-        )
-        from UserBook up
-        join up.book b
-        where up.user.id = :userId
-        order by up.createdAt desc
-    """)
-    List<UserResponseDTO.UserBookDto> findUserBooks(Long userId);
 
     @Query("SELECT ub FROM UserBook ub JOIN FETCH ub.book WHERE ub.user.id = :userId AND ub.isFavorite = true")
     List<UserBook> findFavoriteBooksByUserId(@Param("userId") Long userId);
@@ -54,20 +40,6 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long> {
     long countByUser_IdAndIsFavoriteTrue(Long userId);
 
     long countByUser_IdAndIsFavoriteTrueAndDisplayOrderIsNotNull(Long userId);
-
-    @Query("""
-        select new com.example.bookiibookii.domain.user.dto.res.UserResponseDTO$UserBookDto(
-            b.title,
-            b.author,
-            b.image
-        )
-        from UserBook ub
-        join ub.book b
-        where ub.user.id = :userId
-          and ub.displayOrder is not null
-        order by ub.displayOrder asc
-    """)
-    List<UserResponseDTO.UserBookDto> findRepresentativeUserBooks(@Param("userId") Long userId);
 
     @Modifying(clearAutomatically = true)
     @Query("""

@@ -171,7 +171,9 @@ public class UserService {
         }
 
         // 대표책 목록
-        List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findRepresentativeUserBooks(userId);
+        List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findRepresentativeBooks(userId).stream()
+                .map(ub -> new UserResponseDTO.UserBookDto(ub.getBook().getTitle(), ub.getBook().getAuthor(), ub.getBook().getImage()))
+                .toList();
 
         // 책 후기 개수
         long bookReviewCount = groupBookRepository.countReviewedBooksByUserId(userId);

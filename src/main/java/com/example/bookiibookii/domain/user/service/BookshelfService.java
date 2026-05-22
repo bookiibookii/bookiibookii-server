@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
@@ -171,7 +172,7 @@ public class BookshelfService {
     // 대표책 등록
     @Transactional
     public void addRepresentativeBook(Long userId, Long userBookId, Long memberBookId) {
-        if (userBookId == null && memberBookId == null) {
+        if ((userBookId == null) == (memberBookId == null)) {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
@@ -206,6 +207,11 @@ public class BookshelfService {
     private void addRepresentativeFromCompleted(Long userId, Long memberBookId, int nextOrder) {
         MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_IdWithBook(memberBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
+
+        if (memberBook.getRemovedAt() != null
+                || memberBook.getGroup().getGroupStatus() != GroupStatus.COMPLETED) {
+            throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
+        }
 
         boolean hasReview = bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
                 memberBook.getMatchedMember().getId(),

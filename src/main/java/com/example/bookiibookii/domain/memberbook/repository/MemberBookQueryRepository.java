@@ -32,6 +32,7 @@ public class MemberBookQueryRepository {
                 .leftJoin(bookReview).on(bookReview.memberBook.id.eq(memberBook.id))
                 .where(
                         memberBook.matchedMember.user.id.eq(userId),
+                        memberBook.removedAt.isNull(),
                         groups.groupStatus.eq(GroupStatus.COMPLETED)
                 )
                 .orderBy(memberBook.updatedAt.desc())

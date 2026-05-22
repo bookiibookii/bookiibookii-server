@@ -180,8 +180,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        // 완독 수 (로직에 따라 조건 추가 가능)
-        Long completeBookCount = memberBookRepository.countByMatchedMember_User_IdAndRemovedAtIsNull(userId);
+        Long completeBookCount = memberBookRepository.countCompletedBooksWithReviewByUserId(userId);
         // 참여한 그룹 수 (타입별)
         Long relayCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.RELAY);
 

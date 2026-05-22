@@ -60,7 +60,17 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
             boolean isMine
     );
 
-    long countByMatchedMember_User_IdAndRemovedAtIsNull(Long userId);
+    @Query("""
+        SELECT COUNT(DISTINCT mb.id)
+        FROM MemberBook mb
+        JOIN mb.matchedMember mm
+        JOIN mb.group g
+        JOIN BookReview br ON br.memberBook = mb
+        WHERE mm.user.id = :userId
+        AND mb.removedAt IS NULL
+        AND g.groupStatus = com.example.bookiibookii.domain.group.enums.GroupStatus.COMPLETED
+        """)
+    long countCompletedBooksWithReviewByUserId(@Param("userId") Long userId);
 
     @Query("""
         SELECT mb FROM MemberBook mb

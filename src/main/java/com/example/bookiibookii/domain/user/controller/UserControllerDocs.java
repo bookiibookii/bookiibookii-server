@@ -129,10 +129,8 @@ public interface UserControllerDocs {
     @Operation(
             summary = "마이페이지 정보 수정 API",
             description = """
-            닉네임, 프로필 이미지, 자기소개, 배송지, 교환 장소를 한 번에 수정합니다.
-
-            - 배송지·교환 장소: ToAdd(추가 목록), IdsToDelete(삭제할 ID 목록)로 전달. null이면 변경 없음.
-            - 삭제 후 추가 순서로 처리되므로 교체(삭제+추가)도 한 번에 가능.
+            닉네임, 성별, 생년월일, 프로필 이미지를 수정합니다.
+            - 프로필 이미지: /api/users/me/image/presigned-url로 Presigned URL 발급 후 업로드하고, s3Key를 전달합니다. null이면 변경 없음.
             """
     )
     @ApiResponses({
@@ -140,6 +138,24 @@ public interface UserControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "닉네임 검증 실패")
     })
     ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
+
+    @Operation(
+            summary = "한줄 소개 수정 API",
+            description = """
+            유저의 한줄 소개를 수정합니다.
+            - introduction: 최대 255자. null 또는 빈 문자열 전달 시 소개 삭제.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "한줄 소개 수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "255자 초과"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @PatchMapping("/api/mypage/introduction")
+    ApiResponse<Void> updateIntroduction(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.UpdateIntroductionReqDTO request
+    );
 
     @Operation(
             summary = "나의 책장 조회 API",

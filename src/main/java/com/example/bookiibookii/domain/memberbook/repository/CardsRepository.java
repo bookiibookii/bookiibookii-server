@@ -37,7 +37,7 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         JOIN FETCH mb.matchedMember mm
         JOIN FETCH mm.user u
         LEFT JOIN FETCH u.userImage
-        WHERE mb.group.groupId = :groupId
+        WHERE mb.group.id = :groupId
         ORDER BY c.createdAt ASC
         """)
     List<Cards> findByGroupIdWithMemberBookAndBookAndCreator(

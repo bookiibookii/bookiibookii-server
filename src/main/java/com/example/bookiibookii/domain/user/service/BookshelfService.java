@@ -56,7 +56,7 @@ public class BookshelfService {
                 .findCompletedByUserId(userId)
                 .stream()
                 .collect(Collectors.toMap(
-                        mm -> mm.getGroup().getGroupId(),
+                        mm -> mm.getGroup().getId(),
                         MatchedMember::getCompletedAt,
                         (a, b) -> a
                 ));
@@ -64,7 +64,7 @@ public class BookshelfService {
         return groupBooks.stream()
                 .map(gb -> {
                     var book = gb.getGroup().getBook();
-                    LocalDateTime completedAt = completionDateByGroupId.get(gb.getGroup().getGroupId());
+                    LocalDateTime completedAt = completionDateByGroupId.get(gb.getGroup().getId());
                     return new BookshelfResponseDTO.CompletedBookDto(
                             gb.getId(),
                             book.getTitle(),

@@ -51,7 +51,8 @@ public class GroupResponseDTO {
         private String groupStatus;    // RECRUITING, MATCHED
         private Boolean isHost;        // 조회자가 방장인지 여부
         private String tradeType;      // DIRECT, DELIVERY
-        private String preferRegion;
+        private String placeName;
+        private String address;
 
         // 2. 도서 상세 정보 (Book 엔티티와 매핑)
         private String title;

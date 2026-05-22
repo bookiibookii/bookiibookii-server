@@ -28,13 +28,13 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
             "ORDER BY mm.createdAt ASC")
     List<MatchedMember> findAllByGroupOrderByCreatedAtAsc(@Param("group") Groups group);
     //참여 취소를 위한 조회 메서드
-    Optional<MatchedMember> findByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
+    Optional<MatchedMember> findByGroup_IdAndUser_Id(Long groupId, Long userId);
 
     // comment 도메인에서 사용
     @Query("""
     select mm.role
     from MatchedMember mm
-    where mm.group.groupId = :groupId
+    where mm.group.id = :groupId
       and mm.user.id = :userId
 """)
     Optional<RoleStatus> findRoleByGroupIdAndUserId(@Param("groupId") Long groupId,
@@ -44,11 +44,11 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
   select mm.user.id as userId,
          mm.role as roleStatus
   from MatchedMember mm
-  where mm.group.groupId = :groupId
+  where mm.group.id = :groupId
 """)
     List<WriterRow> findWriterRowsByGroupId(@Param("groupId") Long groupId);
 
-    List<MatchedMember> findAllByGroup_GroupId(Long groupId);
+    List<MatchedMember> findAllByGroup_Id(Long groupId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -60,17 +60,17 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
         left join fetch cmb.book
         left join fetch mm.memberBooks mb
         left join fetch mb.book
-        where g.groupId = :groupId
+        where g.id = :groupId
     """)
     List<MatchedMember> findAllByGroupIdForUpdate(@Param("groupId") Long groupId);
 
     // 참여 시간 순 정렬 (TrackerService에서 순서 계산용)
-    List<MatchedMember> findAllByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);
+    List<MatchedMember> findAllByGroup_IdOrderByCreatedAtAsc(Long groupId);
 
     // 가장 먼저 참여한 멤버 조회
-    Optional<MatchedMember> findFirstByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);
+    Optional<MatchedMember> findFirstByGroup_IdOrderByCreatedAtAsc(Long groupId);
 
-    Optional<MatchedMember> findByGroup_GroupIdAndRole(Long groupId, RoleStatus role);
+    Optional<MatchedMember> findByGroup_IdAndRole(Long groupId, RoleStatus role);
 
 
     interface WriterRow {
@@ -82,19 +82,19 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     @Query("""
     select m.user.id
     from MatchedMember m
-    where m.group.groupId = :groupId
+    where m.group.id = :groupId
       and m.user.id <> :actorId
 """)
     Optional<Long> findPartnerUserId(@Param("groupId") Long groupId,
                                      @Param("actorId") Long actorId);
 
     // 유저가 그룹의 멤버인지 검증
-    boolean existsByGroup_GroupIdAndUser_Id(Long groupId, Long userId);
+    boolean existsByGroup_IdAndUser_Id(Long groupId, Long userId);
 
     @Query("""
         select mm.user.id
         from MatchedMember mm
-        where mm.group.groupId = :groupId
+        where mm.group.id = :groupId
     """)
     
     List<Long> findMemberUserIdsByGroupId(@Param("groupId") Long groupId);
@@ -117,12 +117,12 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     long countByUserIdAndRoleAndGroup_GroupStatusIn(Long userId, RoleStatus role, List<GroupStatus> statuses);
 
     // 특정 그룹에서 아직 리뷰를 안 쓴 멤버 수 카운트
-    long countByGroup_GroupIdAndIsReviewWrittenFalse(Long groupId);
+    long countByGroup_IdAndIsReviewWrittenFalse(Long groupId);
 
     // 특정 그룹에서 리뷰 안 쓴 멤버 리스트 조회
-    List<MatchedMember> findAllByGroup_GroupIdAndIsReviewWrittenFalse(Long groupId);
+    List<MatchedMember> findAllByGroup_IdAndIsReviewWrittenFalse(Long groupId);
 
-    @Query("select mm.user.id from MatchedMember mm where mm.group.groupId = :groupId")
+    @Query("select mm.user.id from MatchedMember mm where mm.group.id = :groupId")
     List<Long> findUserIdsByGroupId(@Param("groupId") Long groupId);
 
     @Query("""
@@ -168,7 +168,7 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     left join fetch mb.book b
     join fetch mm.currentMemberBook cmb
     join fetch cmb.book cb
-    where g.groupId = :groupId
+    where g.id = :groupId
 """)
     List<MatchedMember> findAllTrackerMembersByGroupId(@Param("groupId") Long groupId);
 }

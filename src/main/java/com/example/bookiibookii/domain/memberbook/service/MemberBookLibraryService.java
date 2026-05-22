@@ -78,18 +78,18 @@ public class MemberBookLibraryService {
                 .collect(Collectors.toMap(br -> br.getMemberBook().getId(), br -> br));
 
         List<Long> groupIds = validMemberBooks.stream()
-                .map(mb -> mb.getGroup().getGroupId())
+                .map(mb -> mb.getGroup().getId())
                 .distinct()
                 .toList();
 
-        Map<Long, Tracker> trackerMap = trackerRepository.findByGroup_GroupIdIn(groupIds).stream()
-                .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t));
+        Map<Long, Tracker> trackerMap = trackerRepository.findByGroup_IdIn(groupIds).stream()
+                .collect(Collectors.toMap(t -> t.getGroup().getId(), t -> t));
 
         return validMemberBooks.stream()
                 .map(mb -> toLibraryMemberBookResponseDTO(
                         mb,
                         reviewMap.get(mb.getId()),
-                        trackerMap.get(mb.getGroup().getGroupId())
+                        trackerMap.get(mb.getGroup().getId())
                 ))
                 .toList();
     }
@@ -138,7 +138,7 @@ public class MemberBookLibraryService {
         String comment = bookReview != null ? bookReview.getComment() : null;
 
         return LibraryMemberBookResponseDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .groupName(group.getGroupName())
                 .memberBookId(memberBook.getId())
                 .isMine(memberBook.isMine())

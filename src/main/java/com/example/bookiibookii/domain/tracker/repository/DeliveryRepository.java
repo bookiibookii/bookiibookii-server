@@ -12,34 +12,34 @@ import java.util.Optional;
 @Repository
 public interface DeliveryRepository extends JpaRepository<Delivery, String> {
 
-    Optional<Delivery> findTopByGroup_GroupIdAndReceiver_IdAndDeliveryStatusOrderByCreatedAtDesc(
+    Optional<Delivery> findTopByGroup_IdAndReceiver_IdAndDeliveryStatusOrderByCreatedAtDesc(
             Long groupId,
             Long receiverId,
             DeliveryStatus status
     );
 
-    List<Delivery> findAllByGroup_GroupIdOrderByCreatedAtAsc(Long groupId);
+    List<Delivery> findAllByGroup_IdOrderByCreatedAtAsc(Long groupId);
 
-    Optional<Delivery> findByGroup_GroupIdAndExchangeRoundAndSender_Id(
+    Optional<Delivery> findByGroup_IdAndExchangeRoundAndSender_Id(
             Long groupId,
             ExchangeRound exchangeRound,
             Long senderId
     );
 
-    Optional<Delivery> findByGroup_GroupIdAndExchangeRoundAndSender_IdAndReceiver_Id(
+    Optional<Delivery> findByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
             Long groupId,
             ExchangeRound exchangeRound,
             Long senderId,
             Long receiverId
     );
 
-    boolean existsByGroup_GroupIdAndExchangeRoundAndSender_Id(
+    boolean existsByGroup_IdAndExchangeRoundAndSender_Id(
             Long groupId,
             ExchangeRound exchangeRound,
             Long senderId
     );
 
-    boolean existsByGroup_GroupIdAndExchangeRoundAndSender_IdAndReceiver_Id(
+    boolean existsByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
             Long groupId,
             ExchangeRound exchangeRound,
             Long senderId,

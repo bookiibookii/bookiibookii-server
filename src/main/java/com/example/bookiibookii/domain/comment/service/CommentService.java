@@ -62,7 +62,7 @@ public class CommentService {
             parent = commentRepository.findById(req.getParentId())
                     .orElseThrow(() -> new CommentException(CommentErrorCode.PARENT_COMMENT_NOT_FOUND));
 
-            if (!parent.getGroup().getGroupId().equals(groupId)) {
+            if (!parent.getGroup().getId().equals(groupId)) {
                 throw new CommentException(CommentErrorCode.PARENT_COMMENT_GROUP_MISMATCH);
             }
 
@@ -93,7 +93,7 @@ public class CommentService {
 
         Long notifyUserId = isSecret ? secretTargetUserId : group.getHost().getId();
         if (!user.getId().equals(notifyUserId)) {
-            eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), notifyUserId, group.getGroupId()));
+            eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), notifyUserId, group.getId()));
         }
         return toCreateResDTO(saved, writerRole);
     }
@@ -157,7 +157,7 @@ public class CommentService {
     private CommentCreateResDTO toCreateResDTO(Comment c, WriterRole writerRole) {
         return CommentCreateResDTO.builder()
                 .commentId(c.getId())
-                .groupId(c.getGroup().getGroupId())
+                .groupId(c.getGroup().getId())
                 .parentId(c.getParent() != null ? c.getParent().getId() : null)
                 .content(c.getContent())
                 .createdAt(c.getCreatedAt())

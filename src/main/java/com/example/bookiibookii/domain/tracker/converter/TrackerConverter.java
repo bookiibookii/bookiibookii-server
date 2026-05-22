@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.converter;
 
+import com.example.bookiibookii.domain.group.entity.GroupPlace;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.location.entity.Location;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
@@ -54,7 +55,7 @@ public class TrackerConverter {
                 : partnerCurrentReaderProfileImageUrl;
 
         return TrackerListItemResDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .groupName(group.getGroupName())
                 .displayStatus(displayStatus)
                 .tradeType(group.getTradeType())
@@ -77,7 +78,7 @@ public class TrackerConverter {
         Groups group = me.getGroup();
 
         return TrackerDetailResDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .groupName(group.getGroupName())
                 .myRole(me.getRole())
                 .displayStatus(displayStatus)
@@ -183,8 +184,10 @@ public class TrackerConverter {
                         .address(loc != null ? loc.getAddress() : null)
                         .build());
             } else {
+                GroupPlace gp = tracker.getGroup().getGroupPlace();
                 builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
-                        .placeName(tracker.getGroup().getPreferRegion())
+                        .placeName(gp != null ? gp.getPlaceName() : null)
+                        .address(gp != null ? gp.getAddress() : null)
                         .build());
             }
         }

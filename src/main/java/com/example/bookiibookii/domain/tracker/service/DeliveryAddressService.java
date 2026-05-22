@@ -53,8 +53,10 @@ public class DeliveryAddressService {
             try {
                 deliveryAddressRepository.save(snapshot);
             } catch (DataIntegrityViolationException e) {
-                e.getMostSpecificCause();
-                if (!e.getMostSpecificCause().getMessage().contains("uk_delivery_address_group_round_member")) {
+                String message = e.getMostSpecificCause().getMessage();
+
+                // 동시 요청으로 인해 동일한 배송지 스냅샷이 이미 생성된 경우는 무시한다.
+                if (!message.contains("uk_delivery_address_group_round_member")) {
                     throw e;
                 }
             }
@@ -89,8 +91,10 @@ public class DeliveryAddressService {
             try {
                 deliveryAddressRepository.save(snapshot);
             } catch (DataIntegrityViolationException e) {
-                e.getMostSpecificCause();
-                if (!e.getMostSpecificCause().getMessage().contains("uk_delivery_address_group_round_member")) {
+                String message = e.getMostSpecificCause().getMessage();
+
+                // 동시 요청으로 인해 동일한 배송지 스냅샷이 이미 생성된 경우는 무시한다.
+                if (!message.contains("uk_delivery_address_group_round_member")) {
                     throw e;
                 }
             }

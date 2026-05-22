@@ -39,15 +39,17 @@ public class TrackerConverter {
             String partnerCurrentReaderProfileImageUrl
     ) {
         Groups group = me.getGroup();
-        boolean firstDeliveryBookSwapped = me.getReadingStatus() == ReadingStatus.EXCHANGING
+
+        // 실제 교환 전이라도 운송장 등록하면 myBook <-> partnerBook 변경
+        boolean shouldDisplayPartnerBookAfterShipping = me.getReadingStatus() == ReadingStatus.EXCHANGING
                 && (me.getExchangeStatus() == ExchangeStatus.TRACKING_REGISTERED
                 || me.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED);
-        MemberBook myDisplayBook = firstDeliveryBookSwapped ? partner.getCurrentMemberBook() : me.getCurrentMemberBook();
-        MemberBook partnerDisplayBook = firstDeliveryBookSwapped ? me.getCurrentMemberBook() : partner.getCurrentMemberBook();
-        String myDisplayProfileImageUrl = firstDeliveryBookSwapped
+        MemberBook myDisplayBook = shouldDisplayPartnerBookAfterShipping ? partner.getCurrentMemberBook() : me.getCurrentMemberBook();
+        MemberBook partnerDisplayBook = shouldDisplayPartnerBookAfterShipping ? me.getCurrentMemberBook() : partner.getCurrentMemberBook();
+        String myDisplayProfileImageUrl = shouldDisplayPartnerBookAfterShipping
                 ? partnerCurrentReaderProfileImageUrl
                 : myCurrentReaderProfileImageUrl;
-        String partnerDisplayProfileImageUrl = firstDeliveryBookSwapped
+        String partnerDisplayProfileImageUrl = shouldDisplayPartnerBookAfterShipping
                 ? myCurrentReaderProfileImageUrl
                 : partnerCurrentReaderProfileImageUrl;
 

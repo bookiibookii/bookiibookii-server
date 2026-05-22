@@ -202,11 +202,12 @@ public class TrackerService {
         validateGroupMember(groupId, user.getId());
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
 
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
         Delivery shippingDelivery = deliveryRepository
-                .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
+                .findTopByGroup_GroupIdAndReceiver_IdAndDeliveryStatusOrderByCreatedAtDesc(
+                        groupId,
+                        me.getId(),
+                        DeliveryStatus.SHIPPING
+                )
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
 
         TrackingImage image = trackingImageRepository
@@ -287,7 +288,8 @@ public class TrackerService {
             dates.add(tracker.getStartDate().format(formatter));
         }
 
-        List<Delivery> deliveries = tracker.getDeliveries();
+        List<Delivery> deliveries = deliveryRepository
+                .findAllByGroup_GroupIdOrderByCreatedAtAsc(tracker.getGroup().getGroupId());
         if (deliveries == null || deliveries.isEmpty()) return dates;
 
         List<Delivery> shippingDeliveries = deliveries.stream()

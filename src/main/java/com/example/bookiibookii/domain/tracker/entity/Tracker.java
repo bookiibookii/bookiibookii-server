@@ -10,10 +10,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -50,12 +46,6 @@ public class Tracker extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Integer extensionDays = 0;
-
-    @Builder.Default
-    @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
-    private List<Delivery> deliveries = new ArrayList<>();
-
-
 
     // 양측 MY_BOOK_READ_DONE → MY_BOOK_REVIEWING
     public void completeFirstReading() {

@@ -26,6 +26,7 @@ public enum TrackerErrorCode implements BaseCode {
     INVALID_READING_PROGRESS(HttpStatus.BAD_REQUEST, "TRACKER400_14", "유효하지 않은 독서 진행 페이지입니다."),
     INVALID_BOOK_TOTAL_PAGES(HttpStatus.BAD_REQUEST, "TRACKER400_15", "책의 전체 페이지 수가 유효하지 않습니다."),
     INVALID_MEETING_PHASE(HttpStatus.BAD_REQUEST, "TRACKER400_16", "직접 교환 약속을 처리할 수 있는 교환 단계가 아닙니다."),
+    INVALID_EXTENSION_DATE(HttpStatus.BAD_REQUEST, "TRACKER400_17", "오늘 이후의 날짜를 선택해야 합니다."),
 
 
     // --- 403 FORBIDDEN ---

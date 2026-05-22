@@ -37,7 +37,7 @@ public class MemberBookService {
             LocalDateTime matchedAt
     ) {
         MatchedMember hostMember = matchedMemberRepository
-                .findByGroup_GroupIdAndRole(group.getGroupId(), RoleStatus.HOST)
+                .findByGroup_IdAndRole(group.getId(), RoleStatus.HOST)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         Book hostBook = group.getBook();

@@ -174,28 +174,4 @@ public class AuthService {
         }
     }
 
-    // 회원탈퇴
-    public void withdraw(HttpServletRequest request) {
-
-        String accessToken = jwtTokenResolver.resolve(request);
-        if (accessToken == null) {
-            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
-        }
-
-        try {
-            jwtProvider.validateToken(accessToken);
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
-        }
-        Long userId = jwtProvider.getUserId(accessToken);
-
-        User user = userRepository
-                .findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
-
-        String rtKey = "RT:" + userId;
-        redisUtil.delete(rtKey); // RefreshToken 제거
-        user.withdraw();
-    }
-
 }

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.example.bookiibookii.domain.book.entity.QBook.book;
+import static com.example.bookiibookii.domain.group.entity.QGroupPlace.groupPlace;
 import static com.example.bookiibookii.domain.group.entity.QGroups.groups;
 import static com.example.bookiibookii.domain.user.entity.QUser.user;
 
@@ -34,13 +35,14 @@ public class GroupQueryRepository {
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin() // 도서 정보 페치 조인
                 .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
+                .leftJoin(groups.groupPlace, groupPlace)
                 .where(
                         inTradeTypes(filter.tradeTypes()),
                         containsRegions(filter.regions()),
                         inCategories(filter.categories()),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
-                .groupBy(groups.groupId)
+                .groupBy(groups.id)
                 .orderBy(getSortOrder(filter.sort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
@@ -58,7 +60,7 @@ public class GroupQueryRepository {
     private OrderSpecifier<?>[] getSortOrder(GroupSortType sort) {
         return new OrderSpecifier[]{
                 new OrderSpecifier<>(Order.DESC, groups.createdAt),
-                new OrderSpecifier<>(Order.DESC, groups.groupId)
+                new OrderSpecifier<>(Order.DESC, groups.id)
         };
     }
 
@@ -66,7 +68,7 @@ public class GroupQueryRepository {
         if (regions == null || regions.isEmpty()) return null;
         return regions.stream()
                 .filter(r -> r != null && !r.isBlank())
-                .map(groups.preferRegion::contains)
+                .map(groupPlace.address::contains)
                 .reduce(BooleanExpression::or)
                 .orElse(null);
     }
@@ -90,7 +92,7 @@ public class GroupQueryRepository {
                         searchwordContains(searchword),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
-                .groupBy(groups.groupId) // 태그 조인으로 인한 중복 제거
+                .groupBy(groups.id) // 태그 조인으로 인한 중복 제거
                 .orderBy(getSearchSortOrder(sort))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -118,7 +120,7 @@ public class GroupQueryRepository {
     private OrderSpecifier<?>[] getSearchSortOrder(GroupSortType sort) {
         return new OrderSpecifier[]{
                 new OrderSpecifier<>(Order.DESC, groups.createdAt),
-                new OrderSpecifier<>(Order.DESC, groups.groupId)
+                new OrderSpecifier<>(Order.DESC, groups.id)
         };
     }
 
@@ -134,7 +136,7 @@ public class GroupQueryRepository {
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
                         groups.host.id.ne(userId)
                 )
-                .orderBy(groups.createdAt.desc(), groups.groupId.desc())
+                .orderBy(groups.createdAt.desc(), groups.id.desc())
                 .limit(limit)
                 .fetch();
     }
@@ -174,13 +176,14 @@ public class GroupQueryRepository {
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin()
                 .join(groups.host, user).fetchJoin()
+                .join(groups.groupPlace, groupPlace)
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
                         groups.host.id.ne(userId),
                         groups.tradeType.eq(TradeType.DIRECT),
-                        groups.preferRegion.contains(region)
+                        groupPlace.address.contains(region)
                 )
-                .orderBy(groups.createdAt.desc(), groups.groupId.desc())
+                .orderBy(groups.createdAt.desc(), groups.id.desc())
                 .limit(limit)
                 .fetch();
     }
@@ -197,7 +200,7 @@ public class GroupQueryRepository {
                         groups.host.id.ne(userId),
                         book.isbn13.in(isbn13List)
                 )
-                .orderBy(groups.createdAt.desc(), groups.groupId.desc())
+                .orderBy(groups.createdAt.desc(), groups.id.desc())
                 .fetch();
     }
 }

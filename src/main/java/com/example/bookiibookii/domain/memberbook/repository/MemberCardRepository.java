@@ -23,7 +23,7 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
     @Query("""
         SELECT mc.card.id FROM MemberCard mc
         JOIN mc.matchedMember mm
-        WHERE mm.user.id = :userId AND mm.group.groupId = :groupId AND mc.hidden = true
+        WHERE mm.user.id = :userId AND mm.group.id = :groupId AND mc.hidden = true
         """)
     List<Long> findHiddenCardIdsByUserIdAndGroupId(
             @Param("userId") Long userId,

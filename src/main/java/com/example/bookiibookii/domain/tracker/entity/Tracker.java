@@ -9,7 +9,9 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,12 +52,6 @@ public class Tracker extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Integer extensionDays = 0;
-
-    @Builder.Default
-    @OneToMany(mappedBy = "tracker", cascade = CascadeType.ALL)
-    private List<Delivery> deliveries = new ArrayList<>();
-
-
 
     // 양측 MY_BOOK_READ_DONE → MY_BOOK_REVIEWING
     public void completeFirstReading() {
@@ -104,6 +100,24 @@ public class Tracker extends BaseEntity {
         }
         this.readingStatus = ReadingStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
+    }
+
+    public void extendReadingPeriod(LocalDate newEndDate) {
+        if (this.readingStatus != ReadingStatus.MY_BOOK_READING
+                && this.readingStatus != ReadingStatus.PARTNER_BOOK_READING) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+        if (!newEndDate.isAfter(LocalDate.now())) {
+            throw new TrackerException(TrackerErrorCode.INVALID_EXTENSION_DATE);
+        }
+
+        LocalDate exclusiveEnd = newEndDate.plusDays(1);
+        LocalDate currentEnd = this.endDate != null ? this.endDate.toLocalDate() : exclusiveEnd;
+        int daysDiff = (int) ChronoUnit.DAYS.between(currentEnd, exclusiveEnd);
+
+        this.endDate = exclusiveEnd.atStartOfDay();
+        this.extensionCount = this.extensionCount + 1;
+        this.extensionDays = this.extensionDays + daysDiff;
     }
 
 }

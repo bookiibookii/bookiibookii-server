@@ -3,6 +3,8 @@ package com.example.bookiibookii.domain.user.dto.req;
 import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
 import com.example.bookiibookii.domain.user.enums.Gender;
 import com.example.bookiibookii.domain.user.enums.Tag;
+import com.example.bookiibookii.domain.user.enums.WithdrawalReason;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -51,5 +53,14 @@ public class UserRequestDTO {
 
             /** Presigned URL로 업로드 후 받은 s3Key. null이면 프로필 이미지 변경 안 함. */
             String s3Key
+    ){}
+
+    public record WithdrawalReqDTO(
+            @NotNull(message = "탈퇴 사유는 필수 입력 사항입니다.")
+            WithdrawalReason reason,
+
+            @Schema(description = "직접 입력 사유. reason이 CUSTOM_INPUT인 경우에만 사용됩니다.")
+            @Size(max = 500, message = "직접 입력 사유는 500자 이하여야 합니다.")
+            String customReason
     ){}
 }

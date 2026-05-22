@@ -1,7 +1,9 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
+import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
+import com.example.bookiibookii.domain.tracker.dto.res.ExtendReadingPeriodResDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -49,6 +51,21 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
+
+    @PatchMapping("/trackers/{groupId}/reading-period")
+    @Operation(
+            summary = "독서기간 수정",
+            description = """
+            호스트만 독서기간을 수정할 수 있습니다.
+            - MY_BOOK_READING 또는 PARTNER_BOOK_READING 단계에서만 가능합니다.
+            - newEndDate는 오늘보다 이후여야 합니다.
+            """
+    )
+    ApiResponse<ExtendReadingPeriodResDTO> extendReadingPeriod(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @RequestBody ExtendReadingPeriodReqDTO request,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
 
     // --- 2. 이미지 관련 ---
 
@@ -104,9 +121,9 @@ public interface TrackerControllerDocs {
             description = """
             직접 교환 시 만날 장소와 시간을 등록하거나 수정합니다.
             
-            - **최초 등록 시**: 트래커 상태가 `EXCHANGING`(전달 시) 또는 `RETURNING`(반납 시)로 변경됩니다.
+            - **최초 등록 시**: 트래커 상태가 EXCHANGING(전달 시) 또는 RETURNING(반납 시)로 변경됩니다.
             - **수정 시**: 이미 약속이 있는 경우 기존 정보를 업데이트하며, 상대방의 수락 여부(isConfirmed)가 초기화됩니다.
-            - **응답**: 수정된 약속의 상세 정보(`TrackerMeetingResponse`)를 반환합니다.
+            - **응답**: 수정된 약속의 상세 정보(TrackerMeetingResponse)를 반환합니다.
             """
     )
     @ApiResponses(value = {
@@ -128,7 +145,7 @@ public interface TrackerControllerDocs {
     @Operation(
             summary = "직접 교환 완료 확인 (상호 확인)",
             description = "직접 교환 현장에서 책을 주고받은 후 양측(호스트, 게스트)이 각각 완료 버튼을 누릅니다. " +
-                    "두 명 모두 확인 시 소유권이 이전되며, 상태가 `EXCHANGED`(전달 시) 또는 `COMPLETED`(반납 시)로 즉시 변경됩니다."
+            "두 명 모두 확인 시 소유권이 이전되며, 상태가 EXCHANGED(전달 시) 또는 COMPLETED(반납 시)로 즉시 변경됩니다."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "교환 확인 처리 성공",

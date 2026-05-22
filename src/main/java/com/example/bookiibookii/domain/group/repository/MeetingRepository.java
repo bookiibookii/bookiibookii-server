@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
-    boolean existsByGroup_GroupId(Long groupId);
+    boolean existsByGroup_Id(Long groupId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -23,7 +23,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         join fetch m.createdBy cb
         join fetch cb.user
         join fetch m.location
-        where g.groupId = :groupId
+        where g.id = :groupId
     """)
     Optional<Meeting> findByGroupIdForUpdate(@Param("groupId") Long groupId);
 
@@ -34,7 +34,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         join fetch m.createdBy cb
         join fetch cb.user
         join fetch m.location
-        where g.groupId = :groupId
+        where g.id = :groupId
     """)
     Optional<Meeting> findByGroupId(@Param("groupId") Long groupId);
 }

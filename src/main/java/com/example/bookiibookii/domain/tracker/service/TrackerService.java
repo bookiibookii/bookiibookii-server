@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.tracker.service;
 
+import com.example.bookiibookii.domain.group.entity.GroupPlace;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
@@ -15,11 +16,13 @@ import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
+import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerMeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerReceiveRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.TrackerShippingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
+import com.example.bookiibookii.domain.tracker.dto.res.ExtendReadingPeriodResDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.entity.TrackingImage;
@@ -202,11 +205,12 @@ public class TrackerService {
         validateGroupMember(groupId, user.getId());
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
 
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
         Delivery shippingDelivery = deliveryRepository
-                .findTopByTrackerAndReceiverIdAndDeliveryStatusOrderByCreatedAtDesc(tracker, me.getId(), DeliveryStatus.SHIPPING)
+                .findTopByGroup_IdAndReceiver_IdAndDeliveryStatusOrderByCreatedAtDesc(
+                        groupId,
+                        me.getId(),
+                        DeliveryStatus.SHIPPING
+                )
                 .orElseThrow(() -> new TrackerImageException(TrackerImageErrorCode.TRACKING_IMAGE_NOT_FOUND));
 
         TrackingImage image = trackingImageRepository
@@ -221,7 +225,7 @@ public class TrackerService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createTracker(GroupMatchedEvent event) {
-        if (trackerRepository.existsByGroup_GroupId(event.groupId())) {
+        if (trackerRepository.existsByGroup_Id(event.groupId())) {
             throw new TrackerException(TrackerErrorCode.TRACKER_ALREADY_EXISTS);
         }
 
@@ -239,10 +243,31 @@ public class TrackerService {
 
         trackerRepository.save(tracker);
 
-        List<GroupBook> groupBooks = groupBookRepository.findAllByGroup_GroupId(event.groupId());
+        List<GroupBook> groupBooks = groupBookRepository.findAllByGroup_Id(event.groupId());
         if (!groupBooks.isEmpty()) {
             groupBooks.forEach(ub -> ub.assignTracker(tracker));
         }
+    }
+
+    @Transactional
+    public ExtendReadingPeriodResDTO extendReadingPeriod(Long groupId, ExtendReadingPeriodReqDTO request, User user) {
+        RoleStatus role = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+        if (role != RoleStatus.HOST) {
+            throw new TrackerException(TrackerErrorCode.NOT_GROUP_HOST);
+        }
+
+        Tracker tracker = trackerRepository.findByGroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        tracker.extendReadingPeriod(request.newEndDate());
+
+        Groups group = tracker.getGroup();
+        long newPeriod = ChronoUnit.DAYS.between(group.getStartDate(), request.newEndDate()) + 1;
+        group.setReadingPeriod((int) newPeriod);
+
+        int dDay = (int) ChronoUnit.DAYS.between(LocalDate.now(), request.newEndDate()) + 1;
+        return new ExtendReadingPeriodResDTO(request.newEndDate(), dDay);
     }
 
     // --- 트래커 조회 ---
@@ -258,7 +283,7 @@ public class TrackerService {
     }
 
     private MatchedMember findPartnerForRelay(Long groupId, Long myUserId) {
-        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_GroupId(groupId);
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(groupId);
         if (members.size() > 2) {
             throw new TrackerException(TrackerErrorCode.INVALID_PARTNER_COUNT);
         }
@@ -287,7 +312,8 @@ public class TrackerService {
             dates.add(tracker.getStartDate().format(formatter));
         }
 
-        List<Delivery> deliveries = tracker.getDeliveries();
+        List<Delivery> deliveries = deliveryRepository
+                .findAllByGroup_IdOrderByCreatedAtAsc(tracker.getGroup().getId());
         if (deliveries == null || deliveries.isEmpty()) return dates;
 
         List<Delivery> shippingDeliveries = deliveries.stream()
@@ -459,13 +485,19 @@ public class TrackerService {
         return meetingRepository.findByTrackerIdAndStatusNative(tracker.getId(), meetingStatus.name())
                 .map(meeting -> {
                     Location loc = meeting.getLocation();
+                    GroupPlace gp = tracker.getGroup().getGroupPlace();
                     return new TrackerMeetingResponseDTO(
                             meeting.getMeetingTime(),
-                            loc != null ? loc.getPlaceName() : tracker.getGroup().getPreferRegion(),
-                            loc != null ? loc.getAddress() : null
+                            loc != null ? loc.getPlaceName() : (gp != null ? gp.getPlaceName() : null),
+                            loc != null ? loc.getAddress() : (gp != null ? gp.getAddress() : null)
                     );
                 })
-                .orElseGet(() -> new TrackerMeetingResponseDTO(null, tracker.getGroup().getPreferRegion(), null));
+                .orElseGet(() -> {
+                    GroupPlace gp = tracker.getGroup().getGroupPlace();
+                    return new TrackerMeetingResponseDTO(null,
+                            gp != null ? gp.getPlaceName() : null,
+                            gp != null ? gp.getAddress() : null);
+                });
     }
 
     @Transactional
@@ -557,18 +589,18 @@ public class TrackerService {
 
     // --- Helpers ---
     private void validateGroupMember(Long groupId, Long userId) {
-        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId)) {
             throw new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER);
         }
     }
 
     private MatchedMember getMyMatchedMember(Long groupId, Long userId) {
-        return matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
     }
 
     private MatchedMember getPartnerMember(Long groupId, Long myMemberId) {
-        return matchedMemberRepository.findAllByGroup_GroupId(groupId).stream()
+        return matchedMemberRepository.findAllByGroup_Id(groupId).stream()
                 .filter(mm -> !mm.getId().equals(myMemberId))
                 .findFirst()
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));

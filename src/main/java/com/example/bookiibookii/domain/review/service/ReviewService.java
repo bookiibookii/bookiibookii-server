@@ -26,6 +26,7 @@ import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
+import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,7 @@ public class ReviewService {
     private final GroupReviewRepository groupReviewRepository;
     private final GroupsRepository groupsRepository;
     private final DomainEventPublisher publisher;
+    private final DeliveryAddressService deliveryAddressService;
 
     @Transactional
     public BookReviewResponseDTO createBookReview(
@@ -70,7 +72,7 @@ public class ReviewService {
 
         Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-        MatchedMember me = getMatchedMember(group.getGroupId(), user.getId());
+        MatchedMember me = getMatchedMember(group.getId(), user.getId());
         MemberBook currentMemberBook = getCurrentMemberBook(me);
 
         if (bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(me.getId(), currentMemberBook.getId())) {
@@ -104,7 +106,7 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
         }
 
-        updateExchangeStatusIfAllMembersReady(group.getGroupId(), group.getTradeType());
+        updateExchangeStatusIfAllMembersReady(group.getId(), group.getTradeType());
 
         return BookReviewResponseDTO.from(bookReview);
     }
@@ -149,17 +151,17 @@ public class ReviewService {
         groupBook.updateReview(request.rating(), request.comment());
 
         //그룹 조회 락 추가
-        Groups group = groupsRepository.findByIdForUpdate(groupBook.getGroup().getGroupId())
+        Groups group = groupsRepository.findByIdForUpdate(groupBook.getGroup().getId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 그룹이 MATCHED 상태일 때만 종료 로직 수행
         if (group.getGroupStatus() == GroupStatus.MATCHED) {
-            MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(group.getGroupId(), user.getId())
+            MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(group.getId(), user.getId())
                     .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
             matchedMember.markReviewAsWritten();
 
-            long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(group.getGroupId());
+            long remainingCount = matchedMemberRepository.countByGroup_IdAndIsReviewWrittenFalse(group.getId());
 
             if (remainingCount == 0) {
                 group.updateStatus(GroupStatus.COMPLETED);
@@ -183,7 +185,7 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.NOT_GROUP_BOOK_OWNER);
         }
 
-        Long groupId = groupBook.getGroup().getGroupId();
+        Long groupId = groupBook.getGroup().getId();
 
         Tracker tracker = trackerRepository.findByGroupId(groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
@@ -193,12 +195,12 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED); // 독서 단계가 아님
         }
 
-        MatchedMember me = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
+        MatchedMember me = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         Long partnerUserId = matchedMemberRepository.findPartnerUserId(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
-        MatchedMember partner = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
+        MatchedMember partner = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, partnerUserId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
         groupBook.updateReview(request.bookRating(), request.bookComment());
@@ -244,7 +246,7 @@ public class ReviewService {
         }
 
         // [보완] 비관적 락을 사용하여 그룹 조회 (동시성 제어)
-        Groups group = groupsRepository.findByIdForUpdate(groupBook.getGroup().getGroupId())
+        Groups group = groupsRepository.findByIdForUpdate(groupBook.getGroup().getId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // [보완] 그룹 상태가 MATCHED일 때만 리뷰 프로세스 진행
@@ -253,14 +255,14 @@ public class ReviewService {
             throw new GroupException(GroupErrorCode.INVALID_GROUP_STATUS);
         }
 
-        Long groupId = group.getGroupId();
+        Long groupId = group.getId();
         ensureTrackerReturned(groupId);
 
         // 2-3. [책 리뷰] 업데이트
         groupBook.updateReview(request.bookRating(), request.bookComment());
 
         // 2-4. 리뷰어 조회 및 중복 체크
-        MatchedMember reviewer = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
+        MatchedMember reviewer = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         if (groupReviewRepository.existsByGroupIdAndReviewerUserId(groupId, user.getId())) {
@@ -274,7 +276,7 @@ public class ReviewService {
         Long partnerUserId = matchedMemberRepository.findPartnerUserId(groupId, user.getId())
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
-        MatchedMember reviewed = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
+        MatchedMember reviewed = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, partnerUserId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
 
         GroupReview groupReview = GroupReview.builder()
@@ -287,7 +289,7 @@ public class ReviewService {
         groupReviewRepository.save(groupReview);
 
         // [핵심] 락이 걸린 상태에서 전원 완료 여부 체크
-        long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(groupId);
+        long remainingCount = matchedMemberRepository.countByGroup_IdAndIsReviewWrittenFalse(groupId);
 
         if (remainingCount == 0) {
             group.updateStatus(GroupStatus.COMPLETED);
@@ -317,7 +319,7 @@ public class ReviewService {
     }
 
     private MatchedMember getMatchedMember(Long groupId, Long userId) {
-        return matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER));
     }
 
@@ -330,7 +332,7 @@ public class ReviewService {
     }
 
     private void updateExchangeStatusIfAllMembersReady(Long groupId, TradeType tradeType) {
-        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroup_GroupId(groupId);
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroup_Id(groupId);
         if (matchedMembers.isEmpty()) {
             throw new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND);
         }
@@ -349,6 +351,10 @@ public class ReviewService {
 
         ExchangeStatus initialExchangeStatus = resolveInitialExchangeStatus(tradeType);
         matchedMembers.forEach(member -> member.updateExchangeStatus(initialExchangeStatus));
+
+        if (tradeType == TradeType.DELIVERY && allExchanging) {
+            deliveryAddressService.createFirstExchangeAddressesIfAbsent(groupId);
+        }
     }
 
     private ExchangeStatus resolveInitialExchangeStatus(TradeType tradeType) {
@@ -369,19 +375,19 @@ public class ReviewService {
 
         // 2. 등장하는 groupId 목록 수집
         List<Long> groupIds = partnerToMeReviews.stream()
-                .map(gr -> gr.getReviewer().getGroup().getGroupId())
+                .map(gr -> gr.getReviewer().getGroup().getId())
                 .distinct()
                 .toList();
 
         // 3. Tracker / GroupBook 배치 조회 (N+1 방지)
-        List<Tracker> trackers = trackerRepository.findByGroup_GroupIdIn(groupIds);
+        List<Tracker> trackers = trackerRepository.findByGroup_IdIn(groupIds);
         Map<Long, Tracker> trackerByGroupId = trackers.stream()
-                .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t, (a, b) -> a));
+                .collect(Collectors.toMap(t -> t.getGroup().getId(), t -> t, (a, b) -> a));
 
-        List<GroupBook> groupBooksInGroups = groupBookRepository.findByGroup_GroupIdInWithUserAndGroup(groupIds);
+        List<GroupBook> groupBooksInGroups = groupBookRepository.findByGroup_IdInWithUserAndGroup(groupIds);
         Map<String, GroupBook> groupBookByUserAndGroup = groupBooksInGroups.stream()
                 .collect(Collectors.toMap(
-                        ub -> ub.getUser().getId() + "_" + ub.getGroup().getGroupId(),
+                        ub -> ub.getUser().getId() + "_" + ub.getGroup().getId(),
                         ub -> ub,
                         (a, b) -> a
                 ));
@@ -393,7 +399,7 @@ public class ReviewService {
                     if (partnerMM == null) return null;
 
                     Groups group = partnerMM.getGroup();
-                    Long groupId = group.getGroupId();
+                    Long groupId = group.getId();
                     Long partnerUserId = partnerMM.getUser().getId();
 
                     Tracker tracker = trackerByGroupId.get(groupId);
@@ -413,7 +419,7 @@ public class ReviewService {
             Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, GroupBook pub) {
 
         return GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .bookTitle(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .startDate(group.getStartDate().format(DATE_FMT))

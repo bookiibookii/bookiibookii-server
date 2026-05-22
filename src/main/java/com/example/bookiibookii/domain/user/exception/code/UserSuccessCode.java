@@ -41,6 +41,9 @@ public enum UserSuccessCode implements BaseCode {
     UPDATE_INTRODUCTION_SUCCESS(HttpStatus.OK,
             "USER200_11",
             "한줄 소개 수정에 성공했습니다."),
+    WITHDRAWAL_SUCCESS(HttpStatus.OK,
+            "USER200_11",
+            "회원 탈퇴가 완료되었습니다."),
     ;
     private final HttpStatus status;
     private final String code;

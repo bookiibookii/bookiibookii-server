@@ -9,8 +9,6 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(
@@ -30,19 +28,19 @@ public class Delivery extends BaseEntity {
     @Column(name = "delivery_id")
     private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "group_id", nullable = false)
     private Groups group;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "exchange_round")
+    @Column(name = "exchange_round", nullable = false)
     private ExchangeRound exchangeRound;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "delivery_status")
+    @Column(name = "delivery_status", nullable = false)
     private DeliveryStatus deliveryStatus;
 
-    @Column(name = "start_date")
+    @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
     @Column(name = "end_date")
@@ -55,24 +53,17 @@ public class Delivery extends BaseEntity {
     @Column(name = "tracking_number")
     private String trackingNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tracker_id")
-    private Tracker tracker;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_matchedmember_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sender_matchedmember_id", nullable = false)
     private MatchedMember sender;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "receiver_matchedmember_id", nullable = false)
     private MatchedMember receiver;
 
     @Column(name = "received_confirmed_at")
     private LocalDateTime receivedConfirmedAt;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "delivery", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TrackingImage> trackingImages = new ArrayList<>();
 
     public void complete(LocalDateTime completedAt) {
         this.endDate = completedAt;

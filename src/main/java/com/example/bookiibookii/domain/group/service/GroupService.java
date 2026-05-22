@@ -177,7 +177,7 @@ public class GroupService {
         }
 
         if (request.getTradeType() == null) {
-            throw new GroupException(GroupErrorCode.INVALID_GROUP_SELECTED_PLACE);
+            throw new GroupException(GroupErrorCode.INVALID_GROUP_TYPE);
         }
 
         if (request.getSelectedPlaceId() == null) {

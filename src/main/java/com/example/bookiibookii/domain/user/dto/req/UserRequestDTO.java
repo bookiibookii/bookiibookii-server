@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.location.dto.req.UserDeliveryReqDTO;
 import com.example.bookiibookii.domain.location.dto.req.UserExchangeReqDTO;
 import com.example.bookiibookii.domain.user.enums.Gender;
 import com.example.bookiibookii.domain.user.enums.Tag;
+import com.example.bookiibookii.domain.user.enums.WithdrawalReason;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -61,5 +62,14 @@ public class UserRequestDTO {
 
             @Schema(description = "삭제할 교환 장소 ID 목록. null이면 변경 없음.")
             List<Long> exchangeIdsToDelete
+    ){}
+
+    public record WithdrawalReqDTO(
+            @NotNull(message = "탈퇴 사유는 필수 입력 사항입니다.")
+            WithdrawalReason reason,
+
+            @Schema(description = "직접 입력 사유. reason이 CUSTOM_INPUT인 경우에만 사용됩니다.")
+            @Size(max = 500, message = "직접 입력 사유는 500자 이하여야 합니다.")
+            String customReason
     ){}
 }

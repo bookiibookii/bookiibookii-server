@@ -22,7 +22,7 @@ public enum GroupErrorCode implements BaseCode {
     GROUP_NOT_RECRUITING(HttpStatus.BAD_REQUEST, "GROUP400_3", "그룹이 RECRUITING 상태가 아닙니다."),
     BOOK_NOT_SELECTED(HttpStatus.BAD_REQUEST, "GROUP400_4", "도서를 선택해야 합니다."),
     INVALID_START_DATE(HttpStatus.BAD_REQUEST, "GROUP400_5", "시작 날짜는 오늘 이후여야 합니다."),
-    INVALID_READING_PERIOD(HttpStatus.BAD_REQUEST, "GROUP400_6", "독서 기간은 3일에서 30일 사이여야 합니다."),
+    INVALID_READING_PERIOD(HttpStatus.BAD_REQUEST, "GROUP400_6", "3, 7, 14, 21, 28일 중에 입력해주세요."),
     USER_LOCATION_NOT_FOUND(HttpStatus.BAD_REQUEST, "GROUP400_7", "직접 교환을 위해 장소를 설정해주세요."),
     INVALID_GROUP_CAPACITY(HttpStatus.BAD_REQUEST, "GROUP400_8", "함께읽기 정원은 방장 포함 2~8명 사이여야 합니다."),
     GROUP_CANT_UPDATE(HttpStatus.BAD_REQUEST, "GROUP400_9", "그룹을 수정할 수 없습니다."),

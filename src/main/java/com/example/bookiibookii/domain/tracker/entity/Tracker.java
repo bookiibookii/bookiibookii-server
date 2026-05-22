@@ -117,10 +117,11 @@ public class Tracker extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_EXTENSION_DATE);
         }
 
-        LocalDate currentEnd = this.endDate != null ? this.endDate.toLocalDate() : newEndDate;
-        int daysDiff = (int) ChronoUnit.DAYS.between(currentEnd, newEndDate);
+        LocalDate exclusiveEnd = newEndDate.plusDays(1);
+        LocalDate currentEnd = this.endDate != null ? this.endDate.toLocalDate() : exclusiveEnd;
+        int daysDiff = (int) ChronoUnit.DAYS.between(currentEnd, exclusiveEnd);
 
-        this.endDate = newEndDate.atStartOfDay();
+        this.endDate = exclusiveEnd.atStartOfDay();
         this.extensionCount = this.extensionCount + 1;
         this.extensionDays = this.extensionDays + daysDiff;
     }

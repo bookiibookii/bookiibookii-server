@@ -261,10 +261,10 @@ public class TrackerService {
         tracker.extendReadingPeriod(request.newEndDate());
 
         Groups group = tracker.getGroup();
-        long newPeriod = ChronoUnit.DAYS.between(group.getStartDate(), request.newEndDate());
+        long newPeriod = ChronoUnit.DAYS.between(group.getStartDate(), request.newEndDate()) + 1;
         group.setReadingPeriod((int) newPeriod);
 
-        int dDay = (int) ChronoUnit.DAYS.between(LocalDate.now(), request.newEndDate());
+        int dDay = (int) ChronoUnit.DAYS.between(LocalDate.now(), request.newEndDate()) + 1;
         return new ExtendReadingPeriodResDTO(request.newEndDate(), dDay);
     }
 

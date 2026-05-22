@@ -47,7 +47,6 @@ public class UserRequestDTO {
 
             Gender gender,
 
-            @Past(message = "과거 날짜만 입력 가능합니다.")
             LocalDate birth,
 
             /** Presigned URL로 업로드 후 받은 s3Key. null이면 프로필 이미지 변경 안 함. */

@@ -25,6 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -95,6 +96,7 @@ public class UserService {
 
         bookshelfService.replaceAllFavoriteBooks(user, request.userBooks());
         user.updateIntroduction(request.introduction());
+        requireValidBirth(request.birth());
         user.updateUserInform(request.gender(), request.birth());
 
         userTagRepository.deleteAllByUser(user);
@@ -258,10 +260,19 @@ public class UserService {
         }
 
         if (request.gender() != null || request.birth() != null) {
+            if (request.birth() != null) {
+                requireValidBirth(request.birth());
+            }
             user.updateUserInform(
                     request.gender() != null ? request.gender() : user.getGender(),
                     request.birth() != null ? request.birth() : user.getBirth()
             );
+        }
+    }
+
+    private void requireValidBirth(LocalDate birth) {
+        if (!birth.isBefore(LocalDate.now())) {
+            throw new UserException(UserErrorCode.INVALID_BIRTH_DATE);
         }
     }
 

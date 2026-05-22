@@ -53,7 +53,10 @@ public enum UserErrorCode implements BaseCode {
             "인생 책은 최소 1권 이상 등록되어 있어야 합니다. 다른 책으로 먼저 교체해 주세요."),
     REPRESENTATIVE_MUST_CONTAIN_FAVORITE(HttpStatus.BAD_REQUEST,
             "USER400_10",
-            "대표 책에 인생 책이 최소 1권 포함되어 있어야 합니다.")
+            "대표 책에 인생 책이 최소 1권 포함되어 있어야 합니다."),
+    INVALID_BIRTH_DATE(HttpStatus.BAD_REQUEST,
+            "USER400_11",
+            "생년월일은 오늘 이전 날짜여야 합니다.")
     ;
     private final HttpStatus status;
     private final String code;

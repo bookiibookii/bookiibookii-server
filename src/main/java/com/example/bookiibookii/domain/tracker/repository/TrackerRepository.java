@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.tracker.repository;
 
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,14 +25,5 @@ public interface TrackerRepository extends JpaRepository<Tracker, Long> {
 
     @Query("SELECT t FROM Tracker t JOIN FETCH t.group WHERE t.group.groupId IN :groupIds")
     List<Tracker> findByGroup_GroupIdIn(@Param("groupIds") List<Long> groupIds);
-
-    @Query("SELECT DISTINCT t FROM Tracker t " +
-            "JOIN FETCH t.group g " +
-            "LEFT JOIN FETCH t.deliveries " +
-            "JOIN MatchedMember mm ON mm.group = g AND mm.user.id = :userId " +
-            "JOIN GroupBook ub ON ub.group = g AND ub.user.id = :userId " +
-            "WHERE ub.rating IS NULL " +
-            "ORDER BY t.createdAt DESC")
-    List<Tracker> findAllByUserIdWithDetails(@Param("userId") Long userId);
 
 }

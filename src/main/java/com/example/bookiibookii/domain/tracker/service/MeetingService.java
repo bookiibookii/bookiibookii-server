@@ -1,13 +1,16 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.GroupPlace;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.group.enums.GroupPlaceSourceType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.group.repository.GroupPlaceRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.location.entity.Location;
@@ -16,6 +19,7 @@ import com.example.bookiibookii.domain.location.exception.code.LocationErrorCode
 import com.example.bookiibookii.domain.location.repository.LocationRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.tracker.dto.req.MeetingRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.MeetingDefaultPlaceResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingResponseDTO;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
@@ -39,6 +43,7 @@ public class MeetingService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final LocationRepository locationRepository;
+    private final GroupPlaceRepository groupPlaceRepository;
 
     @Transactional
     public MeetingResponseDTO createMeeting(Long groupId, MeetingRequestDTO request, User user) {
@@ -89,6 +94,23 @@ public class MeetingService {
         return meetingRepository.findByGroupId(groupId)
                 .map(MeetingResponseDTO::from)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
+    }
+
+    public MeetingDefaultPlaceResponseDTO getDefaultPlace(Long groupId, User user) {
+        Groups group = groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        if (group.getTradeType() != TradeType.DIRECT) {
+            throw new TrackerException(TrackerErrorCode.NOT_DIRECT_TRADE_GROUP);
+        }
+        validateGroupMember(groupId, user.getId());
+
+        GroupPlace groupPlace = groupPlaceRepository.findByGroup_GroupId(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.GROUP_SELECTED_PLACE_NOT_FOUND));
+        if (groupPlace.getSourceType() != GroupPlaceSourceType.USER_EXCHANGE) {
+            throw new TrackerException(TrackerErrorCode.INVALID_GROUP_SELECTED_PLACE);
+        }
+
+        return MeetingDefaultPlaceResponseDTO.from(groupPlace);
     }
 
     @Transactional

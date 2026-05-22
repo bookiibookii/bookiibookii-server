@@ -257,12 +257,9 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.NOT_GROUP_HOST);
         }
 
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+        Groups group = groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        tracker.extendReadingPeriod(request.newEndDate());
-
-        Groups group = tracker.getGroup();
         long newPeriod = ChronoUnit.DAYS.between(group.getStartDate(), request.newEndDate()) + 1;
         group.setReadingPeriod((int) newPeriod);
 

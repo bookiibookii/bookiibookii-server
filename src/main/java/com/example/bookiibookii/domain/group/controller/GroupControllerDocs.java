@@ -37,6 +37,7 @@ public interface GroupControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_4", description = "도서 미선택"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_23", description = "선택 장소 필수"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_24", description = "교환 방식과 선택 장소 불일치"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_5", description = "본인 배송지가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_6", description = "본인 희망교환장소가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_7", description = "선택 장소 없음")

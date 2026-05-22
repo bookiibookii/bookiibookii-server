@@ -155,7 +155,11 @@ public class PackageDeliveryService {
         MatchedMember partner = findPartner(members, me.getId());
         validateFirstExchangeStage(me);
 
-        if (me.getExchangeStatus() != ExchangeStatus.TRACKING_REGISTERED) {
+        ExchangeStatus exchangeStatus = me.getExchangeStatus();
+        if (exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_RECEIVED);
+        }
+        if (exchangeStatus != ExchangeStatus.TRACKING_REGISTERED) {
             throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
         }
 

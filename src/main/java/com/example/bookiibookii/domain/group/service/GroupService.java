@@ -118,16 +118,12 @@ public class GroupService {
                 .groupType(GroupType.RELAY)
                 .tradeType(request.getTradeType())
                 .groupStatus(GroupStatus.RECRUITING)
-                .preferRegion(request.getPreferRegion())
                 .groupName(request.getGroupName())
                 .build();
 
         Groups savedGroup = groupsRepository.save(group);
         GroupPlace groupPlace = createGroupPlace(savedGroup, host, request);
         group.setGroupPlace(groupPlace);
-        if (savedGroup.getPreferRegion() == null || savedGroup.getPreferRegion().isBlank()) {
-            savedGroup.setPreferRegion(groupPlace.getAddress());
-        }
         groupPlaceRepository.save(groupPlace);
 
         // 규칙 저장 (모든 트레이드 타입 공통)
@@ -154,10 +150,10 @@ public class GroupService {
         List<Long> ids = matched.stream().map(Keyword::getId).toList();
         List<String> texts = matched.stream().map(Keyword::getContent).toList();
 
-        publisher.publish(new KeywordGroupCreatedEvent(group.getGroupId(), texts, ids));
+        publisher.publish(new KeywordGroupCreatedEvent(group.getId(), texts, ids));
 
         return GroupResponseDTO.CreateResultDTO.builder()
-                .groupId(savedGroup.getGroupId()) //
+                .groupId(savedGroup.getId()) //
                 .groupStatus(savedGroup.getGroupStatus()) //
                 .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
@@ -307,11 +303,6 @@ public class GroupService {
             group.setGroupName(request.getGroupName());
         }
 
-        // 희망 교환 장소 수정
-        if (request.getPreferRegion() != null) {
-            group.setPreferRegion(request.getPreferRegion());
-        }
-
         // 규칙 수정
         if (request.getRules() != null) {
             validateRules(request.getRules());
@@ -321,7 +312,7 @@ public class GroupService {
         }
 
         return GroupResponseDTO.UpdateResultDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
     }
@@ -350,7 +341,7 @@ public class GroupService {
                 .toList();
 
         // 알림 publish
-        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), group.getBook().getTitle(), null, receiverIds, group.getGroupId()));
+        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), group.getBook().getTitle(), null, receiverIds, group.getId()));
 
         //soft delete 실행
         group.markAsDELETED();
@@ -371,7 +362,7 @@ public class GroupService {
 
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByCreatedAtAsc(group);
-        int waitingCount = (int) applicationRepository.countByGroupGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
+        int waitingCount = (int) applicationRepository.countByGroupIdAndApplicationStatus(groupId, ApplicationStatus.PENDING);
 
         // 4. 대기 인원이 정원의 3배 이상일 경우 'HOT' 배지 활성화 여부 판단
         boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
@@ -385,12 +376,13 @@ public class GroupService {
 
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .groupComment(group.getGroupComment())
                 .groupStatus(group.getGroupStatus().name())
                 .isHost(group.getHost().getId().equals(userId))
                 .tradeType(group.getTradeType().name())
-                .preferRegion(group.getPreferRegion())
+                .placeName(group.getGroupPlace() != null ? group.getGroupPlace().getPlaceName() : null)
+                .address(group.getGroupPlace() != null ? group.getGroupPlace().getAddress() : null)
                 .title(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .author(group.getBook().getAuthor())
@@ -456,7 +448,7 @@ public class GroupService {
         }
 
         // 3. 신청 대기 중인지 확인
-        if (applicationRepository.existsByGroupGroupIdAndGuestIdAndApplicationStatus(group.getGroupId(), userId, ApplicationStatus.PENDING)) {
+        if (applicationRepository.existsByGroupIdAndGuestIdAndApplicationStatus(group.getId(), userId, ApplicationStatus.PENDING)) {
             return "CANCEL";
         }
 
@@ -493,7 +485,7 @@ public class GroupService {
 
         // 2. 메인 그룹 리스트 조회 (1번 쿼리)
         Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, pageable);
-        List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getGroupId).toList();
+        List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getId).toList();
 
         if (groupIds.isEmpty()) {
             return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), 0, false);
@@ -506,11 +498,11 @@ public class GroupService {
         // 5. DTO 변환 (메모리상의 Map에서 데이터를 매핑)
         List<GroupResponseDTO.GroupSummaryDTO> dtoList = groupsSlice.stream()
                 .map(group -> {
-                    int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
+                    int waitingCount = waitingCountMap.getOrDefault(group.getId(), 0);
                     boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
 
                     return GroupResponseDTO.GroupSummaryDTO.builder()
-                            .groupId(group.getGroupId())
+                            .groupId(group.getId())
                             .groupName(group.getGroupName())
                             .title(group.getBook().getTitle())
                             .author(group.getBook().getAuthor())
@@ -560,7 +552,7 @@ public class GroupService {
         );
 
         List<Groups> content = searchResult.getContent();
-        List<Long> groupIds = content.stream().map(Groups::getGroupId).toList();
+        List<Long> groupIds = content.stream().map(Groups::getId).toList();
 
         // 검색 결과가 없는 경우 빈 결과 반환
         if (groupIds.isEmpty()) {
@@ -577,11 +569,11 @@ public class GroupService {
         // 5. 엔티티 -> GroupSummaryDTO 변환 (기존 리스트 조회와 동일한 카드 포맷)
         List<GroupResponseDTO.GroupSummaryDTO> dtoList = content.stream()
                 .map(group -> {
-                    int waitingCount = waitingCountMap.getOrDefault(group.getGroupId(), 0);
+                    int waitingCount = waitingCountMap.getOrDefault(group.getId(), 0);
                     boolean isHot = waitingCount >= (group.getMaxCapacity() * 3);
 
                     return GroupResponseDTO.GroupSummaryDTO.builder()
-                            .groupId(group.getGroupId())
+                            .groupId(group.getId())
                             .groupName(group.getGroupName())
                             .title(group.getBook().getTitle())
                             .author(group.getBook().getAuthor())
@@ -625,7 +617,7 @@ public class GroupService {
     @Transactional(readOnly = true)
     public List<GroupResponseDTO.GroupMemberResponse> getGroupMembers(Long groupId, Long userId) {
         // 현재 유저가 해당 그룹에 속해있는지 검증
-        if (!matchedMemberRepository.existsByGroup_GroupIdAndUser_Id(groupId, userId)) {
+        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId)) {
             throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
         }
 
@@ -750,7 +742,7 @@ public class GroupService {
 
     private GroupResponseDTO.HomeGroupCardDTO toHomeCard(Groups group) {
         return GroupResponseDTO.HomeGroupCardDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .groupName(group.getGroupName())
                 .hostNickname(group.getHost().getNickName())
                 .hostProfileImageUrl(userProfileImageUrl(group.getHost()))

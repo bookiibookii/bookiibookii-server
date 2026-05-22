@@ -53,7 +53,7 @@ public class MeetingService {
         validateHost(me);
         validateMeetingPhase(members);
 
-        if (meetingRepository.existsByGroup_GroupId(groupId)) {
+        if (meetingRepository.existsByGroup_Id(groupId)) {
             throw new TrackerException(TrackerErrorCode.MEETING_ALREADY_EXISTS);
         }
 
@@ -104,7 +104,7 @@ public class MeetingService {
         }
         validateGroupMember(groupId, user.getId());
 
-        GroupPlace groupPlace = groupPlaceRepository.findByGroup_GroupId(groupId)
+        GroupPlace groupPlace = groupPlaceRepository.findByGroup_Id(groupId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.GROUP_SELECTED_PLACE_NOT_FOUND));
         if (groupPlace.getSourceType() != GroupPlaceSourceType.USER_EXCHANGE) {
             throw new TrackerException(TrackerErrorCode.INVALID_GROUP_SELECTED_PLACE);
@@ -172,7 +172,7 @@ public class MeetingService {
     }
 
     private MatchedMember validateGroupMember(Long groupId, Long userId) {
-        return matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
     }
 

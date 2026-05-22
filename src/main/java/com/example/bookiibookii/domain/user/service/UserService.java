@@ -232,7 +232,7 @@ public class UserService {
         String author = group.getBook().getAuthor();
 
         return GroupResponseDTO.MypageGroupDto.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .bookTitle(group.getBook().getTitle())
                 .auth(author)
                 .genre(genre)

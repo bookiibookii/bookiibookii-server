@@ -38,7 +38,7 @@ public class DeliveryAddressService {
         }
 
         for (MatchedMember member : members) {
-            if (deliveryAddressRepository.existsByGroup_GroupIdAndExchangeRoundAndMatchedMember_Id(
+            if (deliveryAddressRepository.existsByGroup_IdAndExchangeRoundAndMatchedMember_Id(
                     groupId,
                     ExchangeRound.FIRST_EXCHANGE,
                     member.getId()
@@ -63,7 +63,7 @@ public class DeliveryAddressService {
 
     private DeliveryAddress createHostSnapshot(MatchedMember host) {
         GroupPlace placeSnapshot = groupPlaceRepository
-                .findByGroup_GroupId(host.getGroup().getGroupId())
+                .findByGroup_Id(host.getGroup().getId())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.GROUP_SELECTED_PLACE_NOT_FOUND));
 
         if (placeSnapshot.getSourceType() != GroupPlaceSourceType.USER_DELIVERY

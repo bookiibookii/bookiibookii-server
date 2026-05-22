@@ -90,7 +90,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applyId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
-        Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getGroupId())
+        Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 2. 권한 및 상태 체크
@@ -103,7 +103,7 @@ public class ApplicationService {
         }
 
         // 알림용 그룹 정보 조회 (Fetch Join)
-        Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getGroupId())
+        Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 3. 수락(ACCEPTED) 로직
@@ -136,7 +136,7 @@ public class ApplicationService {
             // 개별 수락 알림 발송
             publisher.publish(new GroupNotificationEvent(
                     MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(),
-                    newMember.getUser().getId(), null, group.getGroupId()
+                    newMember.getUser().getId(), null, group.getId()
             ));
 
             // 수락일이 독서 시작일 → 즉시 MATCHED 전환
@@ -145,11 +145,11 @@ public class ApplicationService {
 
             // 매칭 성공 이벤트 발행 (트래커 생성 등 후속 처리)
             publisher.publish(new GroupMatchedEvent(
-                    group.getGroupId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
+                    group.getId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
             ));
 
             // 나머지 대기자들 자동 거절 처리
-            List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
+            List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getId());
             List<Long> autoRejectedReceiverIds = pendingApplications.stream()
                     .map(app -> app.getGuest().getId())
                     .distinct()
@@ -162,7 +162,7 @@ public class ApplicationService {
             if (!autoRejectedReceiverIds.isEmpty()) {
                 publisher.publish(new GroupNotificationEvent(
                         MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
-                        null, autoRejectedReceiverIds, group.getGroupId()
+                        null, autoRejectedReceiverIds, group.getId()
                 ));
             }
 
@@ -172,7 +172,7 @@ public class ApplicationService {
             application.updateStatus(ApplicationStatus.REJECTED);
             publisher.publish(new GroupNotificationEvent(
                     MATCH_REJECTED, userId, thisGroup.getBook().getTitle(),
-                    application.getGuest().getId(), null, group.getGroupId()
+                    application.getGuest().getId(), null, group.getId()
             ));
         }
 
@@ -219,7 +219,7 @@ public class ApplicationService {
         }
 
         //중복신청확인
-        if(applicationRepository.existsByGroupGroupIdAndGuestId(groupId,userId)){
+        if(applicationRepository.existsByGroupIdAndGuestId(groupId,userId)){
             throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
@@ -272,11 +272,11 @@ public class ApplicationService {
         }
 
         // 3. Application을 조회
-        Application application = applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
+        Application application = applicationRepository.findByGroupIdAndGuestId(groupId, userId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
         // 4. 만약 이미 승인까지 난 멤버라면 MatchedMember에서도 데이터 삭제
-        matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .ifPresent(member -> {
                     if (member.getRole() == RoleStatus.HOST) {
                         throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
@@ -316,7 +316,7 @@ public class ApplicationService {
         }
 
         return ApplicationResponseDTO.MyApplicationCardDTO.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .groupName(group.getGroupName())
                 .hostNickname(group.getHost().getNickName())
                 .hostProfileImageUrl(hostProfileImageUrl)

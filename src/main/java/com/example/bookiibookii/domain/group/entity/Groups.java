@@ -28,7 +28,7 @@ public class Groups extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "group_id")
-    private Long groupId;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
@@ -61,9 +61,6 @@ public class Groups extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "trade_type")
     private TradeType tradeType;//DIRECT, DELIVERY
-
-    @Column(name = "prefer_region")
-    private String preferRegion;
 
     @Column(name = "group_name")
     private String groupName;

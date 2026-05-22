@@ -30,7 +30,7 @@ public class GroupScheduler {
         for (Groups group : timeoutGroups) {
             try {
                 // 3. 방금 만든 서비스 호출 (각 호출마다 독립적인 트랜잭션 생성)
-                groupCompletionService.forceCompleteSingleGroup(group.getGroupId());
+                groupCompletionService.forceCompleteSingleGroup(group.getId());
                 log.info("[Scheduler] 그룹 강제 종료 성공");
             } catch (Exception e) {
                 // 4. 하나가 실패해도 catch문에서 잡히므로 다음 그룹 루프는 계속 돌아감!

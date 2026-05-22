@@ -8,13 +8,13 @@ import java.util.Optional;
 
 public interface DeliveryAddressRepository extends JpaRepository<DeliveryAddress, Long> {
 
-    Optional<DeliveryAddress> findByGroup_GroupIdAndExchangeRoundAndMatchedMember_Id(
+    Optional<DeliveryAddress> findByGroup_IdAndExchangeRoundAndMatchedMember_Id(
             Long groupId,
             ExchangeRound exchangeRound,
             Long matchedMemberId
     );
 
-    boolean existsByGroup_GroupIdAndExchangeRoundAndMatchedMember_Id(
+    boolean existsByGroup_IdAndExchangeRoundAndMatchedMember_Id(
             Long groupId,
             ExchangeRound exchangeRound,
             Long matchedMemberId

@@ -7,5 +7,5 @@ import java.util.Optional;
 
 public interface GroupPlaceRepository extends JpaRepository<GroupPlace, Long> {
 
-    Optional<GroupPlace> findByGroup_GroupId(Long groupId);
+    Optional<GroupPlace> findByGroup_Id(Long groupId);
 }

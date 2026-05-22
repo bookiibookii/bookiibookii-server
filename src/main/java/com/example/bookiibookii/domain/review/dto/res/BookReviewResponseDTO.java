@@ -19,7 +19,7 @@ public record BookReviewResponseDTO(
     public static BookReviewResponseDTO from(BookReview review) {
         return BookReviewResponseDTO.builder()
                 .reviewId(review.getId())
-                .groupId(review.getMatchedMember().getGroup().getGroupId())
+                .groupId(review.getMatchedMember().getGroup().getId())
                 .memberBookId(review.getMemberBook().getId())
                 .star(review.getStar())
                 .comment(review.getComment())

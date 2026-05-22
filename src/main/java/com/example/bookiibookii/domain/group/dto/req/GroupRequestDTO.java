@@ -29,8 +29,6 @@ public class GroupRequestDTO {
         private TradeType tradeType;
         @Schema(description = "그룹 생성 시 선택한 장소 id. DELIVERY는 내 배송지 id, DIRECT는 내 희망교환장소 id입니다.", example = "1")
         private Long selectedPlaceId;
-        @Schema(description = "희망 교환 장소 또는 배송지 (직거래 시 필수, 마이페이지 사전 설정값)", example = "서울 동작구 상도동")
-        private String preferRegion;
         @NotBlank(message = "그룹명은 필수입니다.")
         @Schema(description = "그룹명", example = "같이 읽어요")
         private String groupName;
@@ -48,8 +46,6 @@ public class GroupRequestDTO {
         private String groupComment;
         @Schema(description = "수정할 그룹명", example = "같이 읽어요")
         private String groupName;
-        @Schema(description = "수정할 희망 교환 장소 또는 배송지", example = "서울 마포구 합정동")
-        private String preferRegion;
         @Schema(description = "수정할 규칙 리스트 (1~5개)")
         @Size(min = 1, max = 5)
         @Valid

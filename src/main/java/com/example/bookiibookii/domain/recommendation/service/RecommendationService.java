@@ -86,7 +86,7 @@ public class RecommendationService {
         if (candidateGroupsCount > 0) {
             // 제외할 ID 리스트 추출
             List<Long> excludedIds = candidateGroups.stream()
-                    .map(Groups::getGroupId)
+                    .map(Groups::getId)
                     .collect(Collectors.toList());
 
             // 빈 리스트일 경우 SQL 에러 방지를 위해 더미 값 추가 (-1)
@@ -111,7 +111,7 @@ public class RecommendationService {
 
     private RecommendationResponseDTO.RecommendedGroupDto toSuggestGroupDto(Groups group) {
         return RecommendationResponseDTO.RecommendedGroupDto.builder()
-                .groupId(group.getGroupId())
+                .groupId(group.getId())
                 .bookImageUrl(group.getBook().getImage())
                 .bookTitle(group.getBook().getTitle())
                 .build();

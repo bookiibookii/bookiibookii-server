@@ -1,7 +1,9 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
+import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.*;
+import com.example.bookiibookii.domain.tracker.dto.res.ExtendReadingPeriodResDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.groupbook.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -49,6 +51,21 @@ public interface TrackerControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
+
+    @PatchMapping("/trackers/{groupId}/reading-period")
+    @Operation(
+            summary = "독서기간 수정",
+            description = """
+            호스트만 독서기간을 수정할 수 있습니다.
+            - MY_BOOK_READING 또는 PARTNER_BOOK_READING 단계에서만 가능합니다.
+            - newEndDate는 오늘보다 이후여야 합니다.
+            """
+    )
+    ApiResponse<ExtendReadingPeriodResDTO> extendReadingPeriod(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @RequestBody ExtendReadingPeriodReqDTO request,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
 
     // --- 2. 이미지 관련 ---
 

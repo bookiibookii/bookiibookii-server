@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.tracker.controller;
 
 import com.example.bookiibookii.domain.tracker.dto.res.*;
+import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerImageSuccessCode;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerSuccessCode;
@@ -47,6 +48,18 @@ public class TrackerController implements TrackerControllerDocs {
         return ApiResponse.onSuccess(
                 TrackerSuccessCode.TRACKER_READING_PROGRESS_OK,
                 trackerService.updateReadingProgress(groupId, request, user)
+        );
+    }
+
+    @PatchMapping("/trackers/{groupId}/reading-period")
+    public ApiResponse<ExtendReadingPeriodResDTO> extendReadingPeriod(
+            @PathVariable Long groupId,
+            @RequestBody ExtendReadingPeriodReqDTO request,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        return ApiResponse.onSuccess(
+                TrackerSuccessCode.TRACKER_READING_PERIOD_EXTENDED_OK,
+                trackerService.extendReadingPeriod(groupId, request, user)
         );
     }
 

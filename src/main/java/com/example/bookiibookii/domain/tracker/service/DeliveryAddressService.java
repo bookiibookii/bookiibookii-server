@@ -52,8 +52,11 @@ public class DeliveryAddressService {
 
             try {
                 deliveryAddressRepository.save(snapshot);
-            } catch (DataIntegrityViolationException ignored) {
-                // 같은 group + round + matchedMember 기준 중복 생성 방지
+            } catch (DataIntegrityViolationException e) {
+                e.getMostSpecificCause();
+                if (!e.getMostSpecificCause().getMessage().contains("uk_delivery_address_group_round_member")) {
+                    throw e;
+                }
             }
         }
     }

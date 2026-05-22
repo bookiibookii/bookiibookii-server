@@ -156,10 +156,13 @@ public class PackageDeliveryService {
         validateFirstExchangeStage(me);
 
         ExchangeStatus exchangeStatus = me.getExchangeStatus();
-        if (exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED) {
-            throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_RECEIVED);
+
+        if (exchangeStatus == ExchangeStatus.TRACKING_REGISTERED
+                || exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_REGISTERED);
         }
-        if (exchangeStatus != ExchangeStatus.TRACKING_REGISTERED) {
+
+        if (exchangeStatus != ExchangeStatus.TRACKING_REGISTER_WAITING) {
             throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
         }
 

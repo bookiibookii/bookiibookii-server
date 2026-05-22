@@ -255,7 +255,12 @@ public class UserService {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        user.updateUserInform(request.gender(), request.birth());
+        if (request.gender() != null || request.birth() != null) {
+            user.updateUserInform(
+                    request.gender() != null ? request.gender() : user.getGender(),
+                    request.birth() != null ? request.birth() : user.getBirth()
+            );
+        }
     }
 
     private void requireAvailableNickname(String nickname) {

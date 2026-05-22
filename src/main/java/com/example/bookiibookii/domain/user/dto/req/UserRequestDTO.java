@@ -45,10 +45,8 @@ public class UserRequestDTO {
             @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
             String nickname,
 
-            @NotNull(message = "성별은 필수 입력 사항입니다.")
             Gender gender,
 
-            @NotNull(message = "생년월일은 필수 입력 사항입니다.")
             @Past(message = "과거 날짜만 입력 가능합니다.")
             LocalDate birth,
 

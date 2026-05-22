@@ -37,7 +37,6 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PackageDeliveryService {
 
-    private static final ExchangeRound CURRENT_EXCHANGE_ROUND = ExchangeRound.FIRST_EXCHANGE;
     private static final String TRACKING_NUMBER_PATTERN = "\\d+";
 
     private final GroupsRepository groupsRepository;
@@ -49,15 +48,15 @@ public class PackageDeliveryService {
         Groups group = validatePackageGroup(groupId);
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         MatchedMember partner = getPartnerMember(groupId, me.getId());
-        validateFirstExchangeStage(me);
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
 
-        DeliveryAddress myAddress = getAddressSnapshot(group.getId(), me.getId());
-        DeliveryAddress partnerAddress = getAddressSnapshot(group.getId(), partner.getId());
+        DeliveryAddress myAddress = getAddressSnapshot(group.getId(), currentExchangeRound, me.getId());
+        DeliveryAddress partnerAddress = getAddressSnapshot(group.getId(), currentExchangeRound, partner.getId());
 
         return DeliveryAddressResponseDTO.builder()
                 .myAddress(DeliveryAddressResponseDTO.AddressDTO.from(myAddress))
                 .partnerAddress(DeliveryAddressResponseDTO.AddressDTO.from(partnerAddress))
-                .canEditMyAddress(canEditAddress(groupId, me, partner))
+                .canEditMyAddress(canEditAddress(groupId, currentExchangeRound, me, partner))
                 .build();
     }
 
@@ -66,10 +65,10 @@ public class PackageDeliveryService {
         Groups group = validatePackageGroupForUpdate(groupId);
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         MatchedMember partner = getPartnerMember(groupId, me.getId());
-        validateFirstExchangeStage(me);
-        validateAddressEditable(groupId, me, partner);
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+        validateAddressEditable(groupId, currentExchangeRound, me, partner);
 
-        DeliveryAddress myAddress = getAddressSnapshot(group.getId(), me.getId());
+        DeliveryAddress myAddress = getAddressSnapshot(group.getId(), currentExchangeRound, me.getId());
         myAddress.update(
                 request.receiverName(),
                 request.phoneNumber(),
@@ -78,11 +77,11 @@ public class PackageDeliveryService {
                 request.zipCode()
         );
 
-        DeliveryAddress partnerAddress = getAddressSnapshot(group.getId(), partner.getId());
+        DeliveryAddress partnerAddress = getAddressSnapshot(group.getId(), currentExchangeRound, partner.getId());
         return DeliveryAddressResponseDTO.builder()
                 .myAddress(DeliveryAddressResponseDTO.AddressDTO.from(myAddress))
                 .partnerAddress(DeliveryAddressResponseDTO.AddressDTO.from(partnerAddress))
-                .canEditMyAddress(canEditAddress(groupId, me, partner))
+                .canEditMyAddress(canEditAddress(groupId, currentExchangeRound, me, partner))
                 .build();
     }
 
@@ -91,12 +90,12 @@ public class PackageDeliveryService {
         Groups group = validatePackageGroupForUpdate(groupId);
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         MatchedMember partner = getPartnerMember(groupId, me.getId());
-        validateFirstExchangeStage(me);
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
 
         if (me.getExchangeStatus() != ExchangeStatus.TRACKING_REGISTER_WAITING) {
             throw new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_CANNOT_BE_CHANGED);
         }
-        if (deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, CURRENT_EXCHANGE_ROUND, me.getId())) {
+        if (deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, currentExchangeRound, me.getId())) {
             throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_REGISTERED);
         }
         if (request.deliveryCompany() == null) {
@@ -106,13 +105,13 @@ public class PackageDeliveryService {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKING_NUMBER);
         }
 
-        getAddressSnapshot(groupId, me.getId());
-        getAddressSnapshot(groupId, partner.getId());
+        getAddressSnapshot(groupId, currentExchangeRound, me.getId());
+        getAddressSnapshot(groupId, currentExchangeRound, partner.getId());
 
         Delivery delivery = Delivery.builder()
                 .id(UUID.randomUUID().toString())
                 .group(group)
-                .exchangeRound(CURRENT_EXCHANGE_ROUND)
+                .exchangeRound(currentExchangeRound)
                 .deliveryStatus(DeliveryStatus.SHIPPING)
                 .sender(me)
                 .receiver(partner)
@@ -134,14 +133,14 @@ public class PackageDeliveryService {
         validatePackageGroup(groupId);
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         MatchedMember partner = getPartnerMember(groupId, me.getId());
-        validateFirstExchangeStage(me);
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
 
         if (me.getExchangeStatus() != ExchangeStatus.TRACKING_REGISTERED
                 && me.getExchangeStatus() != ExchangeStatus.RECEIVED_CONFIRMED) {
             throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
         }
 
-        Delivery partnerDelivery = getPartnerToMeDelivery(groupId, partner, me);
+        Delivery partnerDelivery = getPartnerToMeDelivery(groupId, currentExchangeRound, partner, me);
         boolean canConfirmReceived = me.getExchangeStatus() == ExchangeStatus.TRACKING_REGISTERED
                 && partnerDelivery.getReceivedConfirmedAt() == null;
         return PartnerDeliveryResponseDTO.of(partnerDelivery, canConfirmReceived);
@@ -153,7 +152,7 @@ public class PackageDeliveryService {
         List<MatchedMember> members = matchedMemberRepository.findAllByGroupIdForUpdate(groupId);
         MatchedMember me = findMe(members, user.getId());
         MatchedMember partner = findPartner(members, me.getId());
-        validateFirstExchangeStage(me);
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
 
         ExchangeStatus exchangeStatus = me.getExchangeStatus();
         if (exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED) {
@@ -163,7 +162,7 @@ public class PackageDeliveryService {
             throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
         }
 
-        Delivery partnerDelivery = getPartnerToMeDelivery(groupId, partner, me);
+        Delivery partnerDelivery = getPartnerToMeDelivery(groupId, currentExchangeRound, partner, me);
         if (partnerDelivery.getReceivedConfirmedAt() != null) {
             throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_RECEIVED);
         }
@@ -173,6 +172,14 @@ public class PackageDeliveryService {
 
         if (members.stream().allMatch(member -> member.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED)) {
             LocalDateTime now = LocalDateTime.now();
+            if (currentExchangeRound == ExchangeRound.RETURN_EXCHANGE) {
+                members.forEach(member -> {
+                    member.updateReadingStatus(ReadingStatus.COMPLETED);
+                    member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
+                });
+                return;
+            }
+
             members.forEach(member -> {
                 member.changeCurrentMemberBook(findPartnerBook(member), now);
                 member.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READING);
@@ -225,37 +232,39 @@ public class PackageDeliveryService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
     }
 
-    private void validateFirstExchangeStage(MatchedMember me) {
-        if (me.getReadingStatus() != ReadingStatus.EXCHANGING) {
-            throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
-        }
+    private ExchangeRound validatePackageExchangeStage(MatchedMember me) {
+        return switch (me.getReadingStatus()) {
+            case EXCHANGING -> ExchangeRound.FIRST_EXCHANGE;
+            case RETURNING -> ExchangeRound.RETURN_EXCHANGE;
+            default -> throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
+        };
     }
 
-    private DeliveryAddress getAddressSnapshot(Long groupId, Long matchedMemberId) {
+    private DeliveryAddress getAddressSnapshot(Long groupId, ExchangeRound exchangeRound, Long matchedMemberId) {
         return deliveryAddressRepository
-                .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(groupId, CURRENT_EXCHANGE_ROUND, matchedMemberId)
+                .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(groupId, exchangeRound, matchedMemberId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
     }
 
-    private boolean canEditAddress(Long groupId, MatchedMember me, MatchedMember partner) {
+    private boolean canEditAddress(Long groupId, ExchangeRound exchangeRound, MatchedMember me, MatchedMember partner) {
         return me.getExchangeStatus() == ExchangeStatus.TRACKING_REGISTER_WAITING
-                && !deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, CURRENT_EXCHANGE_ROUND, me.getId())
+                && !deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, exchangeRound, me.getId())
                 && !deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
                 groupId,
-                CURRENT_EXCHANGE_ROUND,
+                exchangeRound,
                 partner.getId(),
                 me.getId()
         );
     }
 
-    private void validateAddressEditable(Long groupId, MatchedMember me, MatchedMember partner) {
+    private void validateAddressEditable(Long groupId, ExchangeRound exchangeRound, MatchedMember me, MatchedMember partner) {
         if (me.getExchangeStatus() != ExchangeStatus.TRACKING_REGISTER_WAITING) {
             throw new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_CANNOT_BE_CHANGED);
         }
-        if (deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, CURRENT_EXCHANGE_ROUND, me.getId())
+        if (deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, exchangeRound, me.getId())
                 || deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
                 groupId,
-                CURRENT_EXCHANGE_ROUND,
+                exchangeRound,
                 partner.getId(),
                 me.getId()
         )) {
@@ -263,11 +272,16 @@ public class PackageDeliveryService {
         }
     }
 
-    private Delivery getPartnerToMeDelivery(Long groupId, MatchedMember partner, MatchedMember me) {
+    private Delivery getPartnerToMeDelivery(
+            Long groupId,
+            ExchangeRound exchangeRound,
+            MatchedMember partner,
+            MatchedMember me
+    ) {
         return deliveryRepository
                 .findByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
                         groupId,
-                        CURRENT_EXCHANGE_ROUND,
+                        exchangeRound,
                         partner.getId(),
                         me.getId()
                 )

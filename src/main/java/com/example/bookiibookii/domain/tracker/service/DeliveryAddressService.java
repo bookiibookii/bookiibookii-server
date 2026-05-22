@@ -53,8 +53,48 @@ public class DeliveryAddressService {
             try {
                 deliveryAddressRepository.save(snapshot);
             } catch (DataIntegrityViolationException e) {
-                e.getMostSpecificCause();
-                if (!e.getMostSpecificCause().getMessage().contains("uk_delivery_address_group_round_member")) {
+                String message = e.getMostSpecificCause().getMessage();
+
+                // 동시 요청으로 인해 동일한 배송지 스냅샷이 이미 생성된 경우는 무시한다.
+                if (!message.contains("uk_delivery_address_group_round_member")) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public void createReturnExchangeAddressesIfAbsent(Long groupId) {
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroupIdForUpdate(groupId);
+        if (members.size() != 2) {
+            throw new TrackerException(TrackerErrorCode.INVALID_PARTNER_COUNT);
+        }
+
+        for (MatchedMember member : members) {
+            if (deliveryAddressRepository.existsByGroup_IdAndExchangeRoundAndMatchedMember_Id(
+                    groupId,
+                    ExchangeRound.RETURN_EXCHANGE,
+                    member.getId()
+            )) {
+                continue;
+            }
+
+            DeliveryAddress firstExchangeAddress = deliveryAddressRepository
+                    .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(
+                            groupId,
+                            ExchangeRound.FIRST_EXCHANGE,
+                            member.getId()
+                    )
+                    .orElseThrow(() -> new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
+
+            DeliveryAddress snapshot = createReturnSnapshot(member, firstExchangeAddress);
+            try {
+                deliveryAddressRepository.save(snapshot);
+            } catch (DataIntegrityViolationException e) {
+                String message = e.getMostSpecificCause().getMessage();
+
+                // 동시 요청으로 인해 동일한 배송지 스냅샷이 이미 생성된 경우는 무시한다.
+                if (!message.contains("uk_delivery_address_group_round_member")) {
                     throw e;
                 }
             }
@@ -100,6 +140,19 @@ public class DeliveryAddressService {
                 .address(userDelivery.getLocation().getAddress())
                 .addressDetail(userDelivery.getAddressDetail())
                 .zipCode(userDelivery.getLocation().getZipCode())
+                .build();
+    }
+
+    private DeliveryAddress createReturnSnapshot(MatchedMember member, DeliveryAddress firstExchangeAddress) {
+        return DeliveryAddress.builder()
+                .group(member.getGroup())
+                .matchedMember(member)
+                .exchangeRound(ExchangeRound.RETURN_EXCHANGE)
+                .receiverName(firstExchangeAddress.getReceiverName())
+                .phoneNumber(firstExchangeAddress.getPhoneNumber())
+                .address(firstExchangeAddress.getAddress())
+                .addressDetail(firstExchangeAddress.getAddressDetail())
+                .zipCode(firstExchangeAddress.getZipCode())
                 .build();
     }
 

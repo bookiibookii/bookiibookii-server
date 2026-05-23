@@ -34,4 +34,19 @@ public class UserDelivery extends BaseEntity {
 
     @Column(name = "phone", nullable = false, length = 20)
     private String phone;
+
+    @Column(name = "is_default", nullable = false)
+    @Builder.Default
+    private boolean isDefault = false;
+
+    public void update(Location location, String addressDetail, String receiverName, String phone) {
+        this.location = location;
+        this.addressDetail = addressDetail;
+        this.receiverName = receiverName;
+        this.phone = phone;
+    }
+
+    public void setDefault(boolean isDefault) {
+        this.isDefault = isDefault;
+    }
 }

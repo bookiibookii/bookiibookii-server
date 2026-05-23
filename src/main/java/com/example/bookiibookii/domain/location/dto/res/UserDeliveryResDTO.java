@@ -11,7 +11,8 @@ public class UserDeliveryResDTO {
             String zipCode,
             String addressDetail,
             String receiverName,
-            String phone
+            String phone,
+            boolean isDefault
     ) {
         public static UserDeliveryDto from(UserDelivery ud) {
             return new UserDeliveryDto(
@@ -21,7 +22,8 @@ public class UserDeliveryResDTO {
                     ud.getLocation().getZipCode(),
                     ud.getAddressDetail(),
                     ud.getReceiverName(),
-                    ud.getPhone()
+                    ud.getPhone(),
+                    ud.isDefault()
             );
         }
     }

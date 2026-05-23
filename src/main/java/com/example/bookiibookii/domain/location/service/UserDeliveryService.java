@@ -36,10 +36,11 @@ public class UserDeliveryService {
 
     @Transactional
     public void addDelivery(Long userId, UserDeliveryReqDTO.AddReqDTO req) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (userDeliveryRepository.countByUser_Id(userId) >= MAX_DELIVERY_COUNT) {
+        long count = userDeliveryRepository.countByUser_Id(userId);
+        if (count >= MAX_DELIVERY_COUNT) {
             throw new LocationException(LocationErrorCode.LOCATION_LIMIT_EXCEEDED);
         }
 
@@ -52,8 +53,19 @@ public class UserDeliveryService {
                         .addressDetail(req.addressDetail())
                         .receiverName(req.receiverName())
                         .phone(req.phone())
+                        .isDefault(count == 0)
                         .build()
         );
+    }
+
+    @Transactional
+    public void updateDelivery(Long userId, Long userDeliveryId, UserDeliveryReqDTO.AddReqDTO req) {
+        UserDelivery userDelivery = userDeliveryRepository
+                .findByIdAndUser_Id(userDeliveryId, userId)
+                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
+
+        Location location = locationService.findOrCreate(req.placeName(), req.address(), req.zipCode());
+        userDelivery.update(location, req.addressDetail(), req.receiverName(), req.phone());
     }
 
     @Transactional
@@ -62,6 +74,19 @@ public class UserDeliveryService {
                 .findByIdAndUser_Id(userDeliveryId, userId)
                 .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
 
+        if (userDelivery.isDefault()) {
+            userDeliveryRepository.findFirstByUser_IdAndIdNotOrderByCreatedAtAsc(userId, userDeliveryId)
+                    .ifPresent(other -> other.setDefault(true));
+        }
+
         userDeliveryRepository.delete(userDelivery);
+    }
+
+    @Transactional
+    public void setDefaultDelivery(Long userId, Long userDeliveryId) {
+        if (!userDeliveryRepository.existsByIdAndUser_Id(userDeliveryId, userId)) {
+            throw new LocationException(LocationErrorCode.NOT_FOUND);
+        }
+        userDeliveryRepository.updateDefaultDelivery(userId, userDeliveryId);
     }
 }

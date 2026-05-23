@@ -28,4 +28,17 @@ public class UserExchange extends BaseEntity {
 
     @Column(name = "address_detail", length = 200)
     private String addressDetail;
+
+    @Column(name = "is_default", nullable = false)
+    @Builder.Default
+    private boolean isDefault = false;
+
+    public void update(Location location, String addressDetail) {
+        this.location = location;
+        this.addressDetail = addressDetail;
+    }
+
+    public void setDefault(boolean isDefault) {
+        this.isDefault = isDefault;
+    }
 }

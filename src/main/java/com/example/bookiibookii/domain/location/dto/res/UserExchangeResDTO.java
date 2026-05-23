@@ -9,7 +9,8 @@ public class UserExchangeResDTO {
             String placeName,
             String address,
             String zipCode,
-            String addressDetail
+            String addressDetail,
+            boolean isDefault
     ) {
         public static UserExchangeDto from(UserExchange ue) {
             return new UserExchangeDto(
@@ -17,7 +18,8 @@ public class UserExchangeResDTO {
                     ue.getLocation().getPlaceName(),
                     ue.getLocation().getAddress(),
                     ue.getLocation().getZipCode(),
-                    ue.getAddressDetail()
+                    ue.getAddressDetail(),
+                    ue.isDefault()
             );
         }
     }

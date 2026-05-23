@@ -26,7 +26,6 @@ public enum TrackerSuccessCode implements BaseCode {
     TRACKER_MEETING_DONE_OK(HttpStatus.OK, "TRACKER200_13", "직접 교환이 완료되었습니다."),
 
     TRACKER_REVIEW_DONE_OK(HttpStatus.OK, "TRACKER200_16", "후기 작성 완료가 등록되었습니다."),
-    RECEPTION_VERIFIED(HttpStatus.OK, "TRACKER200_15", "상대방의 수령 인증 사진을 확인했습니다."), // 🟢 추가 및 순서 조정
     DELIVERY_ADDRESS_GET_OK(HttpStatus.OK, "TRACKER200_17", "현재 교환 배송지 조회가 완료되었습니다."),
     DELIVERY_ADDRESS_UPDATE_OK(HttpStatus.OK, "TRACKER200_18", "현재 교환 배송지가 수정되었습니다."),
     DELIVERY_REGISTER_OK(HttpStatus.OK, "TRACKER200_19", "운송장 등록이 완료되었습니다."),

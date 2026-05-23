@@ -20,4 +20,8 @@ public interface UserDeliveryRepository extends JpaRepository<UserDelivery, Long
     Optional<UserDelivery> findByIdAndUser_Id(Long id, Long userId);
 
     Optional<UserDelivery> findFirstByUser_IdOrderByCreatedAtAsc(Long userId);
+
+    Optional<UserDelivery> findByUser_IdAndIsDefaultTrue(Long userId);
+
+    Optional<UserDelivery> findFirstByUser_IdAndIdNotOrderByCreatedAtAsc(Long userId, Long excludeId);
 }

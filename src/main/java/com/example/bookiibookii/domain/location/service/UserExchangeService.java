@@ -39,7 +39,8 @@ public class UserExchangeService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (userExchangeRepository.countByUser_Id(userId) >= MAX_EXCHANGE_COUNT) {
+        long count = userExchangeRepository.countByUser_Id(userId);
+        if (count >= MAX_EXCHANGE_COUNT) {
             throw new LocationException(LocationErrorCode.LOCATION_LIMIT_EXCEEDED);
         }
 
@@ -50,8 +51,19 @@ public class UserExchangeService {
                         .user(user)
                         .location(location)
                         .addressDetail(req.addressDetail())
+                        .isDefault(count == 0)
                         .build()
         );
+    }
+
+    @Transactional
+    public void updateExchange(Long userId, Long userExchangeId, UserExchangeReqDTO.AddReqDTO req) {
+        UserExchange userExchange = userExchangeRepository
+                .findByIdAndUser_Id(userExchangeId, userId)
+                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
+
+        Location location = locationService.findOrCreate(req.placeName(), req.address(), req.zipCode());
+        userExchange.update(location, req.addressDetail());
     }
 
     @Transactional
@@ -60,6 +72,22 @@ public class UserExchangeService {
                 .findByIdAndUser_Id(userExchangeId, userId)
                 .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
 
+        if (userExchange.isDefault()) {
+            userExchangeRepository.findFirstByUser_IdAndIdNotOrderByCreatedAtAsc(userId, userExchangeId)
+                    .ifPresent(other -> other.setDefault(true));
+        }
+
         userExchangeRepository.delete(userExchange);
+    }
+
+    @Transactional
+    public void setDefaultExchange(Long userId, Long userExchangeId) {
+        userExchangeRepository.findByUser_IdAndIsDefaultTrue(userId)
+                .ifPresent(current -> current.setDefault(false));
+
+        UserExchange next = userExchangeRepository
+                .findByIdAndUser_Id(userExchangeId, userId)
+                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
+        next.setDefault(true);
     }
 }

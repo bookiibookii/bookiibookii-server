@@ -19,4 +19,8 @@ public interface UserExchangeRepository extends JpaRepository<UserExchange, Long
     long countByUser_Id(Long userId);
 
     Optional<UserExchange> findByIdAndUser_Id(Long id, Long userId);
+
+    Optional<UserExchange> findByUser_IdAndIsDefaultTrue(Long userId);
+
+    Optional<UserExchange> findFirstByUser_IdAndIdNotOrderByCreatedAtAsc(Long userId, Long excludeId);
 }

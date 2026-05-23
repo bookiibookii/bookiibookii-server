@@ -84,12 +84,9 @@ public class UserDeliveryService {
 
     @Transactional
     public void setDefaultDelivery(Long userId, Long userDeliveryId) {
-        userDeliveryRepository.findByUser_IdAndIsDefaultTrue(userId)
-                .ifPresent(current -> current.setDefault(false));
-
-        UserDelivery next = userDeliveryRepository
-                .findByIdAndUser_Id(userDeliveryId, userId)
-                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
-        next.setDefault(true);
+        if (!userDeliveryRepository.existsByIdAndUser_Id(userDeliveryId, userId)) {
+            throw new LocationException(LocationErrorCode.NOT_FOUND);
+        }
+        userDeliveryRepository.updateDefaultDelivery(userId, userDeliveryId);
     }
 }

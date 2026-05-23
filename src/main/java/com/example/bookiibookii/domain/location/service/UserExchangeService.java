@@ -82,12 +82,9 @@ public class UserExchangeService {
 
     @Transactional
     public void setDefaultExchange(Long userId, Long userExchangeId) {
-        userExchangeRepository.findByUser_IdAndIsDefaultTrue(userId)
-                .ifPresent(current -> current.setDefault(false));
-
-        UserExchange next = userExchangeRepository
-                .findByIdAndUser_Id(userExchangeId, userId)
-                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
-        next.setDefault(true);
+        if (!userExchangeRepository.existsByIdAndUser_Id(userExchangeId, userId)) {
+            throw new LocationException(LocationErrorCode.NOT_FOUND);
+        }
+        userExchangeRepository.updateDefaultExchange(userId, userExchangeId);
     }
 }

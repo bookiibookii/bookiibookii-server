@@ -36,7 +36,7 @@ public class UserDeliveryService {
 
     @Transactional
     public void addDelivery(Long userId, UserDeliveryReqDTO.AddReqDTO req) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         long count = userDeliveryRepository.countByUser_Id(userId);

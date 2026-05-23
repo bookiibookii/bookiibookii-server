@@ -36,7 +36,7 @@ public class UserExchangeService {
 
     @Transactional
     public void addExchange(Long userId, UserExchangeReqDTO.AddReqDTO req) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
         long count = userExchangeRepository.countByUser_Id(userId);

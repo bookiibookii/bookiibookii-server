@@ -155,7 +155,7 @@ public class TrackerService {
             }
         }
 
-        ReadingStatus updatedStatus = me.getReadingStatus();
+        ReadingStatus updatedStatus = me.getReadingStatus();//
         return ReadingProgressResponseDTO.builder()
                 .memberBookId(me.getCurrentMemberBook().getId())
                 .currentPage(me.getCurrentMemberBook().getCurrentPage())

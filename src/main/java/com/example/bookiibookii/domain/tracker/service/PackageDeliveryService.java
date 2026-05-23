@@ -188,6 +188,7 @@ public class PackageDeliveryService {
         }
     }
 
+    // 내부 메서드
     private Groups validatePackageGroup(Long groupId) {
         Groups group = groupsRepository.findById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));

@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.groupbook.dto.res;
+package com.example.bookiibookii.domain.memberbook.dto.res;
 
 import lombok.Builder;
 import lombok.Getter;

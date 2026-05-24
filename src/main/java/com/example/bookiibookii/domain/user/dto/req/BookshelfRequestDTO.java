@@ -8,7 +8,7 @@ public class BookshelfRequestDTO {
 
     public record AddRepresentativeReqDTO(
             Long userBookId,
-            Long groupBookId
+            Long memberBookId
     ) {}
 
     public record MoveRepresentativeReqDTO(

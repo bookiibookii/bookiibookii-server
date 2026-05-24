@@ -162,7 +162,7 @@ public class UserController implements UserControllerDocs{
             @Valid @RequestBody BookshelfRequestDTO.AddRepresentativeReqDTO request
     ) {
         bookshelfService.addRepresentativeBook(
-                user.getId(), request.userBookId(), request.groupBookId()
+                user.getId(), request.userBookId(), request.memberBookId()
         );
         return ApiResponse.onSuccess(UserSuccessCode.REPRESENTATIVE_BOOK_ADD_SUCCESS, null);
     }

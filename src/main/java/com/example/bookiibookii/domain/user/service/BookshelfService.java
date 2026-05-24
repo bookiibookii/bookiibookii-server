@@ -5,8 +5,10 @@ import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
-import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
+import com.example.bookiibookii.domain.review.entity.BookReview;
+import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserBook;
@@ -32,7 +34,8 @@ import java.util.stream.Collectors;
 public class BookshelfService {
 
     private final UserBookRepository userBookRepository;
-    private final GroupBookRepository groupBookRepository;
+    private final MemberBookRepository memberBookRepository;
+    private final BookReviewRepository bookReviewRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final UserRepository userRepository;
     private final BookService bookService;
@@ -50,7 +53,7 @@ public class BookshelfService {
 
     // 완독 + 리뷰 완료 책 목록 조회
     private List<BookshelfResponseDTO.CompletedBookDto> buildCompletedBooks(Long userId) {
-        List<GroupBook> groupBooks = groupBookRepository.findCompletedBooksByUserId(userId);
+        List<MemberBook> memberBooks = memberBookRepository.findCompletedBooksByUserId(userId);
 
         Map<Long, LocalDateTime> completionDateByGroupId = matchedMemberRepository
                 .findCompletedByUserId(userId)
@@ -61,17 +64,24 @@ public class BookshelfService {
                         (a, b) -> a
                 ));
 
-        return groupBooks.stream()
-                .map(gb -> {
-                    var book = gb.getGroup().getBook();
-                    LocalDateTime completedAt = completionDateByGroupId.get(gb.getGroup().getId());
+        List<Long> memberBookIds = memberBooks.stream().map(MemberBook::getId).toList();
+        Map<Long, BookReview> reviewByMemberBookId = memberBookIds.isEmpty()
+                ? Map.of()
+                : bookReviewRepository.findByMemberBook_IdIn(memberBookIds).stream()
+                        .collect(Collectors.toMap(br -> br.getMemberBook().getId(), br -> br));
+
+        return memberBooks.stream()
+                .map(mb -> {
+                    Book book = mb.getGroup().getBook();
+                    BookReview review = reviewByMemberBookId.get(mb.getId());
+                    LocalDateTime completedAt = completionDateByGroupId.get(mb.getGroup().getId());
                     return new BookshelfResponseDTO.CompletedBookDto(
-                            gb.getId(),
+                            mb.getId(),
                             book.getTitle(),
                             book.getAuthor(),
                             book.getImage(),
                             book.getCategory() != null ? book.getCategory().name() : null,
-                            gb.getRating(),
+                            review != null ? review.getStar() : null,
                             completedAt != null ? completedAt.toLocalDate() : null
                     );
                 })
@@ -134,7 +144,6 @@ public class BookshelfService {
     // 인생 책 등록
     @Transactional
     public void addFavoriteBook(Long userId, String isbn13) {
-        // 같은 유저의 동시 요청 직렬화: 카운트 확인과 저장을 동일 잠금 범위에서 수행
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
@@ -159,12 +168,11 @@ public class BookshelfService {
 
     // 대표책 등록
     @Transactional
-    public void addRepresentativeBook(Long userId, Long userBookId, Long groupBookId) {
-        if (userBookId == null && groupBookId == null) {
+    public void addRepresentativeBook(Long userId, Long userBookId, Long memberBookId) {
+        if (userBookId == null && memberBookId == null) {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
-        // 같은 유저의 동시 요청 직렬화
         userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
@@ -177,7 +185,7 @@ public class BookshelfService {
         if (userBookId != null) {
             addRepresentativeFromFavorite(userId, userBookId, nextOrder);
         } else {
-            addRepresentativeFromCompleted(userId, groupBookId, nextOrder);
+            addRepresentativeFromCompleted(userId, memberBookId, nextOrder);
         }
     }
 
@@ -192,14 +200,14 @@ public class BookshelfService {
     }
 
     // 완독책을 대표책으로 등록
-    private void addRepresentativeFromCompleted(Long userId, Long groupBookId, int nextOrder) {
-        GroupBook groupBook = groupBookRepository.findByIdAndUser_Id(groupBookId, userId)
+    private void addRepresentativeFromCompleted(Long userId, Long memberBookId, int nextOrder) {
+        MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_IdWithBook(memberBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
-        if (groupBook.getRating() == null) {
+        if (!bookReviewRepository.existsByMemberBookId(memberBookId)) {
             throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
         }
 
-        Book book = groupBook.getBook();
+        Book book = memberBook.getBook();
         Optional<UserBook> existing = userBookRepository.findByUser_IdAndBook_Id(userId, book.getId());
         if (existing.isPresent()) {
             existing.get().updateDisplayOrder(nextOrder);
@@ -220,13 +228,12 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
-        // 인생책 최소 1권 유지
         if (userBookRepository.countByUser_IdAndIsFavoriteTrue(userId) <= 1) {
             throw new UserException(UserErrorCode.FAVORITE_BOOK_MIN_REQUIRED);
         }
 
         boolean shouldKeep = userBook.getDisplayOrder() != null
-                || groupBookRepository.existsByUser_IdAndBook_IdAndRatingIsNotNull(userId, userBook.getBook().getId());
+                || bookReviewRepository.existsReviewedBookByUserIdAndBookId(userId, userBook.getBook().getId());
 
         if (shouldKeep) {
             userBook.updateIsFavorite(false);
@@ -245,7 +252,6 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 
-        // 대표책에 인생책 최소 1권 유지: 삭제 대상이 인생책이고 마지막 인생-대표책인 경우 차단
         if (userBook.isFavorite()
                 && userBookRepository.countByUser_IdAndIsFavoriteTrueAndDisplayOrderIsNotNull(userId) <= 1) {
             throw new UserException(UserErrorCode.REPRESENTATIVE_MUST_CONTAIN_FAVORITE);
@@ -280,7 +286,6 @@ public class BookshelfService {
         int high = Math.max(sourceOrder, targetOrder);
         int shift = sourceOrder > targetOrder ? 1 : -1;
 
-        // 영향받는 범위의 현재 순서를 메모리에 보관
         List<UserBook> affected = userBookRepository.findRepresentativeBooks(userId).stream()
                 .filter(ub -> ub.getDisplayOrder() >= low && ub.getDisplayOrder() <= high)
                 .toList();
@@ -288,10 +293,8 @@ public class BookshelfService {
         Map<Long, Integer> snapshotOrders = affected.stream()
                 .collect(Collectors.toMap(UserBook::getId, UserBook::getDisplayOrder));
 
-        // UNIQUE 제약 충돌 방지: 해당 범위 null 초기화 (DB 반영 + 1차 캐시 초기화)
         userBookRepository.clearDisplayOrderInRange(userId, low, high);
 
-        // 초기화 후 재조회하여 새 순서 세팅
         userBookRepository.findAllById(affectedIds).forEach(ub -> {
             if (ub.getId().equals(userBookId)) {
                 ub.updateDisplayOrder(targetOrder);

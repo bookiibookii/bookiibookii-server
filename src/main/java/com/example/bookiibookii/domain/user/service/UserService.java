@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.user.service;
 
-import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
+import com.example.bookiibookii.domain.review.entity.BookReview;
+import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
@@ -13,7 +14,6 @@ import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
-import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import com.example.bookiibookii.domain.review.entity.MemberReview;
 import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
@@ -42,7 +42,7 @@ public class UserService {
     private final UserImageRepository userImageRepository;
     private final UserImageValidationService userImageValidationService;
     private final UserImageS3Service userImageS3Service;
-    private final GroupBookRepository groupBookRepository;
+    private final BookReviewRepository bookReviewRepository;
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
     private final BookshelfService bookshelfService;
@@ -178,18 +178,18 @@ public class UserService {
                 .toList();
 
         // 책 후기 개수
-        long bookReviewCount = groupBookRepository.countReviewedBooksByUserId(userId);
+        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId);
 
         // 최신 후기 2개
-        List<GroupBook> recentGroupBooks = groupBookRepository.findReviewedBooksByUserId(userId, PageRequest.of(0, 2));
-        List<UserResponseDTO.BookReviewSummaryDto> recentBookReviews = recentGroupBooks.stream()
-                .map(gb -> UserResponseDTO.BookReviewSummaryDto.builder()
-                        .bookTitle(gb.getBook().getTitle())
-                        .bookAuthor(gb.getBook().getAuthor())
-                        .tradeType(gb.getGroup().getTradeType())
-                        .rating(gb.getRating())
-                        .comment(gb.getComment())
-                        .reviewDate(gb.getUpdatedAt().format(DATE_FMT))
+        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, PageRequest.of(0, 2));
+        List<UserResponseDTO.BookReviewSummaryDto> recentBookReviewSummaries = recentBookReviews.stream()
+                .map(br -> UserResponseDTO.BookReviewSummaryDto.builder()
+                        .bookTitle(br.getMemberBook().getBook().getTitle())
+                        .bookAuthor(br.getMemberBook().getBook().getAuthor())
+                        .tradeType(br.getMemberBook().getGroup().getTradeType())
+                        .rating(br.getStar())
+                        .comment(br.getComment())
+                        .reviewDate(br.getUpdatedAt().format(DATE_FMT))
                         .build())
                 .collect(Collectors.toList());
 
@@ -223,7 +223,7 @@ public class UserService {
                 .introduction(user.getIntroduction())
                 .userBooks(userBooks)
                 .bookReviewCount((int) bookReviewCount)
-                .recentBookReviews(recentBookReviews)
+                .recentBookReviews(recentBookReviewSummaries)
                 .boomUpCount((int) boomUpCount)
                 .recentReceivedReviews(recentReceivedReviews)
                 .build();

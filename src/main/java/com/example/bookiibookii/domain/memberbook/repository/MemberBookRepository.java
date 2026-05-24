@@ -76,7 +76,7 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
       @Param("groupId") Long groupId
   );
 
-  /** GroupBook.findCompletedBooksByUserId 대체 */
+  /** GroupBook.findCompletedBooksByUserId 대체 — 그룹 대표 책(group.book) 1건/그룹 */
   @Query("""
       SELECT mb FROM MemberBook mb
       JOIN FETCH mb.group g
@@ -84,6 +84,7 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
       JOIN FETCH mb.matchedMember mm
       WHERE mm.user.id = :userId
       AND mb.removedAt IS NULL
+      AND mb.book.id = g.book.id
       AND g.groupStatus = com.example.bookiibookii.domain.group.enums.GroupStatus.COMPLETED
       ORDER BY mb.updatedAt DESC
       """)

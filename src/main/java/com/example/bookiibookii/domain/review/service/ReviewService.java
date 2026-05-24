@@ -3,7 +3,6 @@ package com.example.bookiibookii.domain.review.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
@@ -11,10 +10,8 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
-import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
-import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
 import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.entity.GroupReview;
 import com.example.bookiibookii.domain.review.exception.ReviewException;
@@ -24,7 +21,6 @@ import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
 import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
-import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -34,13 +30,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.example.bookiibookii.domain.tracker.enums.TrackerAction.REVIEW_DONE_CONFIRMED;
-
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +40,6 @@ public class ReviewService {
     private static final double RATING_MAX = 5.0;
     private static final int BOOK_COMMENT_MAX_LENGTH = 500;
     private static final int GROUP_COMMENT_MAX_LENGTH = 200;
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy. MM. dd.");
 
     private final GroupBookRepository groupBookRepository;
     private final TrackerRepository trackerRepository;
@@ -58,7 +47,6 @@ public class ReviewService {
     private final BookReviewRepository bookReviewRepository;
     private final GroupReviewRepository groupReviewRepository;
     private final GroupsRepository groupsRepository;
-    private final DomainEventPublisher publisher;
     private final DeliveryAddressService deliveryAddressService;
 
     @Transactional
@@ -133,45 +121,7 @@ public class ReviewService {
     }
 
     /**
-     * 1. [함께 읽기] 리뷰 생성
-     * 파트너가 없으므로 본인의 서재(GroupBook)에 책 리뷰만 남깁니다.
-     */
-    @Transactional
-    public void createTogetherReview(Long groupBookId, ReviewRequestDTO.TogetherReviewDTO request, User user) {
-        validateRating(request.rating());
-        validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
-
-        GroupBook groupBook = groupBookRepository.findById(groupBookId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.GROUP_BOOK_NOT_FOUND));
-
-        if (!groupBook.getUser().getId().equals(user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_GROUP_BOOK_OWNER);
-        }
-
-        groupBook.updateReview(request.rating(), request.comment());
-
-        //그룹 조회 락 추가
-        Groups group = groupsRepository.findByIdForUpdate(groupBook.getGroup().getId())
-                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-
-        // 그룹이 MATCHED 상태일 때만 종료 로직 수행
-        if (group.getGroupStatus() == GroupStatus.MATCHED) {
-            MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(group.getId(), user.getId())
-                    .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
-
-            matchedMember.markReviewAsWritten();
-
-            long remainingCount = matchedMemberRepository.countByGroup_IdAndIsReviewWrittenFalse(group.getId());
-
-            if (remainingCount == 0) {
-                group.updateStatus(GroupStatus.COMPLETED);
-            }
-        }
-    }
-
-
-    /**
-     * 3. [릴레이] 통합 리뷰 생성 (릴레이 종료 후)
+     * [릴레이] 통합 리뷰 생성 (릴레이 종료 후)
      * 책 리뷰(GroupBook)와 상대방 리뷰(GroupReview)를 한 번에 저장하고 트래커를 종료합니다.
      */
     @Transactional
@@ -309,79 +259,5 @@ public class ReviewService {
             return ExchangeStatus.MEETING_SCHEDULE_WAITING;
         }
         return ExchangeStatus.TRACKING_REGISTER_WAITING;
-    }
-
-    @Transactional(readOnly = true)
-    public GroupReviewResponseDTO.GroupReviewDetailDTO getMyRelayReviewHistory(User user) {
-        // 1. 내가 받은 리뷰 목록 조회 (RELAY 그룹만)
-        List<GroupReview> partnerToMeReviews = groupReviewRepository.findByReviewedUserIdAndGroupType(
-                user.getId(), GroupType.RELAY);
-        if (partnerToMeReviews == null || partnerToMeReviews.isEmpty()) {
-            return GroupReviewResponseDTO.GroupReviewDetailDTO.builder().reviews(List.of()).build();
-        }
-
-        // 2. 등장하는 groupId 목록 수집
-        List<Long> groupIds = partnerToMeReviews.stream()
-                .map(gr -> gr.getReviewer().getGroup().getId())
-                .distinct()
-                .toList();
-
-        // 3. Tracker / GroupBook 배치 조회 (N+1 방지)
-        List<Tracker> trackers = trackerRepository.findByGroup_IdIn(groupIds);
-        Map<Long, Tracker> trackerByGroupId = trackers.stream()
-                .collect(Collectors.toMap(t -> t.getGroup().getId(), t -> t, (a, b) -> a));
-
-        List<GroupBook> groupBooksInGroups = groupBookRepository.findByGroup_IdInWithUserAndGroup(groupIds);
-        Map<String, GroupBook> groupBookByUserAndGroup = groupBooksInGroups.stream()
-                .collect(Collectors.toMap(
-                        ub -> ub.getUser().getId() + "_" + ub.getGroup().getId(),
-                        ub -> ub,
-                        (a, b) -> a
-                ));
-
-        // 4. 각 리뷰에 대해 맵에서 조회 후 DTO 생성
-        List<GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO> reviewItems = partnerToMeReviews.stream()
-                .map(gr -> {
-                    MatchedMember partnerMM = gr.getReviewer();
-                    if (partnerMM == null) return null;
-
-                    Groups group = partnerMM.getGroup();
-                    Long groupId = group.getId();
-                    Long partnerUserId = partnerMM.getUser().getId();
-
-                    Tracker tracker = trackerByGroupId.get(groupId);
-                    GroupBook partnerBookReview = groupBookByUserAndGroup.get(partnerUserId + "_" + groupId);
-
-                    return buildReviewItemDTO(group, tracker, partnerMM, gr, partnerBookReview);
-                })
-                .filter(Objects::nonNull)
-                .toList();
-
-        return GroupReviewResponseDTO.GroupReviewDetailDTO.builder()
-                .reviews(reviewItems)
-                .build();
-    }
-
-    private GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO buildReviewItemDTO(
-            Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, GroupBook pub) {
-
-        return GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO.builder()
-                .groupId(group.getId())
-                .bookTitle(group.getBook().getTitle())
-                .bookImage(group.getBook().getImage())
-                .startDate(group.getStartDate().format(DATE_FMT))
-                // 6. finishedDate 처리
-                .finishedDate(tracker != null && tracker.getUpdatedAt() != null ?
-                        tracker.getUpdatedAt().format(DATE_FMT) : "진행중")
-                .partnerNickname(partnerMM != null ? partnerMM.getUser().getNickName() : "알 수 없음")
-                // 7. DTO 필드명과 일치시킴
-                .partnerToMeRating(gr != null ? gr.getRating() : 0.0)
-                .partnerToMeComment(gr != null ? gr.getComment() : "평가가 없습니다.")
-                // 8. 상대방 책 리뷰 (pub.getComment() 사용)
-                .partnerBookRating(pub != null ? pub.getRating() : 0.0)
-                .partnerBookComment(pub != null ? pub.getComment() : "리뷰가 없습니다.")
-                .partnerBookReviewDate(pub != null && pub.getUpdatedAt() != null ?
-                        pub.getUpdatedAt().format(DATE_FMT) : null)
-                .build();
     }
 }

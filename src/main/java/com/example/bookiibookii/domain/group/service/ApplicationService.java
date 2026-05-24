@@ -23,7 +23,6 @@ import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
-import com.example.bookiibookii.domain.groupbook.service.GroupBookService;
 import com.example.bookiibookii.domain.memberbook.service.MemberBookService;
 
 import lombok.RequiredArgsConstructor;
@@ -49,7 +48,6 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher publisher;
-    private final GroupBookService groupBookService;
     private final MemberBookService memberBookService;
     private final UserImageS3Service userImageS3Service;
     private final BookService bookService;
@@ -129,9 +127,8 @@ public class ApplicationService {
 
             LocalDateTime matchedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
 
-            // 서재: MemberBook 4건(멤버당 2권) + GroupBook(마이그레이션 호환)
+            // 서재: MemberBook 4건(멤버당 2권)
             memberBookService.createLibraryOnMatch(group, newMember, application.getBook(), matchedAt);
-            groupBookService.createForParticipation(application.getGuest(), group);
 
             // 개별 수락 알림 발송
             publisher.publish(new GroupNotificationEvent(

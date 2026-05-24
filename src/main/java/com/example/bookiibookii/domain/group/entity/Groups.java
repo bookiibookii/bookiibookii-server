@@ -5,7 +5,6 @@ import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -73,10 +72,6 @@ public class Groups extends BaseEntity {
     @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedMember> matchedMember = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    private List<GroupBook> groupBooks = new ArrayList<>();
 
     @OneToOne(mappedBy = "group", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private GroupPlace groupPlace;

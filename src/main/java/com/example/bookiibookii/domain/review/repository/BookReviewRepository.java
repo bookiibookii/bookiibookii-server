@@ -49,6 +49,7 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
         JOIN br.memberBook mb
         WHERE mm.user.id = :userId
         AND mb.book.id = :bookId
+        AND mb.removedAt IS NULL
         """)
     boolean existsReviewedBookByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
 }

@@ -169,7 +169,7 @@ public class BookshelfService {
     // 대표책 등록
     @Transactional
     public void addRepresentativeBook(Long userId, Long userBookId, Long memberBookId) {
-        if (userBookId == null && memberBookId == null) {
+        if ((userBookId == null) == (memberBookId == null)) {
             throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
         }
 

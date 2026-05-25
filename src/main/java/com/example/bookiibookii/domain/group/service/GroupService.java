@@ -490,7 +490,7 @@ public class GroupService {
         List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getId).toList();
 
         if (groupIds.isEmpty()) {
-            return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), totalCount, 0, false);
+            return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), totalCount, groupsSlice.getNumber(), false);
         }
 
         // 3. [N+1 해결 1] 대기자 수 배치 조회 (2번 쿼리)

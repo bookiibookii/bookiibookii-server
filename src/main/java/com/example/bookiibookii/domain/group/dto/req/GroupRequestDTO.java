@@ -55,7 +55,7 @@ public class GroupRequestDTO {
     public record FilterDTO(
             @Schema(description = "거래 방식 필터 (DIRECT: 직거래, DELIVERY: 택배)", example = "[\"DIRECT\"]")
             List<TradeType> tradeTypes,
-            @Schema(description = "지역 필터 (시+구 형태 리스트)", example = "[\"인천시 미추홀구\", \"인천시 부평구\"]")
+            @Schema(description = "지역 필터. 전체 선택 시 city만(\"인천\"), 구/시 선택 시 city+구/시(\"인천 남동구\", \"경기 수원시\")", example = "[\"인천 남동구\", \"경기 수원시\", \"서울\"]")
             List<String> regions,
             @Schema(description = "카테고리 필터 (도서 장르)", example = "[\"ECON_BIZ\", \"SOCIETY\"]")
             List<CustomCategory> categories,

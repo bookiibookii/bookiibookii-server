@@ -63,7 +63,7 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private UserImage userImage;
 
-    @Column(name = "introduction")
+    @Column(name = "introduction", length = 50)
     private String introduction;
 
     @Enumerated(EnumType.STRING)

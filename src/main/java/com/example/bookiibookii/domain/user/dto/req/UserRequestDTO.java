@@ -34,11 +34,12 @@ public class UserRequestDTO {
             @Valid
             List<BookReqDTO.UserPickISBN> userBooks,
 
+            @Size(max = 50, message = "한줄 소개는 50자 이하로 입력해주세요.")
             String introduction
     ){}
 
     public record UpdateIntroductionReqDTO(
-            @Size(max = 255, message = "한줄 소개는 255자 이하로 입력해주세요.")
+            @Size(max = 50, message = "한줄 소개는 50자 이하로 입력해주세요.")
             String introduction
     ) {}
 

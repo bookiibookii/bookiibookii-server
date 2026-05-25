@@ -19,6 +19,7 @@ public interface AuthControllerDocs {
             - socialType: KAKAO | GOOGLE
             - token:
               - KAKAO → Access Token
+                Test: https://kauth.kakao.com/oauth/authorize?client_id=1d55fc7fcf8b8f41295f87d737babee3&redirect_uri=https://bookii.gyeonseo.com/kakao/callback&response_type=code
               - GOOGLE → ID Token
 
             인증 성공 시 Access Token, Refresh Token을 반환합니다.

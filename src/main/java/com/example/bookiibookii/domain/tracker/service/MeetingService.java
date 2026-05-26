@@ -22,6 +22,7 @@ import com.example.bookiibookii.domain.tracker.dto.req.MeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingDefaultPlaceResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingResponseDTO;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
@@ -51,14 +52,14 @@ public class MeetingService {
         List<MatchedMember> members = getMembersForUpdate(groupId);
         MatchedMember me = findMe(members, user.getId());
         validateHost(me);
-        validateMeetingPhase(members);
+        ExchangeRound exchangeRound = resolveExchangeRound(validateMeetingPhase(members));
 
-        if (meetingRepository.existsByGroup_Id(groupId)) {
+        if (meetingRepository.existsByGroup_IdAndExchangeRound(groupId, exchangeRound)) {
             throw new TrackerException(TrackerErrorCode.MEETING_ALREADY_EXISTS);
         }
 
         Location location = getLocation(request.locationId());
-        Meeting meeting = Meeting.create(group, me, location, request.addressDetail(), request.scheduledAt());
+        Meeting meeting = Meeting.create(group, me, exchangeRound, location, request.addressDetail(), request.scheduledAt());
 
         try {
             meeting = meetingRepository.save(meeting);
@@ -75,11 +76,11 @@ public class MeetingService {
     public MeetingResponseDTO updateMeeting(Long groupId, MeetingRequestDTO request, User user) {
         getDirectGroupForUpdate(groupId);
         List<MatchedMember> members = getMembersForUpdate(groupId);
-        Meeting meeting = meetingRepository.findByGroupIdForUpdate(groupId)
+        ExchangeRound exchangeRound = resolveExchangeRound(validateMeetingPhase(members));
+        Meeting meeting = meetingRepository.findByGroupIdAndExchangeRoundForUpdate(groupId, exchangeRound)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
         MatchedMember me = findMe(members, user.getId());
         validateHost(me);
-        validateMeetingPhase(members);
 
         Location location = getLocation(request.locationId());
         meeting.update(location, request.addressDetail(), request.scheduledAt());
@@ -90,8 +91,8 @@ public class MeetingService {
     public MeetingResponseDTO getMeeting(Long groupId, User user) {
         validateDirectGroup(groupId);
         MatchedMember me = validateGroupMember(groupId, user.getId());
-        validateExchangePhase(me);
-        return meetingRepository.findByGroupId(groupId)
+        ExchangeRound exchangeRound = resolveExchangeRound(validateExchangePhase(me));
+        return meetingRepository.findByGroupIdAndExchangeRound(groupId, exchangeRound)
                 .map(MeetingResponseDTO::from)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
     }
@@ -116,11 +117,11 @@ public class MeetingService {
     @Transactional
     public MeetingResponseDTO completeMeeting(Long groupId, User user) {
         getDirectGroupForUpdate(groupId);
-        Meeting meeting = meetingRepository.findByGroupIdForUpdate(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
         List<MatchedMember> members = getMembersForUpdate(groupId);
         MatchedMember me = findMe(members, user.getId());
-        validateMeetingPhase(members);
+        ExchangeRound exchangeRound = resolveExchangeRound(validateMeetingPhase(members));
+        Meeting meeting = meetingRepository.findByGroupIdAndExchangeRoundForUpdate(groupId, exchangeRound)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.MEETING_NOT_FOUND));
 
         if (me.getExchangeStatus() == ExchangeStatus.MEETING_COMPLETED) {
             throw new TrackerException(TrackerErrorCode.MEETING_ALREADY_COMPLETED);
@@ -198,11 +199,20 @@ public class MeetingService {
         throw new TrackerException(TrackerErrorCode.INVALID_MEETING_PHASE);
     }
 
-    private void validateExchangePhase(MatchedMember matchedMember) {
+    private ReadingStatus validateExchangePhase(MatchedMember matchedMember) {
         ReadingStatus readingStatus = matchedMember.getReadingStatus();
         if (readingStatus != ReadingStatus.EXCHANGING && readingStatus != ReadingStatus.RETURNING) {
             throw new TrackerException(TrackerErrorCode.INVALID_MEETING_PHASE);
         }
+        return readingStatus;
+    }
+
+    private ExchangeRound resolveExchangeRound(ReadingStatus readingStatus) {
+        return switch (readingStatus) {
+            case EXCHANGING -> ExchangeRound.FIRST_EXCHANGE;
+            case RETURNING -> ExchangeRound.RETURN_EXCHANGE;
+            default -> throw new TrackerException(TrackerErrorCode.INVALID_MEETING_PHASE);
+        };
     }
 
     private Location getLocation(Long locationId) {

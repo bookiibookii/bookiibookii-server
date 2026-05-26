@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.tracker.dto.res;
 
 import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -12,6 +13,8 @@ import java.time.LocalDateTime;
 public record MeetingResponseDTO(
         @Schema(description = "Meeting ID", example = "10")
         Long meetingId,
+        @Schema(description = "교환 라운드", example = "FIRST_EXCHANGE")
+        ExchangeRound exchangeRound,
         @Schema(description = "약속 장소 정보")
         LocationInfo location,
         @Schema(description = "상세 주소", example = "2층 창가 자리")
@@ -25,6 +28,7 @@ public record MeetingResponseDTO(
     public static MeetingResponseDTO from(Meeting meeting) {
         return MeetingResponseDTO.builder()
                 .meetingId(meeting.getId())
+                .exchangeRound(meeting.getExchangeRound())
                 .location(LocationInfo.from(meeting))
                 .addressDetail(meeting.getAddressDetail())
                 .scheduledAt(meeting.getScheduledAt())

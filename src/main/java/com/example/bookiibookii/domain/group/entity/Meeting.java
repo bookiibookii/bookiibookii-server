@@ -1,9 +1,12 @@
 package com.example.bookiibookii.domain.group.entity;
 
 import com.example.bookiibookii.domain.location.entity.Location;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -25,8 +28,8 @@ import java.util.Objects;
 @Table(
         name = "meeting",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_meeting_group",
-                columnNames = "group_id"
+                name = "uk_meeting_group_exchange_round",
+                columnNames = {"group_id", "exchange_round"}
         )
 )
 @Getter
@@ -48,6 +51,10 @@ public class Meeting extends BaseEntity {
     @JoinColumn(name = "created_by_matchedmember_id", nullable = false)
     private MatchedMember createdBy;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "exchange_round", nullable = false, length = 30)
+    private ExchangeRound exchangeRound;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
@@ -61,15 +68,17 @@ public class Meeting extends BaseEntity {
     public static Meeting create(
             Groups group,
             MatchedMember createdBy,
+            ExchangeRound exchangeRound,
             Location location,
             String addressDetail,
             LocalDateTime scheduledAt
     ) {
-        validate(group, createdBy, location, scheduledAt);
+        validate(group, createdBy, exchangeRound, location, scheduledAt);
 
         return Meeting.builder()
                 .group(group)
                 .createdBy(createdBy)
+                .exchangeRound(exchangeRound)
                 .location(location)
                 .addressDetail(addressDetail)
                 .scheduledAt(scheduledAt)
@@ -92,11 +101,13 @@ public class Meeting extends BaseEntity {
     private static void validate(
             Groups group,
             MatchedMember createdBy,
+            ExchangeRound exchangeRound,
             Location location,
             LocalDateTime scheduledAt
     ) {
         Objects.requireNonNull(group, "group must not be null");
         Objects.requireNonNull(createdBy, "createdBy must not be null");
+        Objects.requireNonNull(exchangeRound, "exchangeRound must not be null");
         Objects.requireNonNull(location, "location must not be null");
         Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
     }

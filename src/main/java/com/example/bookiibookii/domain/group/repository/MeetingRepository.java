@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.repository;
 
 import com.example.bookiibookii.domain.group.entity.Meeting;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -13,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
-    boolean existsByGroup_Id(Long groupId);
+    boolean existsByGroup_IdAndExchangeRound(Long groupId, ExchangeRound exchangeRound);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -24,8 +25,12 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         join fetch cb.user
         join fetch m.location
         where g.id = :groupId
+          and m.exchangeRound = :exchangeRound
     """)
-    Optional<Meeting> findByGroupIdForUpdate(@Param("groupId") Long groupId);
+    Optional<Meeting> findByGroupIdAndExchangeRoundForUpdate(
+            @Param("groupId") Long groupId,
+            @Param("exchangeRound") ExchangeRound exchangeRound
+    );
 
     @Query("""
         select m
@@ -35,6 +40,10 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         join fetch cb.user
         join fetch m.location
         where g.id = :groupId
+          and m.exchangeRound = :exchangeRound
     """)
-    Optional<Meeting> findByGroupId(@Param("groupId") Long groupId);
+    Optional<Meeting> findByGroupIdAndExchangeRound(
+            @Param("groupId") Long groupId,
+            @Param("exchangeRound") ExchangeRound exchangeRound
+    );
 }

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/groups/{groupId}/reviews")
 @RequiredArgsConstructor
-public class BookReviewController {
+public class BookReviewController implements BookReviewControllerDocs {
 
     private final ReviewService reviewService;
 

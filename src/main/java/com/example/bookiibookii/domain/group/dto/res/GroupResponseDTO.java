@@ -120,6 +120,7 @@ public class GroupResponseDTO {
 
     public record GroupSliceResponseDTO(
             List<GroupSummaryDTO> groupList,
+            long totalCount,
             int currentPage,
             boolean hasNext
     ) {}

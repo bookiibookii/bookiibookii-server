@@ -478,12 +478,14 @@ public class GroupService {
     public GroupResponseDTO.GroupSliceResponseDTO getGroupList(User user, GroupRequestDTO.FilterDTO filter) {
         PageRequest pageable = PageRequest.of(filter.page(), filter.size());
 
+        long totalCount = groupQueryRepository.countGroupsByFilters(filter);
+
         // 2. 메인 그룹 리스트 조회 (1번 쿼리)
         Slice<Groups> groupsSlice = groupQueryRepository.findGroupsByFilters(filter, pageable);
         List<Long> groupIds = groupsSlice.getContent().stream().map(Groups::getId).toList();
 
         if (groupIds.isEmpty()) {
-            return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), 0, false);
+            return new GroupResponseDTO.GroupSliceResponseDTO(new ArrayList<>(), totalCount, groupsSlice.getNumber(), false);
         }
 
         // 3. [N+1 해결 1] 대기자 수 배치 조회 (2번 쿼리)
@@ -516,7 +518,7 @@ public class GroupService {
                             .build();
                 }).toList();
 
-        return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, groupsSlice.getNumber(), groupsSlice.hasNext());
+        return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, totalCount, groupsSlice.getNumber(), groupsSlice.hasNext());
     }
 
     private String determinePictureBadge(Groups group) {

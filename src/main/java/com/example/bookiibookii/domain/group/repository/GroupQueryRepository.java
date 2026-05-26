@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.group.repository;
 
+import com.example.bookiibookii.domain.book.enums.CategoryGroup;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
@@ -16,7 +17,9 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.example.bookiibookii.domain.book.entity.QBook.book;
 import static com.example.bookiibookii.domain.group.entity.QGroupPlace.groupPlace;
@@ -68,7 +71,11 @@ public class GroupQueryRepository {
         if (regions == null || regions.isEmpty()) return null;
         return regions.stream()
                 .filter(r -> r != null && !r.isBlank())
-                .map(groupPlace.address::contains)
+                .map(r -> Arrays.stream(r.trim().split("\\s+"))
+                        .map(groupPlace.address::contains)
+                        .reduce(BooleanExpression::and)
+                        .orElse(null))
+                .filter(expr -> expr != null)
                 .reduce(BooleanExpression::or)
                 .orElse(null);
     }
@@ -78,7 +85,37 @@ public class GroupQueryRepository {
     }
 
     private BooleanExpression inCategories(List<CustomCategory> categories) {
-        return (categories == null || categories.isEmpty()) ? null : book.category.in(categories);
+        if (categories == null || categories.isEmpty()) return null;
+        if (categories.contains(CustomCategory.ALL)) return null;
+
+        List<CustomCategory> expanded = categories.stream()
+                .flatMap(cat -> switch (cat) {
+                    case LITERATURE_ALL -> Arrays.stream(CustomCategory.values())
+                            .filter(c -> c.getGroup() == CategoryGroup.LITERATURE && c != CustomCategory.LITERATURE_ALL);
+                    case NON_LITERATURE_ALL -> Arrays.stream(CustomCategory.values())
+                            .filter(c -> c.getGroup() == CategoryGroup.NON_LITERATURE && c != CustomCategory.NON_LITERATURE_ALL);
+                    default -> Stream.of(cat);
+                })
+                .distinct()
+                .toList();
+
+        return expanded.isEmpty() ? null : book.category.in(expanded);
+    }
+
+    public long countGroupsByFilters(GroupRequestDTO.FilterDTO filter) {
+        Long count = queryFactory
+                .select(groups.countDistinct())
+                .from(groups)
+                .join(groups.book, book)
+                .leftJoin(groups.groupPlace, groupPlace)
+                .where(
+                        inTradeTypes(filter.tradeTypes()),
+                        containsRegions(filter.regions()),
+                        inCategories(filter.categories()),
+                        groups.groupStatus.eq(GroupStatus.RECRUITING)
+                )
+                .fetchOne();
+        return count != null ? count : 0L;
     }
 
     //검색

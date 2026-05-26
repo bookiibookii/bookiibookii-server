@@ -27,7 +27,6 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.service.BadWordService;
 import com.example.bookiibookii.domain.aladin.repository.BestsellerIsbnRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
-import com.example.bookiibookii.domain.groupbook.service.GroupBookService;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -61,7 +60,6 @@ public class GroupService {
     private final DomainEventPublisher publisher;
     private final MatchedMemberQueryRepository matchedMemberQueryRepository;
     private final UserImageS3Service userImageS3Service;
-    private final GroupBookService groupBookService;
     private final RedisUtil redisUtil;
     private final MeetingRepository meetingRepository;
     private final BadWordService badWordService;
@@ -141,9 +139,6 @@ public class GroupService {
                 .build();
 
         matchedMemberRepository.save(hostMember);
-
-        // 방장 서재(GroupBook, 마이그레이션 호환). MemberBook은 매칭 수락 시 4건 일괄 생성.
-        groupBookService.createForParticipation(host, savedGroup);
 
         List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
 

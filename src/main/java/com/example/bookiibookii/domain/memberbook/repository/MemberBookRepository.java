@@ -59,4 +59,17 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
             Long bookId,
             boolean isMine
     );
+
+    @Query("""
+        SELECT mb FROM MemberBook mb
+        JOIN FETCH mb.group g
+        JOIN FETCH g.book
+        JOIN FETCH mb.matchedMember mm
+        WHERE mm.user.id = :userId
+        AND mb.removedAt IS NULL
+        AND mb.book.id = g.book.id
+        AND g.groupStatus = com.example.bookiibookii.domain.group.enums.GroupStatus.COMPLETED
+        ORDER BY mb.updatedAt DESC
+        """)
+    List<MemberBook> findCompletedBooksByUserId(@Param("userId") Long userId);
 }

@@ -16,7 +16,7 @@ public class BookshelfResponseDTO {
 
     // 완독 + 리뷰 완료한 책
     public record CompletedBookDto(
-            Long groupBookId,
+            Long memberBookId,
             String title,
             String author,
             String image,

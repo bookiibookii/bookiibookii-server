@@ -1,4 +1,4 @@
-package com.example.bookiibookii.domain.groupbook.service;
+package com.example.bookiibookii.domain.memberbook.service;
 
 import org.springframework.stereotype.Component;
 
@@ -20,13 +20,11 @@ public class CardImageValidationService {
             return false;
         }
 
-        // 형식 검증: image/cards/{uuid}
         java.util.regex.Matcher matcher = S3_KEY_PATTERN.matcher(s3Key);
         if (!matcher.matches()) {
             return false;
         }
 
-        // UUID 형식 검증
         String uuidString = matcher.group(1);
         try {
             UUID.fromString(uuidString);

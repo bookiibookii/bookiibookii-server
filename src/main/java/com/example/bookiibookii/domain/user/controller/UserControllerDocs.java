@@ -206,7 +206,7 @@ public interface UserControllerDocs {
             description = """
             나를 대표하는 책을 등록합니다. (최대 7개)
             - userBookId: 인생책 목록에서 선택 시 (FavoriteBookDto.userBookId)
-            - groupBookId: 완독책 목록에서 선택 시 (CompletedBookDto.groupBookId) — 별점 등록 완료 필수
+            - memberBookId: 완독책 목록에서 선택 시 (CompletedBookDto.memberBookId) — 별점 등록 완료 필수
             - 둘 중 하나만 전달하세요.
             """
     )

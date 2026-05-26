@@ -8,7 +8,6 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.groupbook.entity.GroupBook;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
@@ -25,7 +24,6 @@ import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
 import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.tracker.resolver.*;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.groupbook.repository.GroupBookRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,7 +47,6 @@ public class TrackerService {
     private final TrackerRepository trackerRepository;
     private final DeliveryRepository deliveryRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final GroupBookRepository groupBookRepository;
     private final GroupsRepository groupsRepository;
     private final TrackerConverter trackerConverter;
     private final TrackerPartnerResolver trackerPartnerResolver;
@@ -188,11 +185,6 @@ public class TrackerService {
                 .build();
 
         trackerRepository.save(tracker);
-
-        List<GroupBook> groupBooks = groupBookRepository.findAllByGroup_Id(event.groupId());
-        if (!groupBooks.isEmpty()) {
-            groupBooks.forEach(ub -> ub.assignTracker(tracker));
-        }
     }
 
     @Transactional

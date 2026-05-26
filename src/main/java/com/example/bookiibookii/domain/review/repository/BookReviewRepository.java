@@ -1,7 +1,10 @@
 package com.example.bookiibookii.domain.review.repository;
 
 import com.example.bookiibookii.domain.review.entity.BookReview;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,4 +20,36 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
     Optional<BookReview> findByMatchedMember_IdAndMemberBook_Id(Long matchedMemberId, Long memberBookId);
 
     boolean existsByMemberBookId(Long memberBookId);
+
+    @Query("""
+        SELECT br FROM BookReview br
+        JOIN FETCH br.memberBook mb
+        JOIN FETCH mb.book
+        JOIN FETCH mb.group g
+        JOIN FETCH br.matchedMember mm
+        WHERE mm.user.id = :userId
+        AND mb.removedAt IS NULL
+        ORDER BY br.updatedAt DESC
+        """)
+    List<BookReview> findReviewedBooksByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        SELECT COUNT(br) FROM BookReview br
+        JOIN br.matchedMember mm
+        JOIN br.memberBook mb
+        WHERE mm.user.id = :userId
+        AND mb.removedAt IS NULL
+        """)
+    long countReviewedBooksByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT CASE WHEN COUNT(br) > 0 THEN true ELSE false END
+        FROM BookReview br
+        JOIN br.matchedMember mm
+        JOIN br.memberBook mb
+        WHERE mm.user.id = :userId
+        AND mb.book.id = :bookId
+        AND mb.removedAt IS NULL
+        """)
+    boolean existsReviewedBookByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
 }

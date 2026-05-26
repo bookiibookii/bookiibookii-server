@@ -5,6 +5,7 @@ import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -155,9 +156,15 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
         left join fetch pcbReaderUser.userImage
         where mm.user.id = :memberId
           and mm.currentMemberBook is not null
+          and g.groupStatus <> :completedGroupStatus
+          and mm.readingStatus <> :completedReadingStatus
         order by mm.createdAt desc
     """)
-    List<MatchedMember> findAllTrackerItemsByMemberId(@Param("memberId") Long memberId);
+    List<MatchedMember> findAllTrackerItemsByMemberId(
+            @Param("memberId") Long memberId,
+            @Param("completedGroupStatus") GroupStatus completedGroupStatus,
+            @Param("completedReadingStatus") ReadingStatus completedReadingStatus
+    );
 
     @Query("""
     select distinct mm

@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.review.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
@@ -10,10 +11,13 @@ import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MemberReviewResponseDTO;
 import com.example.bookiibookii.domain.review.entity.BookReview;
+import com.example.bookiibookii.domain.review.entity.MemberReview;
 import com.example.bookiibookii.domain.review.exception.ReviewException;
 import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
+import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
@@ -32,9 +36,11 @@ public class ReviewService {
     private static final double RATING_MIN = 0.0;
     private static final double RATING_MAX = 5.0;
     private static final int BOOK_COMMENT_MAX_LENGTH = 500;
+    private static final int MEMBER_COMMENT_MAX_LENGTH = 20;
 
     private final MatchedMemberRepository matchedMemberRepository;
     private final BookReviewRepository bookReviewRepository;
+    private final MemberReviewRepository memberReviewRepository;
     private final GroupsRepository groupsRepository;
     private final DeliveryAddressService deliveryAddressService;
 
@@ -88,6 +94,54 @@ public class ReviewService {
     }
 
     @Transactional
+    public MemberReviewResponseDTO createMemberReview(
+            Long groupId,
+            ReviewRequestDTO.MemberReviewCreateDTO request,
+            User user
+    ) {
+        validateCommentRequired(request.comment(), MEMBER_COMMENT_MAX_LENGTH);
+
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroupIdForUpdate(group.getId());
+        validatePairGroup(members);
+
+        MatchedMember me = findMe(members, user.getId());
+        MatchedMember partner = findPartner(members, me.getId());
+
+        validateSecondExchangeCompleted(members);
+
+        if (memberReviewRepository.existsByGroup_IdAndWriter_Id(group.getId(), me.getId())) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        MemberReview memberReview = MemberReview.create(
+                group,
+                me,
+                partner,
+                request.reaction(),
+                request.comment()
+        );
+
+        try {
+            memberReview = memberReviewRepository.saveAndFlush(memberReview);
+        } catch (DataIntegrityViolationException e) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        boolean partnerAlreadyReviewed = memberReviewRepository.existsByGroup_IdAndWriter_Id(group.getId(), partner.getId());
+        if (partnerAlreadyReviewed) {
+            members.forEach(member -> member.updateReadingStatus(ReadingStatus.COMPLETED));
+            group.updateStatus(GroupStatus.COMPLETED);
+        }
+
+        return MemberReviewResponseDTO.builder()
+                .reviewId(memberReview.getId())
+                .groupCompleted(partnerAlreadyReviewed)
+                .build();
+    }
+
+    @Transactional
     public BookReviewResponseDTO updateMyBookReview(
             Long groupId,
             ReviewRequestDTO.BookReviewUpsertDTO request,
@@ -120,9 +174,45 @@ public class ReviewService {
         }
     }
 
+    private void validateCommentRequired(String comment, int limit) {
+        if (comment == null || comment.isBlank()) {
+            throw new ReviewException(ReviewErrorCode.COMMENT_REQUIRED);
+        }
+        validateCommentLength(comment, limit);
+    }
+
     private MatchedMember getMatchedMember(Long groupId, Long userId) {
         return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private void validatePairGroup(List<MatchedMember> matchedMembers) {
+        if (matchedMembers.size() != 2) {
+            throw new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND);
+        }
+    }
+
+    private MatchedMember findMe(List<MatchedMember> matchedMembers, Long userId) {
+        return matchedMembers.stream()
+                .filter(member -> member.getUser().getId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private MatchedMember findPartner(List<MatchedMember> matchedMembers, Long myMatchedMemberId) {
+        return matchedMembers.stream()
+                .filter(member -> !member.getId().equals(myMatchedMemberId))
+                .findFirst()
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_MEMBER_NOT_FOUND));
+    }
+
+    private void validateSecondExchangeCompleted(List<MatchedMember> matchedMembers) {
+        boolean returnExchangeCompleted = matchedMembers.stream()
+                .allMatch(member -> member.getReadingStatus() == ReadingStatus.RETURNING
+                        && member.getExchangeStatus() == ExchangeStatus.NOT_STARTED);
+        if (!returnExchangeCompleted) {
+            throw new ReviewException(ReviewErrorCode.INVALID_MEMBER_REVIEW_STATUS);
+        }
     }
 
     private MemberBook getCurrentMemberBook(MatchedMember matchedMember) {

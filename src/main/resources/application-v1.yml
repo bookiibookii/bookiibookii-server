@@ -53,3 +53,8 @@ aws:
 
 server:
   forward-headers-strategy: framework
+
+discord:
+  webhook:
+    enabled: true
+    url: ${DISCORD_WEBHOOK_URL}

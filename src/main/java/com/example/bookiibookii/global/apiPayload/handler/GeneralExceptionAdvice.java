@@ -4,6 +4,9 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.BaseCode;
 import com.example.bookiibookii.global.apiPayload.code.GeneralErrorCode;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
+import com.example.bookiibookii.global.notification.DiscordWebhookService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +20,10 @@ import java.util.List;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GeneralExceptionAdvice {
+
+    private final DiscordWebhookService discordWebhookService;
 
     // 서비스 로직에서 의도적으로 발생시키는 예외
     // GeneralException을 상속한 모든 커스텀 예외 처리
@@ -38,8 +44,11 @@ public class GeneralExceptionAdvice {
     // 예상하지 못한 서버 예외 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleException(
-            Exception ex
+            Exception ex,
+            HttpServletRequest request
     ) {
+        discordWebhookService.sendUnexpectedExceptionAlert(request, ex);
+
         log.error("Unexpected exception occurred: {}", ex.getMessage(), ex);
         BaseCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(code.getStatus())

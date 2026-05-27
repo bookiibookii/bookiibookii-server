@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.resolver;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.dto.TrackerStepInfo;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
@@ -17,6 +18,7 @@ public class TrackerStepAssembler {
     public List<TrackerStepInfo> assemble(MatchedMember me) {
         TradeType tradeType = me.getGroup().getTradeType();
         ReadingStatus currentStatus = me.getReadingStatus();
+        ExchangeStatus exchangeStatus = me.getExchangeStatus();
 
         String myBookTitle = findMyBookTitle(me);
         String partnerBookTitle = findPartnerBookTitle(me);
@@ -30,7 +32,7 @@ public class TrackerStepAssembler {
                         .status(step.status())
                         .title(step.title())
                         .description(step.description())
-                        .completed(isCompleted(currentStatus, step.status()))
+                        .completed(isCompleted(currentStatus, exchangeStatus, step.status()))
                         .build())
                 .toList();
     }
@@ -134,7 +136,12 @@ public class TrackerStepAssembler {
                 .build();
     }
 
-    private boolean isCompleted(ReadingStatus currentStatus, ReadingStatus stepStatus) {
+    private boolean isCompleted(ReadingStatus currentStatus, ExchangeStatus exchangeStatus, ReadingStatus stepStatus) {
+        if (stepStatus == ReadingStatus.RETURNING
+                && currentStatus == ReadingStatus.RETURNING
+                && exchangeStatus == ExchangeStatus.NOT_STARTED) {
+            return true;
+        }
         return resolveOrder(currentStatus) > resolveOrder(stepStatus);
     }
 

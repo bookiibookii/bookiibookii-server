@@ -173,10 +173,7 @@ public class PackageDeliveryService {
         if (members.stream().allMatch(member -> member.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED)) {
             LocalDateTime now = LocalDateTime.now();
             if (currentExchangeRound == ExchangeRound.RETURN_EXCHANGE) {
-                members.forEach(member -> {
-                    member.updateReadingStatus(ReadingStatus.COMPLETED);
-                    member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
-                });
+                members.forEach(member -> member.updateExchangeStatus(ExchangeStatus.NOT_STARTED));
                 return;
             }
 

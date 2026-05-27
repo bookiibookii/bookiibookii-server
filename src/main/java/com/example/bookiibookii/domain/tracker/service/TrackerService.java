@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -57,7 +58,11 @@ public class TrackerService {
 
     // 트래커 리스트 조회
     public List<TrackerListItemResDTO> getTrackerList(User user) {
-        return matchedMemberRepository.findAllTrackerItemsByMemberId(user.getId()).stream()
+        return matchedMemberRepository.findAllTrackerItemsByMemberId(
+                        user.getId(),
+                        GroupStatus.COMPLETED,
+                        ReadingStatus.COMPLETED
+                ).stream()
                 .map(me -> {
                     MatchedMember partner = trackerPartnerResolver.resolve(me.getGroup(), me);
                     if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null) {

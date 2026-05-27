@@ -22,6 +22,8 @@ public interface MemberReviewRepository extends JpaRepository<MemberReview, Long
     long countByTargetUserIdAndReaction(@Param("userId") Long userId,
                                         @Param("reaction") MemberReviewReaction reaction);
 
+    boolean existsByGroup_IdAndWriter_Id(Long groupId, Long writerMatchedMemberId);
+
     @Query("""
         SELECT mr FROM MemberReview mr
         JOIN FETCH mr.writer w

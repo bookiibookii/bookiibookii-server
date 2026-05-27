@@ -11,8 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -21,7 +19,7 @@ public class TrackerController implements TrackerControllerDocs {
     private final TrackerService trackerService;
 
     @GetMapping("/me/trackers")
-    public ApiResponse<List<TrackerListItemResDTO>> getTrackerList(
+    public ApiResponse<TrackerListResDTO> getTrackerList(
             @AuthenticationPrincipal(expression = "user") User user) {
         return ApiResponse.onSuccess(
                 TrackerSuccessCode.TRACKER_LIST_GET_OK,

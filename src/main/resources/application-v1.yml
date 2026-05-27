@@ -56,5 +56,5 @@ server:
 
 discord:
   webhook:
-    enabled: true
+    enabled: ${DISCORD_WEBHOOK_ENABLED:false}
     url: ${DISCORD_WEBHOOK_URL}

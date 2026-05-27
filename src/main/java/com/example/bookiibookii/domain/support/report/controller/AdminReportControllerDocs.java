@@ -14,7 +14,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@Tag(name = "Admin Report", description = "관리자용 신고 관련 API")
+@Tag(name = "Admin", description = "관리자용 API")
 public interface AdminReportControllerDocs {
     @Operation(
             summary = "신고 리스트 조회 API",

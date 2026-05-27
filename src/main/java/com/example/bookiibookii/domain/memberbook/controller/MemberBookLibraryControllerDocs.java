@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-@Tag(name = "Library", description = "라이브러리(내 책 목록) 관련 API")
+@Tag(name = "BookReview", description = "책 리뷰 및 독서카드 관련 API")
 public interface MemberBookLibraryControllerDocs {
 
     @Operation(

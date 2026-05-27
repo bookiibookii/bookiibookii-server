@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@Tag(name = "Admin Notice", description = "관리자용 공지 관련 API")
+@Tag(name = "Admin", description = "관리자용 API")
 public interface AdminNoticeControllerDocs {
     @Operation(
             summary = "공지 리스트 조회 API",

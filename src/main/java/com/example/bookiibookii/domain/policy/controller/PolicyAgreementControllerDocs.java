@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
-@Tag(name = "Policy Agreement", description = "약관 동의 API")
+@Tag(name = "Terms", description = "약관 관련 API")
 public interface PolicyAgreementControllerDocs {
 
     @Operation(

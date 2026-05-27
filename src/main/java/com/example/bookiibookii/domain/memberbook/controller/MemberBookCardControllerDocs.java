@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@Tag(name = "MemberBook Card", description = "멤버북 기준 독서카드 API")
+@Tag(name = "BookReview", description = "책 리뷰 및 독서카드 관련 API")
 public interface MemberBookCardControllerDocs {
 
     @Operation(

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@Tag(name = "Package Delivery", description = "택배 교환 배송지 및 운송장 API")
+@Tag(name = "DeliveryExchange", description = "택배 교환 관련 API")
 @RequestMapping("/api/groups/{groupId}/deliveries")
 public interface PackageDeliveryControllerDocs {
 

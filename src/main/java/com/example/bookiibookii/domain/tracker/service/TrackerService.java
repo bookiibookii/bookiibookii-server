@@ -43,8 +43,8 @@ public class TrackerService {
     private final TrackerStepAssembler trackerStepAssembler;
 
     // 트래커 리스트 조회
-    public List<TrackerListItemResDTO> getTrackerList(User user) {
-        return matchedMemberRepository.findAllTrackerItemsByMemberId(
+    public TrackerListResDTO getTrackerList(User user) {
+        List<TrackerListItemResDTO> items = matchedMemberRepository.findAllTrackerItemsByMemberId(
                         user.getId(),
                         GroupStatus.COMPLETED,
                         ReadingStatus.COMPLETED
@@ -71,6 +71,11 @@ public class TrackerService {
                     );
                 })
                 .toList();
+
+        return TrackerListResDTO.builder()
+                .summary(buildListSummary(items))
+                .items(items)
+                .build();
     }
 
     // 교환독서 상세조회
@@ -207,6 +212,43 @@ public class TrackerService {
         return Math.max((int) ChronoUnit.DAYS.between(LocalDate.now(), dueDate), 0);
     }
 
+    private TrackerListResDTO.Summary buildListSummary(List<TrackerListItemResDTO> items) {
+        int readingCount = 0;
+        int exchangingCount = 0;
+        int reviewCount = 0;
+
+        for (TrackerListItemResDTO item : items) {
+            TrackerDisplayStatus displayStatus = item.getDisplayStatus();
+            if (displayStatus == TrackerDisplayStatus.READING) {
+                readingCount++;
+            } else if (isReviewStatus(displayStatus)) {
+                reviewCount++;
+            } else if (isExchangeStatus(displayStatus)) {
+                exchangingCount++;
+            }
+        }
+
+        return TrackerListResDTO.Summary.builder()
+                .totalCount(items.size())
+                .readingCount(readingCount)
+                .exchangingCount(exchangingCount)
+                .reviewCount(reviewCount)
+                .build();
+    }
+
+    private boolean isReviewStatus(TrackerDisplayStatus displayStatus) {
+        return displayStatus == TrackerDisplayStatus.REVIEW_WRITING
+                || displayStatus == TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
+    }
+
+    private boolean isExchangeStatus(TrackerDisplayStatus displayStatus) {
+        return displayStatus == TrackerDisplayStatus.TRACKING_REQUIRED
+                || displayStatus == TrackerDisplayStatus.SHIPPING
+                || displayStatus == TrackerDisplayStatus.RETURN_TRACKING_REQUIRED
+                || displayStatus == TrackerDisplayStatus.RETURNING
+                || displayStatus == TrackerDisplayStatus.MEETING_REQUIRED
+                || displayStatus == TrackerDisplayStatus.EXCHANGING;
+    }
 
     private MatchedMember getMyMatchedMember(Long groupId, Long userId) {
         return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)

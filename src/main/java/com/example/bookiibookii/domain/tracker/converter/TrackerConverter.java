@@ -1,20 +1,13 @@
 package com.example.bookiibookii.domain.tracker.converter;
 
-import com.example.bookiibookii.domain.group.entity.GroupPlace;
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.location.entity.Location;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.book.entity.Book;
-import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tracker.dto.BookInfo;
 import com.example.bookiibookii.domain.tracker.dto.TrackerStepInfo;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerListItemResDTO;
-import com.example.bookiibookii.domain.tracker.entity.Delivery;
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
@@ -22,8 +15,6 @@ import com.example.bookiibookii.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Component
@@ -144,71 +135,5 @@ public class TrackerConverter {
 
             case EXCHANGE_REVIEW_WRITING -> "교환 후기 작성";
         };
-    }
-
-
-    public TrackerDetailResponseDTO toDetailResponse(Tracker tracker, Meeting latestMeeting,
-                                                     Delivery latestShippingDelivery, User partnerUser) {
-
-        int remainingDays = calculateRemainingDays(tracker, latestMeeting);
-
-        TrackerDetailResponseDTO.TrackerDetailResponseDTOBuilder builder = TrackerDetailResponseDTO.builder()
-                .trackerId(tracker.getId())
-                .bookTitle(tracker.getGroup().getBook().getTitle())
-                .partnerNickname(partnerUser.getNickName())
-                .readingStatus(tracker.getReadingStatus())
-                .startDate(tracker.getStartDate())
-                .endDate(tracker.getEndDate())
-                .startedAt(tracker.getStartedAt())
-                .completedAt(tracker.getCompletedAt())
-                .extensionCount(tracker.getExtensionCount())
-                .extensionDays(tracker.getExtensionDays())
-                .readingPeriod(tracker.getGroup().getReadingPeriod())
-                .remainingDays(remainingDays);
-
-        if (latestShippingDelivery != null) {
-            builder.deliveryInfo(TrackerDetailResponseDTO.DeliveryInfo.builder()
-                    .deliveryCompany(latestShippingDelivery.getDeliveryCompany() != null
-                            ? latestShippingDelivery.getDeliveryCompany().name()
-                            : null)
-                    .trackingNumber(latestShippingDelivery.getTrackingNumber())
-                    .build());
-        }
-
-        if (tracker.getGroup().getTradeType() == TradeType.DIRECT) {
-            if (latestMeeting != null && latestMeeting.getScheduledAt() != null) {
-                Location loc = latestMeeting.getLocation();
-                builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
-                        .meetingTime(latestMeeting.getScheduledAt())
-                        .placeName(loc != null ? loc.getPlaceName() : null)
-                        .address(loc != null ? loc.getAddress() : null)
-                        .build());
-            } else {
-                GroupPlace gp = tracker.getGroup().getGroupPlace();
-                builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
-                        .placeName(gp != null ? gp.getPlaceName() : null)
-                        .address(gp != null ? gp.getAddress() : null)
-                        .build());
-            }
-        }
-
-        return builder.build();
-    }
-
-    public int calculateRemainingDays(Tracker tracker, Meeting latestMeeting) {
-        LocalDate today = LocalDate.now();
-        ReadingStatus status = tracker.getReadingStatus();
-
-        if (status == ReadingStatus.MY_BOOK_READING || status == ReadingStatus.PARTNER_BOOK_READING) {
-            if (tracker.getEndDate() == null) return 0;
-            return (int) Math.max(0, ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate()));
-        }
-
-        if ((status == ReadingStatus.EXCHANGING || status == ReadingStatus.RETURNING)
-                && latestMeeting != null && latestMeeting.getScheduledAt() != null) {
-            return (int) Math.max(0, ChronoUnit.DAYS.between(today, latestMeeting.getScheduledAt().toLocalDate()));
-        }
-
-        return 0;
     }
 }

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@Tag(name = "Review", description = "책 리뷰 및 파트너 후기 API")
+@Tag(name = "BookReview", description = "책 리뷰 및 독서카드 관련 API")
 @RequestMapping("/api/groups/{groupId}/reviews")
 public interface BookReviewControllerDocs {
 

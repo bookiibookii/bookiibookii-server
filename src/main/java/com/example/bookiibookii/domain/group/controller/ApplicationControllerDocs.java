@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@Tag(name = "Application", description = "그룹 및 신청 관리 API")
+@Tag(name = "Application", description = "그룹 신청 관련 API")
 public interface ApplicationControllerDocs {
     @Operation(
             summary = "신청자 명단 조회 API",

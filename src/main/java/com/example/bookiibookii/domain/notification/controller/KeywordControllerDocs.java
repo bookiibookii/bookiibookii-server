@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Keyword", description = "키워드 관련 API")
+@Tag(name = "Notification", description = "알림 관련 API")
 public interface KeywordControllerDocs {
 
     @Operation(

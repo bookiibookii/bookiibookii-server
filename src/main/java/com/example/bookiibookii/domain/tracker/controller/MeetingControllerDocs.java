@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-@Tag(name = "Meeting", description = "직접 교환 약속 등록/수정/조회/완료 API")
+@Tag(name = "DirectExchange", description = "직접 교환 관련 API")
 @RequestMapping("/api/groups/{groupId}/meetings")
 public interface MeetingControllerDocs {
 

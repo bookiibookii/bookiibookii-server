@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@Tag(name = "Group", description = "그룹 생성 및 관리 관련 API")
+@Tag(name = "Group", description = "그룹 관련 API")
 public interface GroupControllerDocs {
     @Operation(
             summary = "그룹 생성 API",

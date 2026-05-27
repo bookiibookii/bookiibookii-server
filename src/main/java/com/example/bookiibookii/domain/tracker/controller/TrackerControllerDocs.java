@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@Tag(name = "Tracker", description = "도서 트래킹 관련 API (상태 조회 및 이력 관리)")
+@Tag(name = "Tracker", description = "도서 트래킹 관련 API")
 public interface TrackerControllerDocs {
 
     @GetMapping("/me/trackers")

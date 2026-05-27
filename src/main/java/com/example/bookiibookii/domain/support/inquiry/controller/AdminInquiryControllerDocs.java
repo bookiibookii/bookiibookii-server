@@ -15,7 +15,7 @@ import org.springdoc.core.annotations.ParameterObject;
 
 import java.util.List;
 
-@Tag(name = "Admin Inquiry", description = "관리자용 문의 관리 API")
+@Tag(name = "Admin", description = "관리자용 API")
 public interface AdminInquiryControllerDocs {
 
     @Operation(summary = "전체 문의 내역 조회 API", description = "관리자가 모든 사용자의 문의 내역을 조회합니다.")

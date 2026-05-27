@@ -7,8 +7,6 @@ import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookError
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
 import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +26,6 @@ public class MemberBookLibraryService {
     private final MemberBookRepository memberBookRepository;
     private final BookReviewRepository bookReviewRepository;
     private final UserImageS3Service userImageS3Service;
-    private final TrackerRepository trackerRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -77,19 +74,10 @@ public class MemberBookLibraryService {
         Map<Long, BookReview> reviewMap = bookReviewRepository.findByMemberBook_IdIn(memberBookIds).stream()
                 .collect(Collectors.toMap(br -> br.getMemberBook().getId(), br -> br));
 
-        List<Long> groupIds = validMemberBooks.stream()
-                .map(mb -> mb.getGroup().getId())
-                .distinct()
-                .toList();
-
-        Map<Long, Tracker> trackerMap = trackerRepository.findByGroup_IdIn(groupIds).stream()
-                .collect(Collectors.toMap(t -> t.getGroup().getId(), t -> t));
-
         return validMemberBooks.stream()
                 .map(mb -> toLibraryMemberBookResponseDTO(
                         mb,
-                        reviewMap.get(mb.getId()),
-                        trackerMap.get(mb.getGroup().getId())
+                        reviewMap.get(mb.getId())
                 ))
                 .toList();
     }
@@ -110,8 +98,7 @@ public class MemberBookLibraryService {
 
     private LibraryMemberBookResponseDTO toLibraryMemberBookResponseDTO(
             MemberBook memberBook,
-            BookReview bookReview,
-            Tracker tracker
+            BookReview bookReview
     ) {
         var group = memberBook.getGroup();
         var book = memberBook.getBook();
@@ -128,9 +115,7 @@ public class MemberBookLibraryService {
         }
 
         LocalDate finalEndDate = null;
-        if (tracker != null && tracker.getEndDate() != null) {
-            finalEndDate = tracker.getEndDate().toLocalDate();
-        } else if (group.getStartDate() != null && group.getReadingPeriod() != null) {
+        if (group.getStartDate() != null && group.getReadingPeriod() != null) {
             finalEndDate = group.getStartDate().plusDays(group.getReadingPeriod());
         }
 

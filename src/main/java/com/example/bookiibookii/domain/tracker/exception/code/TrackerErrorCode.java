@@ -43,7 +43,6 @@ public enum TrackerErrorCode implements BaseCode {
     NOT_YOUR_TURN(HttpStatus.FORBIDDEN, "TRACKER403_1", "현재 독서 주자가 아닙니다."),
     NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "TRACKER403_2", "해당 그룹의 멤버만 트래킹 정보를 조회할 수 있습니다."),
     NOT_TRACKER_OWNER(HttpStatus.FORBIDDEN, "TRACKER403_3", "해당 트래커를 조작할 권한이 없습니다. 현재 도서 소유자만 가능합니다."),
-    TRACKER_ALREADY_EXISTS(HttpStatus.FORBIDDEN, "TRACKER403_4" , "이미 트래커가 존재하는 그룹입니다." ),
     NOT_RELAY_GROUP(HttpStatus.FORBIDDEN, "TRACKER403_5", "릴레이(1:1) 그룹에서만 조회가 가능합니다."),
     NOT_GROUP_HOST(HttpStatus.FORBIDDEN, "TRACKER403_6", "그룹 HOST만 약속을 등록하거나 수정할 수 있습니다."),
     // --- 404 NOT_FOUND ---

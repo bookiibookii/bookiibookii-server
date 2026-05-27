@@ -10,7 +10,6 @@ import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
-import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -139,11 +138,6 @@ public class ApplicationService {
             // 수락일이 독서 시작일 → 즉시 MATCHED 전환
             group.setStartDate(LocalDate.now(ZoneId.of("Asia/Seoul")));
             group.updateStatus(GroupStatus.MATCHED);
-
-            // 매칭 성공 이벤트 발행 (트래커 생성 등 후속 처리)
-            publisher.publish(new GroupMatchedEvent(
-                    group.getId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
-            ));
 
             // 나머지 대기자들 자동 거절 처리
             List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getId());

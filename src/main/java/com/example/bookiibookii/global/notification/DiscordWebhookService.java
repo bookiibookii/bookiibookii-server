@@ -27,7 +27,7 @@ public class DiscordWebhookService {
     );
 
     private final DiscordWebhookProperties properties;
-    private final RestClient restClient = RestClient.create();
+    private final RestClient discordWebhookRestClient;
 
     public void sendUnexpectedExceptionAlert(HttpServletRequest request, Exception exception) {
         if (!properties.enabled() || properties.url() == null || properties.url().isBlank()) {
@@ -35,7 +35,7 @@ public class DiscordWebhookService {
         }
 
         try {
-            restClient.post()
+            discordWebhookRestClient.post()
                     .uri(properties.url())
                     .body(new DiscordWebhookRequest(createMessage(request, exception)))
                     .retrieve()

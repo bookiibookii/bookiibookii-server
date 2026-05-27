@@ -128,8 +128,6 @@ public class GroupService {
         request.getRules().forEach(rule ->
                 savedGroup.getGroupRules().add(GroupRule.create(savedGroup, resolveRuleContent(rule), rule.tag())));
 
-        // 직접 교환 그룹의 Meeting 초기 데이터는 트래커 생성 시점(GroupMatchedEvent)에 생성됩니다.
-
         // 방장을 MatchedMember의 첫 번째 멤버로 등록
         MatchedMember hostMember = MatchedMember.builder()
                 .group(savedGroup)
@@ -750,4 +748,3 @@ public class GroupService {
                 .build();
     }
 }
-

@@ -3,3 +3,8 @@ spring:
     name: bookiibookii
   profiles:
     active: v1
+
+springdoc:
+  swagger-ui:
+    doc-expansion: none
+    tags-sorter: none

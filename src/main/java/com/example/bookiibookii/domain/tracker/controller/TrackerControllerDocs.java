@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.util.List;
-
 @Tag(name = "Tracker", description = "도서 트래킹 관련 API")
 public interface TrackerControllerDocs {
 
@@ -26,10 +24,13 @@ public interface TrackerControllerDocs {
             summary = "나의 트래커 전체 리스트 조회",
             description = """
             나의 모든 트래커(RELAY/TOGETHER)를 조회합니다.
-            - RELAY 타입의 relayDetail에는 hostProfileImageUrl(호스트 프로필 이미지 Presigned GET URL)과 guestProfileImageUrls(게스트 프로필 이미지 Presigned GET URL 리스트)가 포함됩니다.
+            - summary는 같은 조회 조건으로 내려가는 items의 displayStatus 기준으로 계산됩니다.
+            - readingCount: READING
+            - exchangingCount: TRACKING_REQUIRED, SHIPPING, RETURN_TRACKING_REQUIRED, RETURNING, MEETING_REQUIRED, EXCHANGING
+            - reviewCount: REVIEW_WRITING, EXCHANGE_REVIEW_WRITING
             """
     )
-    ApiResponse<List<TrackerListItemResDTO>> getTrackerList(
+    ApiResponse<TrackerListResDTO> getTrackerList(
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 

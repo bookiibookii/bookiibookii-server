@@ -71,6 +71,7 @@ public class TrackerConverter {
         return TrackerDetailResDTO.builder()
                 .groupId(group.getId())
                 .groupName(group.getGroupName())
+                .tradeType(group.getTradeType())
                 .myRole(me.getRole())
                 .displayStatus(displayStatus)
                 .displayStatusText(resolveDisplayStatusText(me, displayStatus))

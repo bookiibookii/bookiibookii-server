@@ -78,7 +78,8 @@ public class SecurityConfig {
 
         // 허용할 오리진 명시 (보안을 위해 * 대신 실제 주소만 입력)
         configuration.setAllowedOrigins(List.of(
-                "https://bookii-admin.vercel.app"
+                "https://bookii-admin.vercel.app",
+                "https://admin.bookiibookii.com"
         ));
 
         // 허용할 HTTP 메서드 (필요한 것만 명시)

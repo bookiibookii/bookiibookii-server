@@ -31,6 +31,9 @@ public class TrackerDisplayStatusResolver {
             case RETURNING ->
                     resolveReturnExchangeStatus(exchangeStatus, tradeType);
 
+            case RETURNED ->
+                    TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
+
             case EXCHANGED ->
                     TrackerDisplayStatus.READING;
 
@@ -80,13 +83,13 @@ public class TrackerDisplayStatusResolver {
     ) {
         if (tradeType == TradeType.DELIVERY) {
             return switch (safeExchangeStatus(exchangeStatus)) {
-                case TRACKING_REGISTER_WAITING, NOT_STARTED ->
+                case TRACKING_REGISTER_WAITING ->
                         TrackerDisplayStatus.RETURN_TRACKING_REQUIRED;
 
                 case TRACKING_REGISTERED ->
                         TrackerDisplayStatus.RETURNING;
 
-                case RECEIVED_CONFIRMED ->
+                case RECEIVED_CONFIRMED, NOT_STARTED ->
                         TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
 
                 default ->
@@ -98,6 +101,9 @@ public class TrackerDisplayStatusResolver {
 
             case MEETING_SCHEDULED, MEETING_COMPLETED ->
                     TrackerDisplayStatus.RETURNING;
+
+            case NOT_STARTED ->
+                    TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
 
             default ->
                     TrackerDisplayStatus.MEETING_REQUIRED;

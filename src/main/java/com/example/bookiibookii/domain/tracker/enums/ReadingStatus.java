@@ -14,6 +14,7 @@ public enum ReadingStatus {
     PARTNER_BOOK_READING("파트너 책 읽는 중"),
     PARTNER_BOOK_REVIEWING("2차 독서 완료, 후기 작성 중"),
     RETURNING("파트너 책 후기 작성 완료, 2차 교환(반납) 진행 중"),
+    RETURNED("2차 교환(반납) 완료"),
     COMPLETED("릴레이 종료");
 
     private final String description;

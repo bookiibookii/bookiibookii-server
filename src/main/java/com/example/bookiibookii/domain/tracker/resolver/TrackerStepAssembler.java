@@ -32,7 +32,7 @@ public class TrackerStepAssembler {
                         .status(step.status())
                         .title(step.title())
                         .description(step.description())
-                        .completed(isCompleted(currentStatus, exchangeStatus, step.status()))
+                        .completed(isCompleted(currentStatus, exchangeStatus, step.status(), tradeType))
                         .build())
                 .toList();
     }
@@ -73,6 +73,11 @@ public class TrackerStepAssembler {
                         ReadingStatus.RETURNING,
                         "2차 교환하기",
                         "파트너에게 " + partnerBookTitle + "을 발송해주세요"
+                ),
+                step(
+                        ReadingStatus.RETURNED,
+                        "수령 인증 등록",
+                        "파트너가 보낸 책 상태를 확인해주세요"
                 ),
                 step(
                         ReadingStatus.COMPLETED,
@@ -120,6 +125,11 @@ public class TrackerStepAssembler {
                         "파트너와 논의 후 약속을 확정해주세요"
                 ),
                 step(
+                        ReadingStatus.RETURNED,
+                        "교환 인증 등록",
+                        "반드시 파트너와 책을 실제로 교환한 뒤 진행해주세요"
+                ),
+                step(
                         ReadingStatus.COMPLETED,
                         "교환독서 종료",
                         "소중한 교환 후기를 남겨주세요"
@@ -136,13 +146,76 @@ public class TrackerStepAssembler {
                 .build();
     }
 
-    private boolean isCompleted(ReadingStatus currentStatus, ExchangeStatus exchangeStatus, ReadingStatus stepStatus) {
-        if (stepStatus == ReadingStatus.RETURNING
-                && currentStatus == ReadingStatus.RETURNING
-                && exchangeStatus == ExchangeStatus.NOT_STARTED) {
+    private boolean isCompleted(
+            ReadingStatus currentStatus,
+            ExchangeStatus exchangeStatus,
+            ReadingStatus stepStatus,
+            TradeType tradeType
+    ) {
+        if (currentStatus == ReadingStatus.COMPLETED) {
             return true;
         }
+        if (currentStatus == ReadingStatus.EXCHANGING) {
+            return isFirstExchangeStepCompleted(exchangeStatus, stepStatus, tradeType);
+        }
+        if (currentStatus == ReadingStatus.RETURNING) {
+            return isReturnExchangeStepCompleted(exchangeStatus, stepStatus, tradeType);
+        }
         return resolveOrder(currentStatus) > resolveOrder(stepStatus);
+    }
+
+    private boolean isFirstExchangeStepCompleted(
+            ExchangeStatus exchangeStatus,
+            ReadingStatus stepStatus,
+            TradeType tradeType
+    ) {
+        if (stepStatus == ReadingStatus.EXCHANGING) {
+            return tradeType == TradeType.DELIVERY
+                    ? isTrackingRegistered(exchangeStatus)
+                    : isMeetingScheduled(exchangeStatus);
+        }
+        if (stepStatus == ReadingStatus.EXCHANGED) {
+            return tradeType == TradeType.DELIVERY
+                    ? isReceivedConfirmed(exchangeStatus)
+                    : isMeetingCompleted(exchangeStatus);
+        }
+        return resolveOrder(ReadingStatus.EXCHANGING) > resolveOrder(stepStatus);
+    }
+
+    private boolean isReturnExchangeStepCompleted(
+            ExchangeStatus exchangeStatus,
+            ReadingStatus stepStatus,
+            TradeType tradeType
+    ) {
+        if (stepStatus == ReadingStatus.RETURNING) {
+            return tradeType == TradeType.DELIVERY
+                    ? isTrackingRegistered(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED
+                    : isMeetingScheduled(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED;
+        }
+        if (stepStatus == ReadingStatus.RETURNED) {
+            return tradeType == TradeType.DELIVERY
+                    ? isReceivedConfirmed(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED
+                    : isMeetingCompleted(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED;
+        }
+        return resolveOrder(ReadingStatus.RETURNING) > resolveOrder(stepStatus);
+    }
+
+    private boolean isTrackingRegistered(ExchangeStatus exchangeStatus) {
+        return exchangeStatus == ExchangeStatus.TRACKING_REGISTERED
+                || exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
+    }
+
+    private boolean isReceivedConfirmed(ExchangeStatus exchangeStatus) {
+        return exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
+    }
+
+    private boolean isMeetingScheduled(ExchangeStatus exchangeStatus) {
+        return exchangeStatus == ExchangeStatus.MEETING_SCHEDULED
+                || exchangeStatus == ExchangeStatus.MEETING_COMPLETED;
+    }
+
+    private boolean isMeetingCompleted(ExchangeStatus exchangeStatus) {
+        return exchangeStatus == ExchangeStatus.MEETING_COMPLETED;
     }
 
     private int resolveOrder(ReadingStatus status) {
@@ -154,7 +227,8 @@ public class TrackerStepAssembler {
             case PARTNER_BOOK_READING -> 5;
             case PARTNER_BOOK_REVIEWING -> 6;
             case RETURNING -> 7;
-            case COMPLETED -> 8;
+            case RETURNED -> 8;
+            case COMPLETED -> 9;
         };
     }
 

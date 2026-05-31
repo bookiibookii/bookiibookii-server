@@ -189,13 +189,13 @@ public class TrackerStepAssembler {
     ) {
         if (stepStatus == ReadingStatus.RETURNING) {
             return tradeType == TradeType.DELIVERY
-                    ? isTrackingRegistered(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED
-                    : isMeetingScheduled(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED;
+                    ? isTrackingRegistered(exchangeStatus)
+                    : isMeetingScheduled(exchangeStatus);
         }
         if (stepStatus == ReadingStatus.RETURNED) {
             return tradeType == TradeType.DELIVERY
-                    ? isReceivedConfirmed(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED
-                    : isMeetingCompleted(exchangeStatus) || exchangeStatus == ExchangeStatus.NOT_STARTED;
+                    ? isReceivedConfirmed(exchangeStatus)
+                    : isMeetingCompleted(exchangeStatus);
         }
         return resolveOrder(ReadingStatus.RETURNING) > resolveOrder(stepStatus);
     }

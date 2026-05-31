@@ -34,7 +34,7 @@ public interface BookReviewControllerDocs {
             - 그룹 멤버만 조회할 수 있습니다.
             - groupStatus가 COMPLETED인 그룹만 조회할 수 있습니다.
             - bookReviews: 그룹 내 모든 책 리뷰(책 정보, 작성자 정보, 별점, 내용, 작성 일자)
-            - memberReviews: 서로가 서로에게 남긴 파트너 리뷰(그룹명, 독서 기간, 작성자 정보, 코멘트)
+            - memberReviews: 서로가 서로에게 남긴 파트너 리뷰(그룹명, 독서 기간, 작성자 정보, reaction, 코멘트)
             """
     )
     @ApiResponses({

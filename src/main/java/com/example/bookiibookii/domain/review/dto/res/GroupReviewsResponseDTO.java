@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.review.dto.res;
 
+import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -52,6 +53,8 @@ public record GroupReviewsResponseDTO(
             String writerNickname,
             @Schema(description = "작성자 프로필 이미지 Presigned URL")
             String writerProfileImageUrl,
+            @Schema(description = "파트너 후기 리액션", example = "BOOM_UP", allowableValues = {"BOOM_UP", "BOOM_DOWN"}, nullable = true)
+            MemberReviewReaction reaction,
             @Schema(description = "파트너에게 남긴 코멘트", example = "좋았어요")
             String comment
     ) {}

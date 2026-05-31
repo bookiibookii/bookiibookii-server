@@ -226,6 +226,7 @@ public class ReviewService {
                 .writerId(writer.getId())
                 .writerNickname(writer.getNickName())
                 .writerProfileImageUrl(userProfileImageUrlResolver.resolve(writer))
+                .reaction(memberReview.getReaction())
                 .comment(memberReview.getComment())
                 .build();
     }

@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.review.controller;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyGroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -131,6 +132,61 @@ public interface BookReviewControllerDocs {
     ApiResponse<BookReviewResponseDTO> updateMyBookReview(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
             @RequestBody @Valid ReviewRequestDTO.BookReviewUpsertDTO request,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
+    @PatchMapping("/my-group")
+    @Operation(
+            summary = "종료 그룹 내 리뷰 일괄 수정",
+            description = """
+            종료된 그룹에서 내가 작성한 책 리뷰 2건과 파트너 리뷰를 수정합니다.
+
+            - 그룹 멤버만 수정할 수 있습니다.
+            - groupStatus가 COMPLETED인 그룹만 수정할 수 있습니다.
+            - bookReviews: memberBookId 기준으로 별점/코멘트를 부분 수정할 수 있습니다.
+            - memberReview: reaction/comment를 부분 수정할 수 있습니다.
+            - 수정하지 않을 필드는 요청에서 생략하면 기존 값을 유지합니다.
+            - bookReviews, memberReview 중 최소 1개 이상의 수정 항목이 필요합니다.
+            """
+    )
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                    schema = @Schema(implementation = ReviewRequestDTO.MyGroupReviewsUpdateDTO.class),
+                    examples = @ExampleObject(value = """
+                    {
+                      "bookReviews": [
+                        {
+                          "memberBookId": 100,
+                          "star": 5.0,
+                          "comment": "다시 읽어도 좋았어요"
+                        },
+                        {
+                          "memberBookId": 101,
+                          "star": 4.0
+                        }
+                      ],
+                      "memberReview": {
+                        "reaction": "BOOM_UP",
+                        "comment": "좋았어요"
+                      }
+                    }
+                    """)
+            )
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "내 그룹 리뷰 수정 성공",
+                    content = @Content(schema = @Schema(implementation = MyGroupReviewsResponseDTO.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "수정할 항목 없음, 별점/코멘트 형식 오류, 그룹이 종료(COMPLETED) 상태가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "그룹 멤버가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "그룹 또는 리뷰를 찾을 수 없음")
+    })
+    ApiResponse<MyGroupReviewsResponseDTO> updateMyGroupReviews(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @RequestBody @Valid ReviewRequestDTO.MyGroupReviewsUpdateDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 }

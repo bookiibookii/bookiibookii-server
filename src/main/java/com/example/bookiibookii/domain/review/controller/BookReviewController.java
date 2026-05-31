@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.review.controller;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyGroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.exception.code.ReviewSuccessCode;
 import com.example.bookiibookii.domain.review.service.ReviewService;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -52,5 +53,15 @@ public class BookReviewController implements BookReviewControllerDocs {
     ) {
         BookReviewResponseDTO response = reviewService.updateMyBookReview(groupId, request, user);
         return ApiResponse.onSuccess(ReviewSuccessCode.BOOK_REVIEW_UPDATED, response);
+    }
+
+    @PatchMapping("/my-group")
+    public ApiResponse<MyGroupReviewsResponseDTO> updateMyGroupReviews(
+            @PathVariable Long groupId,
+            @RequestBody @Valid ReviewRequestDTO.MyGroupReviewsUpdateDTO request,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        MyGroupReviewsResponseDTO response = reviewService.updateMyGroupReviews(groupId, request, user);
+        return ApiResponse.onSuccess(ReviewSuccessCode.MY_GROUP_REVIEWS_UPDATED, response);
     }
 }

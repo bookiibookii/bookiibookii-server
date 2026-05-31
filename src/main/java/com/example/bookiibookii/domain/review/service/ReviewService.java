@@ -13,8 +13,10 @@ import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.MemberReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyGroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.entity.MemberReview;
+import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.review.exception.ReviewException;
 import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
@@ -167,18 +169,32 @@ public class ReviewService {
         return BookReviewResponseDTO.from(bookReview);
     }
 
+    @Transactional
+    public MyGroupReviewsResponseDTO updateMyGroupReviews(
+            Long groupId,
+            ReviewRequestDTO.MyGroupReviewsUpdateDTO request,
+            User user
+    ) {
+        validateCompletedGroupReviewAccess(groupId, user.getId());
+        MatchedMember me = getMatchedMember(groupId, user.getId());
+        validateHasUpdates(request);
+
+        if (request.bookReviews() != null) {
+            for (ReviewRequestDTO.MyGroupReviewsUpdateDTO.BookReviewUpdateItem item : request.bookReviews()) {
+                updateMyBookReviewItem(me, item);
+            }
+        }
+
+        if (request.memberReview() != null) {
+            updateMyMemberReview(groupId, me, request.memberReview());
+        }
+
+        return buildMyGroupReviewsResponse(me.getId(), groupId);
+    }
+
     @Transactional(readOnly = true)
     public GroupReviewsResponseDTO getGroupReviews(Long groupId, User user) {
-        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
-                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-
-        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER);
-        }
-
-        if (group.getGroupStatus() != GroupStatus.COMPLETED) {
-            throw new ReviewException(ReviewErrorCode.GROUP_REVIEW_NOT_AVAILABLE);
-        }
+        validateCompletedGroupReviewAccess(groupId, user.getId());
 
         List<GroupReviewsResponseDTO.BookReviewItem> bookReviews = bookReviewRepository
                 .findAllByGroupIdWithDetails(groupId)
@@ -195,6 +211,109 @@ public class ReviewService {
         return GroupReviewsResponseDTO.builder()
                 .bookReviews(bookReviews)
                 .memberReviews(memberReviews)
+                .build();
+    }
+
+    private void validateCompletedGroupReviewAccess(Long groupId, Long userId) {
+        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId)) {
+            throw new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER);
+        }
+
+        if (group.getGroupStatus() != GroupStatus.COMPLETED) {
+            throw new ReviewException(ReviewErrorCode.GROUP_REVIEW_NOT_AVAILABLE);
+        }
+    }
+
+    private void validateHasUpdates(ReviewRequestDTO.MyGroupReviewsUpdateDTO request) {
+        boolean hasBookUpdates = request.bookReviews() != null
+                && request.bookReviews().stream().anyMatch(this::hasBookReviewChanges);
+
+        boolean hasMemberUpdate = request.memberReview() != null
+                && (request.memberReview().reaction() != null || request.memberReview().comment() != null);
+
+        if (!hasBookUpdates && !hasMemberUpdate) {
+            throw new ReviewException(ReviewErrorCode.NOTHING_TO_UPDATE);
+        }
+    }
+
+    private boolean hasBookReviewChanges(ReviewRequestDTO.MyGroupReviewsUpdateDTO.BookReviewUpdateItem item) {
+        return item.star() != null || item.comment() != null;
+    }
+
+    private void updateMyBookReviewItem(
+            MatchedMember me,
+            ReviewRequestDTO.MyGroupReviewsUpdateDTO.BookReviewUpdateItem item
+    ) {
+        if (!hasBookReviewChanges(item)) {
+            throw new ReviewException(ReviewErrorCode.NOTHING_TO_UPDATE);
+        }
+
+        BookReview bookReview = bookReviewRepository
+                .findByMatchedMember_IdAndMemberBook_Id(me.getId(), item.memberBookId())
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.BOOK_REVIEW_NOT_FOUND));
+
+        if (!bookReview.getMemberBook().isOwnedBy(me)) {
+            throw new ReviewException(ReviewErrorCode.BOOK_REVIEW_NOT_FOUND);
+        }
+
+        Double newStar = item.star() != null ? item.star() : bookReview.getStar();
+        String newComment = item.comment() != null ? item.comment() : bookReview.getComment();
+
+        if (item.star() != null) {
+            validateRating(item.star());
+        }
+        if (item.comment() != null) {
+            validateCommentLength(item.comment(), BOOK_COMMENT_MAX_LENGTH);
+        }
+
+        bookReview.updateReview(newStar, newComment);
+    }
+
+    private void updateMyMemberReview(
+            Long groupId,
+            MatchedMember me,
+            ReviewRequestDTO.MyGroupReviewsUpdateDTO.MemberReviewUpdateItem item
+    ) {
+        if (item.reaction() == null && item.comment() == null) {
+            throw new ReviewException(ReviewErrorCode.NOTHING_TO_UPDATE);
+        }
+
+        MemberReview memberReview = memberReviewRepository
+                .findByGroupIdAndWriterIdWithDetails(groupId, me.getId())
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.MEMBER_REVIEW_NOT_FOUND));
+
+        MemberReviewReaction newReaction = item.reaction() != null
+                ? item.reaction()
+                : memberReview.getReaction();
+        String newComment = item.comment() != null
+                ? item.comment()
+                : memberReview.getComment();
+
+        if (item.comment() != null) {
+            validateCommentRequired(item.comment(), MEMBER_COMMENT_MAX_LENGTH);
+        }
+
+        memberReview.updateReview(newReaction, newComment);
+    }
+
+    private MyGroupReviewsResponseDTO buildMyGroupReviewsResponse(Long matchedMemberId, Long groupId) {
+        List<GroupReviewsResponseDTO.BookReviewItem> bookReviews = bookReviewRepository
+                .findAllByMatchedMemberIdAndGroupIdWithDetails(matchedMemberId, groupId)
+                .stream()
+                .map(this::toBookReviewItem)
+                .toList();
+
+        GroupReviewsResponseDTO.MemberReviewItem memberReview = memberReviewRepository
+                .findByGroupIdAndWriterIdWithDetails(groupId, matchedMemberId)
+                .map(this::toMemberReviewItem)
+                .orElse(null);
+
+        return MyGroupReviewsResponseDTO.builder()
+                .bookReviews(bookReviews)
+                .memberReview(memberReview)
                 .build();
     }
 

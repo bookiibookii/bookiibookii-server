@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.review.controller;
 
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.exception.code.ReviewSuccessCode;
 import com.example.bookiibookii.domain.review.service.ReviewService;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -9,6 +10,7 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +24,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class BookReviewController implements BookReviewControllerDocs {
 
     private final ReviewService reviewService;
+
+    @GetMapping
+    public ApiResponse<GroupReviewsResponseDTO> getGroupReviews(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        GroupReviewsResponseDTO response = reviewService.getGroupReviews(groupId, user);
+        return ApiResponse.onSuccess(ReviewSuccessCode.GROUP_REVIEWS_FOUND, response);
+    }
 
     @PostMapping
     public ApiResponse<BookReviewResponseDTO> createBookReview(

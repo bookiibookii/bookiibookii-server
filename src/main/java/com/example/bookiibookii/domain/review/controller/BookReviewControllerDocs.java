@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.review.controller;
 
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +24,33 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Tag(name = "BookReview", description = "책 리뷰 및 독서카드 관련 API")
 @RequestMapping("/api/groups/{groupId}/reviews")
 public interface BookReviewControllerDocs {
+
+    @GetMapping
+    @Operation(
+            summary = "그룹 리뷰 조회",
+            description = """
+            그룹에 작성된 책 리뷰와 파트너 리뷰를 함께 조회합니다.
+
+            - 그룹 멤버만 조회할 수 있습니다.
+            - groupStatus가 COMPLETED인 그룹만 조회할 수 있습니다.
+            - bookReviews: 그룹 내 모든 책 리뷰(책 정보, 작성자 정보, 별점, 내용, 작성 일자)
+            - memberReviews: 서로가 서로에게 남긴 파트너 리뷰(그룹명, 독서 기간, 작성자 정보, 코멘트)
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "그룹 리뷰 조회 성공",
+                    content = @Content(schema = @Schema(implementation = GroupReviewsResponseDTO.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "그룹이 종료(COMPLETED) 상태가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "그룹 멤버가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "그룹을 찾을 수 없음")
+    })
+    ApiResponse<GroupReviewsResponseDTO> getGroupReviews(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
 
     @PostMapping
     @Operation(

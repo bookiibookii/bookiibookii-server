@@ -16,6 +16,7 @@ public enum ReviewErrorCode implements BaseCode {
     COMMENT_REQUIRED(HttpStatus.BAD_REQUEST, "REVIEW400_4", "코멘트는 필수입니다."),
     INVALID_REVIEW_READING_STATUS(HttpStatus.BAD_REQUEST, "REVIEW400_5", "현재 독서 상태에서는 책 리뷰를 작성할 수 없습니다."),
     INVALID_MEMBER_REVIEW_STATUS(HttpStatus.BAD_REQUEST, "REVIEW400_6", "파트너 후기는 반납 교환이 모두 완료된 후 작성할 수 있습니다."),
+    GROUP_REVIEW_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "REVIEW400_7", "종료된 그룹의 리뷰만 조회할 수 있습니다."),
 
     // 403
     NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "REVIEW403_1", "해당 그룹의 멤버만 리뷰를 작성할 수 있습니다."),

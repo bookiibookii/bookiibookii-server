@@ -11,6 +11,7 @@ import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.MemberReviewResponseDTO;
 import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.entity.MemberReview;
@@ -21,12 +22,14 @@ import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
+import com.example.bookiibookii.domain.tracker.resolver.UserProfileImageUrlResolver;
 import com.example.bookiibookii.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -37,12 +40,14 @@ public class ReviewService {
     private static final double RATING_MAX = 5.0;
     private static final int BOOK_COMMENT_MAX_LENGTH = 500;
     private static final int MEMBER_COMMENT_MAX_LENGTH = 20;
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy. MM. dd.");
 
     private final MatchedMemberRepository matchedMemberRepository;
     private final BookReviewRepository bookReviewRepository;
     private final MemberReviewRepository memberReviewRepository;
     private final GroupsRepository groupsRepository;
     private final DeliveryAddressService deliveryAddressService;
+    private final UserProfileImageUrlResolver userProfileImageUrlResolver;
 
     @Transactional
     public BookReviewResponseDTO createBookReview(
@@ -160,6 +165,69 @@ public class ReviewService {
         bookReview.updateReview(request.star(), request.comment());
 
         return BookReviewResponseDTO.from(bookReview);
+    }
+
+    @Transactional(readOnly = true)
+    public GroupReviewsResponseDTO getGroupReviews(Long groupId, User user) {
+        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, user.getId())) {
+            throw new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER);
+        }
+
+        if (group.getGroupStatus() != GroupStatus.COMPLETED) {
+            throw new ReviewException(ReviewErrorCode.GROUP_REVIEW_NOT_AVAILABLE);
+        }
+
+        List<GroupReviewsResponseDTO.BookReviewItem> bookReviews = bookReviewRepository
+                .findAllByGroupIdWithDetails(groupId)
+                .stream()
+                .map(this::toBookReviewItem)
+                .toList();
+
+        List<GroupReviewsResponseDTO.MemberReviewItem> memberReviews = memberReviewRepository
+                .findAllByGroupIdWithDetails(groupId)
+                .stream()
+                .map(this::toMemberReviewItem)
+                .toList();
+
+        return GroupReviewsResponseDTO.builder()
+                .bookReviews(bookReviews)
+                .memberReviews(memberReviews)
+                .build();
+    }
+
+    private GroupReviewsResponseDTO.BookReviewItem toBookReviewItem(BookReview bookReview) {
+        var book = bookReview.getMemberBook().getBook();
+        var writer = bookReview.getMatchedMember().getUser();
+
+        return GroupReviewsResponseDTO.BookReviewItem.builder()
+                .bookId(book.getId())
+                .bookTitle(book.getTitle())
+                .bookAuthor(book.getAuthor())
+                .bookImage(book.getImage())
+                .writerId(writer.getId())
+                .writerNickname(writer.getNickName())
+                .writerProfileImageUrl(userProfileImageUrlResolver.resolve(writer))
+                .star(bookReview.getStar())
+                .comment(bookReview.getComment())
+                .createdAt(bookReview.getCreatedAt().format(DATE_FMT))
+                .build();
+    }
+
+    private GroupReviewsResponseDTO.MemberReviewItem toMemberReviewItem(MemberReview memberReview) {
+        var group = memberReview.getGroup();
+        var writer = memberReview.getWriter().getUser();
+
+        return GroupReviewsResponseDTO.MemberReviewItem.builder()
+                .groupName(group.getGroupName())
+                .readingPeriod(group.getReadingPeriod())
+                .writerId(writer.getId())
+                .writerNickname(writer.getNickName())
+                .writerProfileImageUrl(userProfileImageUrlResolver.resolve(writer))
+                .comment(memberReview.getComment())
+                .build();
     }
 
     private void validateRating(Double rating) {

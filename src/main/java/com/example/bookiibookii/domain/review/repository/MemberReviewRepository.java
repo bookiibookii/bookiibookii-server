@@ -34,4 +34,17 @@ public interface MemberReviewRepository extends JpaRepository<MemberReview, Long
         ORDER BY mr.createdAt DESC
     """)
     List<MemberReview> findLatestReceivedByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        SELECT mr FROM MemberReview mr
+        JOIN FETCH mr.group g
+        JOIN FETCH mr.writer w
+        JOIN FETCH w.user wu
+        LEFT JOIN FETCH wu.userImage
+        JOIN FETCH mr.target t
+        JOIN FETCH t.user tu
+        WHERE g.id = :groupId
+        ORDER BY mr.createdAt ASC
+        """)
+    List<MemberReview> findAllByGroupIdWithDetails(@Param("groupId") Long groupId);
 }

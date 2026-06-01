@@ -7,9 +7,14 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.location.entity.UserDelivery;
+import com.example.bookiibookii.domain.location.exception.LocationException;
+import com.example.bookiibookii.domain.location.exception.code.LocationErrorCode;
+import com.example.bookiibookii.domain.location.repository.UserDeliveryRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
-import com.example.bookiibookii.domain.tracker.dto.req.DeliveryAddressUpdateRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.DeliveryAddressDirectUpdateRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.DeliveryRegisterRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.DeliveryAddressSavedUpdateRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.DeliveryAddressResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.PartnerDeliveryResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
@@ -43,6 +48,7 @@ public class PackageDeliveryService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final DeliveryAddressRepository deliveryAddressRepository;
     private final DeliveryRepository deliveryRepository;
+    private final UserDeliveryRepository userDeliveryRepository;
 
     public DeliveryAddressResponseDTO getAddresses(Long groupId, User user) {
         Groups group = validatePackageGroup(groupId);
@@ -61,23 +67,60 @@ public class PackageDeliveryService {
     }
 
     @Transactional
-    public DeliveryAddressResponseDTO updateMyAddress(Long groupId, DeliveryAddressUpdateRequestDTO request, User user) {
+    public DeliveryAddressResponseDTO updateMyAddressFromSavedAddress(
+            Long groupId,
+            DeliveryAddressSavedUpdateRequestDTO request,
+            User user
+    ) {
         Groups group = validatePackageGroupForUpdate(groupId);
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         MatchedMember partner = getPartnerMember(groupId, me.getId());
         ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
         validateAddressEditable(groupId, currentExchangeRound, me, partner);
 
-        DeliveryAddress myAddress = getAddressSnapshot(group.getId(), currentExchangeRound, me.getId());
+        UserDelivery userDelivery = userDeliveryRepository
+                .findByIdAndUser_Id(request.userDeliveryId(), user.getId())
+                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
+        DeliveryAddress myAddress = getOrCreateAddressSnapshotFromUserDelivery(group, currentExchangeRound, me, userDelivery);
         myAddress.update(
-                request.receiverName(),
-                request.phoneNumber(),
-                request.address(),
-                request.addressDetail(),
-                request.zipCode()
+                userDelivery.getReceiverName(),
+                userDelivery.getPhone(),
+                userDelivery.getLocation().getAddress(),
+                userDelivery.getAddressDetail(),
+                userDelivery.getLocation().getZipCode()
         );
 
-        DeliveryAddress partnerAddress = getAddressSnapshot(group.getId(), currentExchangeRound, partner.getId());
+        return buildAddressResponse(groupId, currentExchangeRound, me, partner, myAddress);
+    }
+
+    @Transactional
+    public DeliveryAddressResponseDTO updateMyAddressDirectly(
+            Long groupId,
+            DeliveryAddressDirectUpdateRequestDTO request,
+            User user
+    ) {
+        Groups group = validatePackageGroupForUpdate(groupId);
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        MatchedMember partner = getPartnerMember(groupId, me.getId());
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+        validateAddressEditable(groupId, currentExchangeRound, me, partner);
+
+        DeliveryAddress myAddress = deliveryAddressRepository
+                .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(groupId, currentExchangeRound, me.getId())
+                .orElseGet(() -> createDirectInputAddressSnapshot(group, currentExchangeRound, me, request));
+        myAddress.updateAddress(request.address(), request.addressDetail(), request.zipCode());
+
+        return buildAddressResponse(groupId, currentExchangeRound, me, partner, myAddress);
+    }
+
+    private DeliveryAddressResponseDTO buildAddressResponse(
+            Long groupId,
+            ExchangeRound currentExchangeRound,
+            MatchedMember me,
+            MatchedMember partner,
+            DeliveryAddress myAddress
+    ) {
+        DeliveryAddress partnerAddress = getAddressSnapshot(groupId, currentExchangeRound, partner.getId());
         return DeliveryAddressResponseDTO.builder()
                 .myAddress(DeliveryAddressResponseDTO.AddressDTO.from(myAddress))
                 .partnerAddress(DeliveryAddressResponseDTO.AddressDTO.from(partnerAddress))
@@ -242,6 +285,52 @@ public class PackageDeliveryService {
         return deliveryAddressRepository
                 .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(groupId, exchangeRound, matchedMemberId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
+    }
+
+    private DeliveryAddress getOrCreateAddressSnapshotFromUserDelivery(
+            Groups group,
+            ExchangeRound exchangeRound,
+            MatchedMember me,
+            UserDelivery userDelivery
+    ) {
+        return deliveryAddressRepository
+                .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(group.getId(), exchangeRound, me.getId())
+                .orElseGet(() -> deliveryAddressRepository.save(
+                        DeliveryAddress.builder()
+                                .group(group)
+                                .matchedMember(me)
+                                .exchangeRound(exchangeRound)
+                                .receiverName(userDelivery.getReceiverName())
+                                .phoneNumber(userDelivery.getPhone())
+                                .address(userDelivery.getLocation().getAddress())
+                                .addressDetail(userDelivery.getAddressDetail())
+                                .zipCode(userDelivery.getLocation().getZipCode())
+                                .build()
+                ));
+    }
+
+    private DeliveryAddress createDirectInputAddressSnapshot(
+            Groups group,
+            ExchangeRound exchangeRound,
+            MatchedMember me,
+            DeliveryAddressDirectUpdateRequestDTO request
+    ) {
+        UserDelivery userDelivery = userDeliveryRepository
+                .findFirstByUser_IdOrderByCreatedAtAsc(me.getUser().getId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
+
+        return deliveryAddressRepository.save(
+                DeliveryAddress.builder()
+                        .group(group)
+                        .matchedMember(me)
+                        .exchangeRound(exchangeRound)
+                        .receiverName(userDelivery.getReceiverName())
+                        .phoneNumber(userDelivery.getPhone())
+                        .address(request.address())
+                        .addressDetail(request.addressDetail())
+                        .zipCode(request.zipCode())
+                        .build()
+        );
     }
 
     private boolean canEditAddress(Long groupId, ExchangeRound exchangeRound, MatchedMember me, MatchedMember partner) {

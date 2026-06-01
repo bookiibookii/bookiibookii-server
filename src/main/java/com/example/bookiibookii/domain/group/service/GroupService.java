@@ -519,6 +519,47 @@ public class GroupService {
         return new GroupResponseDTO.GroupSliceResponseDTO(dtoList, totalCount, groupsSlice.getNumber(), groupsSlice.hasNext());
     }
 
+    @Transactional(readOnly = true)
+    public List<GroupResponseDTO.MyHostedGroupDTO> getMyHostedGroups(User user) {
+        if (user == null) {
+            throw new UserException(UserErrorCode.NOT_FOUND);
+        }
+
+        return groupsRepository.findMyHostedGroups(user.getId(), GroupStatus.DELETED).stream()
+                .map(this::toMyHostedGroup)
+                .toList();
+    }
+
+    private GroupResponseDTO.MyHostedGroupDTO toMyHostedGroup(Groups group) {
+        Book book = group.getBook();
+        User host = group.getHost();
+
+        return GroupResponseDTO.MyHostedGroupDTO.builder()
+                .groupId(group.getId())
+                .groupName(group.getGroupName())
+                .groupType(group.getGroupType().name())
+                .tradeType(group.getTradeType().name())
+                .bookId(book.getId())
+                .bookTitle(book.getTitle())
+                .author(book.getAuthor())
+                .bookCoverImageUrl(book.getImage())
+                .readingPeriod(group.getReadingPeriod())
+                .hostId(host.getId())
+                .hostNickname(host.getNickName())
+                .hostProfileImageUrl(userProfileImageUrl(host))
+                .displayStatus(resolveHostedGroupDisplayStatus(group.getGroupStatus()))
+                .build();
+    }
+
+    private HostedGroupDisplayStatus resolveHostedGroupDisplayStatus(GroupStatus groupStatus) {
+        return switch (groupStatus) {
+            case RECRUITING -> HostedGroupDisplayStatus.BEFORE_MATCHING;
+            case MATCHED -> HostedGroupDisplayStatus.IN_PROGRESS;
+            case COMPLETED -> HostedGroupDisplayStatus.COMPLETED;
+            case DELETED -> throw new GroupException(GroupErrorCode.GROUP_NOT_FOUND);
+        };
+    }
+
     private String determinePictureBadge(Groups group) {
         return group.getTradeType() == TradeType.DELIVERY ? "택배" : "직접";
     }

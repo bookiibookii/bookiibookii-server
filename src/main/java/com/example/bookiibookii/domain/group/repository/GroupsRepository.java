@@ -90,6 +90,20 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     // 내가 방장인 그룹 중 '모집 중' 또는 '진행 중'인 개수
     long countByHostIdAndGroupStatusIn(Long hostId, List<GroupStatus> statuses);
 
+    @Query("""
+    select g from Groups g
+    join fetch g.book
+    join fetch g.host h
+    left join fetch h.userImage
+    where h.id = :hostId
+      and g.groupStatus <> :deletedStatus
+    order by g.createdAt desc, g.id desc
+    """)
+    List<Groups> findMyHostedGroups(
+            @Param("hostId") Long hostId,
+            @Param("deletedStatus") GroupStatus deletedStatus
+    );
+
     // 독서 종료일로부터 3일이 지났는데 아직 종료되지 않은(MATCHED) 그룹 조회
     @Query(value = "SELECT * FROM `groups` g WHERE g.group_status = 'MATCHED' " +
             "AND DATE_ADD(g.start_date, INTERVAL g.reading_period DAY) <= :deadline",

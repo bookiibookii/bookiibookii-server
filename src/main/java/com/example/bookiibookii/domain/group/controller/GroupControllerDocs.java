@@ -74,6 +74,23 @@ public interface GroupControllerDocs {
             @AuthenticationPrincipal User host
     );
 
+    @Operation(
+            summary = "내가 만든 그룹 목록 조회 API",
+            description = """
+                    현재 로그인한 사용자가 host인 그룹을 페이징 없이 최신 생성순으로 조회합니다.
+                    - RECRUITING: BEFORE_MATCHING
+                    - MATCHED: IN_PROGRESS
+                    - COMPLETED: COMPLETED
+                    - DELETED 그룹은 제외됩니다.
+                    """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공")
+    })
+    ApiResponse<List<GroupResponseDTO.MyHostedGroupDTO>> getMyHostedGroups(
+            @AuthenticationPrincipal User user
+    );
+
     @Operation(summary = "그룹 상세 조회 API", description = "특정 그룹의 상세 정보(도서, 참여 멤버, 신청 상태 등)를 조회합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),

@@ -76,4 +76,10 @@ public class MemberReview extends BaseEntity {
             throw new IllegalArgumentException("comment cannot exceed 20 characters");
         }
     }
+
+    public void updateReview(MemberReviewReaction reaction, String comment) {
+        validateComment(comment);
+        this.reaction = reaction;
+        this.comment = comment;
+    }
 }

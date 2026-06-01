@@ -52,4 +52,32 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
         AND mb.removedAt IS NULL
         """)
     boolean existsReviewedBookByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
+    @Query("""
+        SELECT br FROM BookReview br
+        JOIN FETCH br.memberBook mb
+        JOIN FETCH mb.book
+        JOIN FETCH br.matchedMember mm
+        JOIN FETCH mm.user u
+        LEFT JOIN FETCH u.userImage
+        WHERE mm.group.id = :groupId
+        ORDER BY br.createdAt ASC
+        """)
+    List<BookReview> findAllByGroupIdWithDetails(@Param("groupId") Long groupId);
+
+    @Query("""
+        SELECT br FROM BookReview br
+        JOIN FETCH br.memberBook mb
+        JOIN FETCH mb.book
+        JOIN FETCH br.matchedMember mm
+        JOIN FETCH mm.user u
+        LEFT JOIN FETCH u.userImage
+        WHERE mm.id = :matchedMemberId
+        AND mm.group.id = :groupId
+        ORDER BY br.createdAt ASC
+        """)
+    List<BookReview> findAllByMatchedMemberIdAndGroupIdWithDetails(
+            @Param("matchedMemberId") Long matchedMemberId,
+            @Param("groupId") Long groupId
+    );
 }

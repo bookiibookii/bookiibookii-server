@@ -55,6 +55,13 @@ public class GroupController implements GroupControllerDocs {
     }
 
     //그룹 조회 API
+    @GetMapping("/my-hosted")
+    public ApiResponse<List<GroupResponseDTO.MyHostedGroupDTO>> getMyHostedGroups(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        List<GroupResponseDTO.MyHostedGroupDTO> result = groupService.getMyHostedGroups(user);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
     @GetMapping("/{groupId}")
     public ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
             @PathVariable(name = "groupId") Long groupId,

@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.group.dto.res;
 
 import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.HostedGroupDisplayStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -123,6 +124,23 @@ public class GroupResponseDTO {
             long totalCount,
             int currentPage,
             boolean hasNext
+    ) {}
+
+    @Builder
+    public record MyHostedGroupDTO(
+            Long groupId,
+            String groupName,
+            String groupType,
+            String tradeType,
+            Long bookId,
+            String bookTitle,
+            String author,
+            String bookCoverImageUrl,
+            Integer readingPeriod,
+            Long hostId,
+            String hostNickname,
+            String hostProfileImageUrl,
+            HostedGroupDisplayStatus displayStatus
     ) {}
 
     public record SearchResultDTO(

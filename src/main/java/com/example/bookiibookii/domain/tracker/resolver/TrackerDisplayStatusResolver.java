@@ -87,7 +87,7 @@ public class TrackerDisplayStatusResolver {
                         TrackerDisplayStatus.RETURN_TRACKING_REQUIRED;
 
                 case TRACKING_REGISTERED ->
-                        TrackerDisplayStatus.RETURNING;
+                        TrackerDisplayStatus.SHIPPING;
 
                 case RECEIVED_CONFIRMED, NOT_STARTED ->
                         TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
@@ -100,7 +100,7 @@ public class TrackerDisplayStatusResolver {
         return switch (safeExchangeStatus(exchangeStatus)) {
 
             case MEETING_SCHEDULED, MEETING_COMPLETED ->
-                    TrackerDisplayStatus.RETURNING;
+                    TrackerDisplayStatus.EXCHANGING;
 
             case NOT_STARTED ->
                     TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;

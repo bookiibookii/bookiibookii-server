@@ -75,4 +75,10 @@ public class DeliveryAddress extends BaseEntity {
         this.addressDetail = addressDetail;
         this.zipCode = zipCode;
     }
+
+    public void updateAddress(String address, String addressDetail, String zipCode) {
+        this.address = address;
+        this.addressDetail = addressDetail;
+        this.zipCode = zipCode;
+    }
 }

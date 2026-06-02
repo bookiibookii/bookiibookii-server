@@ -13,10 +13,6 @@ import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.GroupPlaceRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
-import com.example.bookiibookii.domain.location.entity.Location;
-import com.example.bookiibookii.domain.location.exception.LocationException;
-import com.example.bookiibookii.domain.location.exception.code.LocationErrorCode;
-import com.example.bookiibookii.domain.location.repository.LocationRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.tracker.dto.req.MeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingDefaultPlaceResponseDTO;
@@ -43,7 +39,6 @@ public class MeetingService {
     private final MeetingRepository meetingRepository;
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final LocationRepository locationRepository;
     private final GroupPlaceRepository groupPlaceRepository;
 
     @Transactional
@@ -58,8 +53,18 @@ public class MeetingService {
             throw new TrackerException(TrackerErrorCode.MEETING_ALREADY_EXISTS);
         }
 
-        Location location = getLocation(request.locationId());
-        Meeting meeting = Meeting.create(group, me, exchangeRound, location, request.addressDetail(), request.scheduledAt());
+        Meeting meeting = Meeting.create(
+                group,
+                me,
+                exchangeRound,
+                request.placeName(),
+                request.address(),
+                request.zipCode(),
+                request.x(),
+                request.y(),
+                request.addressDetail(),
+                request.scheduledAt()
+        );
 
         try {
             meeting = meetingRepository.save(meeting);
@@ -82,8 +87,15 @@ public class MeetingService {
         MatchedMember me = findMe(members, user.getId());
         validateHost(me);
 
-        Location location = getLocation(request.locationId());
-        meeting.update(location, request.addressDetail(), request.scheduledAt());
+        meeting.update(
+                request.placeName(),
+                request.address(),
+                request.zipCode(),
+                request.x(),
+                request.y(),
+                request.addressDetail(),
+                request.scheduledAt()
+        );
 
         return MeetingResponseDTO.from(meeting);
     }
@@ -213,11 +225,6 @@ public class MeetingService {
             case RETURNING -> ExchangeRound.RETURN_EXCHANGE;
             default -> throw new TrackerException(TrackerErrorCode.INVALID_MEETING_PHASE);
         };
-    }
-
-    private Location getLocation(Long locationId) {
-        return locationRepository.findById(locationId)
-                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
     }
 
     private void completeMeetingPhase(List<MatchedMember> members) {

@@ -23,7 +23,6 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         join fetch m.group g
         join fetch m.createdBy cb
         join fetch cb.user
-        join fetch m.location
         where g.id = :groupId
           and m.exchangeRound = :exchangeRound
     """)
@@ -38,7 +37,6 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         join fetch m.group g
         join fetch m.createdBy cb
         join fetch cb.user
-        join fetch m.location
         where g.id = :groupId
           and m.exchangeRound = :exchangeRound
     """)

@@ -199,16 +199,20 @@ public class GroupService {
                 throw new GroupException(GroupErrorCode.NOT_MY_DELIVERY_ADDRESS);
             }
 
-            return GroupPlace.builder()
+            GroupPlace groupPlace = GroupPlace.builder()
                     .group(group)
                     .sourceType(GroupPlaceSourceType.USER_DELIVERY)
                     .placeName(userDelivery.getLocation().getPlaceName())
                     .address(userDelivery.getLocation().getAddress())
                     .zipCode(userDelivery.getLocation().getZipCode())
+                    .x(userDelivery.getLocation().getX())
+                    .y(userDelivery.getLocation().getY())
                     .addressDetail(userDelivery.getAddressDetail())
                     .receiverName(userDelivery.getReceiverName())
                     .phoneNumber(userDelivery.getPhone())
                     .build();
+            validateDeliveryGroupPlace(groupPlace);
+            return groupPlace;
         }
 
         if (request.getTradeType() == TradeType.DIRECT) {
@@ -220,17 +224,45 @@ public class GroupService {
                 throw new GroupException(GroupErrorCode.NOT_MY_EXCHANGE_PLACE);
             }
 
-            return GroupPlace.builder()
+            GroupPlace groupPlace = GroupPlace.builder()
                     .group(group)
                     .sourceType(GroupPlaceSourceType.USER_EXCHANGE)
                     .placeName(userExchange.getLocation().getPlaceName())
                     .address(userExchange.getLocation().getAddress())
                     .zipCode(userExchange.getLocation().getZipCode())
+                    .x(userExchange.getLocation().getX())
+                    .y(userExchange.getLocation().getY())
                     .addressDetail(userExchange.getAddressDetail())
                     .build();
+            validateDirectGroupPlace(groupPlace);
+            return groupPlace;
         }
 
         throw new GroupException(GroupErrorCode.INVALID_GROUP_SELECTED_PLACE);
+    }
+
+    private void validateDeliveryGroupPlace(GroupPlace groupPlace) {
+        if (groupPlace.getSourceType() != GroupPlaceSourceType.USER_DELIVERY
+                || isBlank(groupPlace.getReceiverName())
+                || isBlank(groupPlace.getPhoneNumber())
+                || isBlank(groupPlace.getAddress())
+                || isBlank(groupPlace.getZipCode())) {
+            throw new GroupException(GroupErrorCode.INVALID_GROUP_SELECTED_PLACE);
+        }
+    }
+
+    private void validateDirectGroupPlace(GroupPlace groupPlace) {
+        if (groupPlace.getSourceType() != GroupPlaceSourceType.USER_EXCHANGE
+                || isBlank(groupPlace.getPlaceName())
+                || isBlank(groupPlace.getAddress())
+                || groupPlace.getX() == null
+                || groupPlace.getY() == null) {
+            throw new GroupException(GroupErrorCode.INVALID_GROUP_SELECTED_PLACE);
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void validateRules(List<RuleDTO> rules) {

@@ -22,7 +22,7 @@ public class Location extends BaseEntity {
     @Column(name = "place_name", nullable = false, length = 100)
     private String placeName;
 
-    @Column(name = "address", nullable = false, unique = true, length = 200)
+    @Column(name = "address", nullable = false, length = 200)
     private String address;
 
     @Column(name = "zip_code", length = 10)
@@ -34,15 +34,9 @@ public class Location extends BaseEntity {
     @Column(name = "y", precision = 16, scale = 10)
     private BigDecimal y;
 
-    public void fillMissingDetails(String zipCode, BigDecimal x, BigDecimal y) {
+    public void fillMissingDetails(String zipCode) {
         if (this.zipCode == null && zipCode != null) {
             this.zipCode = zipCode;
-        }
-        if (this.x == null && x != null) {
-            this.x = x;
-        }
-        if (this.y == null && y != null) {
-            this.y = y;
         }
     }
 }

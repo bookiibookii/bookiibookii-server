@@ -23,9 +23,9 @@ public class LocationService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Location findOrCreate(String placeName, String address, String zipCode, BigDecimal x, BigDecimal y) {
-        return locationRepository.findByAddress(address)
+        return locationRepository.findByAddressAndXAndY(address, x, y)
                 .map(location -> {
-                    location.fillMissingDetails(zipCode, x, y);
+                    location.fillMissingDetails(zipCode);
                     return location;
                 })
                 .orElseGet(() -> {
@@ -40,8 +40,8 @@ public class LocationService {
                                         .build()
                         );
                     } catch (DataIntegrityViolationException e) {
-                        Location location = locationRepository.findByAddress(address).orElseThrow();
-                        location.fillMissingDetails(zipCode, x, y);
+                        Location location = locationRepository.findByAddressAndXAndY(address, x, y).orElseThrow();
+                        location.fillMissingDetails(zipCode);
                         return location;
                     }
                 });

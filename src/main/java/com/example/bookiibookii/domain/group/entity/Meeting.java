@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.group.entity;
 
-import com.example.bookiibookii.domain.location.entity.Location;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.Column;
@@ -21,6 +20,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -55,9 +55,20 @@ public class Meeting extends BaseEntity {
     @Column(name = "exchange_round", nullable = false, length = 30)
     private ExchangeRound exchangeRound;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "location_id", nullable = false)
-    private Location location;
+    @Column(name = "place_name", nullable = false, length = 100)
+    private String placeName;
+
+    @Column(name = "address", nullable = false, length = 200)
+    private String address;
+
+    @Column(name = "zip_code", length = 10)
+    private String zipCode;
+
+    @Column(name = "x", precision = 16, scale = 10)
+    private BigDecimal x;
+
+    @Column(name = "y", precision = 16, scale = 10)
+    private BigDecimal y;
 
     @Column(name = "address_detail", length = 200)
     private String addressDetail;
@@ -69,31 +80,50 @@ public class Meeting extends BaseEntity {
             Groups group,
             MatchedMember createdBy,
             ExchangeRound exchangeRound,
-            Location location,
+            String placeName,
+            String address,
+            String zipCode,
+            BigDecimal x,
+            BigDecimal y,
             String addressDetail,
             LocalDateTime scheduledAt
     ) {
-        validate(group, createdBy, exchangeRound, location, scheduledAt);
+        validate(group, createdBy, exchangeRound, placeName, address, x, y, scheduledAt);
 
         return Meeting.builder()
                 .group(group)
                 .createdBy(createdBy)
                 .exchangeRound(exchangeRound)
-                .location(location)
+                .placeName(placeName)
+                .address(address)
+                .zipCode(zipCode)
+                .x(x)
+                .y(y)
                 .addressDetail(addressDetail)
                 .scheduledAt(scheduledAt)
                 .build();
     }
 
     public void update(
-            Location location,
+            String placeName,
+            String address,
+            String zipCode,
+            BigDecimal x,
+            BigDecimal y,
             String addressDetail,
             LocalDateTime scheduledAt
     ) {
-        Objects.requireNonNull(location, "location must not be null");
+        Objects.requireNonNull(placeName, "placeName must not be null");
+        Objects.requireNonNull(address, "address must not be null");
+        Objects.requireNonNull(x, "x must not be null");
+        Objects.requireNonNull(y, "y must not be null");
         Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
 
-        this.location = location;
+        this.placeName = placeName;
+        this.address = address;
+        this.zipCode = zipCode;
+        this.x = x;
+        this.y = y;
         this.addressDetail = addressDetail;
         this.scheduledAt = scheduledAt;
     }
@@ -102,13 +132,19 @@ public class Meeting extends BaseEntity {
             Groups group,
             MatchedMember createdBy,
             ExchangeRound exchangeRound,
-            Location location,
+            String placeName,
+            String address,
+            BigDecimal x,
+            BigDecimal y,
             LocalDateTime scheduledAt
     ) {
         Objects.requireNonNull(group, "group must not be null");
         Objects.requireNonNull(createdBy, "createdBy must not be null");
         Objects.requireNonNull(exchangeRound, "exchangeRound must not be null");
-        Objects.requireNonNull(location, "location must not be null");
+        Objects.requireNonNull(placeName, "placeName must not be null");
+        Objects.requireNonNull(address, "address must not be null");
+        Objects.requireNonNull(x, "x must not be null");
+        Objects.requireNonNull(y, "y must not be null");
         Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
     }
 }

@@ -19,6 +19,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "group_place")
 @Getter
@@ -46,8 +48,14 @@ public class GroupPlace extends BaseEntity {
     @Column(name = "address", nullable = false, length = 200)
     private String address;
 
-    @Column(name = "zip_code", nullable = false, length = 10)
+    @Column(name = "zip_code", length = 10)
     private String zipCode;
+
+    @Column(name = "x", precision = 16, scale = 10)
+    private BigDecimal x;
+
+    @Column(name = "y", precision = 16, scale = 10)
+    private BigDecimal y;
 
     @Column(name = "address_detail", length = 200)
     private String addressDetail;

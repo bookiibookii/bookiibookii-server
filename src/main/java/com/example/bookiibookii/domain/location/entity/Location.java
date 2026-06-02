@@ -4,6 +4,8 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "location")
 @Getter
@@ -23,6 +25,24 @@ public class Location extends BaseEntity {
     @Column(name = "address", nullable = false, unique = true, length = 200)
     private String address;
 
-    @Column(name = "zip_code", nullable = false, length = 10)
+    @Column(name = "zip_code", length = 10)
     private String zipCode;
+
+    @Column(name = "x", precision = 16, scale = 10)
+    private BigDecimal x;
+
+    @Column(name = "y", precision = 16, scale = 10)
+    private BigDecimal y;
+
+    public void fillMissingDetails(String zipCode, BigDecimal x, BigDecimal y) {
+        if (this.zipCode == null && zipCode != null) {
+            this.zipCode = zipCode;
+        }
+        if (this.x == null && x != null) {
+            this.x = x;
+        }
+        if (this.y == null && y != null) {
+            this.y = y;
+        }
+    }
 }

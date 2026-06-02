@@ -5,6 +5,7 @@ public enum TrackerDisplayStatus {
 
     READING,              // 읽는 중
     REVIEW_WRITING,       // 후기 작성
+    REVIEW_WAITING_PARTNER, // 내 후기 작성 완료, 파트너 후기 대기
 
     TRACKING_REQUIRED,    // 운송장 등록 필요
     SHIPPING,             // 배송 중

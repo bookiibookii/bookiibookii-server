@@ -1,6 +1,8 @@
 package com.example.bookiibookii.domain.location.dto.req;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -23,10 +25,14 @@ public class UserExchangeReqDTO {
 
             @Schema(description = "X 좌표(경도)", example = "127.027621", requiredMode = Schema.RequiredMode.REQUIRED)
             @NotNull(message = "X 좌표는 필수입니다.")
+            @DecimalMin(value = "-180.0", message = "X 좌표는 -180 이상이어야 합니다.")
+            @DecimalMax(value = "180.0", message = "X 좌표는 180 이하여야 합니다.")
             BigDecimal x,
 
             @Schema(description = "Y 좌표(위도)", example = "37.497942", requiredMode = Schema.RequiredMode.REQUIRED)
             @NotNull(message = "Y 좌표는 필수입니다.")
+            @DecimalMin(value = "-90.0", message = "Y 좌표는 -90 이상이어야 합니다.")
+            @DecimalMax(value = "90.0", message = "Y 좌표는 90 이하여야 합니다.")
             BigDecimal y,
 
             @Schema(description = "상세 주소/설명", example = "11번 출구 앞")

@@ -64,10 +64,10 @@ public class Meeting extends BaseEntity {
     @Column(name = "zip_code", length = 10)
     private String zipCode;
 
-    @Column(name = "x", precision = 16, scale = 10)
+    @Column(name = "x", nullable = false, precision = 16, scale = 10)
     private BigDecimal x;
 
-    @Column(name = "y", precision = 16, scale = 10)
+    @Column(name = "y", nullable = false, precision = 16, scale = 10)
     private BigDecimal y;
 
     @Column(name = "address_detail", length = 200)

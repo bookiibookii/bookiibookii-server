@@ -8,6 +8,7 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +50,40 @@ public interface MeetingControllerDocs {
     })
     ApiResponse<MeetingResponseDTO> createMeeting(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = MeetingRequestDTO.class),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "default-place 응답 기반 스냅샷 입력",
+                                            value = """
+                                            {
+                                              "placeName": "스타벅스 강남점",
+                                              "address": "서울특별시 강남구 강남대로 100",
+                                              "x": 127.027621,
+                                              "y": 37.497942,
+                                              "addressDetail": "2층",
+                                              "scheduledAt": "2026-05-20T14:30:00"
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "새 장소 직접 입력",
+                                            value = """
+                                            {
+                                              "placeName": "강남역",
+                                              "address": "서울특별시 강남구 강남대로 396",
+                                              "x": 127.027621,
+                                              "y": 37.497942,
+                                              "addressDetail": "11번 출구 앞",
+                                              "scheduledAt": "2026-05-20T14:30:00"
+                                            }
+                                            """
+                                    )
+                            }
+                    )
+            )
             @RequestBody @Valid MeetingRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
@@ -60,7 +95,7 @@ public interface MeetingControllerDocs {
             HOST가 groupId 기준으로 현재 등록된 직접교환 약속을 수정합니다.
             
             - 프론트가 meetingId를 들고 있지 않아도 됩니다.
-            - 수정 가능 필드: locationId, addressDetail, scheduledAt
+            - 수정 가능 필드: placeName, address, zipCode, x, y, addressDetail, scheduledAt
             """
     )
     @ApiResponses({
@@ -75,6 +110,40 @@ public interface MeetingControllerDocs {
     })
     ApiResponse<MeetingResponseDTO> updateMeeting(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = MeetingRequestDTO.class),
+                            examples = {
+                                    @ExampleObject(
+                                            name = "default-place 응답 기반 스냅샷 입력",
+                                            value = """
+                                            {
+                                              "placeName": "스타벅스 강남점",
+                                              "address": "서울특별시 강남구 강남대로 100",
+                                              "x": 127.027621,
+                                              "y": 37.497942,
+                                              "addressDetail": "2층",
+                                              "scheduledAt": "2026-05-20T14:30:00"
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "새 장소 직접 입력",
+                                            value = """
+                                            {
+                                              "placeName": "강남역",
+                                              "address": "서울특별시 강남구 강남대로 396",
+                                              "x": 127.027621,
+                                              "y": 37.497942,
+                                              "addressDetail": "11번 출구 앞",
+                                              "scheduledAt": "2026-05-20T14:30:00"
+                                            }
+                                            """
+                                    )
+                            }
+                    )
+            )
             @RequestBody @Valid MeetingRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );

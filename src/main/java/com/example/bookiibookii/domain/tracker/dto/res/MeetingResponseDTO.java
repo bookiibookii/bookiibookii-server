@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Builder
@@ -39,22 +40,25 @@ public record MeetingResponseDTO(
     @Builder
     @Schema(description = "약속 장소 정보")
     public record LocationInfo(
-            @Schema(description = "Location ID", example = "1")
-            Long locationId,
             @Schema(description = "장소명", example = "강남역")
             String placeName,
             @Schema(description = "주소", example = "서울특별시 강남구 강남대로 396")
             String address,
             @Schema(description = "우편번호", example = "06232")
-            String zipCode
+            String zipCode,
+            @Schema(description = "X 좌표(경도)", example = "127.027621")
+            BigDecimal x,
+            @Schema(description = "Y 좌표(위도)", example = "37.497942")
+            BigDecimal y
     ) {
 
         private static LocationInfo from(Meeting meeting) {
             return LocationInfo.builder()
-                    .locationId(meeting.getLocation().getId())
-                    .placeName(meeting.getLocation().getPlaceName())
-                    .address(meeting.getLocation().getAddress())
-                    .zipCode(meeting.getLocation().getZipCode())
+                    .placeName(meeting.getPlaceName())
+                    .address(meeting.getAddress())
+                    .zipCode(meeting.getZipCode())
+                    .x(meeting.getX())
+                    .y(meeting.getY())
                     .build();
         }
     }

@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @Service
 @RequiredArgsConstructor
 public class LocationService {
@@ -16,7 +18,16 @@ public class LocationService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Location findOrCreate(String placeName, String address, String zipCode) {
+        return findOrCreate(placeName, address, zipCode, null, null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Location findOrCreate(String placeName, String address, String zipCode, BigDecimal x, BigDecimal y) {
         return locationRepository.findByAddress(address)
+                .map(location -> {
+                    location.fillMissingDetails(zipCode, x, y);
+                    return location;
+                })
                 .orElseGet(() -> {
                     try {
                         return locationRepository.saveAndFlush(
@@ -24,10 +35,14 @@ public class LocationService {
                                         .placeName(placeName)
                                         .address(address)
                                         .zipCode(zipCode)
+                                        .x(x)
+                                        .y(y)
                                         .build()
                         );
                     } catch (DataIntegrityViolationException e) {
-                        return locationRepository.findByAddress(address).orElseThrow();
+                        Location location = locationRepository.findByAddress(address).orElseThrow();
+                        location.fillMissingDetails(zipCode, x, y);
+                        return location;
                     }
                 });
     }

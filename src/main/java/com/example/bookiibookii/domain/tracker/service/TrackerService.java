@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO;
@@ -41,6 +42,7 @@ public class TrackerService {
     private final TrackerDueDateResolver trackerDueDateResolver;
     private final UserProfileImageUrlResolver userProfileImageUrlResolver;
     private final TrackerStepAssembler trackerStepAssembler;
+    private final BookReviewRepository bookReviewRepository;
 
     // 트래커 리스트 조회
     public TrackerListResDTO getTrackerList(User user) {
@@ -58,7 +60,8 @@ public class TrackerService {
                     TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
                             me.getReadingStatus(),
                             me.getExchangeStatus(),
-                            me.getGroup().getTradeType()
+                            me.getGroup().getTradeType(),
+                            isCurrentBookReviewWritten(me)
                     );
 
                     return TrackerConverter.toListItem(
@@ -100,7 +103,8 @@ public class TrackerService {
         TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
                 me.getReadingStatus(),
                 me.getExchangeStatus(),
-                me.getGroup().getTradeType()
+                me.getGroup().getTradeType(),
+                isCurrentBookReviewWritten(me)
         );
 
         return TrackerConverter.toDetail(
@@ -238,6 +242,7 @@ public class TrackerService {
 
     private boolean isReviewStatus(TrackerDisplayStatus displayStatus) {
         return displayStatus == TrackerDisplayStatus.REVIEW_WRITING
+                || displayStatus == TrackerDisplayStatus.REVIEW_WAITING_PARTNER
                 || displayStatus == TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
     }
 
@@ -253,5 +258,15 @@ public class TrackerService {
     private MatchedMember getMyMatchedMember(Long groupId, Long userId) {
         return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private boolean isCurrentBookReviewWritten(MatchedMember me) {
+        if (me.getCurrentMemberBook() == null) {
+            return false;
+        }
+        return bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
+                me.getId(),
+                me.getCurrentMemberBook().getId()
+        );
     }
 }

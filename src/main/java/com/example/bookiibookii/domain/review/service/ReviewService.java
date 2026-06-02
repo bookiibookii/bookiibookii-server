@@ -62,8 +62,12 @@ public class ReviewService {
 
         Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-        MatchedMember me = getMatchedMember(group.getId(), user.getId());
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroupIdForUpdate(group.getId());
+        validatePairGroup(members);
+
+        MatchedMember me = findMe(members, user.getId());
         MemberBook currentMemberBook = getCurrentMemberBook(me);
+        ReadingStatus currentStatus = validateBookReviewReadingStatus(me.getReadingStatus());
 
         if (bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(me.getId(), currentMemberBook.getId())) {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
@@ -81,21 +85,12 @@ public class ReviewService {
         );
 
         try {
-            bookReview = bookReviewRepository.save(bookReview);
+            bookReview = bookReviewRepository.saveAndFlush(bookReview);
         } catch (DataIntegrityViolationException e) {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
-        ReadingStatus currentStatus = me.getReadingStatus();
-        if (currentStatus == ReadingStatus.MY_BOOK_REVIEWING) {
-            me.updateReadingStatus(ReadingStatus.EXCHANGING);
-        } else if (currentStatus == ReadingStatus.PARTNER_BOOK_REVIEWING) {
-            me.updateReadingStatus(ReadingStatus.RETURNING);
-        } else {
-            throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
-        }
-
-        updateExchangeStatusIfAllMembersReady(group.getId(), group.getTradeType());
+        updateReadingStatusIfAllBookReviewsWritten(group.getId(), group.getTradeType(), members, currentStatus);
 
         return BookReviewResponseDTO.from(bookReview);
     }
@@ -372,6 +367,44 @@ public class ReviewService {
     private MatchedMember getMatchedMember(Long groupId, Long userId) {
         return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private ReadingStatus validateBookReviewReadingStatus(ReadingStatus readingStatus) {
+        if (readingStatus == ReadingStatus.MY_BOOK_REVIEWING
+                || readingStatus == ReadingStatus.PARTNER_BOOK_REVIEWING) {
+            return readingStatus;
+        }
+        throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
+    }
+
+    private void updateReadingStatusIfAllBookReviewsWritten(
+            Long groupId,
+            TradeType tradeType,
+            List<MatchedMember> members,
+            ReadingStatus reviewStatus
+    ) {
+        boolean allMembersInSameReviewStatus = members.stream()
+                .allMatch(member -> member.getReadingStatus() == reviewStatus);
+        boolean allCurrentBookReviewsWritten = members.stream()
+                .allMatch(this::existsCurrentBookReview);
+
+        if (!allMembersInSameReviewStatus || !allCurrentBookReviewsWritten) {
+            return;
+        }
+
+        ReadingStatus nextStatus = reviewStatus == ReadingStatus.MY_BOOK_REVIEWING
+                ? ReadingStatus.EXCHANGING
+                : ReadingStatus.RETURNING;
+        members.forEach(member -> member.updateReadingStatus(nextStatus));
+        updateExchangeStatusIfAllMembersReady(groupId, tradeType);
+    }
+
+    private boolean existsCurrentBookReview(MatchedMember matchedMember) {
+        MemberBook currentMemberBook = getCurrentMemberBook(matchedMember);
+        return bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
+                matchedMember.getId(),
+                currentMemberBook.getId()
+        );
     }
 
     private void validatePairGroup(List<MatchedMember> matchedMembers) {

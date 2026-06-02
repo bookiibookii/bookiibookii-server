@@ -125,6 +125,7 @@ public class TrackerConverter {
         return switch (displayStatus) {
             case READING -> "읽는 중";
             case REVIEW_WRITING -> "후기 작성";
+            case REVIEW_WAITING_PARTNER -> "후기 수정";
 
             case TRACKING_REQUIRED -> "운송장 등록";
             case SHIPPING -> "배송 중";

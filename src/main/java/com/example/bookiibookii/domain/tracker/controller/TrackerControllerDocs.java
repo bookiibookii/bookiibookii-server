@@ -27,7 +27,7 @@ public interface TrackerControllerDocs {
             - summary는 같은 조회 조건으로 내려가는 items의 displayStatus 기준으로 계산됩니다.
             - readingCount: READING
             - exchangingCount: TRACKING_REQUIRED, SHIPPING, RETURN_TRACKING_REQUIRED, RETURNING, MEETING_REQUIRED, EXCHANGING
-            - reviewCount: REVIEW_WRITING, EXCHANGE_REVIEW_WRITING
+            - reviewCount: REVIEW_WRITING, REVIEW_WAITING_PARTNER, EXCHANGE_REVIEW_WRITING
             """
     )
     ApiResponse<TrackerListResDTO> getTrackerList(

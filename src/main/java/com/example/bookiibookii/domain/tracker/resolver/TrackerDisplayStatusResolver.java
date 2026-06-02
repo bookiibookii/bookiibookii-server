@@ -12,7 +12,8 @@ public class TrackerDisplayStatusResolver {
     public TrackerDisplayStatus resolve(
             ReadingStatus readingStatus,
             ExchangeStatus exchangeStatus,
-            TradeType tradeType
+            TradeType tradeType,
+            boolean currentBookReviewWritten
     ) {
         if (readingStatus == null) {
             return TrackerDisplayStatus.READING;
@@ -23,7 +24,9 @@ public class TrackerDisplayStatusResolver {
                     TrackerDisplayStatus.READING;
 
             case MY_BOOK_REVIEWING, PARTNER_BOOK_REVIEWING ->
-                    TrackerDisplayStatus.REVIEW_WRITING;
+                    currentBookReviewWritten
+                            ? TrackerDisplayStatus.REVIEW_WAITING_PARTNER
+                            : TrackerDisplayStatus.REVIEW_WRITING;
 
             case EXCHANGING ->
                     resolveFirstExchangeStatus(exchangeStatus, tradeType);
@@ -40,6 +43,14 @@ public class TrackerDisplayStatusResolver {
             case COMPLETED ->
                     TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
         };
+    }
+
+    public TrackerDisplayStatus resolve(
+            ReadingStatus readingStatus,
+            ExchangeStatus exchangeStatus,
+            TradeType tradeType
+    ) {
+        return resolve(readingStatus, exchangeStatus, tradeType, false);
     }
 
     private TrackerDisplayStatus resolveFirstExchangeStatus(

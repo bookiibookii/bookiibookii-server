@@ -36,6 +36,8 @@ public class UserExchangeService {
 
     @Transactional
     public void addExchange(Long userId, UserExchangeReqDTO.AddReqDTO req) {
+        validateExchangeCoordinates(req);
+
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
@@ -44,7 +46,7 @@ public class UserExchangeService {
             throw new LocationException(LocationErrorCode.LOCATION_LIMIT_EXCEEDED);
         }
 
-        Location location = locationService.findOrCreate(req.placeName(), req.address(), req.zipCode());
+        Location location = locationService.findOrCreate(req.placeName(), req.address(), req.zipCode(), req.x(), req.y());
 
         userExchangeRepository.save(
                 UserExchange.builder()
@@ -58,11 +60,13 @@ public class UserExchangeService {
 
     @Transactional
     public void updateExchange(Long userId, Long userExchangeId, UserExchangeReqDTO.AddReqDTO req) {
+        validateExchangeCoordinates(req);
+
         UserExchange userExchange = userExchangeRepository
                 .findByIdAndUser_Id(userExchangeId, userId)
                 .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
 
-        Location location = locationService.findOrCreate(req.placeName(), req.address(), req.zipCode());
+        Location location = locationService.findOrCreate(req.placeName(), req.address(), req.zipCode(), req.x(), req.y());
         userExchange.update(location, req.addressDetail());
     }
 
@@ -86,5 +90,11 @@ public class UserExchangeService {
             throw new LocationException(LocationErrorCode.NOT_FOUND);
         }
         userExchangeRepository.updateDefaultExchange(userId, userExchangeId);
+    }
+
+    private void validateExchangeCoordinates(UserExchangeReqDTO.AddReqDTO req) {
+        if (req.x() == null || req.y() == null) {
+            throw new LocationException(LocationErrorCode.EXCHANGE_COORDINATES_REQUIRED);
+        }
     }
 }

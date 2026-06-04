@@ -315,6 +315,7 @@ public class ApplicationService {
                 .bookTitle(group.getBook().getTitle())
                 .author(group.getBook().getAuthor())
                 .readingPeriod(group.getReadingPeriod())
+                .tradeType(group.getTradeType().name())
                 .applicationStatus(application.getApplicationStatus().name())
                 .build();
     }

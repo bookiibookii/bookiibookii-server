@@ -79,6 +79,7 @@ public interface ApplicationControllerDocs {
                     로그인한 유저가 게스트로 신청한 그룹 목록을 반환합니다.
                     - applicationStatus가 PENDING 또는 REJECTED이며, 그룹이 아직 RECRUITING 상태인 항목만 포함됩니다.
                     - 그룹이 MATCHED되면 자동으로 목록에서 제외됩니다.
+                    - applicationList 각 항목에 tradeType(DIRECT / DELIVERY)이 포함됩니다.
                     - applicationStatus: PENDING(승인대기) / REJECTED(신청 거절)
                     """
     )

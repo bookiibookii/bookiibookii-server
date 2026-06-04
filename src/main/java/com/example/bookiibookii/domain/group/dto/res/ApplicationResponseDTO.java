@@ -89,6 +89,7 @@ public class ApplicationResponseDTO {
         private String bookTitle;
         private String author;
         private Integer readingPeriod;
+        private String tradeType; // DIRECT / DELIVERY
         private String applicationStatus; // PENDING / REJECTED
     }
 

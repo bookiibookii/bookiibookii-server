@@ -27,20 +27,36 @@ public interface GroupControllerDocs {
             summary = "그룹 생성 API",
             description = """
                     새로운 독서 그룹을 생성합니다.
-                    selectedPlaceId는 tradeType에 따라 의미가 다릅니다.
-                    - DELIVERY: 내 배송지 id
-                    - DIRECT: 내 희망교환장소 id
-                    그룹 생성 시 선택 장소는 그룹 장소 스냅샷으로 복사 저장됩니다.
+                    장소 선택 필드는 tradeType에 따라 하나만 전달합니다.
+                    - DIRECT: userExchangeId에 /api/mypage/addresses/exchanges 응답의 userExchangeId(id)를 전달합니다.
+                    - DELIVERY: userDeliveryId에 /api/mypage/addresses/deliveries 응답의 userDeliveryId(id)를 전달합니다.
+                    locationId는 받지 않으며, 그룹 생성 시 선택 장소는 group_place 스냅샷으로 복사 저장됩니다.
+                    
+                    DIRECT 예시:
+                    {
+                      "tradeType": "DIRECT",
+                      "userExchangeId": 1
+                    }
+                    
+                    DELIVERY 예시:
+                    {
+                      "tradeType": "DELIVERY",
+                      "userDeliveryId": 1
+                    }
                     """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_4", description = "도서 미선택"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_23", description = "선택 장소 필수"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_25", description = "DIRECT 요청에 userExchangeId 누락"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_26", description = "DIRECT 요청에 userDeliveryId 전달"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_27", description = "DELIVERY 요청에 userDeliveryId 누락"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_28", description = "DELIVERY 요청에 userExchangeId 전달"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_24", description = "교환 방식과 선택 장소 불일치"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_5", description = "본인 배송지가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_6", description = "본인 희망교환장소가 아님"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_7", description = "선택 장소 없음")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_8", description = "직접교환 장소 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_9", description = "배송지 없음")
     })
     ApiResponse<GroupResponseDTO.CreateResultDTO> createGroup(
             @AuthenticationPrincipal User host,

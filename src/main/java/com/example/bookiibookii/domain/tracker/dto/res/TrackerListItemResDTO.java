@@ -1,4 +1,6 @@
 package com.example.bookiibookii.domain.tracker.dto.res;
+
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tracker.dto.BookInfo;
 import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
@@ -13,6 +15,7 @@ public class TrackerListItemResDTO {
     private Long groupId;
     private String groupName;
     private TradeType tradeType;
+    private RoleStatus myRole;
 
     // 매칭멤버의 ReadingStatus, ExchangeStatus로 조립
     private TrackerDisplayStatus displayStatus;

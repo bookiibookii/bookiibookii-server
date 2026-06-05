@@ -16,6 +16,10 @@ import java.util.List;
 public class TrackerStepAssembler {
 
     public List<TrackerStepInfo> assemble(MatchedMember me) {
+        return assemble(me, false);
+    }
+
+    public List<TrackerStepInfo> assemble(MatchedMember me, boolean currentBookReviewWritten) {
         TradeType tradeType = me.getGroup().getTradeType();
         ReadingStatus currentStatus = me.getReadingStatus();
         ExchangeStatus exchangeStatus = me.getExchangeStatus();
@@ -32,7 +36,13 @@ public class TrackerStepAssembler {
                         .status(step.status())
                         .title(step.title())
                         .description(step.description())
-                        .completed(isCompleted(currentStatus, exchangeStatus, step.status(), tradeType))
+                        .completed(isCompleted(
+                                currentStatus,
+                                exchangeStatus,
+                                step.status(),
+                                tradeType,
+                                currentBookReviewWritten
+                        ))
                         .build())
                 .toList();
     }
@@ -150,9 +160,13 @@ public class TrackerStepAssembler {
             ReadingStatus currentStatus,
             ExchangeStatus exchangeStatus,
             ReadingStatus stepStatus,
-            TradeType tradeType
+            TradeType tradeType,
+            boolean currentBookReviewWritten
     ) {
         if (currentStatus == ReadingStatus.COMPLETED) {
+            return true;
+        }
+        if (currentBookReviewWritten && isCurrentBookReviewingStep(currentStatus, stepStatus)) {
             return true;
         }
         if (currentStatus == ReadingStatus.EXCHANGING) {
@@ -162,6 +176,12 @@ public class TrackerStepAssembler {
             return isReturnExchangeStepCompleted(exchangeStatus, stepStatus, tradeType);
         }
         return resolveOrder(currentStatus) > resolveOrder(stepStatus);
+    }
+
+    private boolean isCurrentBookReviewingStep(ReadingStatus currentStatus, ReadingStatus stepStatus) {
+        return (currentStatus == ReadingStatus.MY_BOOK_REVIEWING
+                || currentStatus == ReadingStatus.PARTNER_BOOK_REVIEWING)
+                && currentStatus == stepStatus;
     }
 
     private boolean isFirstExchangeStepCompleted(

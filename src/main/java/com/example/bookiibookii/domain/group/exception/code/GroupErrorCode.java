@@ -41,6 +41,10 @@ public enum GroupErrorCode implements BaseCode {
     READING_STYLE_TAG_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_22", "독서 스타일 규칙은 1개 이상 선택해야 합니다."),
     GROUP_SELECTED_PLACE_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_23", "그룹 생성 시 선택 장소가 필요합니다."),
     INVALID_GROUP_SELECTED_PLACE(HttpStatus.BAD_REQUEST, "GROUP400_24", "그룹 교환 방식과 선택 장소가 일치하지 않습니다."),
+    USER_EXCHANGE_ID_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_25", "직거래 그룹 생성 시 userExchangeId가 필요합니다."),
+    USER_DELIVERY_ID_NOT_ALLOWED_FOR_DIRECT(HttpStatus.BAD_REQUEST, "GROUP400_26", "직거래 그룹 생성 시 userDeliveryId는 전달할 수 없습니다."),
+    USER_DELIVERY_ID_REQUIRED(HttpStatus.BAD_REQUEST, "GROUP400_27", "택배 교환 그룹 생성 시 userDeliveryId가 필요합니다."),
+    USER_EXCHANGE_ID_NOT_ALLOWED_FOR_DELIVERY(HttpStatus.BAD_REQUEST, "GROUP400_28", "택배 교환 그룹 생성 시 userExchangeId는 전달할 수 없습니다."),
 
     // 403 Forbidden
     MEMBER_NOT_HOST(HttpStatus.FORBIDDEN, "GROUP403_1", "Host만 접근 가능한 메뉴입니다."),
@@ -51,7 +55,9 @@ public enum GroupErrorCode implements BaseCode {
     NOT_MY_EXCHANGE_PLACE(HttpStatus.FORBIDDEN, "GROUP403_6", "본인의 희망교환장소만 선택할 수 있습니다."),
 
     // 404 Not Found
-    GROUP_SELECTED_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_7", "그룹 생성 시 선택한 장소를 찾을 수 없습니다.")
+    GROUP_SELECTED_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_7", "그룹 생성 시 선택한 장소를 찾을 수 없습니다."),
+    DIRECT_EXCHANGE_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_8", "직접교환 장소를 먼저 등록해주세요."),
+    DELIVERY_ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_9", "배송지를 먼저 등록해주세요.")
 
 ;
 

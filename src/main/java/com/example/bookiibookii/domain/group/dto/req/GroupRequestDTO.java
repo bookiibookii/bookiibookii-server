@@ -27,8 +27,10 @@ public class GroupRequestDTO {
         @NotNull(message = "교환 방식은 필수입니다.")
         @Schema(description = "교환 방식 (DIRECT: 직거래, DELIVERY: 택배 교환)", example = "DIRECT")
         private TradeType tradeType;
-        @Schema(description = "그룹 생성 시 선택한 장소 id. DELIVERY는 내 배송지 id, DIRECT는 내 희망교환장소 id입니다.", example = "1")
-        private Long selectedPlaceId;
+        @Schema(description = "택배 교환(DELIVERY) 그룹 생성 시 선택한 내 배송지 ID(user_delivery.user_delivery_id). DIRECT 요청에서는 전달하지 않습니다.", example = "1")
+        private Long userDeliveryId;
+        @Schema(description = "직거래(DIRECT) 그룹 생성 시 선택한 내 희망교환장소 ID(user_exchange.user_exchange_id). DELIVERY 요청에서는 전달하지 않습니다.", example = "1")
+        private Long userExchangeId;
         @NotBlank(message = "그룹명은 필수입니다.")
         @Schema(description = "그룹명", example = "같이 읽어요")
         private String groupName;

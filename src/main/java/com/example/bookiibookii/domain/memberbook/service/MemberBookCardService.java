@@ -241,17 +241,43 @@ public class MemberBookCardService {
     }
 
     /**
-     * 카드를 내 화면에서만 숨김 처리(소프트 삭제). Cards 엔티티는 삭제되지 않으며, 그룹 멤버는 계속 조회할 수 있습니다.
-     * MemberCard가 없으면 생성 후 hidden=true로 설정합니다.
+     * 카드 삭제.
+     * - 소유자: Cards.deletedAt 설정으로 그룹 전체에서 제거
+     * - 비소유자: MemberCard.hidden=true 로 본인 화면에서만 숨김
      */
     public void removeCardFromView(Long cardId, Long userId) {
         Cards card = getCardForDetail(cardId, userId);
+        Long ownerUserId = card.getMemberBook().getMatchedMember().getUser().getId();
+
+        if (ownerUserId.equals(userId)) {
+            deleteCardAsOwner(card, userId);
+            return;
+        }
+
+        hideCardFromMyView(card, userId);
+    }
+
+    private void deleteCardAsOwner(Cards card, Long userId) {
+        Long groupId = card.getMemberBook().getGroup().getId();
+        MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+
+        memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), card.getId())
+                .filter(MemberCard::isBookmarked)
+                .ifPresent(state -> {
+                    throw new MemberBookException(MemberBookErrorCode.BOOKMARKED_CARD_CANNOT_DELETE);
+                });
+
+        card.markDeleted();
+    }
+
+    private void hideCardFromMyView(Cards card, Long userId) {
         Long groupId = card.getMemberBook().getGroup().getId();
 
         MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
-        MemberCard state = memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+        MemberCard state = memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), card.getId())
                 .orElseGet(() -> {
                     try {
                         return memberCardRepository.saveAndFlush(
@@ -263,7 +289,7 @@ public class MemberBookCardService {
                                         .build()
                         );
                     } catch (DataIntegrityViolationException e) {
-                        return memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), cardId)
+                        return memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), card.getId())
                                 .orElseThrow(() -> new MemberBookException(
                                         MemberBookErrorCode.MEMBER_CARD_STATE_CONFLICT));
                     }

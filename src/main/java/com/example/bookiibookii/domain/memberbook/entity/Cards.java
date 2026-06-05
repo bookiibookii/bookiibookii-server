@@ -5,6 +5,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,9 @@ public class Cards extends BaseEntity {
     @Column(name = "quotation", length = 140)
     private String quotation;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @OneToOne(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
     private CardImages cardImages;
 
@@ -56,5 +60,9 @@ public class Cards extends BaseEntity {
 
     public void updateQuotation(String quotation) {
         this.quotation = quotation;
+    }
+
+    public void markDeleted() {
+        this.deletedAt = LocalDateTime.now();
     }
 }

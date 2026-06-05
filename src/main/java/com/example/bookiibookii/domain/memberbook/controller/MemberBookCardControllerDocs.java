@@ -217,14 +217,15 @@ public interface MemberBookCardControllerDocs {
     );
 
     @Operation(
-            summary = "멤버북 독서카드 내 화면에서 제거",
+            summary = "멤버북 독서카드 삭제",
             description = """
-            그룹 내 공유된 독서카드를 내 화면에서만 숨깁니다. Cards 데이터는 삭제되지 않으며, 다른 멤버는 계속 조회할 수 있습니다.
+            독서카드를 삭제합니다. 삭제 주체에 따라 동작이 다릅니다.
 
             - **엔드포인트**: `DELETE /api/member-books/cards/{cardId}`
-            - `MemberCard`가 없으면 생성하고 `hidden=true`로 설정합니다.
-            - 카드 소유자 또는 그룹 멤버만 호출 가능합니다. 이미 숨긴 카드는 무시됩니다(멱등).
-            - 북마크된 카드는 삭제할 수 없습니다.
+            - **카드 소유자(작성자)**: `Cards.deletedAt`을 설정해 그룹 전체에서 제거합니다. 파트너도 더 이상 조회할 수 없습니다.
+            - **비소유자(파트너)**: `MemberCard.hidden=true`로 본인 화면에서만 숨깁니다. 카드 데이터는 유지됩니다.
+            - 북마크된 카드는 삭제할 수 없습니다 (`MB400_8`). 소유자·비소유자 모두 동일합니다.
+            - 이미 숨긴 카드(비소유자)는 무시됩니다(멱등).
             """
     )
     @ApiResponses({

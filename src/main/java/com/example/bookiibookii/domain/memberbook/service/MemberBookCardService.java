@@ -250,19 +250,17 @@ public class MemberBookCardService {
         Long ownerUserId = card.getMemberBook().getMatchedMember().getUser().getId();
 
         if (ownerUserId.equals(userId)) {
-            deleteCardAsOwner(card, userId);
+            deleteCardAsOwner(card);
             return;
         }
 
         hideCardFromMyView(card, userId);
     }
 
-    private void deleteCardAsOwner(Cards card, Long userId) {
-        Long groupId = card.getMemberBook().getGroup().getId();
-        MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
-                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+    private void deleteCardAsOwner(Cards card) {
+        MatchedMember owner = card.getMemberBook().getMatchedMember();
 
-        memberCardRepository.findByMatchedMember_IdAndCard_Id(matchedMember.getId(), card.getId())
+        memberCardRepository.findByMatchedMember_IdAndCard_Id(owner.getId(), card.getId())
                 .filter(MemberCard::isBookmarked)
                 .ifPresent(state -> {
                     throw new MemberBookException(MemberBookErrorCode.BOOKMARKED_CARD_CANNOT_DELETE);

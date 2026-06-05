@@ -23,6 +23,7 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         JOIN FETCH mb.book
         LEFT JOIN FETCH c.cardImages
         WHERE c.id = :cardId AND mm.user.id = :userId
+        AND c.deletedAt IS NULL
         """)
     Optional<Cards> findByIdAndOwnerUserId(
             @Param("cardId") Long cardId,
@@ -38,6 +39,7 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         JOIN FETCH mm.user u
         LEFT JOIN FETCH u.userImage
         WHERE mb.group.id = :groupId
+        AND c.deletedAt IS NULL
         ORDER BY c.createdAt ASC
         """)
     List<Cards> findByGroupIdWithMemberBookAndBookAndCreator(
@@ -54,6 +56,7 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         LEFT JOIN FETCH u.userImage
         JOIN FETCH mb.group
         WHERE c.id = :cardId
+        AND c.deletedAt IS NULL
         """)
     Optional<Cards> findByIdWithDetails(@Param("cardId") Long cardId);
 }

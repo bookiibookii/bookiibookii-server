@@ -169,9 +169,7 @@ public class GroupService {
             throw new GroupException(GroupErrorCode.INVALID_GROUP_TYPE);
         }
 
-        if (request.getSelectedPlaceId() == null) {
-            throw new GroupException(GroupErrorCode.GROUP_SELECTED_PLACE_REQUIRED);
-        }
+        validateGroupPlaceSelection(request);
 
         // 소개글 선택 입력 — 값이 있을 때만 검증
         if (request.getGroupComment() != null && !request.getGroupComment().isBlank()) {
@@ -184,6 +182,30 @@ public class GroupService {
         }
     }
 
+    private void validateGroupPlaceSelection(GroupRequestDTO.CreateDTO request) {
+        if (request.getTradeType() == TradeType.DIRECT) {
+            if (request.getUserDeliveryId() != null) {
+                throw new GroupException(GroupErrorCode.USER_DELIVERY_ID_NOT_ALLOWED_FOR_DIRECT);
+            }
+            if (request.getUserExchangeId() == null) {
+                throw new GroupException(GroupErrorCode.USER_EXCHANGE_ID_REQUIRED);
+            }
+            return;
+        }
+
+        if (request.getTradeType() == TradeType.DELIVERY) {
+            if (request.getUserExchangeId() != null) {
+                throw new GroupException(GroupErrorCode.USER_EXCHANGE_ID_NOT_ALLOWED_FOR_DELIVERY);
+            }
+            if (request.getUserDeliveryId() == null) {
+                throw new GroupException(GroupErrorCode.USER_DELIVERY_ID_REQUIRED);
+            }
+            return;
+        }
+
+        throw new GroupException(GroupErrorCode.INVALID_GROUP_SELECTED_PLACE);
+    }
+
     private void validatePolicy(User host, GroupRequestDTO.CreateDTO request) {
         // 규칙 검증 (모든 트레이드 타입 공통)
         validateRules(request.getRules());
@@ -192,8 +214,8 @@ public class GroupService {
     private GroupPlace createGroupPlace(Groups group, User host, GroupRequestDTO.CreateDTO request) {
         if (request.getTradeType() == TradeType.DELIVERY) {
             UserDelivery userDelivery = userDeliveryRepository
-                    .findById(request.getSelectedPlaceId())
-                    .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_SELECTED_PLACE_NOT_FOUND));
+                    .findById(request.getUserDeliveryId())
+                    .orElseThrow(() -> new GroupException(GroupErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
 
             if (!userDelivery.getUser().getId().equals(host.getId())) {
                 throw new GroupException(GroupErrorCode.NOT_MY_DELIVERY_ADDRESS);
@@ -217,8 +239,8 @@ public class GroupService {
 
         if (request.getTradeType() == TradeType.DIRECT) {
             UserExchange userExchange = userExchangeRepository
-                    .findById(request.getSelectedPlaceId())
-                    .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_SELECTED_PLACE_NOT_FOUND));
+                    .findById(request.getUserExchangeId())
+                    .orElseThrow(() -> new GroupException(GroupErrorCode.DIRECT_EXCHANGE_PLACE_NOT_FOUND));
 
             if (!userExchange.getUser().getId().equals(host.getId())) {
                 throw new GroupException(GroupErrorCode.NOT_MY_EXCHANGE_PLACE);

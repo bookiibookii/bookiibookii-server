@@ -15,6 +15,7 @@ import com.example.bookiibookii.domain.memberbook.repository.CardShareTokenRepos
 import com.example.bookiibookii.domain.memberbook.repository.CardsRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.global.config.ShareWebProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class ReadingCardShareService {
     private final MemberCardRepository memberCardRepository;
     private final CardImageS3Service cardImageS3Service;
     private final ShareWebProperties shareWebProperties;
+    private final UserRepository userRepository;
 
     @Transactional
     public ShareTokenResponseDTO createShareToken(Long cardId, User user) {
@@ -44,7 +46,7 @@ public class ReadingCardShareService {
         revokeActiveTokensForCard(card.getId());
 
         CardShareToken shareToken = cardShareTokenRepository.save(
-                CardShareToken.create(card, user)
+                CardShareToken.create(card, userRepository.getReferenceById(user.getId()))
         );
 
         return ShareTokenResponseDTO.builder()
@@ -150,6 +152,9 @@ public class ReadingCardShareService {
 
     private String buildShareUrl(String token) {
         String baseUrl = shareWebProperties.webBaseUrl();
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalStateException("app.share.web-base-url 설정이 필요합니다.");
+        }
         if (baseUrl.endsWith("/")) {
             return baseUrl + token;
         }

@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardReactionTogg
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.ShareTokenResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -235,6 +236,29 @@ public interface MemberBookCardControllerDocs {
     })
     @DeleteMapping("/cards/{cardId}")
     ApiResponse<Void> removeCardFromView(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "독서카드 식별자(ID)", example = "1")
+            @PathVariable Long cardId
+    );
+
+    @Operation(
+            summary = "독서카드 공유 토큰 발급",
+            description = """
+            독서카드 공유 버튼 클릭 시 고유 공유 링크를 발급합니다.
+
+            - **엔드포인트**: `POST /api/member-books/cards/{cardId}/share-token`
+            - 로그인 및 그룹 멤버 권한이 필요합니다.
+            - 공유 불가: 삭제된 카드, 서재 제거된 memberBook, 작성자가 hidden 처리한 카드
+            - 재공유 시 기존 활성 토큰은 폐기(revoke)되고 새 고유 링크가 발급됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "공유 링크 발급 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "공유 불가 카드 (MB400_10)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "카드 없음 또는 접근 권한 없음")
+    })
+    @PostMapping("/cards/{cardId}/share-token")
+    ApiResponse<ShareTokenResponseDTO> createShareToken(
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "독서카드 식별자(ID)", example = "1")
             @PathVariable Long cardId

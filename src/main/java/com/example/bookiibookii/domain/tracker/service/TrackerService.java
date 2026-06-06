@@ -100,11 +100,12 @@ public class TrackerService {
             throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
         }
 
+        boolean currentBookReviewWritten = isCurrentBookReviewWritten(me);
         TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
                 me.getReadingStatus(),
                 me.getExchangeStatus(),
                 me.getGroup().getTradeType(),
-                isCurrentBookReviewWritten(me)
+                currentBookReviewWritten
         );
 
         return TrackerConverter.toDetail(
@@ -114,7 +115,7 @@ public class TrackerService {
                 trackerDueDateResolver.calculate(displayStatus, me.getGroup()),
                 userProfileImageUrlResolver.resolve(me.getCurrentMemberBook().getMatchedMember().getUser()),
                 userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser()),
-                trackerStepAssembler.assemble(me)
+                trackerStepAssembler.assemble(me, currentBookReviewWritten)
         );
     }
 

@@ -2,6 +2,8 @@ package com.example.bookiibookii.domain.group.dto.res;
 
 import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.HomeLayoutType;
+import com.example.bookiibookii.domain.group.enums.HomeSectionType;
 import com.example.bookiibookii.domain.group.enums.HostedGroupDisplayStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -192,31 +194,27 @@ public class GroupResponseDTO {
             Integer readingPeriod
     ) {}
 
-    /** 섹션2 — 카테고리 추천 그룹. category가 null이면 추천 가능한 카테고리 없음 */
     @Builder
-    public record CategorySectionDTO(
-            String category,
-            List<HomeGroupCardDTO> groups
+    public record HomeBookThumbnailDTO(
+            String isbn13,
+            String title,
+            String author,
+            String bookImage,
+            String searchKeyword,
+            Integer rank
     ) {}
 
-    /** 섹션5 — 위치 기반 직접교환 그룹. region이 null이면 사용자 교환 장소 미설정 */
     @Builder
-    public record RegionSectionDTO(
-            String region,
-            List<HomeGroupCardDTO> groups
-    ) {}
-
-    /** 섹션3 — 베스트셀러 기반 그룹 추천 */
-    @Builder
-    public record BestsellerSectionDTO(
-            List<HomeGroupCardDTO> groups
+    public record HomeSectionDTO(
+            HomeSectionType sectionType,
+            String title,
+            String subtitle,
+            HomeLayoutType layoutType,
+            List<?> items
     ) {}
 
     @Builder
     public record HomeResponseDTO(
-            List<HomeGroupCardDTO> newGroups,
-            CategorySectionDTO categorySection,
-            BestsellerSectionDTO bestsellerSection,
-            RegionSectionDTO regionSection
+            List<HomeSectionDTO> sections
     ) {}
 }

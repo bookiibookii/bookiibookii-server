@@ -9,21 +9,28 @@ import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.DateTimeExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static com.example.bookiibookii.domain.aladin.entity.QBestsellerIsbn.bestsellerIsbn;
 import static com.example.bookiibookii.domain.book.entity.QBook.book;
 import static com.example.bookiibookii.domain.group.entity.QGroupPlace.groupPlace;
 import static com.example.bookiibookii.domain.group.entity.QGroups.groups;
+import static com.example.bookiibookii.domain.group.entity.QHomeSectionBookCandidate.homeSectionBookCandidate;
 import static com.example.bookiibookii.domain.user.entity.QUser.user;
 
 @Repository
@@ -31,6 +38,13 @@ import static com.example.bookiibookii.domain.user.entity.QUser.user;
 public class GroupQueryRepository {
 
     private final JPAQueryFactory queryFactory;
+
+    public record HomeBookProjection(
+            String isbn13,
+            String title,
+            String author,
+            String image
+    ) {}
 
     public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, Pageable pageable) {
 
@@ -163,81 +177,190 @@ public class GroupQueryRepository {
 
     // ===== 그룹 홈 화면 (GET /api/groups/home) =====
 
-    /** 섹션1 — 최근 생성된 모집 중 그룹 (최신순, 본인 호스트 제외) */
-    public List<Groups> findRecentGroups(Long userId, int limit) {
-        return queryFactory
-                .selectFrom(groups)
-                .join(groups.book, book).fetchJoin()
-                .join(groups.host, user).fetchJoin()
+    public List<Groups> findRecentGroups(
+            Long userId,
+            LocalDateTime createdAfter,
+            int limit
+    ) {
+        return homeGroupQuery(userId)
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
-                        groups.host.id.ne(userId)
+                        groups.createdAt.goe(createdAfter)
                 )
                 .orderBy(groups.createdAt.desc(), groups.id.desc())
                 .limit(limit)
                 .fetch();
     }
 
-    /** 섹션2 — 모집 중 그룹이 1개 이상 존재하는 카테고리 목록 (본인 호스트 제외, 랜덤 추천 후보군) */
-    public List<CustomCategory> findCategoriesWithRecruitingGroups(Long userId) {
+    public List<HomeBookProjection> findPopularBooks(int limit) {
+        NumberExpression<Long> groupCount = groups.id.count();
+        DateTimeExpression<LocalDateTime> latestGroupCreatedAt = groups.createdAt.max();
+
+        return queryFactory
+                .select(Projections.constructor(
+                        HomeBookProjection.class,
+                        book.isbn13,
+                        book.title,
+                        book.author,
+                        book.image
+                ))
+                .from(groups)
+                .join(groups.book, book)
+                .where(groups.groupStatus.ne(GroupStatus.DELETED))
+                .groupBy(book.id, book.isbn13, book.title, book.author, book.image)
+                .orderBy(
+                        groupCount.desc(),
+                        latestGroupCreatedAt.desc(),
+                        book.id.desc()
+                )
+                .limit(limit)
+                .fetch();
+    }
+
+    public List<HomeBookProjection> findBestsellerBooks(int limit) {
+        return queryFactory
+                .select(Projections.constructor(
+                        HomeBookProjection.class,
+                        book.isbn13,
+                        book.title,
+                        book.author,
+                        book.image
+                ))
+                .from(bestsellerIsbn)
+                .join(book).on(book.isbn13.eq(bestsellerIsbn.isbn13))
+                .orderBy(bestsellerIsbn.rank.asc(), bestsellerIsbn.id.asc())
+                .limit(limit)
+                .fetch();
+    }
+
+    public List<CustomCategory> findCategoriesWithRecruitingGroups() {
         return queryFactory
                 .select(book.category).distinct()
                 .from(groups)
                 .join(groups.book, book)
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
-                        groups.host.id.ne(userId)
+                        book.category.notIn(
+                                CustomCategory.ALL,
+                                CustomCategory.LITERATURE_ALL,
+                                CustomCategory.NON_LITERATURE_ALL
+                        )
                 )
+                .orderBy(book.category.asc())
                 .fetch();
     }
 
-    /** 섹션2 — 특정 카테고리의 모집 중 그룹을 랜덤으로 조회 (본인 호스트 제외) */
-    public List<Groups> findRandomGroupsByCategory(Long userId, CustomCategory category, int limit) {
-        return queryFactory
-                .selectFrom(groups)
-                .join(groups.book, book).fetchJoin()
-                .join(groups.host, user).fetchJoin()
+    public List<Groups> findGroupsByCategories(
+            Long userId,
+            List<CustomCategory> categories,
+            int limit
+    ) {
+        if (categories == null || categories.isEmpty()) {
+            return List.of();
+        }
+        return homeGroupQuery(userId)
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
-                        groups.host.id.ne(userId),
-                        book.category.eq(category)
+                        book.category.in(categories)
                 )
-                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                .orderBy(groups.createdAt.desc(), groups.id.desc())
                 .limit(limit)
                 .fetch();
     }
 
-    /** 섹션5 — 사용자 지역(구/군)에서 열린 직접교환 모집 중 그룹 (최신순, 본인 호스트 제외) */
-    public List<Groups> findRegionGroups(Long userId, String region, int limit) {
-        return queryFactory
-                .selectFrom(groups)
-                .join(groups.book, book).fetchJoin()
-                .join(groups.host, user).fetchJoin()
+    public List<Groups> findClassicGroups(
+            Long userId,
+            String candidateSectionType,
+            int limit
+    ) {
+        return homeGroupQuery(userId)
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        book.isbn13.in(
+                                JPAExpressions
+                                        .select(homeSectionBookCandidate.isbn13)
+                                        .from(homeSectionBookCandidate)
+                                        .where(
+                                                homeSectionBookCandidate.sectionType
+                                                        .eq(candidateSectionType),
+                                                homeSectionBookCandidate.active.isTrue()
+                                        )
+                        )
+                )
+                .orderBy(groups.createdAt.desc(), groups.id.desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    public List<Groups> findGroupsByTradeType(
+            Long userId,
+            TradeType tradeType,
+            int limit
+    ) {
+        return homeGroupQuery(userId)
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.tradeType.eq(tradeType)
+                )
+                .orderBy(groups.createdAt.desc(), groups.id.desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    public boolean existsDirectGroupsAtCoordinate(
+            Long userId,
+            BigDecimal x,
+            BigDecimal y
+    ) {
+        if (x == null || y == null) {
+            return false;
+        }
+        Integer found = queryFactory
+                .selectOne()
+                .from(groups)
                 .join(groups.groupPlace, groupPlace)
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
                         groups.host.id.ne(userId),
                         groups.tradeType.eq(TradeType.DIRECT),
-                        groupPlace.address.contains(region)
+                        groupPlace.x.eq(x),
+                        groupPlace.y.eq(y)
+                )
+                .fetchFirst();
+        return found != null;
+    }
+
+    public List<Groups> findDirectGroupsAtCoordinate(
+            Long userId,
+            BigDecimal x,
+            BigDecimal y,
+            int limit
+    ) {
+        if (x == null || y == null) {
+            return List.of();
+        }
+        return homeGroupQuery(userId)
+                .join(groups.groupPlace, groupPlace).fetchJoin()
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.tradeType.eq(TradeType.DIRECT),
+                        groupPlace.x.eq(x),
+                        groupPlace.y.eq(y)
                 )
                 .orderBy(groups.createdAt.desc(), groups.id.desc())
                 .limit(limit)
                 .fetch();
     }
 
-    /** 섹션3 — 베스트셀러 isbn13 목록에 해당하는 모집 중 그룹 (최신순, 본인 호스트 제외) */
-    public List<Groups> findBestsellerGroups(Long userId, List<String> isbn13List) {
-        if (isbn13List == null || isbn13List.isEmpty()) return List.of();
+    private com.querydsl.jpa.impl.JPAQuery<Groups> homeGroupQuery(Long userId) {
         return queryFactory
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin()
                 .join(groups.host, user).fetchJoin()
+                .leftJoin(user.userImage).fetchJoin()
                 .where(
-                        groups.groupStatus.eq(GroupStatus.RECRUITING),
-                        groups.host.id.ne(userId),
-                        book.isbn13.in(isbn13List)
+                        groups.host.id.ne(userId)
                 )
-                .orderBy(groups.createdAt.desc(), groups.id.desc())
-                .fetch();
+                .distinct();
     }
 }

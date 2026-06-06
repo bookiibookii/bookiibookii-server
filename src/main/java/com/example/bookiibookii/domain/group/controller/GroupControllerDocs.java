@@ -150,10 +150,11 @@ public interface GroupControllerDocs {
 
     @Operation(summary = "그룹 홈 화면 조회 API",
             description = """
-                    그룹 홈 화면의 섹션별 추천 그룹을 한 번에 조회합니다.
-                    - newGroups: 최근 생성된 모집 중 그룹 (최대 5개)
-                    - categorySection: 새로고침마다 랜덤 카테고리 1개를 골라 해당 카테고리 그룹 추천 (최대 9개). 추천 가능한 카테고리가 없으면 category=null
-                    - regionSection: 사용자 교환 장소(구/군) 기반 직접교환 그룹 (최대 15개). 교환 장소 미설정 시 region=null
+                    추천 탭의 홈 섹션을 고정 우선순위로 조회합니다.
+                    각 섹션은 sectionType, title, subtitle, layoutType, items를 포함합니다.
+                    데이터가 없는 그룹 카드 섹션은 sections 목록에서 제외됩니다.
+                    인기 도서와 베스트셀러 책 섹션은 데이터가 없어도 빈 items로 유지됩니다.
+                    홈 요청 중 외부 도서 API는 호출하지 않습니다.
                     """)
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공")

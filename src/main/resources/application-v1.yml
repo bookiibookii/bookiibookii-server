@@ -58,3 +58,7 @@ discord:
   webhook:
     enabled: ${DISCORD_WEBHOOK_ENABLED:false}
     url: ${DISCORD_WEBHOOK_URL}
+
+app:
+  share:
+    web-base-url: ${SHARE_WEB_BASE_URL:https://bookiibookii.com/share/reading-card}

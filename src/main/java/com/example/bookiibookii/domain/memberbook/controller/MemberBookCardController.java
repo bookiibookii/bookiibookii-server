@@ -9,8 +9,10 @@ import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardReactionTogg
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.res.ShareTokenResponseDTO;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookCardSuccessCode;
 import com.example.bookiibookii.domain.memberbook.service.MemberBookCardService;
+import com.example.bookiibookii.domain.memberbook.service.ReadingCardShareService;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ import java.util.List;
 public class MemberBookCardController implements MemberBookCardControllerDocs {
 
     private final MemberBookCardService memberBookCardService;
+    private final ReadingCardShareService readingCardShareService;
 
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 10;
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
@@ -127,6 +130,16 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
                 MemberBookCardSuccessCode.BOOKMARK_TOGGLED,
                 MemberCardBookmarkResponseDTO.builder().bookmarked(bookmarked).build()
         );
+    }
+
+    @Override
+    @PostMapping("/cards/{cardId}/share-token")
+    public ApiResponse<ShareTokenResponseDTO> createShareToken(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long cardId
+    ) {
+        ShareTokenResponseDTO response = readingCardShareService.createShareToken(cardId, user);
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.SHARE_TOKEN_CREATED, response);
     }
 
     @Override

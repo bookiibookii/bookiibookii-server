@@ -67,6 +67,7 @@ public class MemberBookCardService {
     private final CardImageS3Service cardImageS3Service;
     private final CardImageValidationService cardImageValidationService;
     private final UserImageS3Service userImageS3Service;
+    private final ReadingCardShareService readingCardShareService;
 
     @Transactional(readOnly = true)
     public MemberCardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
@@ -267,6 +268,7 @@ public class MemberBookCardService {
                 });
 
         card.markDeleted();
+        readingCardShareService.revokeActiveTokensForCard(card.getId());
     }
 
     private void hideCardFromMyView(Cards card, Long userId) {

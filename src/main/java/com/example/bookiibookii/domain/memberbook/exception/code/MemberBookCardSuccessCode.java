@@ -17,7 +17,9 @@ public enum MemberBookCardSuccessCode implements BaseCode {
     CARD_REMOVED_FROM_VIEW(HttpStatus.OK, "MBCARD200_5", "독서카드를 내 화면에서 제거했습니다."),
     BOOKMARK_TOGGLED(HttpStatus.OK, "MBCARD200_6", "북마크를 변경했습니다."),
     BOOKMARKED_CARDS_FOUND(HttpStatus.OK, "MBCARD200_7", "북마크한 독서카드 목록을 조회했습니다."),
-    REACTION_TOGGLED(HttpStatus.OK, "MBCARD200_8", "독서카드 리액션을 변경했습니다.");
+    REACTION_TOGGLED(HttpStatus.OK, "MBCARD200_8", "독서카드 리액션을 변경했습니다."),
+    SHARE_TOKEN_CREATED(HttpStatus.CREATED, "MBCARD201_2", "독서카드 공유 링크를 발급했습니다."),
+    PUBLIC_READING_CARD_FOUND(HttpStatus.OK, "MBCARD200_9", "공유 독서카드를 조회했습니다.");
 
     private final HttpStatus status;
     private final String code;

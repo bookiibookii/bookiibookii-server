@@ -1,6 +1,7 @@
 package com.example.bookiibookii;
 
 import com.example.bookiibookii.global.aws.AwsS3Properties;
+import com.example.bookiibookii.global.config.ShareWebProperties;
 import com.example.bookiibookii.global.notification.DiscordWebhookProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableJpaAuditing
 @EnableScheduling
-@EnableConfigurationProperties({AwsS3Properties.class, DiscordWebhookProperties.class})
+@EnableConfigurationProperties({AwsS3Properties.class, DiscordWebhookProperties.class, ShareWebProperties.class})
 public class BookiibookiiApplication {
 
 	public static void main(String[] args) {

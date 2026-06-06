@@ -1,0 +1,26 @@
+section_type,cid,category_name,mall,category_path,depth,active
+CLASSIC_BOOK_GROUP,2105,고전,국내도서,고전,1,true
+CLASSIC_BOOK_GROUP,2330,경제학고전,국내도서,고전 > 경제학고전,2,true
+CLASSIC_BOOK_GROUP,4527,고사성어/속담,국내도서,고전 > 고사성어/속담,2,true
+CLASSIC_BOOK_GROUP,2094,고전에서배운다,국내도서,고전 > 고전에서배운다,2,true
+CLASSIC_BOOK_GROUP,2344,과학고전,국내도서,고전 > 과학고전,2,true
+CLASSIC_BOOK_GROUP,2310,군사고전,국내도서,고전 > 군사고전,2,true
+CLASSIC_BOOK_GROUP,2095,다시쓴고전,국내도서,고전 > 다시쓴고전,2,true
+CLASSIC_BOOK_GROUP,2123,동양고전문학,국내도서,고전 > 동양고전문학,2,true
+CLASSIC_BOOK_GROUP,4378,기타 동양고전,국내도서,고전 > 동양고전문학 > 기타 동양고전,3,true
+CLASSIC_BOOK_GROUP,4655,중국고전-산문,국내도서,고전 > 동양고전문학 > 중국고전-산문,3,true
+CLASSIC_BOOK_GROUP,12390,중국고전-시가,국내도서,고전 > 동양고전문학 > 중국고전-시가,3,true
+CLASSIC_BOOK_GROUP,2124,동양고전사상,국내도서,고전 > 동양고전사상,2,true
+CLASSIC_BOOK_GROUP,4438,기타 동양고전사상,국내도서,고전 > 동양고전사상 > 기타 동양고전사상,3,true
+CLASSIC_BOOK_GROUP,4437,도가사상,국내도서,고전 > 동양고전사상 > 도가사상,3,true
+CLASSIC_BOOK_GROUP,4436,유가사상,국내도서,고전 > 동양고전사상 > 유가사상,3,true
+CLASSIC_BOOK_GROUP,2125,서양고전문학,국내도서,고전 > 서양고전문학,2,true
+CLASSIC_BOOK_GROUP,2149,서양고대문학,국내도서,고전 > 서양고전문학 > 서양고대문학,3,true
+CLASSIC_BOOK_GROUP,2314,서양근대문학,국내도서,고전 > 서양고전문학 > 서양근대문학,3,true
+CLASSIC_BOOK_GROUP,2138,서양중세문학,국내도서,고전 > 서양고전문학 > 서양중세문학,3,true
+CLASSIC_BOOK_GROUP,222,서양현대고전,국내도서,고전 > 서양고전문학 > 서양현대고전,3,true
+CLASSIC_BOOK_GROUP,2126,서양고전사상,국내도서,고전 > 서양고전사상,2,true
+CLASSIC_BOOK_GROUP,2121,우리나라 옛글,국내도서,고전 > 우리나라 옛글,2,true
+CLASSIC_BOOK_GROUP,4440,산문,국내도서,고전 > 우리나라 옛글 > 산문,3,true
+CLASSIC_BOOK_GROUP,4441,시가,국내도서,고전 > 우리나라 옛글 > 시가,3,true
+CLASSIC_BOOK_GROUP,7459,위대한 작가들,국내도서,고전 > 위대한 작가들,2,true

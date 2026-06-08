@@ -16,6 +16,7 @@ import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.*;
+import com.example.bookiibookii.domain.group.util.HomeSeedUtil;
 import com.example.bookiibookii.domain.notification.entity.Keyword;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
@@ -25,7 +26,6 @@ import com.example.bookiibookii.domain.user.enums.Tag;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.service.BadWordService;
-import com.example.bookiibookii.domain.aladin.repository.BestsellerIsbnRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
@@ -36,12 +36,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import static com.example.bookiibookii.domain.group.enums.GroupNotiType.GROUP_DELETED;
@@ -66,15 +66,14 @@ public class GroupService {
     private final UserExchangeRepository userExchangeRepository;
     private final UserDeliveryRepository userDeliveryRepository;
     private final GroupPlaceRepository groupPlaceRepository;
-    private final BestsellerIsbnRepository bestsellerIsbnRepository;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
     private static final Set<Tag> READING_STYLE_TAGS = Set.of(Tag.MEMO, Tag.POSTIT, Tag.PHOTO, Tag.All_ROUNDER);
 
     // 그룹 홈 화면 섹션별 노출 개수
-    private static final int HOME_NEW_GROUP_LIMIT = 5;            // 섹션1: 신규 그룹
-    private static final int HOME_CATEGORY_GROUP_LIMIT = 9;       // 섹션2: 카테고리 추천 (3개씩 3페이지)
-    private static final int HOME_REGION_GROUP_LIMIT = 15;        // 섹션5: 위치 기반 (3개씩 5페이지)
+    private static final int HOME_GROUP_LIMIT = 5;
+    private static final int HOME_POPULAR_BOOK_LIMIT = 5;
+    private static final int HOME_BESTSELLER_BOOK_LIMIT = 3;
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -723,111 +722,275 @@ public class GroupService {
         }
 
         Long userId = user.getId();
+        List<GroupResponseDTO.HomeSectionDTO> sections = new ArrayList<>(7);
 
-        // 섹션1: 최근 생성된 그룹 (본인 호스트 제외)
-        List<GroupResponseDTO.HomeGroupCardDTO> newGroups = groupQueryRepository.findRecentGroups(userId, HOME_NEW_GROUP_LIMIT)
-                .stream().map(this::toHomeCard).toList();
+        addIfPresent(sections, buildNewGroupsSection(userId));
+        sections.add(buildPopularBooksSection(userId));
+        addIfPresent(sections, buildGenreSection(userId));
+        sections.add(buildBestsellerBooksSection());
+        addIfPresent(sections, buildClassicGroupsSection(userId));
+        addIfPresent(sections, buildPackageGroupsSection(userId));
+        addIfPresent(sections, buildNearbyDirectGroupsSection(userId));
 
-        // 섹션2: 카테고리 추천 그룹 (본인 호스트 제외)
-        GroupResponseDTO.CategorySectionDTO categorySection = buildCategorySection(userId);
-
-        // 섹션3: 베스트셀러 기반 그룹 추천
-        GroupResponseDTO.BestsellerSectionDTO bestsellerSection = buildBestsellerSection(userId);
-
-        // 섹션5: 위치 기반 그룹 (본인 호스트 제외)
-        GroupResponseDTO.RegionSectionDTO regionSection = buildRegionSection(userId);
-
-        return GroupResponseDTO.HomeResponseDTO.builder()
-                .newGroups(newGroups)
-                .categorySection(categorySection)
-                .bestsellerSection(bestsellerSection)
-                .regionSection(regionSection)
-                .build();
+        return GroupResponseDTO.HomeResponseDTO.builder().sections(sections).build();
     }
 
-    // 섹션2: 그룹이 존재하는 카테고리 중 랜덤 1개를 골라 해당 카테고리 그룹을 추천
-    private GroupResponseDTO.CategorySectionDTO buildCategorySection(Long userId) {
-        List<CustomCategory> candidates = groupQueryRepository.findCategoriesWithRecruitingGroups(userId);
-        if (candidates.isEmpty()) {
-            return GroupResponseDTO.CategorySectionDTO.builder()
-                    .category(null)
-                    .groups(List.of())
-                    .build();
-        }
-
-        CustomCategory picked = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-        List<GroupResponseDTO.HomeGroupCardDTO> groups =
-                groupQueryRepository.findRandomGroupsByCategory(userId, picked, HOME_CATEGORY_GROUP_LIMIT)
-                        .stream().map(this::toHomeCard).toList();
-
-        return GroupResponseDTO.CategorySectionDTO.builder()
-                .category(picked.getLabel())
-                .groups(groups)
-                .build();
+    private GroupResponseDTO.HomeSectionDTO buildNewGroupsSection(Long userId) {
+        List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
+                groupQueryRepository.findRecentGroups(
+                        userId,
+                        HomeSeedUtil.twentyFourHoursAgoKst(),
+                        HOME_GROUP_LIMIT
+                )
+        );
+        return groupSection(
+                HomeSectionType.NEW_GROUPS,
+                "신규 그룹을 확인해보세요",
+                "오늘 만들어진 따끈따끈한 그룹들만 모았어요",
+                items
+        );
     }
 
-    // 섹션3: 베스트셀러 순위 순서대로, 책 1권당 그룹 1개씩 노출
-    private GroupResponseDTO.BestsellerSectionDTO buildBestsellerSection(Long userId) {
-        List<String> isbn13List = bestsellerIsbnRepository.findAllIsbn13OrderByRank();
-        if (isbn13List.isEmpty()) {
-            return GroupResponseDTO.BestsellerSectionDTO.builder().groups(List.of()).build();
-        }
+    private GroupResponseDTO.HomeSectionDTO buildPopularBooksSection(Long userId) {
+        List<GroupResponseDTO.HomeBookThumbnailDTO> items = toBookThumbnails(
+                groupQueryRepository.findPopularBooks(userId, HOME_POPULAR_BOOK_LIMIT)
+        );
+        return bookSection(
+                HomeSectionType.POPULAR_BOOKS_TOP5,
+                "인기 도서 TOP 5",
+                "지금 바로 부키부키에서 핫한 도서를 확인해보세요",
+                HomeLayoutType.BOOK_THUMBNAIL_CAROUSEL,
+                items
+        );
+    }
 
-        // isbn13별로 그룹 묶은 뒤 각 책에서 랜덤 1개 선택 (새로고침마다 다른 그룹 노출)
-        Map<String, List<Groups>> grouped = groupQueryRepository.findBestsellerGroups(userId, isbn13List)
+    private GroupResponseDTO.HomeSectionDTO buildGenreSection(Long userId) {
+        List<HomeGenre> candidates = groupQueryRepository
+                .findCategoriesWithRecruitingGroups(userId)
                 .stream()
-                .collect(Collectors.groupingBy(g -> g.getBook().getIsbn13()));
-
-        Map<String, Groups> groupByIsbn = grouped.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue().get(ThreadLocalRandom.current().nextInt(e.getValue().size()))
-                ));
-
-        // 베스트셀러 순위 순서 유지하며 카드 조립
-        List<GroupResponseDTO.HomeGroupCardDTO> cards = isbn13List.stream()
-                .map(groupByIsbn::get)
-                .filter(Objects::nonNull)
-                .map(this::toHomeCard)
+                .map(HomeGenre::from)
+                .flatMap(java.util.Optional::stream)
+                .distinct()
+                .sorted(Comparator.comparing(Enum::name))
                 .toList();
-
-        return GroupResponseDTO.BestsellerSectionDTO.builder().groups(cards).build();
-    }
-
-    // 섹션5: 사용자 교환 장소(구/군)에서 열린 직접교환 그룹을 추천
-    private GroupResponseDTO.RegionSectionDTO buildRegionSection(Long userId) {
-        List<UserExchange> exchanges = userExchangeRepository.findByUserIdWithLocation(userId);
-        String district = exchanges.isEmpty() ? null
-                : extractDistrict(exchanges.get(0).getLocation().getAddress());
-
-        if (district == null) {
-            return GroupResponseDTO.RegionSectionDTO.builder()
-                    .region(null)
-                    .groups(List.of())
-                    .build();
-        }
-
-        List<GroupResponseDTO.HomeGroupCardDTO> groups =
-                groupQueryRepository.findRegionGroups(userId, district, HOME_REGION_GROUP_LIMIT)
-                        .stream().map(this::toHomeCard).toList();
-
-        return GroupResponseDTO.RegionSectionDTO.builder()
-                .region(district)
-                .groups(groups)
-                .build();
-    }
-
-    // 주소 문자열에서 구/군 토큰 추출 (예: "서울특별시 동작구 흑석로 84" -> "동작구")
-    private String extractDistrict(String address) {
-        if (address == null || address.isBlank()) {
+        if (candidates.isEmpty()) {
             return null;
         }
-        for (String token : address.trim().split("\\s+")) {
-            if (token.endsWith("구") || token.endsWith("군")) {
-                return token;
-            }
+
+        HomeGenre picked = deterministicPick(
+                candidates,
+                HomeSeedUtil.currentSeedKey()
+        );
+        List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
+                groupQueryRepository.findGroupsByCategories(
+                        userId,
+                        picked.getCategories(),
+                        HOME_GROUP_LIMIT
+                )
+        );
+        return groupSection(
+                HomeSectionType.RANDOM_GENRE_GROUPS,
+                picked.getLabel() + " 도서와 함께해볼까요?",
+                "평소 자주 읽지 않았던 장르여도 도전해보세요",
+                items
+        );
+    }
+
+    private GroupResponseDTO.HomeSectionDTO buildBestsellerBooksSection() {
+        List<GroupResponseDTO.HomeBookThumbnailDTO> items = toBestsellerBookThumbnails(
+                groupQueryRepository.findBestsellerBooks(HOME_BESTSELLER_BOOK_LIMIT)
+        );
+        return bookSection(
+                HomeSectionType.BESTSELLER_BOOKS,
+                "나 빼고 다 읽은 책 여기 있어요",
+                "이번 기회에 베스트셀러 읽어볼까요?",
+                HomeLayoutType.BOOK_THUMBNAIL_GRID,
+                items
+        );
+    }
+
+    private GroupResponseDTO.HomeSectionDTO buildClassicGroupsSection(Long userId) {
+        List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
+                groupQueryRepository.findClassicGroups(
+                        userId,
+                        HomeCandidateSectionType.CLASSIC_BOOK_GROUP,
+                        HOME_GROUP_LIMIT
+                )
+        );
+        return groupSection(
+                HomeSectionType.CLASSIC_GROUPS,
+                "고전, 한 번쯤은 읽어야죠",
+                "파트너와 함께라면 더 재미있을 거예요",
+                items
+        );
+    }
+
+    private GroupResponseDTO.HomeSectionDTO buildPackageGroupsSection(Long userId) {
+        List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
+                groupQueryRepository.findGroupsByTradeType(
+                        userId,
+                        TradeType.DELIVERY,
+                        HOME_GROUP_LIMIT
+                )
+        );
+        return groupSection(
+                HomeSectionType.PACKAGE_GROUPS,
+                "택배로 책을 안전하게 교환해요",
+                "전국 어디에 있어도 책을 교환할 수 있어요",
+                items
+        );
+    }
+
+    private GroupResponseDTO.HomeSectionDTO buildNearbyDirectGroupsSection(Long userId) {
+        List<UserExchange> exchanges = userExchangeRepository
+                .findByUserIdWithLocation(userId)
+                .stream()
+                .filter(exchange -> exchange.getLocation().getX() != null)
+                .filter(exchange -> exchange.getLocation().getY() != null)
+                .filter(distinctByCoordinate())
+                .filter(exchange -> groupQueryRepository.existsDirectGroupsAtCoordinate(
+                        userId,
+                        exchange.getLocation().getX(),
+                        exchange.getLocation().getY()
+                ))
+                .limit(2)
+                .toList();
+        if (exchanges.isEmpty()) {
+            return null;
         }
-        return null;
+
+        UserExchange picked = deterministicPick(
+                exchanges,
+                HomeSeedUtil.userSeedKey(userId, HomeSeedUtil.currentSeedKey())
+        );
+        List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
+                groupQueryRepository.findDirectGroupsAtCoordinate(
+                        userId,
+                        picked.getLocation().getX(),
+                        picked.getLocation().getY(),
+                        HOME_GROUP_LIMIT
+                )
+        );
+        return groupSection(
+                HomeSectionType.NEARBY_DIRECT_GROUPS,
+                "근처에서 직접 만나 교환해요",
+                "",
+                items
+        );
+    }
+
+    private <T> T deterministicPick(List<T> candidates, String seedKey) {
+        return candidates.get(HomeSeedUtil.pickIndex(seedKey, candidates.size()));
+    }
+
+    private java.util.function.Predicate<UserExchange> distinctByCoordinate() {
+        Set<String> seen = new java.util.HashSet<>();
+        return exchange -> seen.add(
+                coordinateKey(
+                        exchange.getLocation().getX(),
+                        exchange.getLocation().getY()
+                )
+        );
+    }
+
+    private String coordinateKey(BigDecimal x, BigDecimal y) {
+        return x.stripTrailingZeros().toPlainString()
+                + ":"
+                + y.stripTrailingZeros().toPlainString();
+    }
+
+    private List<GroupResponseDTO.HomeGroupCardDTO> toHomeCards(
+            List<Groups> groups
+    ) {
+        if (groups == null || groups.isEmpty()) {
+            return List.of();
+        }
+        return groups.stream().map(this::toHomeCard).toList();
+    }
+
+    private List<GroupResponseDTO.HomeBookThumbnailDTO> toBookThumbnails(
+            List<GroupQueryRepository.HomeBookProjection> books
+    ) {
+        if (books == null || books.isEmpty()) {
+            return List.of();
+        }
+        List<GroupResponseDTO.HomeBookThumbnailDTO> items =
+                new ArrayList<>(books.size());
+        for (int i = 0; i < books.size(); i++) {
+            GroupQueryRepository.HomeBookProjection book = books.get(i);
+            items.add(GroupResponseDTO.HomeBookThumbnailDTO.builder()
+                    .isbn13(book.isbn13())
+                    .title(book.title())
+                    .author(book.author())
+                    .bookImage(book.image())
+                    .searchKeyword(book.title())
+                    .rank(i + 1)
+                    .build());
+        }
+        return items;
+    }
+
+    private List<GroupResponseDTO.HomeBookThumbnailDTO> toBestsellerBookThumbnails(
+            List<GroupQueryRepository.HomeBestsellerBookProjection> books
+    ) {
+        if (books == null || books.isEmpty()) {
+            return List.of();
+        }
+        return books.stream()
+                .filter(book -> !isBlank(book.isbn13()))
+                .filter(book -> !isBlank(book.title()))
+                .map(book -> GroupResponseDTO.HomeBookThumbnailDTO.builder()
+                        .isbn13(book.isbn13())
+                        .title(book.title())
+                        .author(book.author())
+                        .bookImage(book.image())
+                        .searchKeyword(book.title())
+                        .rank(book.ranking())
+                        .build())
+                .toList();
+    }
+
+    private GroupResponseDTO.HomeSectionDTO groupSection(
+            HomeSectionType sectionType,
+            String title,
+            String subtitle,
+            List<GroupResponseDTO.HomeGroupCardDTO> items
+    ) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+        return GroupResponseDTO.HomeSectionDTO.builder()
+                .sectionType(sectionType)
+                .title(title)
+                .subtitle(subtitle)
+                .layoutType(HomeLayoutType.GROUP_CARD_CAROUSEL)
+                .items(items)
+                .build();
+    }
+
+    private GroupResponseDTO.HomeSectionDTO bookSection(
+            HomeSectionType sectionType,
+            String title,
+            String subtitle,
+            HomeLayoutType layoutType,
+            List<GroupResponseDTO.HomeBookThumbnailDTO> items
+    ) {
+        return GroupResponseDTO.HomeSectionDTO.builder()
+                .sectionType(sectionType)
+                .title(title)
+                .subtitle(subtitle)
+                .layoutType(layoutType)
+                .items(items == null ? List.of() : items)
+                .build();
+    }
+
+    private void addIfPresent(
+            List<GroupResponseDTO.HomeSectionDTO> sections,
+            GroupResponseDTO.HomeSectionDTO section
+    ) {
+        if (section != null) {
+            sections.add(section);
+        }
     }
 
     private GroupResponseDTO.HomeGroupCardDTO toHomeCard(Groups group) {

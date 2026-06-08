@@ -6,6 +6,7 @@ import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.tracker.dto.TrackerStepInfo;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.enums.TrackerStepStatus;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
 import com.example.bookiibookii.domain.tracker.util.TrackerTextFormatter;
@@ -50,15 +51,15 @@ public class TrackerStepAssembler {
             String abbreviatedPartnerBookTitle
     ) {
         return List.of(
-                step(StepType.MY_BOOK_READING, ReadingStatus.MY_BOOK_READING, abbreviatedMyBookTitle + " 읽기", "내 책을 읽고 독서 진행률을 기록해주세요"),
-                step(StepType.MY_BOOK_REVIEW, ReadingStatus.MY_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedMyBookTitle + "의 책 후기를 작성해주세요"),
-                step(StepType.FIRST_MEETING_REGISTER, ReadingStatus.EXCHANGING, "교환 약속 등록하기", "파트너와 첫 교환 약속을 등록해주세요"),
-                step(StepType.FIRST_BOOK_EXCHANGE, ReadingStatus.EXCHANGING, "책 교환하기", "약속 장소에서 책 교환 완료를 처리해주세요"),
-                step(StepType.PARTNER_BOOK_READING, ReadingStatus.PARTNER_BOOK_READING, abbreviatedPartnerBookTitle + " 읽기", "상대 책을 읽고 독서 진행률을 기록해주세요"),
-                step(StepType.PARTNER_BOOK_REVIEW, ReadingStatus.PARTNER_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedPartnerBookTitle + "의 책 후기를 작성해주세요"),
-                step(StepType.RETURN_MEETING_REGISTER, ReadingStatus.RETURNING, "반납 약속 등록하기", "파트너와 책 반납 약속을 등록해주세요"),
-                step(StepType.RETURN_BOOK_EXCHANGE, ReadingStatus.RETURNING, "책 반납하기", "약속 장소에서 책 반납 완료를 처리해주세요"),
-                step(StepType.PARTNER_REVIEW, ReadingStatus.PARTNER_REVIEWING, "교환독서 후기 작성하기", "함께한 파트너에 대한 후기를 작성해주세요")
+                step(StepType.MY_BOOK_READING, TrackerStepStatus.MY_BOOK_READING, abbreviatedMyBookTitle + " 읽기", "내 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.MY_BOOK_REVIEW, TrackerStepStatus.MY_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedMyBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.FIRST_MEETING_REGISTER, TrackerStepStatus.DIRECT_EXCHANGE_MEETING_REGISTER, "교환 약속 등록하기", "파트너와 첫 교환 약속을 등록해주세요"),
+                step(StepType.FIRST_BOOK_EXCHANGE, TrackerStepStatus.DIRECT_EXCHANGE_COMPLETE, "책 교환하기", "약속 장소에서 책 교환 완료를 처리해주세요"),
+                step(StepType.PARTNER_BOOK_READING, TrackerStepStatus.PARTNER_BOOK_READING, abbreviatedPartnerBookTitle + " 읽기", "상대 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.PARTNER_BOOK_REVIEW, TrackerStepStatus.PARTNER_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedPartnerBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.RETURN_MEETING_REGISTER, TrackerStepStatus.DIRECT_RETURN_MEETING_REGISTER, "반납 약속 등록하기", "파트너와 책 반납 약속을 등록해주세요"),
+                step(StepType.RETURN_BOOK_EXCHANGE, TrackerStepStatus.DIRECT_RETURN_COMPLETE, "책 반납하기", "약속 장소에서 책 반납 완료를 처리해주세요"),
+                step(StepType.PARTNER_REVIEW, TrackerStepStatus.PARTNER_REVIEWING, "교환독서 후기 작성하기", "함께한 파트너에 대한 후기를 작성해주세요")
         );
     }
 
@@ -67,15 +68,15 @@ public class TrackerStepAssembler {
             String abbreviatedPartnerBookTitle
     ) {
         return List.of(
-                step(StepType.MY_BOOK_READING, ReadingStatus.MY_BOOK_READING, abbreviatedMyBookTitle + " 읽기", "내 책을 읽고 독서 진행률을 기록해주세요"),
-                step(StepType.MY_BOOK_REVIEW, ReadingStatus.MY_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedMyBookTitle + "의 책 후기를 작성해주세요"),
-                step(StepType.FIRST_TRACKING_REGISTER, ReadingStatus.EXCHANGING, "운송장 등록하기", "파트너에게 보낸 책의 운송장을 등록해주세요"),
-                step(StepType.FIRST_RECEIPT_CONFIRM, ReadingStatus.EXCHANGING, "수령 인증 확인하기", "파트너가 보낸 책을 받은 뒤 수령 인증을 등록해주세요"),
-                step(StepType.PARTNER_BOOK_READING, ReadingStatus.PARTNER_BOOK_READING, abbreviatedPartnerBookTitle + " 읽기", "상대 책을 읽고 독서 진행률을 기록해주세요"),
-                step(StepType.PARTNER_BOOK_REVIEW, ReadingStatus.PARTNER_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedPartnerBookTitle + "의 책 후기를 작성해주세요"),
-                step(StepType.RETURN_TRACKING_REGISTER, ReadingStatus.RETURNING, "반납 운송장 등록하기", "파트너에게 반납한 책의 운송장을 등록해주세요"),
-                step(StepType.RETURN_RECEIPT_CONFIRM, ReadingStatus.RETURNING, "수령 인증 확인하기", "돌려받은 책을 확인한 뒤 수령 인증을 등록해주세요"),
-                step(StepType.PARTNER_REVIEW, ReadingStatus.PARTNER_REVIEWING, "교환독서 후기 작성하기", "함께한 파트너에 대한 후기를 작성해주세요")
+                step(StepType.MY_BOOK_READING, TrackerStepStatus.MY_BOOK_READING, abbreviatedMyBookTitle + " 읽기", "내 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.MY_BOOK_REVIEW, TrackerStepStatus.MY_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedMyBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.FIRST_TRACKING_REGISTER, TrackerStepStatus.EXCHANGE_TRACKING_REGISTER, "운송장 등록하기", "파트너에게 보낸 책의 운송장을 등록해주세요"),
+                step(StepType.FIRST_RECEIPT_CONFIRM, TrackerStepStatus.EXCHANGE_RECEIPT_CONFIRM, "수령 인증 확인하기", "파트너가 보낸 책을 받은 뒤 수령 인증을 등록해주세요"),
+                step(StepType.PARTNER_BOOK_READING, TrackerStepStatus.PARTNER_BOOK_READING, abbreviatedPartnerBookTitle + " 읽기", "상대 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.PARTNER_BOOK_REVIEW, TrackerStepStatus.PARTNER_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedPartnerBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.RETURN_TRACKING_REGISTER, TrackerStepStatus.RETURN_TRACKING_REGISTER, "반납 운송장 등록하기", "파트너에게 반납한 책의 운송장을 등록해주세요"),
+                step(StepType.RETURN_RECEIPT_CONFIRM, TrackerStepStatus.RETURN_RECEIPT_CONFIRM, "수령 인증 확인하기", "돌려받은 책을 확인한 뒤 수령 인증을 등록해주세요"),
+                step(StepType.PARTNER_REVIEW, TrackerStepStatus.PARTNER_REVIEWING, "교환독서 후기 작성하기", "함께한 파트너에 대한 후기를 작성해주세요")
         );
     }
 
@@ -137,7 +138,7 @@ public class TrackerStepAssembler {
         };
     }
 
-    private StepDefinition step(StepType type, ReadingStatus status, String title, String description) {
+    private StepDefinition step(StepType type, TrackerStepStatus status, String title, String description) {
         return new StepDefinition(type, status, title, description);
     }
 
@@ -182,7 +183,7 @@ public class TrackerStepAssembler {
 
     private record StepDefinition(
             StepType type,
-            ReadingStatus status,
+            TrackerStepStatus status,
             String title,
             String description
     ) {}

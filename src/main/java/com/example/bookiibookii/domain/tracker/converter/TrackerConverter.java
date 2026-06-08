@@ -1,9 +1,10 @@
 package com.example.bookiibookii.domain.tracker.converter;
 
+import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
-import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.tracker.dto.BookInfo;
 import com.example.bookiibookii.domain.tracker.dto.TrackerStepInfo;
 import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResDTO;
@@ -52,8 +53,16 @@ public class TrackerConverter {
                 .myRole(me.getRole())
                 .displayStatus(displayStatus)
                 .remainingDays(remainingDays)
-                .myCurrentBook(toBookInfo(myDisplayBook, myDisplayProfileImageUrl))
-                .partnerCurrentBook(toBookInfo(partnerDisplayBook, partnerDisplayProfileImageUrl))
+                .myCurrentBook(toBookInfo(
+                        myDisplayBook,
+                        myDisplayProfileImageUrl,
+                        isMyOriginalBook(myDisplayBook, me)
+                ))
+                .partnerCurrentBook(toBookInfo(
+                        partnerDisplayBook,
+                        partnerDisplayProfileImageUrl,
+                        isMyOriginalBook(partnerDisplayBook, me)
+                ))
                 .build();
     }
 
@@ -68,6 +77,12 @@ public class TrackerConverter {
             List<TrackerStepInfo> steps
     ) {
         Groups group = me.getGroup();
+        DisplayBooks displayBooks = resolveDetailDisplayBooks(
+                me,
+                partner,
+                myProfileImageUrl,
+                partnerProfileImageUrl
+        );
 
         return TrackerDetailResDTO.builder()
                 .groupId(group.getId())
@@ -75,22 +90,28 @@ public class TrackerConverter {
                 .tradeType(group.getTradeType())
                 .myRole(me.getRole())
                 .displayStatus(displayStatus)
-                .displayBookTitle(resolveDisplayBookTitle(me))
+                .displayBookTitle(resolveDisplayBookTitle(displayBooks.myBook()))
                 .displayStatusLabel(resolveDisplayStatusLabel(displayStatus))
                 .dDay(dDay)
                 .myBook(toBookInfo(
-                        me.getCurrentMemberBook(),
-                        myProfileImageUrl
+                        displayBooks.myBook(),
+                        displayBooks.myProfileImageUrl(),
+                        isMyOriginalBook(displayBooks.myBook(), me)
                 ))
                 .partnerBook(toBookInfo(
-                        partner.getCurrentMemberBook(),
-                        partnerProfileImageUrl
+                        displayBooks.partnerBook(),
+                        displayBooks.partnerProfileImageUrl(),
+                        isMyOriginalBook(displayBooks.partnerBook(), me)
                 ))
                 .steps(steps)
                 .build();
     }
 
-    public static BookInfo toBookInfo(MemberBook memberBook, String currentReaderProfileImageUrl) {
+    public static BookInfo toBookInfo(
+            MemberBook memberBook,
+            String currentReaderProfileImageUrl,
+            boolean isMyOriginalBook
+    ) {
         Book book = memberBook.getBook();
         User currentReader = memberBook.getMatchedMember().getUser();
 
@@ -99,11 +120,15 @@ public class TrackerConverter {
                 .image(book.getImage())
                 .totalPages(book.getTotalPages())
                 .currentPage(memberBook.getCurrentPage())
-                .isOwnerBook(memberBook.isMine())
+                .isMyOriginalBook(isMyOriginalBook)
                 .currentReaderNickname(currentReader.getNickName())
                 .currentReaderProfileImageUrl(currentReaderProfileImageUrl)
                 .currentReadingRate(calculateProgressRate(memberBook.getCurrentPage(), book.getTotalPages()))
                 .build();
+    }
+
+    private static boolean isMyOriginalBook(MemberBook memberBook, MatchedMember me) {
+        return memberBook.isMine() == memberBook.isOwnedBy(me);
     }
 
     private static int calculateProgressRate(Integer currentPage, Integer totalPages) {
@@ -114,8 +139,51 @@ public class TrackerConverter {
         return (normalizedPage * 100) / totalPages;
     }
 
-    private static String resolveDisplayBookTitle(MatchedMember me) {
-        return me.getCurrentMemberBook().getBook().getTitle();
+    private static DisplayBooks resolveDetailDisplayBooks(
+            MatchedMember me,
+            MatchedMember partner,
+            String myProfileImageUrl,
+            String partnerProfileImageUrl
+    ) {
+        if (shouldSwapBooksForPackageTrackerDisplay(me, partner)) {
+            return new DisplayBooks(
+                    partner.getCurrentMemberBook(),
+                    me.getCurrentMemberBook(),
+                    partnerProfileImageUrl,
+                    myProfileImageUrl
+            );
+        }
+
+        return new DisplayBooks(
+                me.getCurrentMemberBook(),
+                partner.getCurrentMemberBook(),
+                myProfileImageUrl,
+                partnerProfileImageUrl
+        );
+    }
+
+    private static boolean shouldSwapBooksForPackageTrackerDisplay(MatchedMember me, MatchedMember partner) {
+        return me.getGroup().getTradeType() == TradeType.DELIVERY
+                && isPackageExchangeBooksInTransit(me.getReadingStatus())
+                && hasBothMembersRegisteredTracking(me, partner);
+    }
+
+    private static boolean isPackageExchangeBooksInTransit(ReadingStatus readingStatus) {
+        return readingStatus == ReadingStatus.EXCHANGING || readingStatus == ReadingStatus.RETURNING;
+    }
+
+    private static boolean hasBothMembersRegisteredTracking(MatchedMember me, MatchedMember partner) {
+        return isTrackingRegisteredOrReceived(me.getExchangeStatus())
+                && isTrackingRegisteredOrReceived(partner.getExchangeStatus());
+    }
+
+    private static boolean isTrackingRegisteredOrReceived(ExchangeStatus exchangeStatus) {
+        return exchangeStatus == ExchangeStatus.TRACKING_REGISTERED
+                || exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
+    }
+
+    private static String resolveDisplayBookTitle(MemberBook displayBook) {
+        return displayBook.getBook().getTitle();
     }
 
     private static String resolveDisplayStatusLabel(TrackerDisplayStatus displayStatus) {
@@ -139,5 +207,13 @@ public class TrackerConverter {
 
             case EXCHANGE_REVIEW_WRITING -> "교환 후기 작성";
         };
+    }
+
+    private record DisplayBooks(
+            MemberBook myBook,
+            MemberBook partnerBook,
+            String myProfileImageUrl,
+            String partnerProfileImageUrl
+    ) {
     }
 }

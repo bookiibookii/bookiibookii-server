@@ -98,7 +98,7 @@ public class TrackerDisplayStatusResolver {
                         TrackerDisplayStatus.RETURN_TRACKING_REQUIRED;
 
                 case TRACKING_REGISTERED ->
-                        TrackerDisplayStatus.SHIPPING;
+                        TrackerDisplayStatus.RETURNING;
 
                 case RECEIVED_CONFIRMED, NOT_STARTED ->
                         TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;

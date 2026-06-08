@@ -19,7 +19,6 @@ import com.example.bookiibookii.domain.tracker.dto.res.DeliveryAddressResponseDT
 import com.example.bookiibookii.domain.tracker.dto.res.PartnerDeliveryResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.DeliveryAddress;
-import com.example.bookiibookii.domain.tracker.enums.DeliveryStatus;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
@@ -155,7 +154,6 @@ public class PackageDeliveryService {
                 .id(UUID.randomUUID().toString())
                 .group(group)
                 .exchangeRound(currentExchangeRound)
-                .deliveryStatus(DeliveryStatus.SHIPPING)
                 .sender(me)
                 .receiver(partner)
                 .deliveryCompany(request.deliveryCompany())
@@ -216,7 +214,10 @@ public class PackageDeliveryService {
         if (members.stream().allMatch(member -> member.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED)) {
             LocalDateTime now = LocalDateTime.now();
             if (currentExchangeRound == ExchangeRound.RETURN_EXCHANGE) {
-                members.forEach(member -> member.updateExchangeStatus(ExchangeStatus.NOT_STARTED));
+                members.forEach(member -> {
+                    member.updateReadingStatus(ReadingStatus.PARTNER_REVIEWING);
+                    member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
+                });
                 return;
             }
 

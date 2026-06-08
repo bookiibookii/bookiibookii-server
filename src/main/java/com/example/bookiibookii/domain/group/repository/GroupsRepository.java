@@ -106,7 +106,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
 
     // 독서 종료일로부터 3일이 지났는데 아직 종료되지 않은(MATCHED) 그룹 조회
     @Query(value = "SELECT * FROM `groups` g WHERE g.group_status = 'MATCHED' " +
-            "AND DATE_ADD(g.start_date, INTERVAL g.reading_period DAY) <= :deadline",
+            "AND DATE_ADD(g.start_date, INTERVAL (g.reading_period - 1) DAY) <= :deadline",
             nativeQuery = true)
     List<Groups> findGroupsPastReviewDeadline(@Param("deadline") LocalDate deadline);
 }

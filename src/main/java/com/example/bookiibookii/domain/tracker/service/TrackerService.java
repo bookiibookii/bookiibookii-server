@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.group.util.ReadingPeriodDateCalculator;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
@@ -25,8 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Slf4j
@@ -176,10 +175,13 @@ public class TrackerService {
         Groups group = groupsRepository.findById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        long newPeriod = ChronoUnit.DAYS.between(group.getStartDate(), request.newEndDate()) + 1;
-        group.setReadingPeriod((int) newPeriod);
+        int newPeriod = ReadingPeriodDateCalculator.inclusivePeriod(group.getStartDate(), request.newEndDate());
+        group.setReadingPeriod(newPeriod);
 
-        int dDay = (int) ChronoUnit.DAYS.between(LocalDate.now(), request.newEndDate()) + 1;
+        int dDay = ReadingPeriodDateCalculator.remainingDaysUntil(
+                request.newEndDate(),
+                ReadingPeriodDateCalculator.todayKst()
+        );
         return new ExtendReadingPeriodResDTO(request.newEndDate(), dDay);
     }
 
@@ -209,12 +211,7 @@ public class TrackerService {
                 && readingStatus != ReadingStatus.PARTNER_BOOK_READING) {
             return null;
         }
-        if (group.getStartDate() == null || group.getReadingPeriod() == null) {
-            return null;
-        }
-
-        LocalDate dueDate = group.getStartDate().plusDays(group.getReadingPeriod());
-        return Math.max((int) ChronoUnit.DAYS.between(LocalDate.now(), dueDate), 0);
+        return trackerDueDateResolver.calculate(TrackerDisplayStatus.READING, group);
     }
 
     private TrackerListResDTO.Summary buildListSummary(List<TrackerListItemResDTO> items) {

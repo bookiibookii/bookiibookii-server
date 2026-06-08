@@ -1,8 +1,12 @@
 package com.example.bookiibookii.domain.group.entity;
 
+import com.example.bookiibookii.domain.group.enums.HomeCandidateSectionType;
+import com.example.bookiibookii.domain.group.enums.HomeCandidateSourceType;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,8 +27,9 @@ public class HomeSectionBookCandidate extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "section_type", nullable = false, length = 50)
-    private String sectionType;
+    private HomeCandidateSectionType sectionType;
 
     @Column(name = "isbn13", nullable = false, length = 13)
     private String isbn13;
@@ -41,8 +46,9 @@ public class HomeSectionBookCandidate extends BaseEntity {
     @Column(name = "source_cid")
     private Long sourceCid;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false, length = 50)
-    private String sourceType;
+    private HomeCandidateSourceType sourceType;
 
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder;

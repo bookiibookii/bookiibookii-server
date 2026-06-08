@@ -33,6 +33,7 @@ DEFAULT_OUTPUT_PATH = (
     PROJECT_ROOT / "scripts/output/classic_book_candidates_seed.sql"
 )
 ALADIN_ITEM_LIST_URL = "https://www.aladin.co.kr/ttb/api/ItemList.aspx"
+# Keep these values in sync with HomeCandidateSectionType/HomeCandidateSourceType.
 SECTION_TYPE = "CLASSIC_BOOK_GROUP"
 SOURCE_TYPE = "ALADIN_CATEGORY_SEED"
 

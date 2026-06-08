@@ -1,11 +1,14 @@
 package com.example.bookiibookii.domain.group.repository;
 
+import com.example.bookiibookii.domain.book.entity.QBook;
 import com.example.bookiibookii.domain.book.enums.CategoryGroup;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
 import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.QGroups;
 import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.HomeCandidateSectionType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
@@ -26,8 +29,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static com.example.bookiibookii.domain.aladin.entity.QBestsellerIsbn.bestsellerIsbn;
 import static com.example.bookiibookii.domain.book.entity.QBook.book;
+import static com.example.bookiibookii.domain.aladin.entity.QBestsellerIsbn.bestsellerIsbn;
 import static com.example.bookiibookii.domain.group.entity.QGroupPlace.groupPlace;
 import static com.example.bookiibookii.domain.group.entity.QGroups.groups;
 import static com.example.bookiibookii.domain.group.entity.QHomeSectionBookCandidate.homeSectionBookCandidate;
@@ -44,6 +47,14 @@ public class GroupQueryRepository {
             String title,
             String author,
             String image
+    ) {}
+
+    public record HomeBestsellerBookProjection(
+            String isbn13,
+            String title,
+            String author,
+            String image,
+            Integer ranking
     ) {}
 
     public Slice<Groups> findGroupsByFilters(GroupRequestDTO.FilterDTO filter, Pageable pageable) {
@@ -192,7 +203,11 @@ public class GroupQueryRepository {
                 .fetch();
     }
 
-    public List<HomeBookProjection> findPopularBooks(int limit) {
+    public List<HomeBookProjection> findPopularBooks(Long userId, int limit) {
+        BooleanExpression visibleRecruitingCandidate =
+                hasVisibleRecruitingGroups(userId)
+                        ? isbn13WithVisibleRecruitingGroups(userId)
+                        : null;
         NumberExpression<Long> groupCount = groups.id.count();
         DateTimeExpression<LocalDateTime> latestGroupCreatedAt = groups.createdAt.max();
 
@@ -206,7 +221,10 @@ public class GroupQueryRepository {
                 ))
                 .from(groups)
                 .join(groups.book, book)
-                .where(groups.groupStatus.ne(GroupStatus.DELETED))
+                .where(
+                        groups.groupStatus.ne(GroupStatus.DELETED),
+                        visibleRecruitingCandidate
+                )
                 .groupBy(book.id, book.isbn13, book.title, book.author, book.image)
                 .orderBy(
                         groupCount.desc(),
@@ -217,29 +235,61 @@ public class GroupQueryRepository {
                 .fetch();
     }
 
-    public List<HomeBookProjection> findBestsellerBooks(int limit) {
+    private boolean hasVisibleRecruitingGroups(Long userId) {
+        QGroups recruitingGroups = new QGroups("visibleRecruitingGroups");
+
+        Integer found = queryFactory
+                .selectOne()
+                .from(recruitingGroups)
+                .where(
+                        recruitingGroups.groupStatus.eq(GroupStatus.RECRUITING),
+                        recruitingGroups.host.id.ne(userId)
+                )
+                .fetchFirst();
+        return found != null;
+    }
+
+    private BooleanExpression isbn13WithVisibleRecruitingGroups(Long userId) {
+        QGroups candidateGroups = new QGroups("popularCandidateGroups");
+        QBook candidateBook = new QBook("popularCandidateBook");
+
+        return book.isbn13.in(
+                JPAExpressions
+                        .select(candidateBook.isbn13)
+                        .distinct()
+                        .from(candidateGroups)
+                        .join(candidateGroups.book, candidateBook)
+                        .where(
+                                candidateGroups.groupStatus.eq(GroupStatus.RECRUITING),
+                                candidateGroups.host.id.ne(userId)
+                        )
+        );
+    }
+
+    public List<HomeBestsellerBookProjection> findBestsellerBooks(int limit) {
         return queryFactory
                 .select(Projections.constructor(
-                        HomeBookProjection.class,
-                        book.isbn13,
-                        book.title,
-                        book.author,
-                        book.image
+                        HomeBestsellerBookProjection.class,
+                        bestsellerIsbn.isbn13,
+                        bestsellerIsbn.title,
+                        bestsellerIsbn.author,
+                        bestsellerIsbn.bookImage,
+                        bestsellerIsbn.rank
                 ))
                 .from(bestsellerIsbn)
-                .join(book).on(book.isbn13.eq(bestsellerIsbn.isbn13))
                 .orderBy(bestsellerIsbn.rank.asc(), bestsellerIsbn.id.asc())
                 .limit(limit)
                 .fetch();
     }
 
-    public List<CustomCategory> findCategoriesWithRecruitingGroups() {
+    public List<CustomCategory> findCategoriesWithRecruitingGroups(Long userId) {
         return queryFactory
                 .select(book.category).distinct()
                 .from(groups)
                 .join(groups.book, book)
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId),
                         book.category.notIn(
                                 CustomCategory.ALL,
                                 CustomCategory.LITERATURE_ALL,
@@ -270,7 +320,7 @@ public class GroupQueryRepository {
 
     public List<Groups> findClassicGroups(
             Long userId,
-            String candidateSectionType,
+            HomeCandidateSectionType candidateSectionType,
             int limit
     ) {
         return homeGroupQuery(userId)

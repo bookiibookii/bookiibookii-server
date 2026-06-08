@@ -74,7 +74,6 @@ public class GroupService {
     private static final int HOME_GROUP_LIMIT = 5;
     private static final int HOME_POPULAR_BOOK_LIMIT = 5;
     private static final int HOME_BESTSELLER_BOOK_LIMIT = 3;
-    private static final String CLASSIC_CANDIDATE_SECTION_TYPE = "CLASSIC_BOOK_GROUP";
 
     //그룹생성 service
     public GroupResponseDTO.CreateResultDTO createGroup(User host, GroupRequestDTO.CreateDTO request){
@@ -726,7 +725,7 @@ public class GroupService {
         List<GroupResponseDTO.HomeSectionDTO> sections = new ArrayList<>(7);
 
         addIfPresent(sections, buildNewGroupsSection(userId));
-        sections.add(buildPopularBooksSection());
+        sections.add(buildPopularBooksSection(userId));
         addIfPresent(sections, buildGenreSection(userId));
         sections.add(buildBestsellerBooksSection());
         addIfPresent(sections, buildClassicGroupsSection(userId));
@@ -752,9 +751,9 @@ public class GroupService {
         );
     }
 
-    private GroupResponseDTO.HomeSectionDTO buildPopularBooksSection() {
+    private GroupResponseDTO.HomeSectionDTO buildPopularBooksSection(Long userId) {
         List<GroupResponseDTO.HomeBookThumbnailDTO> items = toBookThumbnails(
-                groupQueryRepository.findPopularBooks(HOME_POPULAR_BOOK_LIMIT)
+                groupQueryRepository.findPopularBooks(userId, HOME_POPULAR_BOOK_LIMIT)
         );
         return bookSection(
                 HomeSectionType.POPULAR_BOOKS_TOP5,
@@ -767,7 +766,7 @@ public class GroupService {
 
     private GroupResponseDTO.HomeSectionDTO buildGenreSection(Long userId) {
         List<HomeGenre> candidates = groupQueryRepository
-                .findCategoriesWithRecruitingGroups()
+                .findCategoriesWithRecruitingGroups(userId)
                 .stream()
                 .map(HomeGenre::from)
                 .flatMap(java.util.Optional::stream)
@@ -798,7 +797,7 @@ public class GroupService {
     }
 
     private GroupResponseDTO.HomeSectionDTO buildBestsellerBooksSection() {
-        List<GroupResponseDTO.HomeBookThumbnailDTO> items = toBookThumbnails(
+        List<GroupResponseDTO.HomeBookThumbnailDTO> items = toBestsellerBookThumbnails(
                 groupQueryRepository.findBestsellerBooks(HOME_BESTSELLER_BOOK_LIMIT)
         );
         return bookSection(
@@ -814,7 +813,7 @@ public class GroupService {
         List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
                 groupQueryRepository.findClassicGroups(
                         userId,
-                        CLASSIC_CANDIDATE_SECTION_TYPE,
+                        HomeCandidateSectionType.CLASSIC_BOOK_GROUP,
                         HOME_GROUP_LIMIT
                 )
         );
@@ -849,25 +848,19 @@ public class GroupService {
                 .filter(exchange -> exchange.getLocation().getX() != null)
                 .filter(exchange -> exchange.getLocation().getY() != null)
                 .filter(distinctByCoordinate())
+                .filter(exchange -> groupQueryRepository.existsDirectGroupsAtCoordinate(
+                        userId,
+                        exchange.getLocation().getX(),
+                        exchange.getLocation().getY()
+                ))
                 .limit(2)
                 .toList();
         if (exchanges.isEmpty()) {
             return null;
         }
 
-        List<UserExchange> candidates = exchanges.stream()
-                .filter(exchange -> groupQueryRepository.existsDirectGroupsAtCoordinate(
-                        userId,
-                        exchange.getLocation().getX(),
-                        exchange.getLocation().getY()
-                ))
-                .toList();
-        if (candidates.isEmpty()) {
-            return null;
-        }
-
         UserExchange picked = deterministicPick(
-                candidates,
+                exchanges,
                 HomeSeedUtil.userSeedKey(userId, HomeSeedUtil.currentSeedKey())
         );
         List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
@@ -935,6 +928,26 @@ public class GroupService {
                     .build());
         }
         return items;
+    }
+
+    private List<GroupResponseDTO.HomeBookThumbnailDTO> toBestsellerBookThumbnails(
+            List<GroupQueryRepository.HomeBestsellerBookProjection> books
+    ) {
+        if (books == null || books.isEmpty()) {
+            return List.of();
+        }
+        return books.stream()
+                .filter(book -> !isBlank(book.isbn13()))
+                .filter(book -> !isBlank(book.title()))
+                .map(book -> GroupResponseDTO.HomeBookThumbnailDTO.builder()
+                        .isbn13(book.isbn13())
+                        .title(book.title())
+                        .author(book.author())
+                        .bookImage(book.image())
+                        .searchKeyword(book.title())
+                        .rank(book.ranking())
+                        .build())
+                .toList();
     }
 
     private GroupResponseDTO.HomeSectionDTO groupSection(

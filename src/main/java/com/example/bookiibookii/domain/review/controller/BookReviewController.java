@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.review.controller;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyBookReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.MyGroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.exception.code.ReviewSuccessCode;
 import com.example.bookiibookii.domain.review.service.ReviewService;
@@ -35,6 +36,15 @@ public class BookReviewController implements BookReviewControllerDocs {
         return ApiResponse.onSuccess(ReviewSuccessCode.GROUP_REVIEWS_FOUND, response);
     }
 
+    @GetMapping("/book/me")
+    public ApiResponse<MyBookReviewsResponseDTO> getMyBookReviews(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        MyBookReviewsResponseDTO response = reviewService.getMyBookReviews(groupId, user);
+        return ApiResponse.onSuccess(ReviewSuccessCode.MY_BOOK_REVIEWS_FOUND, response);
+    }
+
     @PostMapping
     public ApiResponse<BookReviewResponseDTO> createBookReview(
             @PathVariable Long groupId,
@@ -45,13 +55,14 @@ public class BookReviewController implements BookReviewControllerDocs {
         return ApiResponse.onSuccess(ReviewSuccessCode.BOOK_REVIEW_CREATED, response);
     }
 
-    @PatchMapping("/me")
+    @PatchMapping("/book/{reviewId}")
     public ApiResponse<BookReviewResponseDTO> updateMyBookReview(
             @PathVariable Long groupId,
+            @PathVariable Long reviewId,
             @RequestBody @Valid ReviewRequestDTO.BookReviewUpsertDTO request,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        BookReviewResponseDTO response = reviewService.updateMyBookReview(groupId, request, user);
+        BookReviewResponseDTO response = reviewService.updateMyBookReview(groupId, reviewId, request, user);
         return ApiResponse.onSuccess(ReviewSuccessCode.BOOK_REVIEW_UPDATED, response);
     }
 

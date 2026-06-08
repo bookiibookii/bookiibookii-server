@@ -75,7 +75,8 @@ public class TrackerConverter {
                 .tradeType(group.getTradeType())
                 .myRole(me.getRole())
                 .displayStatus(displayStatus)
-                .displayStatusText(resolveDisplayStatusText(me, displayStatus))
+                .displayBookTitle(resolveDisplayBookTitle(me))
+                .displayStatusLabel(resolveDisplayStatusLabel(displayStatus))
                 .dDay(dDay)
                 .myBook(toBookInfo(
                         me.getCurrentMemberBook(),
@@ -113,13 +114,8 @@ public class TrackerConverter {
         return (normalizedPage * 100) / totalPages;
     }
 
-    private static String resolveDisplayStatusText(
-            MatchedMember me,
-            TrackerDisplayStatus displayStatus
-    ) {
-        String bookTitle = me.getCurrentMemberBook().getBook().getTitle();
-
-        return bookTitle + " · " + resolveDisplayStatusLabel(displayStatus);
+    private static String resolveDisplayBookTitle(MatchedMember me) {
+        return me.getCurrentMemberBook().getBook().getTitle();
     }
 
     private static String resolveDisplayStatusLabel(TrackerDisplayStatus displayStatus) {
@@ -132,8 +128,13 @@ public class TrackerConverter {
             case SHIPPING -> "배송 중";
             case RETURN_TRACKING_REQUIRED -> "반납 운송장 등록";
             case RETURNING -> "반납 중";
+            case WAITING_PARTNER_TRACKING_REGISTER -> "상대 운송장 등록 대기";
+            case WAITING_PARTNER_RECEIPT_CONFIRM -> "상대 수령 인증 대기";
 
             case MEETING_REQUIRED -> "약속 등록";
+            case MEETING_REGISTER_REQUIRED -> "약속 등록";
+            case WAITING_HOST_MEETING_REGISTER -> "약속 등록 대기";
+            case WAITING_PARTNER_MEETING_COMPLETE -> "상대 교환 완료 대기";
             case EXCHANGING -> "교환 중";
 
             case EXCHANGE_REVIEW_WRITING -> "교환 후기 작성";

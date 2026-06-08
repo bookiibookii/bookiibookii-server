@@ -90,6 +90,14 @@ public class MatchedMember extends BaseEntity {
         this.isReviewWritten = true;
     }
 
+    public void completeReading(LocalDateTime completedAt) {
+        if (completedAt == null) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
+        this.readingStatus = ReadingStatus.COMPLETED;
+        this.completedAt = completedAt;
+    }
+
     public void startMatchedReading(MemberBook initialBook, LocalDateTime matchedAt) {
         validateCurrentBook(initialBook);
 

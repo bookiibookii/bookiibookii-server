@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -33,12 +34,17 @@ public class GroupCompletionService {
             return;
         }
 
-        List<MatchedMember> lazyMembers = matchedMemberRepository
+        List<MatchedMember> membersWithoutReview = matchedMemberRepository
                 .findAllByGroup_IdAndIsReviewWrittenFalse(groupId);
 
-        for (MatchedMember mm : lazyMembers) {
-            mm.markReviewAsWritten();
+        if (!membersWithoutReview.isEmpty()) {
+            log.info("파트너 후기 미작성 멤버가 있어 그룹 완료를 보류합니다. groupId={}", groupId);
+            return;
         }
+
+        LocalDateTime completedAt = LocalDateTime.now();
+        matchedMemberRepository.findAllByGroup_Id(groupId)
+                .forEach(member -> member.completeReading(completedAt));
         group.updateStatus(GroupStatus.COMPLETED);
     }
 }

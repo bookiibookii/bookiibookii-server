@@ -32,6 +32,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -131,10 +132,12 @@ public class ReviewService {
         } catch (DataIntegrityViolationException e) {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
+        me.markReviewAsWritten();
 
         boolean partnerAlreadyReviewed = memberReviewRepository.existsByGroup_IdAndWriter_Id(group.getId(), partner.getId());
         if (partnerAlreadyReviewed) {
-            members.forEach(member -> member.updateReadingStatus(ReadingStatus.COMPLETED));
+            LocalDateTime completedAt = LocalDateTime.now();
+            members.forEach(member -> member.completeReading(completedAt));
             group.updateStatus(GroupStatus.COMPLETED);
         }
 
@@ -445,7 +448,7 @@ public class ReviewService {
 
     private void validateSecondExchangeCompleted(List<MatchedMember> matchedMembers) {
         boolean returnExchangeCompleted = matchedMembers.stream()
-                .allMatch(member -> member.getReadingStatus() == ReadingStatus.RETURNING
+                .allMatch(member -> member.getReadingStatus() == ReadingStatus.PARTNER_REVIEWING
                         && member.getExchangeStatus() == ExchangeStatus.NOT_STARTED);
         if (!returnExchangeCompleted) {
             throw new ReviewException(ReviewErrorCode.INVALID_MEMBER_REVIEW_STATUS);

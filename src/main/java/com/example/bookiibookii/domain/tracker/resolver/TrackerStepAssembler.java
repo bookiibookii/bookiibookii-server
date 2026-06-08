@@ -3,11 +3,12 @@ package com.example.bookiibookii.domain.tracker.resolver;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
-import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.dto.TrackerStepInfo;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
+import com.example.bookiibookii.domain.tracker.util.TrackerTextFormatter;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -15,218 +16,98 @@ import java.util.List;
 @Component
 public class TrackerStepAssembler {
 
+    /*
+     * Tracker steps are returned in fixed chronological order:
+     * first reading -> first review -> first exchange -> partner reading
+     * -> second review -> return exchange -> partner review.
+     */
     public List<TrackerStepInfo> assemble(MatchedMember me) {
         return assemble(me, false);
     }
 
     public List<TrackerStepInfo> assemble(MatchedMember me, boolean currentBookReviewWritten) {
-        TradeType tradeType = me.getGroup().getTradeType();
-        ReadingStatus currentStatus = me.getReadingStatus();
-        ExchangeStatus exchangeStatus = me.getExchangeStatus();
-
+        StepContext context = new StepContext(me.getReadingStatus(), me.getExchangeStatus(), currentBookReviewWritten, me.isReviewWritten());
         String myBookTitle = findMyBookTitle(me);
         String partnerBookTitle = findPartnerBookTitle(me);
+        String abbreviatedMyBookTitle = TrackerTextFormatter.abbreviateStepBookTitle(myBookTitle);
+        String abbreviatedPartnerBookTitle = TrackerTextFormatter.abbreviateStepBookTitle(partnerBookTitle);
+        List<StepDefinition> definitions = me.getGroup().getTradeType() == TradeType.DELIVERY
+                ? deliverySteps(abbreviatedMyBookTitle, abbreviatedPartnerBookTitle)
+                : directSteps(abbreviatedMyBookTitle, abbreviatedPartnerBookTitle);
 
-        List<TrackerStepInfo> steps = tradeType == TradeType.DELIVERY
-                ? deliverySteps(myBookTitle, partnerBookTitle)
-                : directSteps(myBookTitle, partnerBookTitle);
-
-        return steps.stream()
+        return definitions.stream()
                 .map(step -> TrackerStepInfo.builder()
                         .status(step.status())
                         .title(step.title())
                         .description(step.description())
-                        .completed(isCompleted(
-                                currentStatus,
-                                exchangeStatus,
-                                step.status(),
-                                tradeType,
-                                currentBookReviewWritten
-                        ))
+                        .completed(isCompleted(step.type(), context))
                         .build())
                 .toList();
     }
 
-    private List<TrackerStepInfo> deliverySteps(String myBookTitle, String partnerBookTitle) {
+    private List<StepDefinition> directSteps(
+            String abbreviatedMyBookTitle,
+            String abbreviatedPartnerBookTitle
+    ) {
         return List.of(
-                step(
-                        ReadingStatus.MY_BOOK_READING,
-                        myBookTitle + " 읽기",
-                        "독서카드를 작성하면 교환독서가 더 즐거워져요"
-                ),
-                step(
-                        ReadingStatus.MY_BOOK_REVIEWING,
-                        "책 리뷰 작성",
-                        myBookTitle + "의 리뷰를 작성해주세요"
-                ),
-                step(
-                        ReadingStatus.EXCHANGING,
-                        "1차 교환하기",
-                        "파트너에게 " + myBookTitle + "을 발송해주세요"
-                ),
-                step(
-                        ReadingStatus.EXCHANGED,
-                        "수령 인증 등록",
-                        "파트너가 보낸 책 상태를 확인해주세요"
-                ),
-                step(
-                        ReadingStatus.PARTNER_BOOK_READING,
-                        partnerBookTitle + " 읽기",
-                        "독서카드를 작성하면 교환독서가 더 즐거워져요"
-                ),
-                step(
-                        ReadingStatus.PARTNER_BOOK_REVIEWING,
-                        "책 리뷰 작성",
-                        partnerBookTitle + "의 리뷰를 작성해주세요"
-                ),
-                step(
-                        ReadingStatus.RETURNING,
-                        "2차 교환하기",
-                        "파트너에게 " + partnerBookTitle + "을 발송해주세요"
-                ),
-                step(
-                        ReadingStatus.RETURNED,
-                        "수령 인증 등록",
-                        "파트너가 보낸 책 상태를 확인해주세요"
-                ),
-                step(
-                        ReadingStatus.COMPLETED,
-                        "교환독서 종료",
-                        "소중한 교환 후기를 남겨주세요"
-                )
+                step(StepType.MY_BOOK_READING, ReadingStatus.MY_BOOK_READING, abbreviatedMyBookTitle + " 읽기", "내 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.MY_BOOK_REVIEW, ReadingStatus.MY_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedMyBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.FIRST_MEETING_REGISTER, ReadingStatus.EXCHANGING, "교환 약속 등록하기", "파트너와 첫 교환 약속을 등록해주세요"),
+                step(StepType.FIRST_BOOK_EXCHANGE, ReadingStatus.EXCHANGING, "책 교환하기", "약속 장소에서 책 교환 완료를 처리해주세요"),
+                step(StepType.PARTNER_BOOK_READING, ReadingStatus.PARTNER_BOOK_READING, abbreviatedPartnerBookTitle + " 읽기", "상대 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.PARTNER_BOOK_REVIEW, ReadingStatus.PARTNER_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedPartnerBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.RETURN_MEETING_REGISTER, ReadingStatus.RETURNING, "반납 약속 등록하기", "파트너와 책 반납 약속을 등록해주세요"),
+                step(StepType.RETURN_BOOK_EXCHANGE, ReadingStatus.RETURNING, "책 반납하기", "약속 장소에서 책 반납 완료를 처리해주세요"),
+                step(StepType.PARTNER_REVIEW, ReadingStatus.PARTNER_REVIEWING, "교환독서 후기 작성하기", "함께한 파트너에 대한 후기를 작성해주세요")
         );
     }
 
-    private List<TrackerStepInfo> directSteps(String myBookTitle, String partnerBookTitle) {
+    private List<StepDefinition> deliverySteps(
+            String abbreviatedMyBookTitle,
+            String abbreviatedPartnerBookTitle
+    ) {
         return List.of(
-                step(
-                        ReadingStatus.MY_BOOK_READING,
-                        myBookTitle + " 읽기",
-                        "독서카드를 작성하면 교환독서가 더 즐거워져요"
-                ),
-                step(
-                        ReadingStatus.MY_BOOK_REVIEWING,
-                        "책 리뷰 작성",
-                        myBookTitle + "의 리뷰를 작성해주세요"
-                ),
-                step(
-                        ReadingStatus.EXCHANGING,
-                        "1차 교환하기",
-                        "파트너와 논의 후 약속을 확정해주세요"
-                ),
-                step(
-                        ReadingStatus.EXCHANGED,
-                        "교환 인증 등록",
-                        "반드시 파트너와 책을 실제로 교환한 뒤 진행해주세요"
-                ),
-                step(
-                        ReadingStatus.PARTNER_BOOK_READING,
-                        partnerBookTitle + " 읽기",
-                        "독서카드를 작성하면 교환독서가 더 즐거워져요"
-                ),
-                step(
-                        ReadingStatus.PARTNER_BOOK_REVIEWING,
-                        "책 리뷰 작성",
-                        partnerBookTitle + "의 리뷰를 작성해주세요"
-                ),
-                step(
-                        ReadingStatus.RETURNING,
-                        "2차 교환하기",
-                        "파트너와 논의 후 약속을 확정해주세요"
-                ),
-                step(
-                        ReadingStatus.RETURNED,
-                        "교환 인증 등록",
-                        "반드시 파트너와 책을 실제로 교환한 뒤 진행해주세요"
-                ),
-                step(
-                        ReadingStatus.COMPLETED,
-                        "교환독서 종료",
-                        "소중한 교환 후기를 남겨주세요"
-                )
+                step(StepType.MY_BOOK_READING, ReadingStatus.MY_BOOK_READING, abbreviatedMyBookTitle + " 읽기", "내 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.MY_BOOK_REVIEW, ReadingStatus.MY_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedMyBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.FIRST_TRACKING_REGISTER, ReadingStatus.EXCHANGING, "운송장 등록하기", "파트너에게 보낸 책의 운송장을 등록해주세요"),
+                step(StepType.FIRST_RECEIPT_CONFIRM, ReadingStatus.EXCHANGING, "수령 인증 확인하기", "파트너가 보낸 책을 받은 뒤 수령 인증을 등록해주세요"),
+                step(StepType.PARTNER_BOOK_READING, ReadingStatus.PARTNER_BOOK_READING, abbreviatedPartnerBookTitle + " 읽기", "상대 책을 읽고 독서 진행률을 기록해주세요"),
+                step(StepType.PARTNER_BOOK_REVIEW, ReadingStatus.PARTNER_BOOK_REVIEWING, "책 후기 작성하기", abbreviatedPartnerBookTitle + "의 책 후기를 작성해주세요"),
+                step(StepType.RETURN_TRACKING_REGISTER, ReadingStatus.RETURNING, "반납 운송장 등록하기", "파트너에게 반납한 책의 운송장을 등록해주세요"),
+                step(StepType.RETURN_RECEIPT_CONFIRM, ReadingStatus.RETURNING, "수령 인증 확인하기", "돌려받은 책을 확인한 뒤 수령 인증을 등록해주세요"),
+                step(StepType.PARTNER_REVIEW, ReadingStatus.PARTNER_REVIEWING, "교환독서 후기 작성하기", "함께한 파트너에 대한 후기를 작성해주세요")
         );
     }
 
-    private TrackerStepInfo step(ReadingStatus status, String title, String description) {
-        return TrackerStepInfo.builder()
-                .status(status)
-                .title(title)
-                .description(description)
-                .completed(false)
-                .build();
-    }
+    private boolean isCompleted(StepType stepType, StepContext context) {
+        ReadingStatus readingStatus = context.readingStatus();
+        ExchangeStatus exchangeStatus = context.exchangeStatus();
 
-    private boolean isCompleted(
-            ReadingStatus currentStatus,
-            ExchangeStatus exchangeStatus,
-            ReadingStatus stepStatus,
-            TradeType tradeType,
-            boolean currentBookReviewWritten
-    ) {
-        if (currentStatus == ReadingStatus.COMPLETED) {
-            return true;
-        }
-        if (currentBookReviewWritten && isCurrentBookReviewingStep(currentStatus, stepStatus)) {
-            return true;
-        }
-        if (currentStatus == ReadingStatus.EXCHANGING) {
-            return isFirstExchangeStepCompleted(exchangeStatus, stepStatus, tradeType);
-        }
-        if (currentStatus == ReadingStatus.RETURNING) {
-            return isReturnExchangeStepCompleted(exchangeStatus, stepStatus, tradeType);
-        }
-        return resolveOrder(currentStatus) > resolveOrder(stepStatus);
-    }
-
-    private boolean isCurrentBookReviewingStep(ReadingStatus currentStatus, ReadingStatus stepStatus) {
-        return (currentStatus == ReadingStatus.MY_BOOK_REVIEWING
-                || currentStatus == ReadingStatus.PARTNER_BOOK_REVIEWING)
-                && currentStatus == stepStatus;
-    }
-
-    private boolean isFirstExchangeStepCompleted(
-            ExchangeStatus exchangeStatus,
-            ReadingStatus stepStatus,
-            TradeType tradeType
-    ) {
-        if (stepStatus == ReadingStatus.EXCHANGING) {
-            return tradeType == TradeType.DELIVERY
-                    ? isTrackingRegistered(exchangeStatus)
-                    : isMeetingScheduled(exchangeStatus);
-        }
-        if (stepStatus == ReadingStatus.EXCHANGED) {
-            return tradeType == TradeType.DELIVERY
-                    ? isReceivedConfirmed(exchangeStatus)
-                    : isMeetingCompleted(exchangeStatus);
-        }
-        return resolveOrder(ReadingStatus.EXCHANGING) > resolveOrder(stepStatus);
-    }
-
-    private boolean isReturnExchangeStepCompleted(
-            ExchangeStatus exchangeStatus,
-            ReadingStatus stepStatus,
-            TradeType tradeType
-    ) {
-        if (stepStatus == ReadingStatus.RETURNING) {
-            return tradeType == TradeType.DELIVERY
-                    ? isTrackingRegistered(exchangeStatus)
-                    : isMeetingScheduled(exchangeStatus);
-        }
-        if (stepStatus == ReadingStatus.RETURNED) {
-            return tradeType == TradeType.DELIVERY
-                    ? isReceivedConfirmed(exchangeStatus)
-                    : isMeetingCompleted(exchangeStatus);
-        }
-        return resolveOrder(ReadingStatus.RETURNING) > resolveOrder(stepStatus);
-    }
-
-    private boolean isTrackingRegistered(ExchangeStatus exchangeStatus) {
-        return exchangeStatus == ExchangeStatus.TRACKING_REGISTERED
-                || exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
-    }
-
-    private boolean isReceivedConfirmed(ExchangeStatus exchangeStatus) {
-        return exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
+        return switch (stepType) {
+            case MY_BOOK_READING -> isAfter(readingStatus, ReadingStatus.MY_BOOK_READING);
+            case MY_BOOK_REVIEW -> isAfter(readingStatus, ReadingStatus.MY_BOOK_REVIEWING)
+                    || (readingStatus == ReadingStatus.MY_BOOK_REVIEWING && context.currentBookReviewWritten());
+            case FIRST_MEETING_REGISTER -> isAfter(readingStatus, ReadingStatus.EXCHANGING)
+                    || (readingStatus == ReadingStatus.EXCHANGING && isMeetingScheduled(exchangeStatus));
+            case FIRST_BOOK_EXCHANGE -> isAfter(readingStatus, ReadingStatus.EXCHANGING)
+                    || (readingStatus == ReadingStatus.EXCHANGING && exchangeStatus == ExchangeStatus.MEETING_COMPLETED);
+            case FIRST_TRACKING_REGISTER -> isAfter(readingStatus, ReadingStatus.EXCHANGING)
+                    || (readingStatus == ReadingStatus.EXCHANGING && isTrackingRegistered(exchangeStatus));
+            case FIRST_RECEIPT_CONFIRM -> isAfter(readingStatus, ReadingStatus.EXCHANGING)
+                    || (readingStatus == ReadingStatus.EXCHANGING && exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED);
+            case PARTNER_BOOK_READING -> isAfter(readingStatus, ReadingStatus.PARTNER_BOOK_READING);
+            case PARTNER_BOOK_REVIEW -> isAfter(readingStatus, ReadingStatus.PARTNER_BOOK_REVIEWING)
+                    || (readingStatus == ReadingStatus.PARTNER_BOOK_REVIEWING && context.currentBookReviewWritten());
+            case RETURN_MEETING_REGISTER -> isAfter(readingStatus, ReadingStatus.RETURNING)
+                    || (readingStatus == ReadingStatus.RETURNING && isMeetingScheduled(exchangeStatus));
+            case RETURN_BOOK_EXCHANGE -> isAfter(readingStatus, ReadingStatus.RETURNING)
+                    || (readingStatus == ReadingStatus.RETURNING && exchangeStatus == ExchangeStatus.MEETING_COMPLETED);
+            case RETURN_TRACKING_REGISTER -> isAfter(readingStatus, ReadingStatus.RETURNING)
+                    || (readingStatus == ReadingStatus.RETURNING && isTrackingRegistered(exchangeStatus));
+            case RETURN_RECEIPT_CONFIRM -> isAfter(readingStatus, ReadingStatus.RETURNING)
+                    || (readingStatus == ReadingStatus.RETURNING && exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED);
+            case PARTNER_REVIEW -> context.partnerReviewWritten();
+        };
     }
 
     private boolean isMeetingScheduled(ExchangeStatus exchangeStatus) {
@@ -234,22 +115,30 @@ public class TrackerStepAssembler {
                 || exchangeStatus == ExchangeStatus.MEETING_COMPLETED;
     }
 
-    private boolean isMeetingCompleted(ExchangeStatus exchangeStatus) {
-        return exchangeStatus == ExchangeStatus.MEETING_COMPLETED;
+    private boolean isTrackingRegistered(ExchangeStatus exchangeStatus) {
+        return exchangeStatus == ExchangeStatus.TRACKING_REGISTERED
+                || exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
     }
 
-    private int resolveOrder(ReadingStatus status) {
+    private boolean isAfter(ReadingStatus current, ReadingStatus reference) {
+        return order(current) > order(reference);
+    }
+
+    private int order(ReadingStatus status) {
         return switch (status) {
             case MY_BOOK_READING -> 1;
             case MY_BOOK_REVIEWING -> 2;
             case EXCHANGING -> 3;
-            case EXCHANGED -> 4;
-            case PARTNER_BOOK_READING -> 5;
-            case PARTNER_BOOK_REVIEWING -> 6;
-            case RETURNING -> 7;
-            case RETURNED -> 8;
-            case COMPLETED -> 9;
+            case PARTNER_BOOK_READING -> 4;
+            case PARTNER_BOOK_REVIEWING -> 5;
+            case RETURNING -> 6;
+            case PARTNER_REVIEWING -> 7;
+            case COMPLETED -> 8;
         };
+    }
+
+    private StepDefinition step(StepType type, ReadingStatus status, String title, String description) {
+        return new StepDefinition(type, status, title, description);
     }
 
     private String findMyBookTitle(MatchedMember me) {
@@ -267,4 +156,34 @@ public class TrackerStepAssembler {
                 .map(memberBook -> memberBook.getBook().getTitle())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
     }
+
+    private enum StepType {
+        MY_BOOK_READING,
+        MY_BOOK_REVIEW,
+        FIRST_MEETING_REGISTER,
+        FIRST_BOOK_EXCHANGE,
+        FIRST_TRACKING_REGISTER,
+        FIRST_RECEIPT_CONFIRM,
+        PARTNER_BOOK_READING,
+        PARTNER_BOOK_REVIEW,
+        RETURN_MEETING_REGISTER,
+        RETURN_BOOK_EXCHANGE,
+        RETURN_TRACKING_REGISTER,
+        RETURN_RECEIPT_CONFIRM,
+        PARTNER_REVIEW
+    }
+
+    private record StepContext(
+            ReadingStatus readingStatus,
+            ExchangeStatus exchangeStatus,
+            boolean currentBookReviewWritten,
+            boolean partnerReviewWritten
+    ) {}
+
+    private record StepDefinition(
+            StepType type,
+            ReadingStatus status,
+            String title,
+            String description
+    ) {}
 }

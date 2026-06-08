@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.tracker.resolver;
 
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
@@ -10,39 +12,27 @@ import org.springframework.stereotype.Component;
 public class TrackerDisplayStatusResolver {
 
     public TrackerDisplayStatus resolve(
+            MatchedMember me,
+            MatchedMember partner,
+            boolean currentBookReviewWritten
+    ) {
+        return resolve(
+                me.getReadingStatus(),
+                me.getExchangeStatus(),
+                partner == null ? null : partner.getExchangeStatus(),
+                me.getGroup().getTradeType(),
+                me.getRole(),
+                currentBookReviewWritten
+        );
+    }
+
+    public TrackerDisplayStatus resolve(
             ReadingStatus readingStatus,
             ExchangeStatus exchangeStatus,
             TradeType tradeType,
             boolean currentBookReviewWritten
     ) {
-        if (readingStatus == null) {
-            return TrackerDisplayStatus.READING;
-        }
-
-        return switch (readingStatus) {
-            case MY_BOOK_READING, PARTNER_BOOK_READING ->
-                    TrackerDisplayStatus.READING;
-
-            case MY_BOOK_REVIEWING, PARTNER_BOOK_REVIEWING ->
-                    currentBookReviewWritten
-                            ? TrackerDisplayStatus.REVIEW_WAITING_PARTNER
-                            : TrackerDisplayStatus.REVIEW_WRITING;
-
-            case EXCHANGING ->
-                    resolveFirstExchangeStatus(exchangeStatus, tradeType);
-
-            case RETURNING ->
-                    resolveReturnExchangeStatus(exchangeStatus, tradeType);
-
-            case RETURNED ->
-                    TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
-
-            case EXCHANGED ->
-                    TrackerDisplayStatus.READING;
-
-            case COMPLETED ->
-                    TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
-        };
+        return resolve(readingStatus, exchangeStatus, null, tradeType, RoleStatus.HOST, currentBookReviewWritten);
     }
 
     public TrackerDisplayStatus resolve(
@@ -53,71 +43,94 @@ public class TrackerDisplayStatusResolver {
         return resolve(readingStatus, exchangeStatus, tradeType, false);
     }
 
-    private TrackerDisplayStatus resolveFirstExchangeStatus(
-            ExchangeStatus exchangeStatus,
-            TradeType tradeType
+    public TrackerDisplayStatus resolve(
+            ReadingStatus readingStatus,
+            ExchangeStatus myExchangeStatus,
+            ExchangeStatus partnerExchangeStatus,
+            TradeType tradeType,
+            RoleStatus myRole,
+            boolean currentBookReviewWritten
     ) {
-        if (tradeType == TradeType.DELIVERY) {
-            return switch (safeExchangeStatus(exchangeStatus)) {
-                case TRACKING_REGISTER_WAITING, NOT_STARTED ->
-                        TrackerDisplayStatus.TRACKING_REQUIRED;
-
-                case TRACKING_REGISTERED ->
-                        TrackerDisplayStatus.SHIPPING;
-
-                case RECEIVED_CONFIRMED ->
-                        TrackerDisplayStatus.READING;
-
-                default ->
-                        TrackerDisplayStatus.TRACKING_REQUIRED;
-            };
+        if (readingStatus == null) {
+            return TrackerDisplayStatus.READING;
         }
 
-        return switch (safeExchangeStatus(exchangeStatus)) {
-            case MEETING_SCHEDULE_WAITING, NOT_STARTED ->
-                    TrackerDisplayStatus.MEETING_REQUIRED;
-
-            case MEETING_SCHEDULED, MEETING_COMPLETED ->
-                    TrackerDisplayStatus.EXCHANGING;
-
-            case MEETING_FAILED ->
-                    TrackerDisplayStatus.MEETING_REQUIRED;
-
-            default ->
-                    TrackerDisplayStatus.MEETING_REQUIRED;
+        return switch (readingStatus) {
+            case MY_BOOK_READING, PARTNER_BOOK_READING -> TrackerDisplayStatus.READING;
+            case MY_BOOK_REVIEWING, PARTNER_BOOK_REVIEWING -> currentBookReviewWritten
+                    ? TrackerDisplayStatus.REVIEW_WAITING_PARTNER
+                    : TrackerDisplayStatus.REVIEW_WRITING;
+            case EXCHANGING -> resolveExchangeStatus(myExchangeStatus, partnerExchangeStatus, tradeType, myRole, false);
+            case RETURNING -> resolveExchangeStatus(myExchangeStatus, partnerExchangeStatus, tradeType, myRole, true);
+            case PARTNER_REVIEWING, COMPLETED -> TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
         };
     }
 
-    private TrackerDisplayStatus resolveReturnExchangeStatus(
-            ExchangeStatus exchangeStatus,
-            TradeType tradeType
+    private TrackerDisplayStatus resolveExchangeStatus(
+            ExchangeStatus myExchangeStatus,
+            ExchangeStatus partnerExchangeStatus,
+            TradeType tradeType,
+            RoleStatus myRole,
+            boolean returnExchange
     ) {
         if (tradeType == TradeType.DELIVERY) {
-            return switch (safeExchangeStatus(exchangeStatus)) {
-                case TRACKING_REGISTER_WAITING ->
-                        TrackerDisplayStatus.RETURN_TRACKING_REQUIRED;
+            return resolveDeliveryDisplay(myExchangeStatus, partnerExchangeStatus, returnExchange);
+        }
+        return resolveDirectStatus(myExchangeStatus, partnerExchangeStatus, myRole);
+    }
 
-                case TRACKING_REGISTERED ->
-                        TrackerDisplayStatus.RETURNING;
+    private TrackerDisplayStatus resolveDeliveryDisplay(
+            ExchangeStatus myExchangeStatus,
+            ExchangeStatus partnerExchangeStatus,
+            boolean returnExchange
+    ) {
+        ExchangeStatus mine = safeExchangeStatus(myExchangeStatus);
+        ExchangeStatus partner = safeExchangeStatus(partnerExchangeStatus);
 
-                case RECEIVED_CONFIRMED, NOT_STARTED ->
-                        TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
-
-                default ->
-                        TrackerDisplayStatus.RETURN_TRACKING_REQUIRED;
-            };
+        if (mine == ExchangeStatus.RECEIVED_CONFIRMED && partner != ExchangeStatus.RECEIVED_CONFIRMED) {
+            return TrackerDisplayStatus.WAITING_PARTNER_RECEIPT_CONFIRM;
+        }
+        if (mine == ExchangeStatus.TRACKING_REGISTERED
+                && (partner == ExchangeStatus.TRACKING_REGISTER_WAITING || partner == ExchangeStatus.NOT_STARTED)) {
+            return TrackerDisplayStatus.WAITING_PARTNER_TRACKING_REGISTER;
         }
 
-        return switch (safeExchangeStatus(exchangeStatus)) {
+        return switch (mine) {
+            case TRACKING_REGISTER_WAITING, NOT_STARTED -> returnExchange
+                    ? TrackerDisplayStatus.RETURN_TRACKING_REQUIRED
+                    : TrackerDisplayStatus.TRACKING_REQUIRED;
+            case TRACKING_REGISTERED -> returnExchange
+                    ? TrackerDisplayStatus.RETURNING
+                    : TrackerDisplayStatus.SHIPPING;
+            case RECEIVED_CONFIRMED -> returnExchange
+                    ? TrackerDisplayStatus.RETURNING
+                    : TrackerDisplayStatus.SHIPPING;
+            default -> returnExchange
+                    ? TrackerDisplayStatus.RETURN_TRACKING_REQUIRED
+                    : TrackerDisplayStatus.TRACKING_REQUIRED;
+        };
+    }
 
-            case MEETING_SCHEDULED, MEETING_COMPLETED ->
-                    TrackerDisplayStatus.EXCHANGING;
+    private TrackerDisplayStatus resolveDirectStatus(
+            ExchangeStatus myExchangeStatus,
+            ExchangeStatus partnerExchangeStatus,
+            RoleStatus myRole
+    ) {
+        ExchangeStatus mine = safeExchangeStatus(myExchangeStatus);
+        ExchangeStatus partner = safeExchangeStatus(partnerExchangeStatus);
 
-            case NOT_STARTED ->
-                    TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
+        if (mine == ExchangeStatus.MEETING_COMPLETED && partner != ExchangeStatus.MEETING_COMPLETED) {
+            return TrackerDisplayStatus.WAITING_PARTNER_MEETING_COMPLETE;
+        }
 
-            default ->
-                    TrackerDisplayStatus.MEETING_REQUIRED;
+        return switch (mine) {
+            case MEETING_SCHEDULED, MEETING_COMPLETED -> TrackerDisplayStatus.EXCHANGING;
+            case MEETING_SCHEDULE_WAITING, NOT_STARTED -> myRole == RoleStatus.HOST
+                    ? TrackerDisplayStatus.MEETING_REGISTER_REQUIRED
+                    : TrackerDisplayStatus.WAITING_HOST_MEETING_REGISTER;
+            default -> myRole == RoleStatus.HOST
+                    ? TrackerDisplayStatus.MEETING_REGISTER_REQUIRED
+                    : TrackerDisplayStatus.WAITING_HOST_MEETING_REGISTER;
         };
     }
 

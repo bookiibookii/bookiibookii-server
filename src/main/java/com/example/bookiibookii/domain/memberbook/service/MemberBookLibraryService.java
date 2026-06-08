@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.memberbook.service;
 
+import com.example.bookiibookii.domain.group.util.ReadingPeriodDateCalculator;
 import com.example.bookiibookii.domain.memberbook.dto.res.LibraryMemberBookResponseDTO;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.memberbook.exception.MemberBookException;
@@ -114,10 +115,7 @@ public class MemberBookLibraryService {
             }
         }
 
-        LocalDate finalEndDate = null;
-        if (group.getStartDate() != null && group.getReadingPeriod() != null) {
-            finalEndDate = group.getStartDate().plusDays(group.getReadingPeriod());
-        }
+        LocalDate finalEndDate = ReadingPeriodDateCalculator.endDate(group);
 
         Double rating = bookReview != null ? bookReview.getStar() : null;
         String comment = bookReview != null ? bookReview.getComment() : null;

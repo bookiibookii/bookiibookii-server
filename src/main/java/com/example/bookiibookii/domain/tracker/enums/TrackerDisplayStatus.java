@@ -1,7 +1,7 @@
 package com.example.bookiibookii.domain.tracker.enums;
 
 public enum TrackerDisplayStatus {
-    // 프론트에서 노출되는 값들
+    // 프론트에서 노출되는 값들, db 저장 x
 
     READING,              // 읽는 중
     REVIEW_WRITING,       // 후기 작성

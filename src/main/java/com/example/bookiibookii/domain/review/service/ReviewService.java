@@ -13,6 +13,7 @@ import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.MemberReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyBookReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.MyGroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.entity.MemberReview;
@@ -146,6 +147,7 @@ public class ReviewService {
     @Transactional
     public BookReviewResponseDTO updateMyBookReview(
             Long groupId,
+            Long reviewId,
             ReviewRequestDTO.BookReviewUpsertDTO request,
             User user
     ) {
@@ -153,15 +155,29 @@ public class ReviewService {
         validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
 
         MatchedMember me = getMatchedMember(groupId, user.getId());
-        MemberBook currentMemberBook = getCurrentMemberBook(me);
 
         BookReview bookReview = bookReviewRepository
-                .findByMatchedMember_IdAndMemberBook_Id(me.getId(), currentMemberBook.getId())
+                .findByIdAndMatchedMember_IdAndMatchedMember_Group_Id(reviewId, me.getId(), groupId)
                 .orElseThrow(() -> new ReviewException(ReviewErrorCode.BOOK_REVIEW_NOT_FOUND));
 
         bookReview.updateReview(request.star(), request.comment());
 
         return BookReviewResponseDTO.from(bookReview);
+    }
+
+    @Transactional(readOnly = true)
+    public MyBookReviewsResponseDTO getMyBookReviews(Long groupId, User user) {
+        MatchedMember me = getMatchedMember(groupId, user.getId());
+
+        List<MyBookReviewsResponseDTO.BookReviewItem> reviews = bookReviewRepository
+                .findMyBookReviewsWithBook(me.getId(), groupId)
+                .stream()
+                .map(MyBookReviewsResponseDTO.BookReviewItem::from)
+                .toList();
+
+        return MyBookReviewsResponseDTO.builder()
+                .reviews(reviews)
+                .build();
     }
 
     @Transactional

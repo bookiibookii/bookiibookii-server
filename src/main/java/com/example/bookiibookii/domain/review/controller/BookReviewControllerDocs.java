@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.review.controller;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyBookReviewsResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.MyGroupReviewsResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
@@ -53,6 +54,32 @@ public interface BookReviewControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
+    @GetMapping("/book/me")
+    @Operation(
+            summary = "내 책 리뷰 목록 조회",
+            description = """
+            현재 로그인 사용자가 해당 그룹에서 작성한 책 리뷰 목록을 조회합니다.
+
+            - 그룹 멤버만 조회할 수 있습니다.
+            - 책 리뷰를 작성한 직후부터 그룹 완료 여부와 관계없이 조회할 수 있습니다.
+            - 작성한 책 리뷰가 없으면 빈 배열을 반환합니다.
+            - 내 원래 책 리뷰와 파트너 책 리뷰를 모두 반환하며 reviewType으로 구분합니다.
+            - 현재 로그인 사용자가 작성한 책 리뷰만 반환하며 파트너 매너 리뷰는 포함하지 않습니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "내 책 리뷰 목록 조회 성공",
+                    content = @Content(schema = @Schema(implementation = MyBookReviewsResponseDTO.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "그룹 멤버가 아님")
+    })
+    ApiResponse<MyBookReviewsResponseDTO> getMyBookReviews(
+            @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
+    );
+
     @PostMapping
     @Operation(
             summary = "책 리뷰 등록",
@@ -95,16 +122,17 @@ public interface BookReviewControllerDocs {
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
-    @PatchMapping("/me")
+    @PatchMapping("/book/{reviewId}")
     @Operation(
             summary = "내 책 리뷰 수정",
             description = """
-            현재 로그인 사용자가 작성한 현재 책 리뷰를 수정합니다.
+            현재 로그인 사용자가 작성한 책 리뷰를 reviewId 기준으로 수정합니다.
 
             - 그룹 멤버만 수정할 수 있습니다.
             - 별점은 필수이며 0.0~5.0 범위에서 0.5 단위만 허용됩니다.
             - 코멘트는 선택값이며 최대 500자입니다.
-            - 현재 사용자의 MatchedMember와 현재 memberBook 기준으로 리뷰를 찾습니다.
+            - 요청 groupId에 속하면서 현재 로그인 사용자가 작성한 책 리뷰만 수정할 수 있습니다.
+            - 파트너 매너 리뷰는 이 API로 수정할 수 없습니다.
             """
     )
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -131,6 +159,7 @@ public interface BookReviewControllerDocs {
     })
     ApiResponse<BookReviewResponseDTO> updateMyBookReview(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
+            @Parameter(description = "책 리뷰 식별자(ID)", example = "10") @PathVariable Long reviewId,
             @RequestBody @Valid ReviewRequestDTO.BookReviewUpsertDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );

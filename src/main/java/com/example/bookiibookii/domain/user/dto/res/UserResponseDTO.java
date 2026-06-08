@@ -2,7 +2,9 @@ package com.example.bookiibookii.domain.user.dto.res;
 
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
+import com.example.bookiibookii.domain.user.enums.Gender;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.util.List;
@@ -15,6 +17,10 @@ public class UserResponseDTO {
             String profileImageUrl,
             String nickname,
             String introduction,
+            @Schema(description = "성별", example = "FEMALE", nullable = true)
+            Gender gender,
+            @Schema(description = "생년월일(yyyy-MM-dd)", example = "1995-03-15", nullable = true)
+            String birthDate,
             List<UserBookDto> userBooks,
             Integer bookReviewCount,
             List<BookReviewSummaryDto> recentBookReviews,

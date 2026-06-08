@@ -221,6 +221,8 @@ public class UserService {
                 .profileImageUrl(profileImageUrl)
                 .nickname(user.getNickName())
                 .introduction(user.getIntroduction())
+                .gender(user.getGender())
+                .birthDate(user.getBirth() == null ? null : user.getBirth().toString())
                 .userBooks(userBooks)
                 .bookReviewCount((int) bookReviewCount)
                 .recentBookReviews(recentBookReviewSummaries)

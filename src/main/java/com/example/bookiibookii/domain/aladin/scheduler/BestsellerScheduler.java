@@ -10,7 +10,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -35,13 +37,24 @@ public class BestsellerScheduler {
         }
 
         List<BestsellerIsbn> newList = new ArrayList<>();
+        Set<String> seenIsbn13 = new LinkedHashSet<>();
         List<AladinClient.AladinBookItem> items = response.item();
         for (int i = 0; i < items.size(); i++) {
-            String isbn13 = items.get(i).isbn13();
-            if (isbn13 == null || isbn13.isBlank()) continue;
+            AladinClient.AladinBookItem item = items.get(i);
+            String isbn13 = normalizeIsbn13(item.isbn13());
+            if (isbn13 == null || !seenIsbn13.add(isbn13)) {
+                continue;
+            }
+            if (isBlank(item.title()) || isBlank(item.author()) || isBlank(item.cover())) {
+                log.warn("[Scheduler] 베스트셀러 표시 정보 누락으로 제외 isbn13={}", isbn13);
+                continue;
+            }
             newList.add(BestsellerIsbn.builder()
                     .isbn13(isbn13)
                     .rank(i + 1)
+                    .title(item.title())
+                    .author(item.author())
+                    .bookImage(item.cover())
                     .build());
         }
 
@@ -49,5 +62,17 @@ public class BestsellerScheduler {
         bestsellerIsbnRepository.saveAll(newList);
 
         log.info("[Scheduler] 베스트셀러 갱신 완료 ({}건)", newList.size());
+    }
+
+    private String normalizeIsbn13(String isbn13) {
+        if (isbn13 == null) {
+            return null;
+        }
+        String normalized = isbn13.replaceAll("\\D", "");
+        return normalized.length() == 13 ? normalized : null;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

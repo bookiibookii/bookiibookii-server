@@ -4,7 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "bestseller_isbn")
+@Table(
+        name = "bestseller_isbn",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_bestseller_isbn_isbn13", columnNames = "isbn13")
+        }
+)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -18,6 +23,15 @@ public class BestsellerIsbn {
     @Column(nullable = false, length = 13)
     private String isbn13;
 
-    @Column(nullable = false)
+    @Column(name = "ranking", nullable = false)
     private Integer rank;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false)
+    private String author;
+
+    @Column(name = "book_image", nullable = false)
+    private String bookImage;
 }

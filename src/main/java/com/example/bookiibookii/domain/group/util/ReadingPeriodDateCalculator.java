@@ -32,7 +32,15 @@ public final class ReadingPeriodDateCalculator {
     }
 
     public static int inclusivePeriod(LocalDate startDate, LocalDate endDate) {
-        return (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException("startDate and endDate must not be null");
+        }
+
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("endDate must not be before startDate");
+        }
+
+        return Math.toIntExact(ChronoUnit.DAYS.between(startDate, endDate) + 1);
     }
 
     public static Integer remainingDaysUntil(LocalDate dueDate, LocalDate today) {

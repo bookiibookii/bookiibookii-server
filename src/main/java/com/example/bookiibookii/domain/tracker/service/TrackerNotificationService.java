@@ -1,7 +1,6 @@
 package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
@@ -11,7 +10,6 @@ import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
-import com.example.bookiibookii.domain.tracker.enums.TrackerAction;
 import com.example.bookiibookii.domain.tracker.enums.TrackerNotiType;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
@@ -41,14 +39,11 @@ public class TrackerNotificationService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void send(TrackerNotificationEvent event) {
 
-        RoleStatus myRole = matchedMemberRepository.findRoleByGroupIdAndUserId(event.groupId(), event.actorId())
-                .orElseThrow(() -> new GroupException(GroupErrorCode.MATCHED_MEMBER_NOT_FOUND));
-
         Long receiverId = matchedMemberRepository
                 .findPartnerUserId(event.groupId(), event.actorId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.PARTNER_NOT_FOUND));
 
-        TrackerNotiType type = resolveNotiType(event.action(), myRole);
+        TrackerNotiType type = event.notiType();
         NotificationType notiType = type.getNotificationType();
 
         // 알림 필드
@@ -82,20 +77,4 @@ public class TrackerNotificationService {
         );
     }
 
-    private TrackerNotiType resolveNotiType(TrackerAction action, RoleStatus actorRole) {
-        return switch (action) {
-            case SHIPPING_REGISTERED -> (actorRole == RoleStatus.GUEST)
-                    ? TrackerNotiType.RETURN_SHIPPING_REGISTERED
-                    : TrackerNotiType.SHIPPING_REGISTERED;
-
-            case RECEIVED_CONFIRMED -> (actorRole == RoleStatus.HOST)
-                    ? TrackerNotiType.EXCHANGE_FINISHED
-                    : TrackerNotiType.RECEIVED_CONFIRMED;
-
-            case READING_STARTED -> TrackerNotiType.READING_STARTED;
-            case READING_FINISHED -> TrackerNotiType.READING_FINISHED;
-            case EXTEND_REQUESTED -> TrackerNotiType.EXTEND_REQUESTED;
-            case REVIEW_DONE_CONFIRMED -> TrackerNotiType.REVIEW_DONE_CONFIRMED;
-        };
-    }
 }

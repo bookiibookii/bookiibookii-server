@@ -1,11 +1,11 @@
 package com.example.bookiibookii.domain.tracker.event;
 
-import com.example.bookiibookii.domain.tracker.enums.TrackerAction;
+import com.example.bookiibookii.domain.tracker.enums.TrackerNotiType;
 
 import java.time.LocalDateTime;
 
 public record TrackerNotificationEvent(
-        TrackerAction action,
+        TrackerNotiType notiType,
 
         // 발신자
         Long actorId,

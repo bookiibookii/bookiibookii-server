@@ -42,11 +42,16 @@ public class BestsellerScheduler {
         for (int i = 0; i < items.size(); i++) {
             AladinClient.AladinBookItem item = items.get(i);
             String isbn13 = normalizeIsbn13(item.isbn13());
-            if (isbn13 == null || !seenIsbn13.add(isbn13)) {
+            if (isbn13 == null) {
                 continue;
             }
+
             if (isBlank(item.title()) || isBlank(item.author()) || isBlank(item.cover())) {
                 log.warn("[Scheduler] 베스트셀러 표시 정보 누락으로 제외 isbn13={}", isbn13);
+                continue;
+            }
+
+            if (!seenIsbn13.add(isbn13)) {
                 continue;
             }
             newList.add(BestsellerIsbn.builder()

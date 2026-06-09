@@ -38,6 +38,7 @@ public class TrackerConverter {
                 myCurrentReaderProfileImageUrl,
                 partnerCurrentReaderProfileImageUrl
         );
+        DisplayMetadata displayMetadata = resolveDisplayMetadata(displayBooks.myBook(), displayStatus);
 
         return TrackerListItemResDTO.builder()
                 .groupId(group.getId())
@@ -45,6 +46,8 @@ public class TrackerConverter {
                 .tradeType(group.getTradeType())
                 .myRole(me.getRole())
                 .displayStatus(displayStatus)
+                .displayBookTitle(displayMetadata.bookTitle())
+                .displayStatusLabel(displayMetadata.statusLabel())
                 .remainingDays(remainingDays)
                 .myCurrentBook(toBookInfo(
                         displayBooks.myBook(),
@@ -78,6 +81,7 @@ public class TrackerConverter {
                 myProfileImageUrl,
                 partnerProfileImageUrl
         );
+        DisplayMetadata displayMetadata = resolveDisplayMetadata(displayBooks.myBook(), displayStatus);
 
         return TrackerDetailResDTO.builder()
                 .groupId(group.getId())
@@ -85,8 +89,8 @@ public class TrackerConverter {
                 .tradeType(group.getTradeType())
                 .myRole(me.getRole())
                 .displayStatus(displayStatus)
-                .displayBookTitle(resolveDisplayBookTitle(displayBooks.myBook()))
-                .displayStatusLabel(resolveDisplayStatusLabel(displayStatus))
+                .displayBookTitle(displayMetadata.bookTitle())
+                .displayStatusLabel(displayMetadata.statusLabel())
                 .dDay(dDay)
                 .myBook(toBookInfo(
                         displayBooks.myBook(),
@@ -191,8 +195,14 @@ public class TrackerConverter {
                 || exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
     }
 
-    private static String resolveDisplayBookTitle(MemberBook displayBook) {
-        return displayBook.getBook().getTitle();
+    private static DisplayMetadata resolveDisplayMetadata(
+            MemberBook displayBook,
+            TrackerDisplayStatus displayStatus
+    ) {
+        return new DisplayMetadata(
+                displayBook.getBook().getTitle(),
+                resolveDisplayStatusLabel(displayStatus)
+        );
     }
 
     private static String resolveDisplayStatusLabel(TrackerDisplayStatus displayStatus) {
@@ -224,6 +234,12 @@ public class TrackerConverter {
             String myProfileImageUrl,
             String partnerProfileImageUrl,
             boolean resetProgressForDisplay
+    ) {
+    }
+
+    private record DisplayMetadata(
+            String bookTitle,
+            String statusLabel
     ) {
     }
 }

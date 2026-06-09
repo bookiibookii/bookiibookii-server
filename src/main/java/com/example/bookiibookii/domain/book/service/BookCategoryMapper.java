@@ -154,14 +154,14 @@ public class BookCategoryMapper {
         if (containsAny(path, "세계의 소설", "세계소설", "외국소설")) {
             return Optional.of(CustomCategory.WORLD_NOVEL);
         }
-        if (contains(path, "장르소설")) {
-            return Optional.of(CustomCategory.GENRE_NOVEL);
-        }
         if (contains(path, "로맨스")) {
             return Optional.of(CustomCategory.ROMANCE);
         }
         if (contains(path, "역사소설")) {
             return Optional.of(CustomCategory.HISTORICAL_NOVEL);
+        }
+        if (contains(path, "장르소설")) {
+            return Optional.of(CustomCategory.GENRE_NOVEL);
         }
         if (isKoreanNovelPath(path)) {
             return Optional.of(CustomCategory.KOREAN_NOVEL);

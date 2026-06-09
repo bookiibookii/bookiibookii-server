@@ -71,6 +71,10 @@ public class MemberBook extends BaseEntity {
         this.currentPage = Math.max(0, currentPage);
     }
 
+    public void resetProgress() {
+        this.currentPage = 0;
+    }
+
     public boolean isOwnedBy(MatchedMember matchedMember) {
         return this.matchedMember.getId().equals(matchedMember.getId());
     }

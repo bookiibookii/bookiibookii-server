@@ -57,9 +57,8 @@ public class TrackerService {
                     }
 
                     TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
-                            me.getReadingStatus(),
-                            me.getExchangeStatus(),
-                            me.getGroup().getTradeType(),
+                            me,
+                            partner,
                             isCurrentBookReviewWritten(me)
                     );
 
@@ -101,9 +100,8 @@ public class TrackerService {
 
         boolean currentBookReviewWritten = isCurrentBookReviewWritten(me);
         TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
-                me.getReadingStatus(),
-                me.getExchangeStatus(),
-                me.getGroup().getTradeType(),
+                me,
+                partner,
                 currentBookReviewWritten
         );
 
@@ -250,6 +248,11 @@ public class TrackerService {
                 || displayStatus == TrackerDisplayStatus.RETURN_TRACKING_REQUIRED
                 || displayStatus == TrackerDisplayStatus.RETURNING
                 || displayStatus == TrackerDisplayStatus.MEETING_REQUIRED
+                || displayStatus == TrackerDisplayStatus.WAITING_PARTNER_TRACKING_REGISTER
+                || displayStatus == TrackerDisplayStatus.WAITING_PARTNER_RECEIPT_CONFIRM
+                || displayStatus == TrackerDisplayStatus.MEETING_REGISTER_REQUIRED
+                || displayStatus == TrackerDisplayStatus.WAITING_HOST_MEETING_REGISTER
+                || displayStatus == TrackerDisplayStatus.WAITING_PARTNER_MEETING_COMPLETE
                 || displayStatus == TrackerDisplayStatus.EXCHANGING;
     }
 

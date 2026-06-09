@@ -16,8 +16,7 @@ public enum ExchangeStatus {
     // 직접 교환
     MEETING_SCHEDULE_WAITING("약속 등록/확인 대기"),
     MEETING_SCHEDULED("약속 등록 완료, 약속일 대기"),
-    MEETING_COMPLETED("내가 교환 완료 처리"),
-    MEETING_FAILED("내가 교환 미완료 처리");
+    MEETING_COMPLETED("내가 교환 완료 처리");
 
     private final String description;
 }

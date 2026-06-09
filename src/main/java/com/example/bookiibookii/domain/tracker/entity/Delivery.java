@@ -3,7 +3,6 @@ package com.example.bookiibookii.domain.tracker.entity;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.tracker.enums.DeliveryCompany;
-import com.example.bookiibookii.domain.tracker.enums.DeliveryStatus;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -36,10 +35,6 @@ public class Delivery extends BaseEntity {
     @Column(name = "exchange_round", nullable = false)
     private ExchangeRound exchangeRound;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "delivery_status", nullable = false)
-    private DeliveryStatus deliveryStatus;
-
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
@@ -67,12 +62,10 @@ public class Delivery extends BaseEntity {
 
     public void complete(LocalDateTime completedAt) {
         this.endDate = completedAt;
-        this.deliveryStatus = DeliveryStatus.RETURNED;
     }
 
     public void confirmReceived(LocalDateTime confirmedAt) {
         this.receivedConfirmedAt = confirmedAt;
         this.endDate = confirmedAt;
-        this.deliveryStatus = DeliveryStatus.RETURNED;
     }
 }

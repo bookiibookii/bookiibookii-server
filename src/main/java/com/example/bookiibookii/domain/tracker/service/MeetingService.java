@@ -138,8 +138,7 @@ public class MeetingService {
         if (me.getExchangeStatus() == ExchangeStatus.MEETING_COMPLETED) {
             throw new TrackerException(TrackerErrorCode.MEETING_ALREADY_COMPLETED);
         }
-        if (me.getExchangeStatus() != ExchangeStatus.MEETING_SCHEDULED
-                && me.getExchangeStatus() != ExchangeStatus.MEETING_FAILED) {
+        if (me.getExchangeStatus() != ExchangeStatus.MEETING_SCHEDULED) {
             throw new TrackerException(TrackerErrorCode.INVALID_MEETING_PHASE);
         }
 
@@ -240,12 +239,23 @@ public class MeetingService {
             return;
         }
 
-        members.forEach(member -> member.updateExchangeStatus(ExchangeStatus.NOT_STARTED));
+        members.forEach(member -> {
+            member.changeCurrentMemberBook(findMyBook(member), now);
+            member.updateReadingStatus(ReadingStatus.PARTNER_REVIEWING);
+            member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
+        });
     }
 
     private MemberBook findPartnerBook(MatchedMember matchedMember) {
         return matchedMember.getMemberBooks().stream()
                 .filter(memberBook -> !memberBook.isMine())
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
+    }
+
+    private MemberBook findMyBook(MatchedMember matchedMember) {
+        return matchedMember.getMemberBooks().stream()
+                .filter(MemberBook::isMine)
                 .findFirst()
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
     }

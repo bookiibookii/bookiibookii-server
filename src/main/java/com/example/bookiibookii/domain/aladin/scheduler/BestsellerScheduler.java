@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.aladin.scheduler;
 import com.example.bookiibookii.domain.aladin.config.AladinClient;
 import com.example.bookiibookii.domain.aladin.entity.BestsellerIsbn;
 import com.example.bookiibookii.domain.aladin.repository.BestsellerIsbnRepository;
+import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,6 +24,7 @@ public class BestsellerScheduler {
 
     private final AladinClient aladinClient;
     private final BestsellerIsbnRepository bestsellerIsbnRepository;
+    private final BookCategoryMapper bookCategoryMapper;
 
     // 매일 00:00 KST 실행. 환경별로 scheduler.bestseller.cron 설정으로 변경할 수 있다.
     @Scheduled(cron = "${scheduler.bestseller.cron:0 0 0 * * *}", zone = "Asia/Seoul")
@@ -53,6 +55,22 @@ public class BestsellerScheduler {
             }
             String isbn13 = normalizeIsbn13(item.isbn13());
             if (isbn13 == null) {
+                continue;
+            }
+
+            if (bookCategoryMapper.mapCategory(
+                    item.categoryId(),
+                    item.categoryName(),
+                    isbn13,
+                    item.title()
+            ).isEmpty()) {
+                log.debug(
+                        "[Scheduler] 차단 카테고리 베스트셀러 제외 categoryId={}, categoryName={}, isbn={}, title={}",
+                        item.categoryId(),
+                        item.categoryName(),
+                        isbn13,
+                        item.title()
+                );
                 continue;
             }
 

@@ -2,10 +2,13 @@ package com.example.bookiibookii.domain.group.dto.res;
 
 import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.enums.HomeLayoutType;
 import com.example.bookiibookii.domain.group.enums.HomeSectionType;
 import com.example.bookiibookii.domain.group.enums.HostedGroupDisplayStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -191,6 +194,10 @@ public class GroupResponseDTO {
             String bookImage,
             String bookTitle,
             String author,
+            @Schema(description = "그룹 진행 방식", example = "RELAY")
+            GroupType groupType,
+            @Schema(description = "책 장르 표시명", example = "한국소설")
+            String genre,
             Integer readingPeriod
     ) {}
 
@@ -210,6 +217,9 @@ public class GroupResponseDTO {
             String title,
             String subtitle,
             HomeLayoutType layoutType,
+            @ArraySchema(schema = @Schema(
+                    oneOf = {HomeGroupCardDTO.class, HomeBookThumbnailDTO.class}
+            ))
             List<?> items
     ) {}
 

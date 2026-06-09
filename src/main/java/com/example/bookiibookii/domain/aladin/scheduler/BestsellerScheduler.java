@@ -24,16 +24,23 @@ public class BestsellerScheduler {
     private final AladinClient aladinClient;
     private final BestsellerIsbnRepository bestsellerIsbnRepository;
 
-    @Scheduled(cron = "0 0 0 * * MON", zone = "Asia/Seoul")
+    // 매일 00:00 KST 실행. 환경별로 scheduler.bestseller.cron 설정으로 변경할 수 있다.
+    @Scheduled(cron = "${scheduler.bestseller.cron:0 0 0 * * *}", zone = "Asia/Seoul")
     @Transactional
-    public void refreshBestsellers() {
+    public int refreshBestsellers() {
         log.info("[Scheduler] 베스트셀러 갱신 시작");
 
-        AladinClient.AladinItemSearchResponse response = aladinClient.fetchBestsellers(BESTSELLER_LIMIT);
+        AladinClient.AladinItemSearchResponse response;
+        try {
+            response = aladinClient.fetchBestsellers(BESTSELLER_LIMIT);
+        } catch (RuntimeException e) {
+            log.error("[Scheduler] 알라딘 베스트셀러 조회 실패 - 기존 데이터 유지", e);
+            throw e;
+        }
 
         if (response == null || response.item() == null || response.item().isEmpty()) {
             log.warn("[Scheduler] 베스트셀러 응답 없음 — 기존 데이터 유지");
-            return;
+            return 0;
         }
 
         List<BestsellerIsbn> newList = new ArrayList<>();
@@ -41,6 +48,9 @@ public class BestsellerScheduler {
         List<AladinClient.AladinBookItem> items = response.item();
         for (int i = 0; i < items.size(); i++) {
             AladinClient.AladinBookItem item = items.get(i);
+            if (item == null) {
+                continue;
+            }
             String isbn13 = normalizeIsbn13(item.isbn13());
             if (isbn13 == null) {
                 continue;
@@ -63,10 +73,16 @@ public class BestsellerScheduler {
                     .build());
         }
 
-        bestsellerIsbnRepository.deleteAll();
-        bestsellerIsbnRepository.saveAll(newList);
+        if (newList.isEmpty()) {
+            log.warn("[Scheduler] 저장 가능한 베스트셀러가 없어 기존 데이터 유지");
+            return 0;
+        }
+
+        bestsellerIsbnRepository.deleteAllInBatch();
+        bestsellerIsbnRepository.saveAllAndFlush(newList);
 
         log.info("[Scheduler] 베스트셀러 갱신 완료 ({}건)", newList.size());
+        return newList.size();
     }
 
     private String normalizeIsbn13(String isbn13) {

@@ -723,25 +723,30 @@ public class GroupService {
 
         Long userId = user.getId();
         List<GroupResponseDTO.HomeSectionDTO> sections = new ArrayList<>(7);
+        Map<String, String> profileImageUrlCache = new java.util.HashMap<>();
 
-        addIfPresent(sections, buildNewGroupsSection(userId));
+        addIfPresent(sections, buildNewGroupsSection(userId, profileImageUrlCache));
         sections.add(buildPopularBooksSection(userId));
-        addIfPresent(sections, buildGenreSection(userId));
+        addIfPresent(sections, buildGenreSection(userId, profileImageUrlCache));
         sections.add(buildBestsellerBooksSection());
-        addIfPresent(sections, buildClassicGroupsSection(userId));
-        addIfPresent(sections, buildPackageGroupsSection(userId));
-        addIfPresent(sections, buildNearbyDirectGroupsSection(userId));
+        addIfPresent(sections, buildClassicGroupsSection(userId, profileImageUrlCache));
+        addIfPresent(sections, buildPackageGroupsSection(userId, profileImageUrlCache));
+        addIfPresent(sections, buildNearbyDirectGroupsSection(userId, profileImageUrlCache));
 
         return GroupResponseDTO.HomeResponseDTO.builder().sections(sections).build();
     }
 
-    private GroupResponseDTO.HomeSectionDTO buildNewGroupsSection(Long userId) {
+    private GroupResponseDTO.HomeSectionDTO buildNewGroupsSection(
+            Long userId,
+            Map<String, String> profileImageUrlCache
+    ) {
         List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
                 groupQueryRepository.findRecentGroups(
                         userId,
                         HomeSeedUtil.twentyFourHoursAgoKst(),
                         HOME_GROUP_LIMIT
-                )
+                ),
+                profileImageUrlCache
         );
         return groupSection(
                 HomeSectionType.NEW_GROUPS,
@@ -764,7 +769,10 @@ public class GroupService {
         );
     }
 
-    private GroupResponseDTO.HomeSectionDTO buildGenreSection(Long userId) {
+    private GroupResponseDTO.HomeSectionDTO buildGenreSection(
+            Long userId,
+            Map<String, String> profileImageUrlCache
+    ) {
         List<HomeGenre> candidates = groupQueryRepository
                 .findCategoriesWithRecruitingGroups(userId)
                 .stream()
@@ -786,7 +794,8 @@ public class GroupService {
                         userId,
                         picked.getCategories(),
                         HOME_GROUP_LIMIT
-                )
+                ),
+                profileImageUrlCache
         );
         return groupSection(
                 HomeSectionType.RANDOM_GENRE_GROUPS,
@@ -809,13 +818,17 @@ public class GroupService {
         );
     }
 
-    private GroupResponseDTO.HomeSectionDTO buildClassicGroupsSection(Long userId) {
+    private GroupResponseDTO.HomeSectionDTO buildClassicGroupsSection(
+            Long userId,
+            Map<String, String> profileImageUrlCache
+    ) {
         List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
                 groupQueryRepository.findClassicGroups(
                         userId,
                         HomeCandidateSectionType.CLASSIC_BOOK_GROUP,
                         HOME_GROUP_LIMIT
-                )
+                ),
+                profileImageUrlCache
         );
         return groupSection(
                 HomeSectionType.CLASSIC_GROUPS,
@@ -825,13 +838,17 @@ public class GroupService {
         );
     }
 
-    private GroupResponseDTO.HomeSectionDTO buildPackageGroupsSection(Long userId) {
+    private GroupResponseDTO.HomeSectionDTO buildPackageGroupsSection(
+            Long userId,
+            Map<String, String> profileImageUrlCache
+    ) {
         List<GroupResponseDTO.HomeGroupCardDTO> items = toHomeCards(
                 groupQueryRepository.findGroupsByTradeType(
                         userId,
                         TradeType.DELIVERY,
                         HOME_GROUP_LIMIT
-                )
+                ),
+                profileImageUrlCache
         );
         return groupSection(
                 HomeSectionType.PACKAGE_GROUPS,
@@ -841,7 +858,10 @@ public class GroupService {
         );
     }
 
-    private GroupResponseDTO.HomeSectionDTO buildNearbyDirectGroupsSection(Long userId) {
+    private GroupResponseDTO.HomeSectionDTO buildNearbyDirectGroupsSection(
+            Long userId,
+            Map<String, String> profileImageUrlCache
+    ) {
         List<UserExchange> exchanges = userExchangeRepository
                 .findByUserIdWithLocation(userId)
                 .stream()
@@ -869,7 +889,8 @@ public class GroupService {
                         picked.getLocation().getX(),
                         picked.getLocation().getY(),
                         HOME_GROUP_LIMIT
-                )
+                ),
+                profileImageUrlCache
         );
         return groupSection(
                 HomeSectionType.NEARBY_DIRECT_GROUPS,
@@ -900,12 +921,15 @@ public class GroupService {
     }
 
     private List<GroupResponseDTO.HomeGroupCardDTO> toHomeCards(
-            List<Groups> groups
+            List<Groups> groups,
+            Map<String, String> profileImageUrlCache
     ) {
         if (groups == null || groups.isEmpty()) {
             return List.of();
         }
-        return groups.stream().map(this::toHomeCard).toList();
+        return groups.stream()
+                .map(group -> toHomeCard(group, profileImageUrlCache))
+                .toList();
     }
 
     private List<GroupResponseDTO.HomeBookThumbnailDTO> toBookThumbnails(
@@ -993,16 +1017,35 @@ public class GroupService {
         }
     }
 
-    private GroupResponseDTO.HomeGroupCardDTO toHomeCard(Groups group) {
+    private GroupResponseDTO.HomeGroupCardDTO toHomeCard(
+            Groups group,
+            Map<String, String> profileImageUrlCache
+    ) {
         return GroupResponseDTO.HomeGroupCardDTO.builder()
                 .groupId(group.getId())
                 .groupName(group.getGroupName())
                 .hostNickname(group.getHost().getNickName())
-                .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
+                .hostProfileImageUrl(userProfileImageUrl(group.getHost(), profileImageUrlCache))
                 .bookImage(group.getBook().getImage())
                 .bookTitle(group.getBook().getTitle())
                 .author(group.getBook().getAuthor())
+                .groupType(group.getGroupType())
+                .genre(group.getBook().getCategory().getLabel())
                 .readingPeriod(group.getReadingPeriod())
                 .build();
+    }
+
+    private String userProfileImageUrl(User user, Map<String, String> profileImageUrlCache) {
+        if (user == null || user.getUserImage() == null || isBlank(user.getUserImage().getS3Key())) {
+            return null;
+        }
+        String s3Key = user.getUserImage().getS3Key();
+        return profileImageUrlCache.computeIfAbsent(
+                s3Key,
+                key -> userImageS3Service.generatePresignedGetUrl(
+                        key,
+                        PRESIGNED_GET_URL_EXPIRATION_MINUTES
+                )
+        );
     }
 }

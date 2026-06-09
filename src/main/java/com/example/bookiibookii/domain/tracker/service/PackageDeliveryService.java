@@ -215,6 +215,7 @@ public class PackageDeliveryService {
             LocalDateTime now = LocalDateTime.now();
             if (currentExchangeRound == ExchangeRound.RETURN_EXCHANGE) {
                 members.forEach(member -> {
+                    member.changeCurrentMemberBook(findMyBook(member), now);
                     member.updateReadingStatus(ReadingStatus.PARTNER_REVIEWING);
                     member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
                 });
@@ -379,6 +380,13 @@ public class PackageDeliveryService {
     private MemberBook findPartnerBook(MatchedMember matchedMember) {
         return matchedMember.getMemberBooks().stream()
                 .filter(memberBook -> !memberBook.isMine())
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
+    }
+
+    private MemberBook findMyBook(MatchedMember matchedMember) {
+        return matchedMember.getMemberBooks().stream()
+                .filter(MemberBook::isMine)
                 .findFirst()
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
     }

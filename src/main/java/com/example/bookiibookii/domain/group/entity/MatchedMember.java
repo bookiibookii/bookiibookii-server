@@ -119,6 +119,9 @@ public class MatchedMember extends BaseEntity {
             throw new TrackerException(TrackerErrorCode.INVALID_READING_STARTED_AT);
         }
 
+        if (this.currentMemberBook != nextBook) {
+            nextBook.resetProgress();
+        }
         this.currentMemberBook = nextBook;
         this.readingStartedAt = changedAt;
     }

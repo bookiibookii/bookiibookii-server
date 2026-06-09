@@ -49,12 +49,14 @@ public class TrackerConverter {
                 .myCurrentBook(toBookInfo(
                         displayBooks.myBook(),
                         displayBooks.myProfileImageUrl(),
-                        isMyOriginalBook(displayBooks.myBook(), me)
+                        isMyOriginalBook(displayBooks.myBook(), me),
+                        displayBooks.resetProgressForDisplay()
                 ))
                 .partnerCurrentBook(toBookInfo(
                         displayBooks.partnerBook(),
                         displayBooks.partnerProfileImageUrl(),
-                        isMyOriginalBook(displayBooks.partnerBook(), me)
+                        isMyOriginalBook(displayBooks.partnerBook(), me),
+                        displayBooks.resetProgressForDisplay()
                 ))
                 .build();
     }
@@ -89,12 +91,14 @@ public class TrackerConverter {
                 .myBook(toBookInfo(
                         displayBooks.myBook(),
                         displayBooks.myProfileImageUrl(),
-                        isMyOriginalBook(displayBooks.myBook(), me)
+                        isMyOriginalBook(displayBooks.myBook(), me),
+                        displayBooks.resetProgressForDisplay()
                 ))
                 .partnerBook(toBookInfo(
                         displayBooks.partnerBook(),
                         displayBooks.partnerProfileImageUrl(),
-                        isMyOriginalBook(displayBooks.partnerBook(), me)
+                        isMyOriginalBook(displayBooks.partnerBook(), me),
+                        displayBooks.resetProgressForDisplay()
                 ))
                 .steps(steps)
                 .build();
@@ -105,18 +109,28 @@ public class TrackerConverter {
             String currentReaderProfileImageUrl,
             boolean isMyOriginalBook
     ) {
+        return toBookInfo(memberBook, currentReaderProfileImageUrl, isMyOriginalBook, false);
+    }
+
+    private static BookInfo toBookInfo(
+            MemberBook memberBook,
+            String currentReaderProfileImageUrl,
+            boolean isMyOriginalBook,
+            boolean resetProgressForDisplay
+    ) {
         Book book = memberBook.getBook();
         User currentReader = memberBook.getMatchedMember().getUser();
+        int currentPage = resetProgressForDisplay ? 0 : memberBook.getCurrentPage();
 
         return BookInfo.builder()
                 .title(book.getTitle())
                 .image(book.getImage())
                 .totalPages(book.getTotalPages())
-                .currentPage(memberBook.getCurrentPage())
+                .currentPage(currentPage)
                 .isMyOriginalBook(isMyOriginalBook)
                 .currentReaderNickname(currentReader.getNickName())
                 .currentReaderProfileImageUrl(currentReaderProfileImageUrl)
-                .currentReadingRate(calculateProgressRate(memberBook.getCurrentPage(), book.getTotalPages()))
+                .currentReadingRate(calculateProgressRate(currentPage, book.getTotalPages()))
                 .build();
     }
 
@@ -143,7 +157,8 @@ public class TrackerConverter {
                     partner.getCurrentMemberBook(),
                     me.getCurrentMemberBook(),
                     partnerProfileImageUrl,
-                    myProfileImageUrl
+                    myProfileImageUrl,
+                    true
             );
         }
 
@@ -151,7 +166,8 @@ public class TrackerConverter {
                 me.getCurrentMemberBook(),
                 partner.getCurrentMemberBook(),
                 myProfileImageUrl,
-                partnerProfileImageUrl
+                partnerProfileImageUrl,
+                false
         );
     }
 
@@ -206,7 +222,8 @@ public class TrackerConverter {
             MemberBook myBook,
             MemberBook partnerBook,
             String myProfileImageUrl,
-            String partnerProfileImageUrl
+            String partnerProfileImageUrl,
+            boolean resetProgressForDisplay
     ) {
     }
 }

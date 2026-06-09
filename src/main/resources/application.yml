@@ -8,3 +8,7 @@ springdoc:
   swagger-ui:
     doc-expansion: none
     tags-sorter: none
+
+scheduler:
+  bestseller:
+    cron: "0 0 0 * * *"

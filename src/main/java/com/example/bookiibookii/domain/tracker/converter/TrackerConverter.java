@@ -32,19 +32,12 @@ public class TrackerConverter {
             String partnerCurrentReaderProfileImageUrl
     ) {
         Groups group = me.getGroup();
-
-        // 실제 수령 전이어도 운송장 등록 시점부터 상대 책을 display 대상으로 전환한다.
-        boolean displayPartnerBookFromTrackingRegistration = me.getReadingStatus() == ReadingStatus.EXCHANGING
-                && (me.getExchangeStatus() == ExchangeStatus.TRACKING_REGISTERED
-                || me.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED);
-        MemberBook myDisplayBook = displayPartnerBookFromTrackingRegistration ? partner.getCurrentMemberBook() : me.getCurrentMemberBook();
-        MemberBook partnerDisplayBook = displayPartnerBookFromTrackingRegistration ? me.getCurrentMemberBook() : partner.getCurrentMemberBook();
-        String myDisplayProfileImageUrl = displayPartnerBookFromTrackingRegistration
-                ? partnerCurrentReaderProfileImageUrl
-                : myCurrentReaderProfileImageUrl;
-        String partnerDisplayProfileImageUrl = displayPartnerBookFromTrackingRegistration
-                ? myCurrentReaderProfileImageUrl
-                : partnerCurrentReaderProfileImageUrl;
+        DisplayBooks displayBooks = resolveDisplayBooks(
+                me,
+                partner,
+                myCurrentReaderProfileImageUrl,
+                partnerCurrentReaderProfileImageUrl
+        );
 
         return TrackerListItemResDTO.builder()
                 .groupId(group.getId())
@@ -54,14 +47,14 @@ public class TrackerConverter {
                 .displayStatus(displayStatus)
                 .remainingDays(remainingDays)
                 .myCurrentBook(toBookInfo(
-                        myDisplayBook,
-                        myDisplayProfileImageUrl,
-                        isMyOriginalBook(myDisplayBook, me)
+                        displayBooks.myBook(),
+                        displayBooks.myProfileImageUrl(),
+                        isMyOriginalBook(displayBooks.myBook(), me)
                 ))
                 .partnerCurrentBook(toBookInfo(
-                        partnerDisplayBook,
-                        partnerDisplayProfileImageUrl,
-                        isMyOriginalBook(partnerDisplayBook, me)
+                        displayBooks.partnerBook(),
+                        displayBooks.partnerProfileImageUrl(),
+                        isMyOriginalBook(displayBooks.partnerBook(), me)
                 ))
                 .build();
     }
@@ -77,7 +70,7 @@ public class TrackerConverter {
             List<TrackerStepInfo> steps
     ) {
         Groups group = me.getGroup();
-        DisplayBooks displayBooks = resolveDetailDisplayBooks(
+        DisplayBooks displayBooks = resolveDisplayBooks(
                 me,
                 partner,
                 myProfileImageUrl,
@@ -139,7 +132,7 @@ public class TrackerConverter {
         return (normalizedPage * 100) / totalPages;
     }
 
-    private static DisplayBooks resolveDetailDisplayBooks(
+    private static DisplayBooks resolveDisplayBooks(
             MatchedMember me,
             MatchedMember partner,
             String myProfileImageUrl,

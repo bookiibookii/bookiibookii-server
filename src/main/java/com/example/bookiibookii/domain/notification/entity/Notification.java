@@ -6,6 +6,8 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -39,11 +41,13 @@ public class Notification extends BaseEntity {
     private User actor;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "category", nullable = false, length = 32)
     private NotificationCategory category;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "type", nullable = false, length = 64)
     private NotificationType type; // 라우팅 용도
 
     @Column(name = "title", nullable = false)

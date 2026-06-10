@@ -1,9 +1,10 @@
 package com.example.bookiibookii.domain.notification.service;
 
+import com.example.bookiibookii.domain.notification.dto.NotificationPayload;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.enums.RedirectType;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
-import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.notification.repository.UserKeywordRepository;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class KeywordNotificationService {
 
     private final UserKeywordRepository userKeywordRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationStore notificationStore;
     private final NotificationFactory notificationFactory;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -31,18 +31,26 @@ public class KeywordNotificationService {
                 userKeywordRepository.findDistinctUserIdsByKeywordIds(event.keywordIds());
         if (receiverIds.isEmpty()) return;
 
-        String payload = notificationFactory.toJson(Map.of("groupId", event.groupId()));
+        String payload = notificationFactory.toJson(
+                NotificationPayload.builder()
+                        .redirectType(RedirectType.GROUP_DETAIL)
+                        .groupId(event.groupId())
+                        .build()
+        );
         String title = "찾으시는 책이 올라왔어요!";
         String keywordPart = formatKeywords(event.keywordTexts());
         String message = String.format("%s 관련 새 그룹이 생성되었습니다. 마감되기 전에 신청해보세요.", keywordPart);
 
-        notificationRepository.saveAll(
-                receiverIds.stream()
-                        .map(id -> notificationFactory.create(id,
-                                NotificationCategory.KEYWORD, NotificationType.KEYWORD_GROUP_CREATED,
-                                title, message, payload))
-                        .toList()
-        );
+        receiverIds.forEach(id -> notificationStore.save(
+                notificationFactory.create(
+                        id,
+                        NotificationCategory.KEYWORD,
+                        NotificationType.KEYWORD_GROUP_CREATED,
+                        title,
+                        message,
+                        payload
+                )
+        ));
     }
 
     // keyword 알림 메시지 format

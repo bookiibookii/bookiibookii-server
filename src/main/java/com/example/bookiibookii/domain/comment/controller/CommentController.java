@@ -36,7 +36,7 @@ public class CommentController implements CommentControllerDocs{
             @PathVariable Long groupId,
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        List<CommentTreeResDTO> result = commentService.getTree(groupId, user.getId());
+        List<CommentTreeResDTO> result = commentService.getTree(groupId, user);
         return ApiResponse.onSuccess(CommentSuccessCode.COMMENT_FOUND_OK, result);
     }
 

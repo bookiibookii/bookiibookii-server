@@ -5,19 +5,17 @@ import com.example.bookiibookii.domain.comment.dto.res.CommentCreateResDTO;
 import com.example.bookiibookii.domain.comment.dto.res.CommentTreeResDTO;
 import com.example.bookiibookii.domain.comment.dto.req.CommentCreateReqDTO;
 import com.example.bookiibookii.domain.comment.entity.Comment;
+import com.example.bookiibookii.domain.comment.enums.CommentContext;
 import com.example.bookiibookii.domain.comment.enums.WriterRole;
-import com.example.bookiibookii.domain.comment.event.CommentEvent;
 import com.example.bookiibookii.domain.comment.exception.code.CommentErrorCode;
 import com.example.bookiibookii.domain.comment.exception.CommentException;
 import com.example.bookiibookii.domain.comment.repository.CommentRepository;
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +35,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final GroupsRepository groupRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final DomainEventPublisher eventPublisher;
+    private final CommentAccessPolicy commentAccessPolicy;
     private final UserImageS3Service userImageS3Service;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
@@ -46,23 +44,48 @@ public class CommentService {
     public CommentCreateResDTO create(Long groupId, User user, CommentCreateReqDTO req) {
         Groups group = groupRepository.findByIdWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        CommentContext context = commentAccessPolicy.resolveContext(group);
+        commentAccessPolicy.validateAccess(context, groupId, user);
 
-        // 댓글 작성자의 그룹 내 역할
         WriterRole writerRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
                 .map(r -> r == RoleStatus.HOST ? WriterRole.HOST : WriterRole.GUEST)
                 .orElse(WriterRole.NONE);
 
-        // 진행 중 그룹에 그룹 멤버가 아닌 유저가 댓글 달 시 에러처리
-        if (group.getGroupStatus() != GroupStatus.RECRUITING && writerRole == WriterRole.NONE) {
-            throw new CommentException(CommentErrorCode.COMMENT_WRITE_FORBIDDEN);
-        }
+        return switch (context) {
+            case GROUP_DETAIL -> createGroupDetailComment(group, user, req, writerRole);
+            case TRACKER -> createTrackerComment(group, user, req, writerRole);
+        };
+    }
 
+    private CommentCreateResDTO createGroupDetailComment(
+            Groups group,
+            User user,
+            CommentCreateReqDTO req,
+            WriterRole writerRole
+    ) {
+        Comment saved = saveComment(group, user, req);
+        // NOTI-GRP-004/005 trigger point: group-detail comment/reply created.
+        return toCreateResDTO(saved, writerRole);
+    }
+
+    private CommentCreateResDTO createTrackerComment(
+            Groups group,
+            User user,
+            CommentCreateReqDTO req,
+            WriterRole writerRole
+    ) {
+        Comment saved = saveComment(group, user, req);
+        // NOTI-TRK-003 trigger point: tracker comment/reply created.
+        return toCreateResDTO(saved, writerRole);
+    }
+
+    private Comment saveComment(Groups group, User user, CommentCreateReqDTO req) {
         Comment parent = null;
         if (req.getParentId() != null) {
             parent = commentRepository.findById(req.getParentId())
                     .orElseThrow(() -> new CommentException(CommentErrorCode.PARENT_COMMENT_NOT_FOUND));
 
-            if (!parent.getGroup().getId().equals(groupId)) {
+            if (!parent.getGroup().getId().equals(group.getId())) {
                 throw new CommentException(CommentErrorCode.PARENT_COMMENT_GROUP_MISMATCH);
             }
 
@@ -89,19 +112,16 @@ public class CommentService {
                 .secret(isSecret)
                 .secretTargetUserId(secretTargetUserId)
                 .build();
-        Comment saved = commentRepository.save(comment);
-
-        Long notifyUserId = isSecret ? secretTargetUserId : group.getHost().getId();
-        if (!user.getId().equals(notifyUserId)) {
-            eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), notifyUserId, group.getId()));
-        }
-        return toCreateResDTO(saved, writerRole);
+        return commentRepository.save(comment);
     }
 
-    // 그룹 페이지 내 모든 댓글 조회(대댓글 포함)
     @Transactional(readOnly = true)
-    public List<CommentTreeResDTO> getTree(Long groupId, Long viewerId) {
-        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewerId);
+    public List<CommentTreeResDTO> getTree(Long groupId, User viewer) {
+        Groups group = getGroup(groupId);
+        CommentContext context = commentAccessPolicy.resolveContext(group);
+        commentAccessPolicy.validateAccess(context, groupId, viewer);
+
+        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewer.getId());
 
         // 그룹 멤버 역할 전체 로드 (user_id, mm.RoleStatus 가져옴)
         Map<Long, WriterRole> writerRoleMap = matchedMemberRepository.findWriterRowsByGroupId(groupId)
@@ -136,8 +156,11 @@ public class CommentService {
 
     @Transactional
     public void delete(Long groupId, Long commentId, User user) {
-        Comment comment = commentRepository.findByIdAndGroupIdWithUser(commentId, groupId)
-                .orElseThrow(() -> new CommentException(CommentErrorCode.COMMENT_NOT_FOUND));
+        Groups group = getGroup(groupId);
+        CommentContext context = commentAccessPolicy.resolveContext(group);
+        commentAccessPolicy.validateAccess(context, groupId, user);
+
+        Comment comment = getComment(groupId, commentId);
 
         if (!comment.getUser().getId().equals(user.getId())) {
             throw new CommentException(CommentErrorCode.COMMENT_DELETE_FORBIDDEN);
@@ -146,6 +169,16 @@ public class CommentService {
         if (comment.isDeleted()) return;
 
         comment.markDeleted();
+    }
+
+    private Groups getGroup(Long groupId) {
+        return groupRepository.findByIdWithBookAndHost(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+    }
+
+    private Comment getComment(Long groupId, Long commentId) {
+        return commentRepository.findByIdAndGroupIdWithUser(commentId, groupId)
+                .orElseThrow(() -> new CommentException(CommentErrorCode.COMMENT_NOT_FOUND));
     }
 
     private static WriterRole toWriterRole(RoleStatus roleStatus) {

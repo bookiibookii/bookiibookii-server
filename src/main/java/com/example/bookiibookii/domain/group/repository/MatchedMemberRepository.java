@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.enums.MemberStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import jakarta.persistence.LockModeType;
@@ -91,6 +92,8 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
 
     // 유저가 그룹의 멤버인지 검증
     boolean existsByGroup_IdAndUser_Id(Long groupId, Long userId);
+
+    boolean existsByGroup_IdAndUser_IdAndStatus(Long groupId, Long userId, MemberStatus status);
 
     @Query("""
         select mm.user.id

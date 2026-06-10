@@ -12,8 +12,6 @@ import java.util.Optional;
 @Repository
 public interface CardsRepository extends JpaRepository<Cards, Long> {
 
-    Optional<Cards> findTopByMemberBook_IdOrderByPageDesc(Long memberBookId);
-
     @Query("""
         SELECT c FROM Cards c
         JOIN FETCH c.memberBook mb

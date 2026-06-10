@@ -370,7 +370,6 @@ public class MemberBookCardService {
             }
         }
 
-        recalculateMemberBookProgressRate(memberBook);
         cardsRepository.flush();
 
         if (cardImage == null && card.getCardType() == CardType.IMAGE) {
@@ -438,7 +437,6 @@ public class MemberBookCardService {
                         .build()
         );
 
-        updateMemberBookProgressRate(memberBook, page);
         return buildResponse(loadCardWithCreator(savedCard.getId()), null, presignedGetUrlExpirationMinutes);
     }
 
@@ -475,7 +473,6 @@ public class MemberBookCardService {
             throw new CardImageException(CardImageErrorCode.DUPLICATE_S3_KEY);
         }
 
-        updateMemberBookProgressRate(memberBook, page);
         return buildResponse(loadCardWithCreator(savedCard.getId()), cardImage, presignedGetUrlExpirationMinutes);
     }
 
@@ -543,30 +540,6 @@ public class MemberBookCardService {
         if (totalPages != null && currentPage > totalPages) {
             throw new MemberBookException(MemberBookErrorCode.PAGE_EXCEEDS_TOTAL);
         }
-    }
-
-    private void updateMemberBookProgressRate(MemberBook memberBook, Integer page) {
-        if (page != null) {
-            recalculateMemberBookProgressRate(memberBook);
-        }
-    }
-
-    private void recalculateMemberBookProgressRate(MemberBook memberBook) {
-        Integer totalPages = memberBook.getBook().getTotalPages();
-        if (totalPages == null || totalPages <= 0) {
-            return;
-        }
-
-        Integer maxPage = cardsRepository.findTopByMemberBook_IdOrderByPageDesc(memberBook.getId())
-                .map(Cards::getPage)
-                .filter(p -> p != null && p > 0)
-                .orElse(null);
-
-        if (maxPage == null) {
-            return;
-        }
-
-        memberBook.updateCurrentPage(maxPage);
     }
 
     private MemberCardImageResponseDTO buildCardImageResponse(

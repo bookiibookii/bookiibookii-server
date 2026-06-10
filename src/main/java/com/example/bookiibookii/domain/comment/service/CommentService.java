@@ -7,6 +7,7 @@ import com.example.bookiibookii.domain.comment.dto.req.CommentCreateReqDTO;
 import com.example.bookiibookii.domain.comment.entity.Comment;
 import com.example.bookiibookii.domain.comment.enums.CommentContext;
 import com.example.bookiibookii.domain.comment.enums.WriterRole;
+import com.example.bookiibookii.domain.comment.event.CommentEvent;
 import com.example.bookiibookii.domain.comment.exception.code.CommentErrorCode;
 import com.example.bookiibookii.domain.comment.exception.CommentException;
 import com.example.bookiibookii.domain.comment.repository.CommentRepository;
@@ -16,6 +17,8 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ public class CommentService {
     private final GroupsRepository groupRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final CommentAccessPolicy commentAccessPolicy;
+    private final DomainEventPublisher eventPublisher;
     private final UserImageS3Service userImageS3Service;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
@@ -64,7 +68,7 @@ public class CommentService {
             WriterRole writerRole
     ) {
         Comment saved = saveComment(group, user, req);
-        // NOTI-GRP-004/005 trigger point: group-detail comment/reply created.
+        publishGroupDetailCommentNotification(group, user, saved);
         return toCreateResDTO(saved, writerRole);
     }
 
@@ -75,8 +79,47 @@ public class CommentService {
             WriterRole writerRole
     ) {
         Comment saved = saveComment(group, user, req);
-        // NOTI-TRK-003 trigger point: tracker comment/reply created.
+        // NOTI-TRK-003 is intentionally implemented in a later PR.
         return toCreateResDTO(saved, writerRole);
+    }
+
+    private void publishGroupDetailCommentNotification(Groups group, User writer, Comment comment) {
+        Comment parent = comment.getParent();
+        if (parent != null) {
+            Long parentWriterId = parent.getUser().getId();
+            if (!parentWriterId.equals(writer.getId())) {
+                eventPublisher.publish(new CommentEvent(
+                        NotificationType.GROUP_COMMENT_REPLIED,
+                        writer.getNickName(),
+                        groupTitle(group),
+                        List.of(parentWriterId),
+                        group.getId(),
+                        comment.getId(),
+                        parent.getId()
+                ));
+            }
+            return;
+        }
+
+        Long hostId = group.getHost().getId();
+        if (hostId.equals(writer.getId())) return;
+
+        eventPublisher.publish(new CommentEvent(
+                NotificationType.GROUP_COMMENT_CREATED,
+                writer.getNickName(),
+                groupTitle(group),
+                List.of(hostId),
+                group.getId(),
+                comment.getId(),
+                null
+        ));
+    }
+
+    private String groupTitle(Groups group) {
+        if (group.getGroupName() != null && !group.getGroupName().isBlank()) {
+            return group.getGroupName();
+        }
+        return group.getBook().getTitle();
     }
 
     private Comment saveComment(Groups group, User user, CommentCreateReqDTO req) {

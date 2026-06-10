@@ -10,7 +10,13 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notification")
+@Table(
+        name = "notification",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_notification_receiver_dedup_key",
+                columnNames = {"receiver_user_id", "dedup_key"}
+        )
+)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -48,6 +54,9 @@ public class Notification extends BaseEntity {
 
     @Column(name = "payload", columnDefinition = "TEXT")
     private String payload; // JSON string
+
+    @Column(name = "dedup_key", length = 255)
+    private String dedupKey;
 
     @Column(name = "is_read", nullable = false)
     private boolean read;

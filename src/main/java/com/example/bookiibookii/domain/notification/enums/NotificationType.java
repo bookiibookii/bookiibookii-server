@@ -29,6 +29,12 @@ public enum NotificationType {
     TRACKER_RETURN_SHIPMENT_REGISTERED(NotificationCategory.SYSTEM), // TRK-010 (반납 출발)
     TRACKER_EXCHANGE_COMPLETED(NotificationCategory.SYSTEM),  // TRK-030 (후기작성)
     TRACKER_REVIEW_DONE_CONFIRMED(NotificationCategory.SYSTEM), // TRK-010
+    // todo : 네이밍 변경 예정
+    NOTI_TRK_001(NotificationCategory.SYSTEM),
+    NOTI_TRK_002(NotificationCategory.SYSTEM),
+    NOTI_TRK_003(NotificationCategory.SYSTEM),
+    NOTI_TRK_004(NotificationCategory.SYSTEM),
+    NOTI_TRK_005(NotificationCategory.SYSTEM),
 
     // KEYWORD
     KEYWORD_GROUP_CREATED(NotificationCategory.KEYWORD),      // GRP-010

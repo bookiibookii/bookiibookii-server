@@ -9,6 +9,9 @@ import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
 import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
 import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
@@ -23,7 +26,9 @@ import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
 import com.example.bookiibookii.domain.tracker.resolver.UserProfileImageUrlResolver;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -52,6 +57,7 @@ public class ReviewService {
     private final GroupsRepository groupsRepository;
     private final DeliveryAddressService deliveryAddressService;
     private final UserProfileImageUrlResolver userProfileImageUrlResolver;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public BookReviewResponseDTO createBookReview(
@@ -92,7 +98,31 @@ public class ReviewService {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
-        updateReadingStatusIfAllBookReviewsWritten(group.getId(), group.getTradeType(), members, currentStatus);
+        boolean roundReady = isRoundReady(me);
+        updateReadingStatusIfAllBookReviewsWritten(
+                group.getId(),
+                group.getTradeType(),
+                members,
+                currentStatus
+        );
+        if (roundReady) {
+            MatchedMember partner = findPartner(members, me.getId());
+            eventPublisher.publish(new TrackerNotificationEvent(
+                    NotificationType.NOTI_TRK_001,
+                    user.getId(),
+                    me.getId(),
+                    user.getNickName(),
+                    List.of(partner.getUser().getId()),
+                    group.getId(),
+                    ExchangeType.from(group.getTradeType()),
+                    currentMemberBook.getBook().getTitle(),
+                    currentMemberBook.getBook().getId(),
+                    null,
+                    null,
+                    exchangeRound(currentStatus),
+                    null
+            ));
+        }
 
         return BookReviewResponseDTO.from(bookReview);
     }
@@ -140,6 +170,23 @@ public class ReviewService {
             members.forEach(member -> member.completeReading(completedAt));
             group.updateStatus(GroupStatus.COMPLETED);
         }
+        eventPublisher.publish(new TrackerNotificationEvent(
+                partnerAlreadyReviewed ? NotificationType.NOTI_TRK_005 : NotificationType.NOTI_TRK_004,
+                user.getId(),
+                me.getId(),
+                user.getNickName(),
+                partnerAlreadyReviewed
+                        ? members.stream().map(member -> member.getUser().getId()).toList()
+                        : List.of(partner.getUser().getId()),
+                group.getId(),
+                ExchangeType.from(group.getTradeType()),
+                group.getBook() == null ? null : group.getBook().getTitle(),
+                group.getBook() == null ? null : group.getBook().getId(),
+                null,
+                partnerAlreadyReviewed ? null : memberReview.getId(),
+                null,
+                null
+        ));
 
         return MemberReviewResponseDTO.builder()
                 .reviewId(memberReview.getId())
@@ -404,10 +451,9 @@ public class ReviewService {
     ) {
         boolean allMembersInSameReviewStatus = members.stream()
                 .allMatch(member -> member.getReadingStatus() == reviewStatus);
-        boolean allCurrentBookReviewsWritten = members.stream()
-                .allMatch(this::existsCurrentBookReview);
+        boolean allMembersReady = members.stream().allMatch(this::isRoundReady);
 
-        if (!allMembersInSameReviewStatus || !allCurrentBookReviewsWritten) {
+        if (!allMembersInSameReviewStatus || !allMembersReady) {
             return;
         }
 
@@ -418,12 +464,22 @@ public class ReviewService {
         updateExchangeStatusIfAllMembersReady(groupId, tradeType);
     }
 
-    private boolean existsCurrentBookReview(MatchedMember matchedMember) {
+    private boolean isRoundReady(MatchedMember matchedMember) {
         MemberBook currentMemberBook = getCurrentMemberBook(matchedMember);
-        return bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
+        Integer totalPages = currentMemberBook.getBook().getTotalPages();
+        boolean readingCompleted = totalPages != null
+                && totalPages > 0
+                && currentMemberBook.getCurrentPage() >= totalPages;
+        return readingCompleted && bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
                 matchedMember.getId(),
                 currentMemberBook.getId()
         );
+    }
+
+    private ExchangeRound exchangeRound(ReadingStatus reviewStatus) {
+        return reviewStatus == ReadingStatus.MY_BOOK_REVIEWING
+                ? ExchangeRound.FIRST_EXCHANGE
+                : ExchangeRound.RETURN_EXCHANGE;
     }
 
     private void validatePairGroup(List<MatchedMember> matchedMembers) {

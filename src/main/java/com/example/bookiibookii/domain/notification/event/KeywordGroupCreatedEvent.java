@@ -4,6 +4,6 @@ import java.util.List;
 
 public record KeywordGroupCreatedEvent(
         Long groupId,
-        List<String> keywordTexts,
+        Long hostId,
         List<Long> keywordIds
 ) {}

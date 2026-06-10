@@ -20,6 +20,7 @@ public record NotificationPayload(
         Long bookCardId,
         Long noticeId,
         Long keywordId,
+        String keyword,
         Long requestId
 ) {
 }

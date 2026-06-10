@@ -1,13 +1,15 @@
 package com.example.bookiibookii.domain.comment.event;
 
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+
+import java.util.List;
+
 public record CommentEvent(
-        // 알림 내용
+        NotificationType notificationType,
         String commenterNickname,
-        String bookTitle,
-
-        // 수신자
-        Long hostId,
-
-        // redirect
-        Long groupId
+        String groupTitle,
+        List<Long> receiverIds,
+        Long groupId,
+        Long commentId,
+        Long parentCommentId
 ) {}

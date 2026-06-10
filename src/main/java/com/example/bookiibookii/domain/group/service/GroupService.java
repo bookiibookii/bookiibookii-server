@@ -137,12 +137,15 @@ public class GroupService {
 
         matchedMemberRepository.save(hostMember);
 
-        List<Keyword> matched = keywordMatchService.matchForBook(book.getTitle(), book.getAuthor());
+        List<Keyword> matched = keywordMatchService.matchForGroup(
+                book.getTitle(),
+                book.getAuthor(),
+                savedGroup.getGroupName()
+        );
 
         List<Long> ids = matched.stream().map(Keyword::getId).toList();
-        List<String> texts = matched.stream().map(Keyword::getContent).toList();
 
-        publisher.publish(new KeywordGroupCreatedEvent(group.getId(), texts, ids));
+        publisher.publish(new KeywordGroupCreatedEvent(group.getId(), host.getId(), ids));
 
         return GroupResponseDTO.CreateResultDTO.builder()
                 .groupId(savedGroup.getId()) //
@@ -387,7 +390,16 @@ public class GroupService {
                 .toList();
 
         // 알림 publish
-        publisher.publish(new GroupNotificationEvent(GROUP_DELETED, host.getId(), group.getBook().getTitle(), null, receiverIds, group.getId()));
+        publisher.publish(new GroupNotificationEvent(
+                GROUP_DELETED,
+                host.getId(),
+                group.getBook().getTitle(),
+                null,
+                receiverIds,
+                group.getId(),
+                null,
+                null
+        ));
 
         //soft delete 실행
         group.markAsDELETED();

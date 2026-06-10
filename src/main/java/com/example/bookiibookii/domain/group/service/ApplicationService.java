@@ -17,6 +17,7 @@ import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.exception.UserException;
@@ -131,8 +132,9 @@ public class ApplicationService {
 
             // 개별 수락 알림 발송
             publisher.publish(new GroupNotificationEvent(
-                    MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(),
-                    newMember.getUser().getId(), null, group.getId()
+                    MATCH_SUCCEEDED, userId, groupTitle(thisGroup),
+                    newMember.getUser().getId(), null, group.getId(),
+                    application.getApplicationId(), ExchangeType.from(group.getTradeType())
             ));
 
             // 수락일이 독서 시작일 → 즉시 MATCHED 전환
@@ -153,7 +155,7 @@ public class ApplicationService {
             if (!autoRejectedReceiverIds.isEmpty()) {
                 publisher.publish(new GroupNotificationEvent(
                         MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
-                        null, autoRejectedReceiverIds, group.getId()
+                        null, autoRejectedReceiverIds, group.getId(), null, null
                 ));
             }
 
@@ -162,8 +164,9 @@ public class ApplicationService {
         else {
             application.updateStatus(ApplicationStatus.REJECTED);
             publisher.publish(new GroupNotificationEvent(
-                    MATCH_REJECTED, userId, thisGroup.getBook().getTitle(),
-                    application.getGuest().getId(), null, group.getId()
+                    MATCH_REJECTED, userId, groupTitle(thisGroup),
+                    application.getGuest().getId(), null, group.getId(),
+                    application.getApplicationId(), null
             ));
         }
 
@@ -238,13 +241,29 @@ public class ApplicationService {
         }
 
         // 알림 publish
-        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getBook().getTitle(), group.getHost().getId(), null, groupId) );
+        publisher.publish(new GroupNotificationEvent(
+                JOIN_REQUESTED,
+                userId,
+                groupTitle(group),
+                group.getHost().getId(),
+                null,
+                groupId,
+                application.getApplicationId(),
+                null
+        ));
 
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus().name())
                 .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
+    }
+
+    private String groupTitle(Groups group) {
+        if (group.getGroupName() != null && !group.getGroupName().isBlank()) {
+            return group.getGroupName();
+        }
+        return group.getBook().getTitle();
     }
 
     //참여 취소하기

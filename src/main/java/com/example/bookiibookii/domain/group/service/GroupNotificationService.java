@@ -34,11 +34,12 @@ public class GroupNotificationService {
         String actorNickname = userRepository.findNickNameById(event.actorId())
                 .orElse("알 수 없음");
 
-        String bookTitle = event.bookTitle();
+        String groupTitle = event.groupTitle();
 
         var vars = java.util.Map.of(
                 "nickname", actorNickname,
-                "bookTitle", bookTitle
+                "bookTitle", groupTitle,
+                "groupTitle", groupTitle
         );
         String bodyMessage = templateRenderer.render(type.getBodyTemplate(), vars);
 
@@ -46,6 +47,8 @@ public class GroupNotificationService {
                 NotificationPayload.builder()
                         .redirectType(type.getRedirectType())
                         .groupId(event.groupId())
+                        .requestId(event.requestId())
+                        .exchangeType(event.exchangeType())
                         .build()
         );
 
@@ -57,6 +60,7 @@ public class GroupNotificationService {
         if (receivers.isEmpty()) return;
 
         for (Long receiverId : receivers) {
+            String dedupKey = dedupKey(type, event.requestId());
             notificationStore.save(
                     notificationFactory.create(
                             receiverId,
@@ -64,9 +68,20 @@ public class GroupNotificationService {
                             notiType,
                             type.title,
                             bodyMessage,
-                            payload
+                            payload,
+                            dedupKey
                     )
             );
         }
+    }
+
+    private String dedupKey(GroupNotiType type, Long requestId) {
+        if (requestId == null) return null;
+        return switch (type) {
+            case JOIN_REQUESTED -> "NOTI-GRP-001:" + requestId;
+            case MATCH_SUCCEEDED -> "NOTI-GRP-002:" + requestId;
+            case MATCH_REJECTED -> "NOTI-GRP-003:" + requestId;
+            default -> null;
+        };
     }
 }

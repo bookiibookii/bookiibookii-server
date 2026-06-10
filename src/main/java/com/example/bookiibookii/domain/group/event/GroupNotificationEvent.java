@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.group.event;
 
 import com.example.bookiibookii.domain.group.enums.GroupNotiType;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
 
 import java.util.List;
 
@@ -10,7 +11,7 @@ public record GroupNotificationEvent(
         // 발신자
         Long actorId,
 
-        String bookTitle,
+        String groupTitle,
 
         // 특정 수신자
         Long receiverId,
@@ -18,5 +19,7 @@ public record GroupNotificationEvent(
         List<Long> receiverIds,
 
         // redirect
-        Long groupId
+        Long groupId,
+        Long requestId,
+        ExchangeType exchangeType
 ) {}

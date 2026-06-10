@@ -11,16 +11,16 @@ public enum GroupNotiType {
 
     JOIN_REQUESTED(
             NotificationType.GROUP_JOIN_REQUEST,
-            "똑똑! 새로운 참여 요청이 왔어요",
-            "{nickname}님이 {bookTitle} 그룹에 함께하고 싶어 해요. 프로필을 확인해볼까요?",
+            "새로운 참여 요청이 왔어요",
+            "{nickname}님이 {groupTitle} 그룹에 참여를 신청했어요.",
             RedirectType.APPLICATION_MANAGEMENT
     ),
 
     MATCH_SUCCEEDED(
-            NotificationType.GROUP_MATCH_SUCCESS,
-            "그룹 매칭이 성공했어요!",
-            "[{nickname}] {bookTitle} 그룹의 게스트로 참여합니다! 호스트가 책을 읽기 시작하면 알려드릴게요.",
-            RedirectType.TRACKER_HOME
+            NotificationType.GROUP_REQUEST_ACCEPTED,
+            "참여 신청이 수락됐어요!",
+            "{nickname}님의 {groupTitle} 그룹 참여가 확정됐어요. 지금 바로 확인해보세요.",
+            RedirectType.TRACKER_DETAIL
     ),
 
     MATCH_EXPIRED(
@@ -31,9 +31,9 @@ public enum GroupNotiType {
     ),
 
     MATCH_REJECTED(
-            NotificationType.GROUP_MATCH_REJECTED,
-            "그룹 매칭에 실패했어요",
-            "[{nickname}] {bookTitle} 그룹의 정원이 마감되었어요. 다른 그룹을 찾아볼까요?",
+            NotificationType.GROUP_REQUEST_REJECTED,
+            "참여 신청이 거절됐어요",
+            "{nickname}님의 {groupTitle} 그룹 참여 신청이 거절됐어요. 다른 그룹을 찾아볼까요?",
             RedirectType.EXPLORE_HOME
     ),
 

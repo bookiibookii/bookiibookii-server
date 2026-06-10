@@ -5,9 +5,12 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.dto.NotificationPayload;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
-import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
+import com.example.bookiibookii.domain.notification.enums.RedirectType;
+import com.example.bookiibookii.domain.notification.service.NotificationStore;
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import com.example.bookiibookii.domain.tracker.enums.TrackerNotiType;
@@ -27,7 +30,7 @@ public class TrackerNotificationService {
     private static final java.time.format.DateTimeFormatter DUE_FORMAT =
             java.time.format.DateTimeFormatter.ofPattern("yy.MM.dd");
 
-    private final NotificationRepository notificationRepository;
+    private final NotificationStore notificationStore;
     private final NotificationFactory notificationFactory;
     private final NotiTemplateRenderer templateRenderer;
 
@@ -63,9 +66,16 @@ public class TrackerNotificationService {
         );
         String bodyMessage = templateRenderer.render(type.getBodyTemplate(), vars);
 
-        String payload = notificationFactory.toJson(java.util.Map.of("groupId", event.groupId()));
+        String payload = notificationFactory.toJson(
+                NotificationPayload.builder()
+                        .redirectType(RedirectType.TRACKER_DETAIL)
+                        .groupId(event.groupId())
+                        .exchangeType(ExchangeType.from(group.getTradeType()))
+                        .exchangeRound(event.exchangeRound())
+                        .build()
+        );
 
-        notificationRepository.save(
+        notificationStore.save(
                 notificationFactory.create(
                         receiverId,
                         NotificationCategory.SYSTEM,

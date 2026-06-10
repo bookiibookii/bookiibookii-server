@@ -1,9 +1,10 @@
 package com.example.bookiibookii.domain.group.service;
 
 import com.example.bookiibookii.domain.group.enums.GroupNotiType;
+import com.example.bookiibookii.domain.notification.dto.NotificationPayload;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
-import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
+import com.example.bookiibookii.domain.notification.service.NotificationStore;
 import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
@@ -19,7 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GroupNotificationService {
 
-    private final NotificationRepository notificationRepository;
+    private final NotificationStore notificationStore;
     private final NotificationFactory notificationFactory;
     private final NotiTemplateRenderer templateRenderer;
     private final UserRepository userRepository;
@@ -41,7 +42,12 @@ public class GroupNotificationService {
         );
         String bodyMessage = templateRenderer.render(type.getBodyTemplate(), vars);
 
-        String payload = notificationFactory.toJson(java.util.Map.of("groupId", event.groupId()));
+        String payload = notificationFactory.toJson(
+                NotificationPayload.builder()
+                        .redirectType(type.getRedirectType())
+                        .groupId(event.groupId())
+                        .build()
+        );
 
         // 단일 || 다수 수신자
         List<Long> receivers = (event.receiverIds() != null && !event.receiverIds().isEmpty())
@@ -51,7 +57,7 @@ public class GroupNotificationService {
         if (receivers.isEmpty()) return;
 
         for (Long receiverId : receivers) {
-            notificationRepository.save(
+            notificationStore.save(
                     notificationFactory.create(
                             receiverId,
                             NotificationCategory.SYSTEM,

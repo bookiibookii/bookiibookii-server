@@ -9,6 +9,9 @@ import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.util.ReadingPeriodDateCalculator;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.tracker.converter.TrackerConverter;
 import com.example.bookiibookii.domain.tracker.dto.req.ExtendReadingPeriodReqDTO;
@@ -16,9 +19,11 @@ import com.example.bookiibookii.domain.tracker.dto.req.ReadingProgressRequestDTO
 import com.example.bookiibookii.domain.tracker.dto.res.*;
 import com.example.bookiibookii.domain.tracker.dto.res.ExtendReadingPeriodResDTO;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
 import com.example.bookiibookii.domain.tracker.exception.TrackerException;
 import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.resolver.*;
 import com.example.bookiibookii.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -42,6 +48,7 @@ public class TrackerService {
     private final UserProfileImageUrlResolver userProfileImageUrlResolver;
     private final TrackerStepAssembler trackerStepAssembler;
     private final BookReviewRepository bookReviewRepository;
+    private final DomainEventPublisher eventPublisher;
 
     // 트래커 리스트 조회
     public TrackerListResDTO getTrackerList(User user) {
@@ -148,9 +155,10 @@ public class TrackerService {
             } else if (currentStatus == ReadingStatus.PARTNER_BOOK_READING) {
                 me.updateReadingStatus(ReadingStatus.PARTNER_BOOK_REVIEWING);
             }
+            publishRoundCompletionIfReviewExists(me, currentStatus, user);
         }
 
-        ReadingStatus updatedStatus = me.getReadingStatus();//
+        ReadingStatus updatedStatus = me.getReadingStatus();
         return ReadingProgressResponseDTO.builder()
                 .memberBookId(me.getCurrentMemberBook().getId())
                 .currentPage(me.getCurrentMemberBook().getCurrentPage())
@@ -174,7 +182,32 @@ public class TrackerService {
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         int newPeriod = ReadingPeriodDateCalculator.inclusivePeriod(group.getStartDate(), request.newEndDate());
+        if (Objects.equals(newPeriod, group.getReadingPeriod())) {
+            int currentDDay = ReadingPeriodDateCalculator.remainingDaysUntil(
+                    request.newEndDate(),
+                    ReadingPeriodDateCalculator.todayKst()
+            );
+            return new ExtendReadingPeriodResDTO(request.newEndDate(), currentDDay);
+        }
         group.setReadingPeriod(newPeriod);
+        matchedMemberRepository.findByGroup_IdAndRole(groupId, RoleStatus.GUEST)
+                .map(MatchedMember::getUser)
+                .filter(receiver -> !receiver.getId().equals(user.getId()))
+                .ifPresent(receiver -> eventPublisher.publish(new TrackerNotificationEvent(
+                        NotificationType.NOTI_TRK_002,
+                        user.getId(),
+                        null,
+                        user.getNickName(),
+                        List.of(receiver.getId()),
+                        groupId,
+                        ExchangeType.from(group.getTradeType()),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        request.newEndDate()
+                )));
 
         int dDay = ReadingPeriodDateCalculator.remainingDaysUntil(
                 request.newEndDate(),
@@ -194,6 +227,43 @@ public class TrackerService {
         }
 
         throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+    }
+
+    private void publishRoundCompletionIfReviewExists(
+            MatchedMember me,
+            ReadingStatus previousStatus,
+            User actor
+    ) {
+        if (previousStatus != ReadingStatus.MY_BOOK_READING
+                && previousStatus != ReadingStatus.PARTNER_BOOK_READING) {
+            return;
+        }
+        if (!bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
+                me.getId(),
+                me.getCurrentMemberBook().getId()
+        )) {
+            return;
+        }
+
+        matchedMemberRepository.findPartnerUserId(me.getGroup().getId(), actor.getId())
+                .filter(receiverId -> !receiverId.equals(actor.getId()))
+                .ifPresent(receiverId -> eventPublisher.publish(new TrackerNotificationEvent(
+                        NotificationType.NOTI_TRK_001,
+                        actor.getId(),
+                        me.getId(),
+                        actor.getNickName(),
+                        List.of(receiverId),
+                        me.getGroup().getId(),
+                        ExchangeType.from(me.getGroup().getTradeType()),
+                        me.getCurrentMemberBook().getBook().getTitle(),
+                        me.getCurrentMemberBook().getBook().getId(),
+                        null,
+                        null,
+                        previousStatus == ReadingStatus.MY_BOOK_READING
+                                ? ExchangeRound.FIRST_EXCHANGE
+                                : ExchangeRound.RETURN_EXCHANGE,
+                        null
+                )));
     }
 
     private int calculateProgressRate(Integer currentPage, Integer totalPages) {

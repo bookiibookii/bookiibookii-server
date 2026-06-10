@@ -21,6 +21,10 @@ public record NotificationPayload(
         Long noticeId,
         Long keywordId,
         String keyword,
-        Long requestId
+        Long requestId,
+        Long reviewId,
+        Long actorId,
+        Long matchedMemberId,
+        Long bookId
 ) {
 }

@@ -28,9 +28,15 @@ public class NotificationFactory {
 
     public Notification create(Long receiverId, NotificationCategory category, NotificationType type,
                                String title, String message, String payload, String dedupKey) {
+        return create(receiverId, null, category, type, title, message, payload, dedupKey);
+    }
+
+    public Notification create(Long receiverId, Long actorId, NotificationCategory category, NotificationType type,
+                               String title, String message, String payload, String dedupKey) {
         User receiver = userRepository.getReferenceById(receiverId);
         return Notification.builder()
                 .receiver(receiver)
+                .actor(actorId == null ? null : userRepository.getReferenceById(actorId))
                 .category(category)
                 .type(type)
                 .title(title)
@@ -49,4 +55,3 @@ public class NotificationFactory {
         }
     }
 }
-

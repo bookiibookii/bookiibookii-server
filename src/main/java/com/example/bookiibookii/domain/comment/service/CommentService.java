@@ -18,7 +18,9 @@ import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -79,7 +81,23 @@ public class CommentService {
             WriterRole writerRole
     ) {
         Comment saved = saveComment(group, user, req);
-        // NOTI-TRK-003 is intentionally implemented in a later PR.
+        matchedMemberRepository.findPartnerUserId(group.getId(), user.getId())
+                .filter(receiverId -> !receiverId.equals(user.getId()))
+                .ifPresent(receiverId -> eventPublisher.publish(new TrackerNotificationEvent(
+                        NotificationType.NOTI_TRK_003,
+                        user.getId(),
+                        null,
+                        user.getNickName(),
+                        List.of(receiverId),
+                        group.getId(),
+                        ExchangeType.from(group.getTradeType()),
+                        null,
+                        null,
+                        saved.getId(),
+                        null,
+                        null,
+                        null
+                )));
         return toCreateResDTO(saved, writerRole);
     }
 

@@ -39,13 +39,14 @@ public interface UserKeywordRepository extends JpaRepository<UserKeyword, Long> 
 
     boolean existsByUserAndKeyword_Content(User user, String content);
 
-    // 키워드 알림 발송 관련
     @Query("""
-    select distinct uk.user.id
-    from UserKeyword uk
-    where uk.keyword.id in :keywordIds
+        select uk
+        from UserKeyword uk
+        join fetch uk.user u
+        join fetch uk.keyword k
+        where k.id in :keywordIds
     """)
-    List<Long> findDistinctUserIdsByKeywordIds(@Param("keywordIds") List<Long> keywordIds);
+    List<UserKeyword> findAllWithUserAndKeywordByKeywordIds(@Param("keywordIds") List<Long> keywordIds);
 
     boolean existsByUserAndKeyword_NormalizedContent(User user, String normalizedContent);
 }

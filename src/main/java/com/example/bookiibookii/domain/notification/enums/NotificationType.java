@@ -9,10 +9,13 @@ public enum NotificationType {
 
     // GROUP / MATCHING (SYSTEM)
     GROUP_JOIN_REQUEST(NotificationCategory.SYSTEM),          // GRP-030 (요청관리)
+    GROUP_REQUEST_ACCEPTED(NotificationCategory.SYSTEM),
+    GROUP_REQUEST_REJECTED(NotificationCategory.SYSTEM),
     GROUP_MATCH_SUCCESS(NotificationCategory.SYSTEM),         // TRK-010 (트래커)
     GROUP_MATCH_REJECTED(NotificationCategory.SYSTEM),        // GRP-001 (리스트)
     GROUP_MATCH_AUTO_REJECTED(NotificationCategory.SYSTEM),   // GRP-001 (리스트)
     GROUP_COMMENT_CREATED(NotificationCategory.SYSTEM),       // GRP-010 (그룹 상세/댓글)
+    GROUP_COMMENT_REPLIED(NotificationCategory.SYSTEM),
     GROUP_DELETED(NotificationCategory.SYSTEM),               // 문의하기 or GRP-001
     GROUP_MATCH_FAILED_BY_EXPIRE(NotificationCategory.SYSTEM),// GRP-001 (리스트)
     GROUP_MATCH_FAILED_BY_CAPACITY(NotificationCategory.SYSTEM), // GRP-001 (리스트)

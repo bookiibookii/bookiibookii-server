@@ -112,7 +112,7 @@ jobs:
             --env-file "\$ENV_FILE" \
             -p 8080:8080 \
             -v "\$LOG_DIR:/logs" \
-            -v "\$FIREBASE_CREDENTIALS_FILE:$FIREBASE_CREDENTIALS_FILE:ro" \
+            -v "\$FIREBASE_CREDENTIALS_FILE:\$FIREBASE_CREDENTIALS_FILE:ro" \
             "\$IMAGE"
 
           sudo docker image prune -f

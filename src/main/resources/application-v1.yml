@@ -62,3 +62,9 @@ discord:
 app:
   share:
     web-base-url: ${SHARE_WEB_BASE_URL:https://bookiibookii.com/share/reading-card}
+
+push:
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    project-id: ${FIREBASE_PROJECT_ID:}

@@ -22,6 +22,20 @@ import java.util.Optional;
 public class TrackerTopBannerResolver {
 
     private static final int MAX_BANNER_COUNT = 3;
+    private static final String READING_D_DAY_TITLE_TEMPLATE =
+            "{bookTitle}을 오늘까지 읽어주세요.";
+    private static final String READING_IN_PROGRESS_TITLE_TEMPLATE =
+            "{bookTitle}을 읽고 후기를 남겨주세요.";
+    private static final String DELIVERY_TITLE_TEMPLATE =
+            "{nickname} 님께 {bookTitle}을 발송해주세요.";
+    private static final String DIRECT_MEETING_SCHEDULED_TITLE_TEMPLATE =
+            "{nickname} 님과의 책 교환까지 {remainingTime} 남았어요.";
+    private static final String DIRECT_MEETING_REGISTER_TITLE_TEMPLATE =
+            "{nickname} 님과의 교환 약속을 등록해주세요.";
+    private static final String DIRECT_MEETING_CONFIRM_TITLE_TEMPLATE =
+            "{nickname} 님과의 교환 약속을 확인해주세요.";
+    private static final String EXCHANGE_REVIEW_TITLE_TEMPLATE =
+            "{nickname} 님과의 교환독서 후기를 남겨주세요.";
     private final Clock clock;
 
     public TrackerTopBannerResolver() {
@@ -60,7 +74,9 @@ public class TrackerTopBannerResolver {
             return Optional.of(banner(
                     context,
                     TrackerTopBannerType.READING_D_DAY,
-                    readingDDayTitle(context.currentReadingBookTitle()),
+                    context.currentReadingBookTitle(),
+                    "읽기 마감일이 오늘이에요.",
+                    READING_D_DAY_TITLE_TEMPLATE,
                     "독서 후기도 꼭 남겨주세요.",
                     "D-Day",
                     null,
@@ -71,23 +87,31 @@ public class TrackerTopBannerResolver {
         if (isDirectExchange(context) && context.meetingScheduledAt() != null
                 && !isDirectExchangeCompleted(context)) {
             long remainingSeconds = Math.max(Duration.between(now, context.meetingScheduledAt()).getSeconds(), 0L);
+            boolean meetingOverdue = !context.meetingScheduledAt().isAfter(now);
             // TODO: 약속 시간이 지난 뒤 미완료 상태에서 별도 CTA/상세 문구가 필요한지 PM 확인 후 수정
             return Optional.of(banner(
                     context,
                     TrackerTopBannerType.DIRECT_MEETING_SCHEDULED,
-                    directMeetingTitle(context.partnerNickname(), context.meetingScheduledAt(), now),
-                    context.meetingPlaceName() + "에서 만나요.",
                     null,
+                    meetingOverdue
+                            ? "교환 약속 시간이 지났어요."
+                            : DIRECT_MEETING_SCHEDULED_TITLE_TEMPLATE,
+                    meetingOverdue ? null : DIRECT_MEETING_SCHEDULED_TITLE_TEMPLATE,
+                    context.meetingPlaceName() + "에서 만나요.",
+                    directMeetingDDayLabel(today, context.meetingScheduledAt().toLocalDate()),
                     context.meetingScheduledAt(),
                     remainingSeconds
             ));
         }
 
         if (isDeliveryTrackingRegistrationRequired(context)) {
+            String bookTitle = resolveBookToSend(context);
             return Optional.of(banner(
                     context,
                     TrackerTopBannerType.DELIVERY_TRACKING_REGISTER_REQUIRED,
-                    deliveryTitle(context.partnerNickname(), resolveBookToSend(context)),
+                    bookTitle,
+                    "발송이 필요해요.",
+                    DELIVERY_TITLE_TEMPLATE,
                     "책이 파손되지 않도록 꼼꼼히 포장해주세요.",
                     null,
                     null,
@@ -100,7 +124,9 @@ public class TrackerTopBannerResolver {
             return Optional.of(banner(
                     context,
                     TrackerTopBannerType.READING_IN_PROGRESS,
-                    readingInProgressTitle(context.currentReadingBookTitle()),
+                    context.currentReadingBookTitle(),
+                    "독서 후기를 남겨주세요.",
+                    READING_IN_PROGRESS_TITLE_TEMPLATE,
                     "독서카드를 작성하면 교환독서가 더 즐거워져요.",
                     null,
                     null,
@@ -112,7 +138,9 @@ public class TrackerTopBannerResolver {
             return Optional.of(banner(
                     context,
                     TrackerTopBannerType.DIRECT_MEETING_REGISTER_REQUIRED_HOST,
-                    directMeetingRegisterTitle(context.partnerNickname()),
+                    null,
+                    "교환 약속 등록이 필요해요.",
+                    DIRECT_MEETING_REGISTER_TITLE_TEMPLATE,
                     "파트너와 약속 장소 및 일시를 협의해주세요.",
                     null,
                     null,
@@ -124,7 +152,9 @@ public class TrackerTopBannerResolver {
             return Optional.of(banner(
                     context,
                     TrackerTopBannerType.DIRECT_MEETING_CONFIRM_REQUIRED_GUEST,
-                    directMeetingConfirmTitle(context.partnerNickname()),
+                    null,
+                    "교환 약속 확인이 필요해요.",
+                    DIRECT_MEETING_CONFIRM_TITLE_TEMPLATE,
                     "파트너와 약속 장소 및 일시를 협의해주세요.",
                     null,
                     null,
@@ -136,7 +166,9 @@ public class TrackerTopBannerResolver {
             return Optional.of(banner(
                     context,
                     TrackerTopBannerType.EXCHANGE_REVIEW_REQUIRED,
-                    exchangeReviewTitle(context.partnerNickname()),
+                    null,
+                    "교환독서 후기를 남겨주세요.",
+                    EXCHANGE_REVIEW_TITLE_TEMPLATE,
                     "파트너와 함께 한 교환독서는 어떠셨나요?",
                     null,
                     null,
@@ -147,51 +179,23 @@ public class TrackerTopBannerResolver {
         return Optional.empty();
     }
 
-    String readingDDayTitle(String bookTitle) {
-        return bookTitle + "을 오늘까지 읽어주세요.";
-    }
-
-    String readingInProgressTitle(String bookTitle) {
-        return bookTitle + "을 읽고 후기를 남겨주세요.";
-    }
-
-    String directMeetingTitle(String nickname, LocalDateTime targetAt, LocalDateTime now) {
-        if (!targetAt.isAfter(now)) {
-            return "교환 약속 시간이 지났어요.";
+    private String directMeetingDDayLabel(LocalDate today, LocalDate meetingDate) {
+        long remainingDays = Duration.between(
+                today.atStartOfDay(),
+                meetingDate.atStartOfDay()
+        ).toDays();
+        if (remainingDays <= 0) {
+            return "D-Day";
         }
-        long remainingSeconds = Duration.between(now, targetAt).getSeconds();
-        return nickname + " 님과의 책 교환까지 "
-                + formatRemainingTime(remainingSeconds)
-                + " 남았어요.";
-    }
-
-    String deliveryTitle(String nickname, String bookTitle) {
-        return nickname + " 님께 " + bookTitle + "을 발송해주세요.";
-    }
-
-    String directMeetingRegisterTitle(String nickname) {
-        return nickname + " 님과의 교환 약속을 등록해주세요.";
-    }
-
-    String directMeetingConfirmTitle(String nickname) {
-        return nickname + " 님과의 교환 약속을 확인해주세요.";
-    }
-
-    String exchangeReviewTitle(String nickname) {
-        return nickname + " 님과의 교환독서 후기를 남겨주세요.";
-    }
-
-    String formatRemainingTime(long remainingSeconds) {
-        long hours = remainingSeconds / 3600;
-        long minutes = (remainingSeconds % 3600) / 60;
-        long seconds = remainingSeconds % 60;
-        return "%02d:%02d:%02d".formatted(hours, minutes, seconds);
+        return "D-" + remainingDays;
     }
 
     private TrackerTopBannerResponse banner(
             TrackerTopBannerContext context,
             TrackerTopBannerType bannerType,
+            String bookTitle,
             String title,
+            String titleTemplate,
             String subtitle,
             String dDayLabel,
             LocalDateTime targetAt,
@@ -202,7 +206,10 @@ public class TrackerTopBannerResolver {
                 .groupId(context.groupId())
                 .matchedMemberId(context.matchedMemberId())
                 .groupName(context.groupName())
+                .partnerNickname(context.partnerNickname())
+                .bookTitle(bookTitle)
                 .title(title)
+                .titleTemplate(titleTemplate)
                 .subtitle(subtitle)
                 .dDayLabel(dDayLabel)
                 .targetAt(targetAt)

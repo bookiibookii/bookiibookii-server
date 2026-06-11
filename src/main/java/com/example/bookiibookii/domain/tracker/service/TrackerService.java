@@ -425,7 +425,8 @@ public class TrackerService {
     }
 
     private void validateCurrentBooks(MatchedMember me, MatchedMember partner) {
-        if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null) {
+        if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null
+        || me.getCurrentMemberBook().getBook() == null || partner.getCurrentMemberBook().getBook() == null ) {
             throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
         }
     }

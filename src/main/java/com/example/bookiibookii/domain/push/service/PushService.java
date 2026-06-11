@@ -1,14 +1,12 @@
 package com.example.bookiibookii.domain.push.service;
 
 import com.example.bookiibookii.domain.push.dto.PushMessage;
-import com.example.bookiibookii.domain.push.entity.DeviceToken;
-import com.example.bookiibookii.domain.push.repository.DeviceTokenRepository;
+import com.example.bookiibookii.domain.push.dto.ActiveDeviceToken;
 import com.example.bookiibookii.domain.push.sender.InvalidPushTokenException;
 import com.example.bookiibookii.domain.push.sender.PushSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,23 +15,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PushService {
 
-    private final DeviceTokenRepository deviceTokenRepository;
+    private final DeviceTokenQueryService deviceTokenQueryService;
     private final DeviceTokenService deviceTokenService;
     private final PushSender pushSender;
 
-    @Transactional(readOnly = true)
     public void sendToUser(Long userId, PushMessage message) {
-        List<DeviceToken> tokens = deviceTokenRepository.findAllByUserIdAndActiveTrue(userId);
-        for (DeviceToken token : tokens) {
+        List<ActiveDeviceToken> tokens = deviceTokenQueryService.findActiveTokens(userId);
+        for (ActiveDeviceToken token : tokens) {
             try {
-                pushSender.send(token.getToken(), message);
+                pushSender.send(token.token(), message);
             } catch (InvalidPushTokenException exception) {
-                log.warn("Invalid push token detected. deviceTokenId={}, userId={}", token.getId(), userId);
-                deviceTokenService.deactivateInvalidToken(token.getToken());
+                log.warn("Invalid push token detected. deviceTokenId={}, userId={}", token.id(), userId);
+                deviceTokenService.deactivateInvalidToken(token.token());
             } catch (RuntimeException exception) {
                 log.warn(
                         "Push delivery failed. deviceTokenId={}, userId={}",
-                        token.getId(),
+                        token.id(),
                         userId,
                         exception
                 );

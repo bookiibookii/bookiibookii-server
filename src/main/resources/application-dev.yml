@@ -52,3 +52,9 @@ aws:
 
 server:
   forward-headers-strategy: framework
+
+push:
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    project-id: ${FIREBASE_PROJECT_ID:}

@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.review.repository;
 
 import com.example.bookiibookii.domain.review.entity.MemberReview;
 import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +25,27 @@ public interface MemberReviewRepository extends JpaRepository<MemberReview, Long
                                         @Param("reaction") MemberReviewReaction reaction);
 
     boolean existsByGroup_IdAndWriter_Id(Long groupId, Long writerMatchedMemberId);
+
+    @Query(
+            value = """
+                SELECT mr FROM MemberReview mr
+                JOIN FETCH mr.writer w
+                JOIN FETCH w.user wu
+                LEFT JOIN FETCH wu.userImage
+                JOIN mr.target t
+                WHERE t.user.id = :userId
+                ORDER BY mr.createdAt DESC, mr.id DESC
+                """,
+            countQuery = """
+                SELECT COUNT(mr) FROM MemberReview mr
+                JOIN mr.target t
+                WHERE t.user.id = :userId
+                """
+    )
+    Page<MemberReview> findReceivedReviewsByUserId(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 
     @Query("""
         SELECT mr FROM MemberReview mr

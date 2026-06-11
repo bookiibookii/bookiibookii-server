@@ -29,7 +29,7 @@ public interface MemberReviewControllerDocs {
             1:1 교환독서의 상대 멤버에게 파트너 후기를 남깁니다.
 
             - 그룹 멤버만 작성할 수 있습니다.
-            - 코멘트는 필수이며 최대 20자입니다.
+            - 코멘트는 선택값이며 최대 20자입니다.
             - reaction은 선택값입니다. 전달하지 않거나 null로 보내도 등록할 수 있습니다.
             - reaction 값은 BOOM_UP, BOOM_DOWN 중 하나입니다.
             - 두 번째 교환 플로우가 양쪽 모두 완료된 후에만 작성할 수 있습니다.
@@ -77,7 +77,7 @@ public interface MemberReviewControllerDocs {
                     description = "파트너 후기 등록 성공",
                     content = @Content(schema = @Schema(implementation = MemberReviewResponseDTO.class))
             ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "코멘트 누락, 길이 초과, 중복 후기, 작성 가능 상태가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "코멘트 길이 초과, 중복 후기, 작성 가능 상태가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "그룹 멤버가 아님"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "그룹, 매칭 멤버 또는 상대 멤버를 찾을 수 없음")
     })

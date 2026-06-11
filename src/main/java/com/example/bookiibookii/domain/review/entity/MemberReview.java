@@ -44,7 +44,7 @@ public class MemberReview extends BaseEntity {
     @Column(name = "reaction", length = 30)
     private MemberReviewReaction reaction;
 
-    @Column(name = "comment", nullable = false, length = 20)
+    @Column(name = "comment", length = 20)
     private String comment;
 
     public static MemberReview create(
@@ -57,7 +57,7 @@ public class MemberReview extends BaseEntity {
         Objects.requireNonNull(group, "group must not be null");
         Objects.requireNonNull(writer, "writer must not be null");
         Objects.requireNonNull(target, "target must not be null");
-        validateComment(comment);
+        validateCommentLength(comment);
 
         return MemberReview.builder()
                 .group(group)
@@ -68,17 +68,14 @@ public class MemberReview extends BaseEntity {
                 .build();
     }
 
-    private static void validateComment(String comment) {
-        if (comment == null || comment.isBlank()) {
-            throw new IllegalArgumentException("comment must not be blank");
-        }
-        if (comment.length() > 20) {
+    private static void validateCommentLength(String comment) {
+        if (comment != null && comment.length() > 20) {
             throw new IllegalArgumentException("comment cannot exceed 20 characters");
         }
     }
 
     public void updateReview(MemberReviewReaction reaction, String comment) {
-        validateComment(comment);
+        validateCommentLength(comment);
         this.reaction = reaction;
         this.comment = comment;
     }

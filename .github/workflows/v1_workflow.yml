@@ -78,6 +78,7 @@ jobs:
 
           ENV_FILE="/home/${EC2_USERNAME}/v1/.env.v1"
           LOG_DIR="/home/${EC2_USERNAME}/logs/v1"
+          FIREBASE_CREDENTIALS_FILE="/home/${EC2_USERNAME}/bookiibookii-secrets/firebase-service-account.json"
 
           mkdir -p "\$LOG_DIR"
 
@@ -111,6 +112,7 @@ jobs:
             --env-file "\$ENV_FILE" \
             -p 8080:8080 \
             -v "\$LOG_DIR:/logs" \
+            -v "$FIREBASE_CREDENTIALS_FILE:$FIREBASE_CREDENTIALS_FILE:ro" \
             "\$IMAGE"
 
           sudo docker image prune -f

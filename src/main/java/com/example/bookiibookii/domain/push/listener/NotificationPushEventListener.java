@@ -77,7 +77,11 @@ public class NotificationPushEventListener {
                 }
             }
         } catch (Exception exception) {
-            log.warn("Notification push payload parsing failed. notificationId={}", event.notificationId());
+            log.warn(
+                    "Notification push payload parsing failed. notificationId={}",
+                    event.notificationId(),
+                    exception
+            );
         }
         return data;
     }

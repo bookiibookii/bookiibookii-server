@@ -2,13 +2,17 @@ package com.example.bookiibookii.domain.tracker.service;
 
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.group.util.ReadingPeriodDateCalculator;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.notification.enums.ExchangeType;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
@@ -32,7 +36,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -47,41 +54,33 @@ public class TrackerService {
     private final TrackerDueDateResolver trackerDueDateResolver;
     private final UserProfileImageUrlResolver userProfileImageUrlResolver;
     private final TrackerStepAssembler trackerStepAssembler;
+    private final TrackerTopBannerResolver trackerTopBannerResolver;
+    private final MeetingRepository meetingRepository;
     private final BookReviewRepository bookReviewRepository;
     private final DomainEventPublisher eventPublisher;
 
     // 트래커 리스트 조회
     public TrackerListResDTO getTrackerList(User user) {
-        List<TrackerListItemResDTO> items = matchedMemberRepository.findAllTrackerItemsByMemberId(
-                        user.getId(),
-                        GroupStatus.COMPLETED,
-                        ReadingStatus.COMPLETED
-                ).stream()
-                .map(me -> {
-                    MatchedMember partner = trackerPartnerResolver.resolve(me.getGroup(), me);
-                    if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null) {
-                        throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
-                    }
+        List<TrackerMemberPair> memberPairs = matchedMemberRepository.findAllTrackerItemsByMemberId(
+                user.getId(),
+                GroupStatus.COMPLETED,
+                ReadingStatus.COMPLETED
+        ).stream()
+                .map(me -> new TrackerMemberPair(me, trackerPartnerResolver.resolve(me.getGroup(), me)))
+                .toList();
 
-                    TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
-                            me,
-                            partner,
-                            isCurrentBookReviewWritten(me)
-                    );
-
-                    return TrackerConverter.toListItem(
-                            me,
-                            partner,
-                            displayStatus,
-                            trackerDueDateResolver.calculate(displayStatus, me.getGroup()),
-                            userProfileImageUrlResolver.resolve(me.getCurrentMemberBook().getMatchedMember().getUser()),
-                            userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser())
-                    );
-                })
+        Map<MeetingKey, Meeting> meetingsByKey = loadMeetingsByKey(memberPairs);
+        List<TrackerListItemResDTO> items = memberPairs.stream()
+                .map(pair -> toTrackerListItem(pair.me(), pair.partner()))
+                .toList();
+        List<TrackerTopBannerContext> bannerContexts = memberPairs.stream()
+                .map(pair -> toTopBannerContext(pair.me(), pair.partner(), meetingsByKey))
                 .toList();
 
         return TrackerListResDTO.builder()
+                .nickname(user.getNickName())
                 .summary(buildListSummary(items))
+                .topBanners(trackerTopBannerResolver.resolve(bannerContexts))
                 .items(items)
                 .build();
     }
@@ -339,5 +338,101 @@ public class TrackerService {
                 me.getId(),
                 me.getCurrentMemberBook().getId()
         );
+    }
+
+    private TrackerListItemResDTO toTrackerListItem(MatchedMember me, MatchedMember partner) {
+        validateCurrentBooks(me, partner);
+        TrackerDisplayStatus displayStatus = trackerDisplayStatusResolver.resolve(
+                me,
+                partner,
+                isCurrentBookReviewWritten(me)
+        );
+
+        return TrackerConverter.toListItem(
+                me,
+                partner,
+                displayStatus,
+                trackerDueDateResolver.calculate(displayStatus, me.getGroup()),
+                userProfileImageUrlResolver.resolve(me.getCurrentMemberBook().getMatchedMember().getUser()),
+                userProfileImageUrlResolver.resolve(partner.getCurrentMemberBook().getMatchedMember().getUser())
+        );
+    }
+
+    private TrackerTopBannerContext toTopBannerContext(
+            MatchedMember me,
+            MatchedMember partner,
+            Map<MeetingKey, Meeting> meetingsByKey
+    ) {
+        validateCurrentBooks(me, partner);
+        ExchangeRound exchangeRound = resolveExchangeRound(me.getReadingStatus());
+        Meeting meeting = exchangeRound == null
+                ? null
+                : meetingsByKey.get(new MeetingKey(me.getGroup().getId(), exchangeRound));
+        String currentBookTitle = bookTitle(me.getCurrentMemberBook());
+
+        return new TrackerTopBannerContext(
+                me.getGroup().getId(),
+                me.getId(),
+                me.getGroup().getGroupName(),
+                partner.getUser().getNickName(),
+                me.getGroup().getTradeType(),
+                me.getRole(),
+                me.getReadingStatus(),
+                me.getExchangeStatus(),
+                partner.getExchangeStatus(),
+                ReadingPeriodDateCalculator.endDate(me.getGroup()),
+                currentBookTitle,
+                exchangeRound,
+                exchangeRound == ExchangeRound.FIRST_EXCHANGE ? currentBookTitle : null,
+                exchangeRound == ExchangeRound.RETURN_EXCHANGE ? currentBookTitle : null,
+                me.isReviewWritten(),
+                meeting == null ? null : meeting.getScheduledAt(),
+                meeting == null ? null : meeting.getPlaceName()
+        );
+    }
+
+    private Map<MeetingKey, Meeting> loadMeetingsByKey(List<TrackerMemberPair> memberPairs) {
+        List<Long> directExchangeGroupIds = memberPairs.stream()
+                .map(TrackerMemberPair::me)
+                .filter(me -> me.getGroup().getTradeType() == TradeType.DIRECT)
+                .filter(me -> resolveExchangeRound(me.getReadingStatus()) != null)
+                .map(me -> me.getGroup().getId())
+                .distinct()
+                .toList();
+        if (directExchangeGroupIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return meetingRepository.findAllByGroupIds(directExchangeGroupIds).stream()
+                .collect(Collectors.toMap(
+                        meeting -> new MeetingKey(meeting.getGroup().getId(), meeting.getExchangeRound()),
+                        Function.identity()
+                ));
+    }
+
+    private ExchangeRound resolveExchangeRound(ReadingStatus readingStatus) {
+        if (readingStatus == ReadingStatus.EXCHANGING) {
+            return ExchangeRound.FIRST_EXCHANGE;
+        }
+        if (readingStatus == ReadingStatus.RETURNING) {
+            return ExchangeRound.RETURN_EXCHANGE;
+        }
+        return null;
+    }
+
+    private String bookTitle(MemberBook memberBook) {
+        return memberBook.getBook().getTitle();
+    }
+
+    private void validateCurrentBooks(MatchedMember me, MatchedMember partner) {
+        if (me.getCurrentMemberBook() == null || partner.getCurrentMemberBook() == null) {
+            throw new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND);
+        }
+    }
+
+    private record TrackerMemberPair(MatchedMember me, MatchedMember partner) {
+    }
+
+    private record MeetingKey(Long groupId, ExchangeRound exchangeRound) {
     }
 }

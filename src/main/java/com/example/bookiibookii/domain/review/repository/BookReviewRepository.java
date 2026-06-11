@@ -1,6 +1,7 @@
 package com.example.bookiibookii.domain.review.repository;
 
 import com.example.bookiibookii.domain.review.entity.BookReview;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -40,6 +41,27 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
     );
 
     boolean existsByMemberBookId(Long memberBookId);
+
+    @Query(
+            value = """
+                SELECT br FROM BookReview br
+                JOIN FETCH br.memberBook mb
+                JOIN FETCH mb.book
+                JOIN FETCH mb.group
+                JOIN br.matchedMember mm
+                WHERE mm.user.id = :userId
+                ORDER BY br.createdAt DESC, br.id DESC
+                """,
+            countQuery = """
+                SELECT COUNT(br) FROM BookReview br
+                JOIN br.matchedMember mm
+                WHERE mm.user.id = :userId
+                """
+    )
+    Page<BookReview> findWrittenReviewsByUserId(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 
     @Query("""
         SELECT br FROM BookReview br

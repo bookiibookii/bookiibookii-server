@@ -133,7 +133,7 @@ public class ReviewService {
             ReviewRequestDTO.MemberReviewCreateDTO request,
             User user
     ) {
-        validateCommentRequired(request.comment(), MEMBER_COMMENT_MAX_LENGTH);
+        validateCommentLength(request.comment(), MEMBER_COMMENT_MAX_LENGTH);
 
         Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));

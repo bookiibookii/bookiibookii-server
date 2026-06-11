@@ -2,7 +2,6 @@ package com.example.bookiibookii.domain.review.dto.req;
 
 import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -29,8 +28,7 @@ public class ReviewRequestDTO {
             )
             MemberReviewReaction reaction,
 
-            @Schema(description = "파트너 후기 코멘트. 필수값이며 최대 20자입니다.", example = "좋았어요", maxLength = 20, requiredMode = Schema.RequiredMode.REQUIRED)
-            @NotBlank(message = "코멘트는 필수입니다.")
+            @Schema(description = "파트너 후기 코멘트. 선택값이며 최대 20자입니다.", example = "좋았어요", maxLength = 20, nullable = true)
             @Size(max = 20, message = "파트너 후기는 20자 이내로 입력해주세요.")
             String comment
     ) {}

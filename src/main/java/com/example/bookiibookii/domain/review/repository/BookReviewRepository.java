@@ -50,12 +50,15 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
                 JOIN FETCH mb.group
                 JOIN br.matchedMember mm
                 WHERE mm.user.id = :userId
+                AND mb.removedAt IS NULL
                 ORDER BY br.createdAt DESC, br.id DESC
                 """,
             countQuery = """
                 SELECT COUNT(br) FROM BookReview br
                 JOIN br.matchedMember mm
+                JOIN br.memberBook mb
                 WHERE mm.user.id = :userId
+                AND mb.removedAt IS NULL
                 """
     )
     Page<BookReview> findWrittenReviewsByUserId(

@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
@@ -44,4 +45,11 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
             @Param("groupId") Long groupId,
             @Param("exchangeRound") ExchangeRound exchangeRound
     );
+
+    @Query("""
+        select m
+        from Meeting m
+        where m.group.id in :groupIds
+    """)
+    List<Meeting> findAllByGroupIds(@Param("groupIds") List<Long> groupIds);
 }

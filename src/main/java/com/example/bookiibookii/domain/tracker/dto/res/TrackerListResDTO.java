@@ -8,8 +8,15 @@ import java.util.List;
 @Builder
 @Schema(description = "트래커 목록 응답")
 public record TrackerListResDTO(
+
+        @Schema(description = "현재 로그인한 사용자 닉네임", example = "sayo")
+        String nickname,
+
         @Schema(description = "상단 상태별 카운트")
         Summary summary,
+
+        @Schema(description = "상단 배너 목록, 최대 3개")
+        List<TrackerTopBannerResponse> topBanners,
 
         @Schema(description = "트래커 카드 목록")
         List<TrackerListItemResDTO> items

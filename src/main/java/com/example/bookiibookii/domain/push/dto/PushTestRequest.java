@@ -1,11 +1,13 @@
 package com.example.bookiibookii.domain.push.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.Map;
 
 public record PushTestRequest(
+        @NotNull
         Long userId,
 
         @NotBlank

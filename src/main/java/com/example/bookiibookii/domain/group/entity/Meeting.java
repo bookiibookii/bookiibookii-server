@@ -128,6 +128,28 @@ public class Meeting extends BaseEntity {
         this.scheduledAt = scheduledAt;
     }
 
+    public boolean hasSameScheduleAndPlace(
+            String placeName,
+            String address,
+            String zipCode,
+            BigDecimal x,
+            BigDecimal y,
+            String addressDetail,
+            LocalDateTime scheduledAt
+    ) {
+        return Objects.equals(this.placeName, placeName)
+                && Objects.equals(this.address, address)
+                && Objects.equals(this.zipCode, zipCode)
+                && sameNumber(this.x, x)
+                && sameNumber(this.y, y)
+                && Objects.equals(this.addressDetail, addressDetail)
+                && Objects.equals(this.scheduledAt, scheduledAt);
+    }
+
+    private boolean sameNumber(BigDecimal current, BigDecimal requested) {
+        return current == null ? requested == null : requested != null && current.compareTo(requested) == 0;
+    }
+
     private static void validate(
             Groups group,
             MatchedMember createdBy,

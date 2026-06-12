@@ -23,18 +23,21 @@ public enum NotificationType {
     // TRACKER (SYSTEM) - 택배/독서 트래킹
     TRACKER_READING_STARTED(NotificationCategory.SYSTEM),     // TRK-010
     TRACKER_PERIOD_EXTENDED(NotificationCategory.SYSTEM),     // TRK-010
-    TRACKER_READING_FINISHED(NotificationCategory.SYSTEM),    // TRK-010
+    TRACKER_READING_REVIEW_COMPLETED(NotificationCategory.SYSTEM),
     TRACKER_SHIPMENT_REGISTERED(NotificationCategory.SYSTEM), // TRK-010
     TRACKER_DELIVERY_CONFIRMED(NotificationCategory.SYSTEM),  // TRK-010
     TRACKER_RETURN_SHIPMENT_REGISTERED(NotificationCategory.SYSTEM), // TRK-010 (반납 출발)
     TRACKER_EXCHANGE_COMPLETED(NotificationCategory.SYSTEM),  // TRK-030 (후기작성)
-    TRACKER_REVIEW_DONE_CONFIRMED(NotificationCategory.SYSTEM), // TRK-010
-    // todo : 네이밍 변경 예정
-    NOTI_TRK_001(NotificationCategory.SYSTEM),
-    NOTI_TRK_002(NotificationCategory.SYSTEM),
-    NOTI_TRK_003(NotificationCategory.SYSTEM),
-    NOTI_TRK_004(NotificationCategory.SYSTEM),
-    NOTI_TRK_005(NotificationCategory.SYSTEM),
+    TRACKER_COMMENT_CREATED(NotificationCategory.SYSTEM),
+    TRACKER_EXCHANGE_REVIEW_CREATED(NotificationCategory.SYSTEM),
+
+    // DIRECT EXCHANGE
+    DIRECT_MEETING_CREATED(NotificationCategory.SYSTEM),
+    DIRECT_MEETING_UPDATED(NotificationCategory.SYSTEM),
+    DIRECT_MEETING_CONFIRM_REMINDER(NotificationCategory.SYSTEM),
+
+    // LIBRARY
+    READING_CARD_REACTION_CREATED(NotificationCategory.SYSTEM),
 
     // KEYWORD
     KEYWORD_GROUP_CREATED(NotificationCategory.KEYWORD),      // GRP-010

@@ -26,6 +26,7 @@ public class NotificationPushEventListener {
             "groupId",
             "exchangeType",
             "exchangeRound",
+            "cardId",
             "commentId",
             "parentCommentId",
             "deliveryId",
@@ -62,7 +63,7 @@ public class NotificationPushEventListener {
     private Map<String, String> data(NotificationPushRequestedEvent event) {
         Map<String, String> data = new LinkedHashMap<>();
         data.put("notificationId", String.valueOf(event.notificationId()));
-        data.put("notificationType", event.notificationType());
+        data.put("type", event.notificationType());
 
         if (event.payload() == null || event.payload().isBlank()) {
             return data;

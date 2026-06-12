@@ -94,12 +94,12 @@ public class Meeting extends BaseEntity {
                 .group(group)
                 .createdBy(createdBy)
                 .exchangeRound(exchangeRound)
-                .placeName(placeName)
-                .address(address)
-                .zipCode(zipCode)
+                .placeName(normalize(placeName))
+                .address(normalize(address))
+                .zipCode(normalizeNullable(zipCode))
                 .x(x)
                 .y(y)
-                .addressDetail(addressDetail)
+                .addressDetail(normalizeNullable(addressDetail))
                 .scheduledAt(scheduledAt)
                 .build();
     }
@@ -119,13 +119,43 @@ public class Meeting extends BaseEntity {
         Objects.requireNonNull(y, "y must not be null");
         Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
 
-        this.placeName = placeName;
-        this.address = address;
-        this.zipCode = zipCode;
+        this.placeName = normalize(placeName);
+        this.address = normalize(address);
+        this.zipCode = normalizeNullable(zipCode);
         this.x = x;
         this.y = y;
-        this.addressDetail = addressDetail;
+        this.addressDetail = normalizeNullable(addressDetail);
         this.scheduledAt = scheduledAt;
+    }
+
+    public boolean hasSameScheduleAndPlace(
+            String placeName,
+            String address,
+            String zipCode,
+            BigDecimal x,
+            BigDecimal y,
+            String addressDetail,
+            LocalDateTime scheduledAt
+    ) {
+        return Objects.equals(normalize(this.placeName), normalize(placeName))
+                && Objects.equals(normalize(this.address), normalize(address))
+                && Objects.equals(normalizeNullable(this.zipCode), normalizeNullable(zipCode))
+                && sameNumber(this.x, x)
+                && sameNumber(this.y, y)
+                && Objects.equals(normalizeNullable(this.addressDetail), normalizeNullable(addressDetail))
+                && Objects.equals(this.scheduledAt, scheduledAt);
+    }
+
+    private boolean sameNumber(BigDecimal current, BigDecimal requested) {
+        return current == null ? requested == null : requested != null && current.compareTo(requested) == 0;
+    }
+
+    private static String normalize(String value) {
+        return Objects.requireNonNull(value).trim();
+    }
+
+    private static String normalizeNullable(String value) {
+        return value == null ? null : value.trim();
     }
 
     private static void validate(

@@ -14,6 +14,9 @@ import com.example.bookiibookii.domain.group.repository.GroupPlaceRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.event.DirectExchangeNotificationEvent;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.dto.req.MeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingDefaultPlaceResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingResponseDTO;
@@ -30,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +44,7 @@ public class MeetingService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupPlaceRepository groupPlaceRepository;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public MeetingResponseDTO createMeeting(Long groupId, MeetingRequestDTO request, User user) {
@@ -73,6 +78,13 @@ public class MeetingService {
         }
 
         members.forEach(member -> member.updateExchangeStatus(ExchangeStatus.MEETING_SCHEDULED));
+        publishMeetingNotification(
+                NotificationType.DIRECT_MEETING_CREATED,
+                meeting,
+                me,
+                findPartner(members, me),
+                null
+        );
 
         return MeetingResponseDTO.from(meeting);
     }
@@ -87,6 +99,15 @@ public class MeetingService {
         MatchedMember me = findMe(members, user.getId());
         validateHost(me);
 
+        boolean changed = !meeting.hasSameScheduleAndPlace(
+                request.placeName(),
+                request.address(),
+                request.zipCode(),
+                request.x(),
+                request.y(),
+                request.addressDetail(),
+                request.scheduledAt()
+        );
         meeting.update(
                 request.placeName(),
                 request.address(),
@@ -96,6 +117,15 @@ public class MeetingService {
                 request.addressDetail(),
                 request.scheduledAt()
         );
+        if (changed) {
+            publishMeetingNotification(
+                    NotificationType.DIRECT_MEETING_UPDATED,
+                    meeting,
+                    me,
+                    findPartner(members, me),
+                    UUID.randomUUID()
+            );
+        }
 
         return MeetingResponseDTO.from(meeting);
     }
@@ -183,6 +213,13 @@ public class MeetingService {
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
     }
 
+    private MatchedMember findPartner(List<MatchedMember> members, MatchedMember me) {
+        return members.stream()
+                .filter(member -> !member.getId().equals(me.getId()))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_PARTNER_COUNT));
+    }
+
     private MatchedMember validateGroupMember(Long groupId, Long userId) {
         return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
@@ -224,6 +261,27 @@ public class MeetingService {
             case RETURNING -> ExchangeRound.RETURN_EXCHANGE;
             default -> throw new TrackerException(TrackerErrorCode.INVALID_MEETING_PHASE);
         };
+    }
+
+    private void publishMeetingNotification(
+            NotificationType notificationType,
+            Meeting meeting,
+            MatchedMember actor,
+            MatchedMember receiver,
+            UUID eventId
+    ) {
+        eventPublisher.publish(new DirectExchangeNotificationEvent(
+                notificationType,
+                actor.getUser().getId(),
+                actor.getUser().getNickName(),
+                receiver.getUser().getId(),
+                meeting.getGroup().getId(),
+                meeting.getId(),
+                meeting.getExchangeRound(),
+                meeting.getScheduledAt(),
+                eventId,
+                meeting.getGroup().getBook().getTitle()
+        ));
     }
 
     private void completeMeetingPhase(List<MatchedMember> members) {

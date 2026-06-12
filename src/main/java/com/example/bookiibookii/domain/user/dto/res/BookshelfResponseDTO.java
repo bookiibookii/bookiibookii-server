@@ -39,6 +39,7 @@ public class BookshelfResponseDTO {
             Long userBookId,
             String title,
             Integer displayOrder,
-            boolean isFavorite
+            boolean isFavorite,
+            Double rating
     ) {}
 }

@@ -162,7 +162,7 @@ public interface UserControllerDocs {
             description = """
             - completedBooks: 완독한 책 목록 (완독날짜, 책 제목, 작가, 장르, 별점)
             - favoriteBooks: 온보딩에서 등록한 인생 책 (최대 3개)
-            - representativeBooks: 나를 대표하는 책 (최대 7개, displayOrder 순)
+            - representativeBooks: 나를 대표하는 책 (최대 7개, displayOrder 순, 사용자가 작성한 책 후기 별점 포함)
             """
     )
     @ApiResponses({

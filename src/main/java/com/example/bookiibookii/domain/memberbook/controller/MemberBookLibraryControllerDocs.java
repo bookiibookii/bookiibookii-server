@@ -7,6 +7,7 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,7 +65,7 @@ public interface MemberBookLibraryControllerDocs {
     @GetMapping("/memberbooks/search")
     ApiResponse<List<LibraryMemberBookResponseDTO>> searchLibraryMemberBooks(
             @AuthenticationPrincipal(expression = "user") User user,
-            @ModelAttribute LibraryMemberBookRequestDTO.SearchDTO request
+            @Valid @ModelAttribute LibraryMemberBookRequestDTO.SearchDTO request
     );
 
     @Operation(

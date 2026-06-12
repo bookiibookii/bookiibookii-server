@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -120,7 +121,7 @@ public interface MemberBookCardControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "멤버북 식별자(ID)", example = "1")
             @PathVariable Long memberBookId,
-            @RequestBody MemberCardCreateRequestDTO request
+            @Valid @RequestBody MemberCardCreateRequestDTO request
     );
 
     @Operation(
@@ -145,7 +146,7 @@ public interface MemberBookCardControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "독서카드 식별자(ID)", example = "1")
             @PathVariable Long cardId,
-            @RequestBody MemberCardUpdateRequestDTO request
+            @Valid @RequestBody MemberCardUpdateRequestDTO request
     );
 
     @Operation(
@@ -189,7 +190,7 @@ public interface MemberBookCardControllerDocs {
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "독서카드 식별자(ID)", example = "1")
             @PathVariable Long cardId,
-            @RequestBody MemberCardReactionToggleRequestDTO request
+            @Valid @RequestBody MemberCardReactionToggleRequestDTO request
     );
 
     @Operation(

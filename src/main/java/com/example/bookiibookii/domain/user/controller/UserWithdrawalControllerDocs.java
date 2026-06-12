@@ -6,6 +6,7 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -20,6 +21,6 @@ public interface UserWithdrawalControllerDocs {
     })
     ApiResponse<Void> withdraw(
             @AuthenticationPrincipal(expression = "user") User user,
-            @RequestBody UserRequestDTO.WithdrawalReqDTO request
+            @Valid @RequestBody UserRequestDTO.WithdrawalReqDTO request
     );
 }

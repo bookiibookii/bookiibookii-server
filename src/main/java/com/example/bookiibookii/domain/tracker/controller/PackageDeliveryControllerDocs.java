@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -70,7 +71,7 @@ public interface PackageDeliveryControllerDocs {
     })
     ApiResponse<DeliveryAddressResponseDTO> updateMyAddressFromSavedAddress(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody DeliveryAddressSavedUpdateRequestDTO request,
+            @Valid @RequestBody DeliveryAddressSavedUpdateRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
@@ -98,7 +99,7 @@ public interface PackageDeliveryControllerDocs {
     })
     ApiResponse<DeliveryAddressResponseDTO> updateMyAddressDirectly(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody DeliveryAddressDirectUpdateRequestDTO request,
+            @Valid @RequestBody DeliveryAddressDirectUpdateRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 
@@ -122,7 +123,7 @@ public interface PackageDeliveryControllerDocs {
     })
     ApiResponse<Void> registerDelivery(
             @Parameter(description = "그룹 식별자(ID)", example = "1") @PathVariable Long groupId,
-            @RequestBody DeliveryRegisterRequestDTO request,
+            @Valid @RequestBody DeliveryRegisterRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal(expression = "user") User user
     );
 

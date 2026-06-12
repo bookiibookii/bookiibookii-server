@@ -5,6 +5,7 @@ import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -54,7 +55,7 @@ public interface AuthControllerDocs {
     })
     @PostMapping("/refresh")
     ApiResponse<AuthResponseDTO.TokenResponse> refresh(
-            @RequestBody AuthRequestDTO.RefreshRequest requestRefreshToken, HttpServletRequest request);
+            @Valid @RequestBody AuthRequestDTO.RefreshRequest requestRefreshToken, HttpServletRequest request);
 
     @Operation(
             summary = "로그아웃",

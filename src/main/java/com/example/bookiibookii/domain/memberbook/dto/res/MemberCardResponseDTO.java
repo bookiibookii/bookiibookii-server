@@ -20,6 +20,9 @@ public class MemberCardResponseDTO {
     private MemberCardImageResponseDTO cardImage;
     private LocalDateTime createdAt;
     private String bookTitle;
+    private Integer totalPages;
+    private String genre;
+    private LocalDateTime completedAt;
     private Boolean isMine;
     private Boolean isBookmarked;
     private String creatorName;

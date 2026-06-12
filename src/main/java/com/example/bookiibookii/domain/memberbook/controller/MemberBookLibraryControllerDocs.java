@@ -29,12 +29,13 @@ public interface MemberBookLibraryControllerDocs {
         - **주요 포함 정보**:
             - **멤버북 ID**: `memberBookId` (서재 내 고유 식별자)
             - **본인 책 여부**: `isMine` (true: 내가 가져온 책, false: 상대/호스트 책)
-            - **도서 정보**: 책 ID, 제목, 저자, 이미지 URL (MemberBook에 연결된 책)
+            - **도서 정보**: 책 ID, 제목, 저자, 이미지 URL, 전체 페이지, 장르 (MemberBook에 연결된 책)
             - **그룹 정보**: 그룹 ID, 그룹명(`groupName`)
             - **호스트 정보**: 호스트 ID, 닉네임, 프로필 이미지(Presigned URL)
             - **일정 정보**: 그룹 시작일(`startDate`), **실제 독서 종료일(`endDate`)**, 그룹 독서 기간(`duration`)
             - **진행률**: `progressRate` (0 ~ 100 정수 퍼센트)
             - **평가 정보**: BookReview 기준 별점(`rating`), 감상평(`comment`). 리뷰 미작성 시 null.
+            - **완료 시점**: `completedAt`은 양측 파트너 후기가 모두 작성되어 교환독서가 종료된 시각입니다.
         - **참고**: `endDate`는 트래커의 실제 기록을 바탕으로 제공되며, 기록이 없는 경우 그룹 설정상의 종료일을 반환합니다.
         """
     )

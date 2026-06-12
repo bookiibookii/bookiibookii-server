@@ -129,6 +129,11 @@ public class MemberBookLibraryService {
                 .title(book.getTitle())
                 .author(book.getAuthor())
                 .image(book.getImage())
+                .totalPages(book.getTotalPages())
+                .genre(book.getCategory() != null ? book.getCategory().getLabel() : null)
+                .completedAt(memberBook.getMatchedMember() != null
+                        ? memberBook.getMatchedMember().getCompletedAt()
+                        : null)
                 .hostId(host.getId())
                 .hostNickName(host.getNickName())
                 .hostProfileImageUrl(hostProfileImageUrl)

@@ -216,6 +216,8 @@ public class TrackerConverter {
             case EXCHANGING -> "교환 중";
 
             case EXCHANGE_REVIEW_WRITING -> "교환 후기 작성";
+            case EXCHANGE_REVIEW_WAITING_PARTNER -> "파트너 후기 대기";
+            case COMPLETED -> "교환독서 완료";
         };
     }
 

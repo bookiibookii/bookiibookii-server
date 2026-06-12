@@ -7,6 +7,8 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,21 +36,19 @@ public class GroupCompletionService {
             return;
         }
 
-        List<MatchedMember> membersWithoutReview = matchedMemberRepository
-                .findAllByGroup_IdAndIsReviewWrittenFalse(groupId);
-
-        if (!membersWithoutReview.isEmpty()) {
-            log.info(
-                    "파트너 후기 미작성 멤버를 자동 작성 처리합니다. groupId={}, autoMarkedMemberCount={}",
-                    groupId,
-                    membersWithoutReview.size()
-            );
-            membersWithoutReview.forEach(MatchedMember::markReviewAsWritten);
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(groupId);
+        boolean readyToComplete = members.size() == 2 && members.stream().allMatch(member ->
+                member.getReadingStatus() == ReadingStatus.PARTNER_REVIEWING
+                        && member.getExchangeStatus() == ExchangeStatus.NOT_STARTED
+                        && member.isReviewWritten()
+        );
+        if (!readyToComplete) {
+            log.info("최종 교환독서 후기 작성이 완료되지 않은 그룹입니다. groupId={}", groupId);
+            return;
         }
 
         LocalDateTime completedAt = LocalDateTime.now();
-        matchedMemberRepository.findAllByGroup_Id(groupId)
-                .forEach(member -> member.completeReading(completedAt));
+        members.forEach(member -> member.completeReading(completedAt));
         group.updateStatus(GroupStatus.COMPLETED);
     }
 }

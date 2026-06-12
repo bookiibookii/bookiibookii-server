@@ -22,7 +22,8 @@ public class TrackerDisplayStatusResolver {
                 partner == null ? null : partner.getExchangeStatus(),
                 me.getGroup().getTradeType(),
                 me.getRole(),
-                currentBookReviewWritten
+                currentBookReviewWritten,
+                me.isReviewWritten()
         );
     }
 
@@ -32,7 +33,15 @@ public class TrackerDisplayStatusResolver {
             TradeType tradeType,
             boolean currentBookReviewWritten
     ) {
-        return resolve(readingStatus, exchangeStatus, null, tradeType, RoleStatus.HOST, currentBookReviewWritten);
+        return resolve(
+                readingStatus,
+                exchangeStatus,
+                null,
+                tradeType,
+                RoleStatus.HOST,
+                currentBookReviewWritten,
+                false
+        );
     }
 
     public TrackerDisplayStatus resolve(
@@ -51,6 +60,26 @@ public class TrackerDisplayStatusResolver {
             RoleStatus myRole,
             boolean currentBookReviewWritten
     ) {
+        return resolve(
+                readingStatus,
+                myExchangeStatus,
+                partnerExchangeStatus,
+                tradeType,
+                myRole,
+                currentBookReviewWritten,
+                false
+        );
+    }
+
+    public TrackerDisplayStatus resolve(
+            ReadingStatus readingStatus,
+            ExchangeStatus myExchangeStatus,
+            ExchangeStatus partnerExchangeStatus,
+            TradeType tradeType,
+            RoleStatus myRole,
+            boolean currentBookReviewWritten,
+            boolean exchangeReviewWritten
+    ) {
         if (readingStatus == null) {
             return TrackerDisplayStatus.READING;
         }
@@ -62,7 +91,10 @@ public class TrackerDisplayStatusResolver {
                     : TrackerDisplayStatus.REVIEW_WRITING;
             case EXCHANGING -> resolveExchangeStatus(myExchangeStatus, partnerExchangeStatus, tradeType, myRole, false);
             case RETURNING -> resolveExchangeStatus(myExchangeStatus, partnerExchangeStatus, tradeType, myRole, true);
-            case PARTNER_REVIEWING, COMPLETED -> TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
+            case PARTNER_REVIEWING -> exchangeReviewWritten
+                    ? TrackerDisplayStatus.EXCHANGE_REVIEW_WAITING_PARTNER
+                    : TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
+            case COMPLETED -> TrackerDisplayStatus.COMPLETED;
         };
     }
 

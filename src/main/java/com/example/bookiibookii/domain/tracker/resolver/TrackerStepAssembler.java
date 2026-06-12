@@ -40,10 +40,17 @@ public class TrackerStepAssembler {
                 .map(step -> TrackerStepInfo.builder()
                         .status(step.status())
                         .title(step.title())
-                        .description(step.description())
+                        .description(resolveDescription(step, context))
                         .completed(isCompleted(step.type(), context))
                         .build())
                 .toList();
+    }
+
+    private String resolveDescription(StepDefinition step, StepContext context) {
+        if (step.type() == StepType.PARTNER_REVIEW && context.partnerReviewWritten()) {
+            return "파트너가 교환독서 후기를 작성하면 교환독서가 종료돼요.";
+        }
+        return step.description();
     }
 
     private List<StepDefinition> directSteps(

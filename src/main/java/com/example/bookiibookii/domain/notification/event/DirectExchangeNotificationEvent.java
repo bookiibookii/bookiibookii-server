@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record DirectExchangeNotificationEvent(
         NotificationType notificationType,
@@ -11,9 +12,10 @@ public record DirectExchangeNotificationEvent(
         String actorNickname,
         Long receiverId,
         Long groupId,
+        Long meetingId,
         ExchangeRound exchangeRound,
         LocalDateTime meetingAt,
-        String placeHash,
+        UUID eventId,
         String bookTitle
 ) {
 }

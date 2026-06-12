@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -133,6 +135,20 @@ public class DirectExchangeNotificationService {
     }
 
     private String dedupKey(DirectExchangeNotificationEvent event) {
+        if (event.notificationType() == NotificationType.DIRECT_MEETING_UPDATED) {
+            Long meetingId = Objects.requireNonNull(event.meetingId(), "meetingId is required for meeting update");
+            UUID eventId = Objects.requireNonNull(event.eventId(), "eventId is required for meeting update");
+            return String.format(
+                    "%s:group:%d:round:%s:receiver:%d:meeting:%d:event:%s",
+                    event.notificationType().name(),
+                    event.groupId(),
+                    event.exchangeRound(),
+                    event.receiverId(),
+                    meetingId,
+                    eventId
+            );
+        }
+
         String base = String.format(
                 "%s:group:%d:round:%s:receiver:%d:meetingAt:%s",
                 event.notificationType().name(),
@@ -141,9 +157,6 @@ public class DirectExchangeNotificationService {
                 event.receiverId(),
                 event.meetingAt()
         );
-        if (event.notificationType() == NotificationType.DIRECT_MEETING_UPDATED) {
-            return base + ":placeHash:" + event.placeHash();
-        }
         return base;
     }
 }

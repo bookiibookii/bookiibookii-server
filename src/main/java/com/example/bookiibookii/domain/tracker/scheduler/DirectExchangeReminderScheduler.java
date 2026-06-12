@@ -71,6 +71,7 @@ public class DirectExchangeReminderScheduler {
                 null,
                 receiver.getUser().getId(),
                 meeting.getGroup().getId(),
+                meeting.getId(),
                 meeting.getExchangeRound(),
                 meeting.getScheduledAt(),
                 null,

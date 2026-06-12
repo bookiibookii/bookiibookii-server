@@ -17,7 +17,6 @@ import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.event.DirectExchangeNotificationEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
-import com.example.bookiibookii.domain.notification.util.MeetingPlaceHasher;
 import com.example.bookiibookii.domain.tracker.dto.req.MeetingRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingDefaultPlaceResponseDTO;
 import com.example.bookiibookii.domain.tracker.dto.res.MeetingResponseDTO;
@@ -34,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -123,7 +123,7 @@ public class MeetingService {
                     meeting,
                     me,
                     findPartner(members, me),
-                    MeetingPlaceHasher.hash(request)
+                    UUID.randomUUID()
             );
         }
 
@@ -268,7 +268,7 @@ public class MeetingService {
             Meeting meeting,
             MatchedMember actor,
             MatchedMember receiver,
-            String placeHash
+            UUID eventId
     ) {
         eventPublisher.publish(new DirectExchangeNotificationEvent(
                 notificationType,
@@ -276,10 +276,11 @@ public class MeetingService {
                 actor.getUser().getNickName(),
                 receiver.getUser().getId(),
                 meeting.getGroup().getId(),
+                meeting.getId(),
                 meeting.getExchangeRound(),
                 meeting.getScheduledAt(),
-                placeHash,
-                meeting.getGroup().getBook() == null ? null : meeting.getGroup().getBook().getTitle()
+                eventId,
+                meeting.getGroup().getBook().getTitle()
         ));
     }
 

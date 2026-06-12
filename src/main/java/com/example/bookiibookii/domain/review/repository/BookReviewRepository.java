@@ -16,6 +16,20 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
 
     List<BookReview> findByMemberBook_IdIn(List<Long> memberBookIds);
 
+    @Query("""
+        SELECT br FROM BookReview br
+        JOIN FETCH br.memberBook mb
+        JOIN FETCH mb.book b
+        JOIN br.matchedMember mm
+        WHERE mm.user.id = :userId
+        AND b.id IN :bookIds
+        ORDER BY br.updatedAt DESC, br.id DESC
+        """)
+    List<BookReview> findLatestByUserIdAndBookIds(
+            @Param("userId") Long userId,
+            @Param("bookIds") List<Long> bookIds
+    );
+
     boolean existsByMatchedMember_IdAndMemberBook_Id(Long matchedMemberId, Long memberBookId);
 
     Optional<BookReview> findByMatchedMember_IdAndMemberBook_Id(Long matchedMemberId, Long memberBookId);

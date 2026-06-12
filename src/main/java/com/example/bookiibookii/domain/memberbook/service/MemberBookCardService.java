@@ -42,6 +42,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -590,8 +591,18 @@ public class MemberBookCardService {
     ) {
         MemberBook memberBook = card.getMemberBook();
         String bookTitle = "";
-        if (memberBook != null && memberBook.getBook() != null && memberBook.getBook().getTitle() != null) {
-            bookTitle = memberBook.getBook().getTitle();
+        Integer totalPages = null;
+        String genre = null;
+        LocalDateTime completedAt = null;
+        if (memberBook != null && memberBook.getBook() != null) {
+            bookTitle = memberBook.getBook().getTitle() != null ? memberBook.getBook().getTitle() : "";
+            totalPages = memberBook.getBook().getTotalPages();
+            genre = memberBook.getBook().getCategory() != null
+                    ? memberBook.getBook().getCategory().getLabel()
+                    : null;
+        }
+        if (memberBook != null && memberBook.getMatchedMember() != null) {
+            completedAt = memberBook.getMatchedMember().getCompletedAt();
         }
 
         String creatorName = resolveCreatorName(memberBook);
@@ -608,6 +619,9 @@ public class MemberBookCardService {
                 .cardImage(buildCardImageResponse(card.getCardImages(), presignedGetUrlExpirationMinutes))
                 .createdAt(card.getCreatedAt())
                 .bookTitle(bookTitle)
+                .totalPages(totalPages)
+                .genre(genre)
+                .completedAt(completedAt)
                 .isMine(memberBook != null && memberBook.isMine())
                 .isBookmarked(isBookmarked)
                 .creatorName(creatorName)

@@ -59,6 +59,7 @@ public class GroupResponseDTO {
         private String tradeType;      // DIRECT, DELIVERY
         private String placeName;
         private String address;
+        private String detailAddress;
 
         // 2. 도서 상세 정보 (Book 엔티티와 매핑)
         private String title;
@@ -194,8 +195,8 @@ public class GroupResponseDTO {
             String bookImage,
             String bookTitle,
             String author,
-            @Schema(description = "그룹 진행 방식", example = "RELAY")
-            GroupType groupType,
+            @Schema(description = "교환 방식", example = "DELIVERY")
+            String tradeType,
             @Schema(description = "책 장르 표시명", example = "한국소설")
             String genre,
             Integer readingPeriod

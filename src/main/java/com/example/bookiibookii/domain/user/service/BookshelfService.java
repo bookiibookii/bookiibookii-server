@@ -104,13 +104,31 @@ public class BookshelfService {
 
     // 나를 대표하는 책 조회
     private List<BookshelfResponseDTO.RepresentativeBookDto> buildRepresentativeBooks(Long userId) {
-        return userBookRepository.findRepresentativeBooks(userId)
+        List<UserBook> representativeBooks = userBookRepository.findRepresentativeBooks(userId);
+        if (representativeBooks.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> bookIds = representativeBooks.stream()
+                .map(ub -> ub.getBook().getId())
+                .distinct()
+                .toList();
+        Map<Long, Double> ratingByBookId = bookReviewRepository
+                .findLatestByUserIdAndBookIds(userId, bookIds)
                 .stream()
+                .collect(Collectors.toMap(
+                        review -> review.getMemberBook().getBook().getId(),
+                        BookReview::getStar,
+                        (latest, ignored) -> latest
+                ));
+
+        return representativeBooks.stream()
                 .map(ub -> new BookshelfResponseDTO.RepresentativeBookDto(
                         ub.getId(),
                         ub.getBook().getTitle(),
                         ub.getDisplayOrder(),
-                        ub.isFavorite()
+                        ub.isFavorite(),
+                        ratingByBookId.get(ub.getBook().getId())
                 ))
                 .toList();
     }

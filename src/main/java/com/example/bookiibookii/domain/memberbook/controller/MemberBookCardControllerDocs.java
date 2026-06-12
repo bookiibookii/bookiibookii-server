@@ -61,6 +61,7 @@ public interface MemberBookCardControllerDocs {
             - **엔드포인트**: `GET /api/member-books/cards/detail/{cardId}`
             - 카드 소유자(MemberBook 소유자)이거나 같은 그룹 멤버만 조회 가능합니다.
             - 내가 숨긴 카드는 404로 처리됩니다.
+            - 책 전체 페이지(`totalPages`), 장르(`genre`), 양측 파트너 후기 완료 시점(`completedAt`)을 포함합니다.
             - 응답 형식은 목록 항목과 동일합니다 (`MemberCardResponseDTO`).
             """
     )

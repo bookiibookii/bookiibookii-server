@@ -193,7 +193,7 @@ public class TrackerService {
                 .map(MatchedMember::getUser)
                 .filter(receiver -> !receiver.getId().equals(user.getId()))
                 .ifPresent(receiver -> eventPublisher.publish(new TrackerNotificationEvent(
-                        NotificationType.NOTI_TRK_002,
+                        NotificationType.TRACKER_PERIOD_EXTENDED,
                         user.getId(),
                         null,
                         user.getNickName(),
@@ -247,7 +247,7 @@ public class TrackerService {
         matchedMemberRepository.findPartnerUserId(me.getGroup().getId(), actor.getId())
                 .filter(receiverId -> !receiverId.equals(actor.getId()))
                 .ifPresent(receiverId -> eventPublisher.publish(new TrackerNotificationEvent(
-                        NotificationType.NOTI_TRK_001,
+                        NotificationType.TRACKER_READING_REVIEW_COMPLETED,
                         actor.getId(),
                         me.getId(),
                         actor.getNickName(),

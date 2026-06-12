@@ -32,7 +32,7 @@ public class TrackerNotificationService {
             try {
                 notificationStore.save(notificationFactory.create(
                         receiverId,
-                        event.notificationType() == NotificationType.NOTI_TRK_001
+                        event.notificationType() == NotificationType.TRACKER_READING_REVIEW_COMPLETED
                                 ? event.actorId()
                                 : null,
                         NotificationCategory.SYSTEM,
@@ -55,7 +55,7 @@ public class TrackerNotificationService {
     }
 
     private boolean shouldSkipSelf(TrackerNotificationEvent event, Long receiverId) {
-        return event.notificationType() != NotificationType.NOTI_TRK_005
+        return event.notificationType() != NotificationType.TRACKER_EXCHANGE_COMPLETED
                 && receiverId.equals(event.actorId());
     }
 
@@ -66,7 +66,7 @@ public class TrackerNotificationService {
                 .exchangeType(event.exchangeType())
                 .commentId(event.commentId())
                 .reviewId(event.reviewId());
-        if (event.notificationType() == NotificationType.NOTI_TRK_001) {
+        if (event.notificationType() == NotificationType.TRACKER_READING_REVIEW_COMPLETED) {
             builder.actorId(event.actorId())
                     .matchedMemberId(event.actorMatchedMemberId())
                     .exchangeRound(event.exchangeRound())
@@ -76,44 +76,44 @@ public class TrackerNotificationService {
     }
 
     private RedirectType redirectType(NotificationType type) {
-        return type == NotificationType.NOTI_TRK_003
+        return type == NotificationType.TRACKER_COMMENT_CREATED
                 ? RedirectType.TRACKER_COMMENT
-                : type == NotificationType.NOTI_TRK_005
+                : type == NotificationType.TRACKER_EXCHANGE_COMPLETED
                 ? RedirectType.TRACKER_HOME
                 : RedirectType.TRACKER_DETAIL;
     }
 
     private String title(NotificationType type) {
         return switch (type) {
-            case NOTI_TRK_001 -> "파트너가 책 교환 준비를 마쳤어요";
-            case NOTI_TRK_002 -> "독서 기간이 변경됐어요";
-            case NOTI_TRK_003 -> "새로운 댓글이 달렸어요";
-            case NOTI_TRK_004 -> "파트너가 교환독서 후기를 남겼어요";
-            case NOTI_TRK_005 -> "교환독서가 종료됐어요";
+            case TRACKER_READING_REVIEW_COMPLETED -> "파트너가 책 교환 준비를 마쳤어요";
+            case TRACKER_PERIOD_EXTENDED -> "독서 기간이 변경됐어요";
+            case TRACKER_COMMENT_CREATED -> "새로운 댓글이 달렸어요";
+            case TRACKER_EXCHANGE_REVIEW_CREATED -> "파트너가 교환독서 후기를 남겼어요";
+            case TRACKER_EXCHANGE_COMPLETED -> "교환독서가 종료됐어요";
             default -> throw new IllegalArgumentException("Unsupported tracker notification type: " + type);
         };
     }
 
     private String message(TrackerNotificationEvent event) {
         return switch (event.notificationType()) {
-            case NOTI_TRK_001 -> String.format(
+            case TRACKER_READING_REVIEW_COMPLETED -> String.format(
                     "%s님이 %s 독서를 마치고 후기를 남겼어요.",
                     event.actorNickname(),
                     event.bookTitle()
             );
-            case NOTI_TRK_002 -> String.format(
+            case TRACKER_PERIOD_EXTENDED -> String.format(
                     "%s님이 예상 독서 기간을 변경했어요.",
                     event.actorNickname()
             );
-            case NOTI_TRK_003 -> String.format(
+            case TRACKER_COMMENT_CREATED -> String.format(
                     "%s님이 새 댓글을 남겼어요.",
                     event.actorNickname()
             );
-            case NOTI_TRK_004 -> String.format(
+            case TRACKER_EXCHANGE_REVIEW_CREATED -> String.format(
                     "%s님이 이번 교환독서 후기를 작성했어요.",
                     event.actorNickname()
             );
-            case NOTI_TRK_005 -> String.format(
+            case TRACKER_EXCHANGE_COMPLETED -> String.format(
                     "%s 교환독서가 모두 완료됐어요. 새로운 교환독서를 시작해볼까요?",
                     event.bookTitle()
             );
@@ -125,34 +125,34 @@ public class TrackerNotificationService {
 
     private String dedupKey(TrackerNotificationEvent event, Long receiverId) {
         return switch (event.notificationType()) {
-            case NOTI_TRK_001 -> String.format(
-                    "TRK_001:%d:%d:%d:%d:%s",
+            case TRACKER_READING_REVIEW_COMPLETED -> String.format(
+                    "TRACKER_READING_REVIEW_COMPLETED:%d:%d:%d:%d:%s",
                     receiverId,
                     event.groupId(),
                     event.actorId(),
                     event.actorMatchedMemberId(),
                     event.exchangeRound()
             );
-            case NOTI_TRK_002 -> String.format(
-                    "TRK_002:%d:%d:%s",
+            case TRACKER_PERIOD_EXTENDED -> String.format(
+                    "TRACKER_PERIOD_EXTENDED:%d:%d:%s",
                     receiverId,
                     event.groupId(),
                     event.periodEnd()
             );
-            case NOTI_TRK_003 -> String.format(
-                    "TRK_003:%d:%d:%d",
+            case TRACKER_COMMENT_CREATED -> String.format(
+                    "TRACKER_COMMENT_CREATED:%d:%d:%d",
                     receiverId,
                     event.groupId(),
                     event.commentId()
             );
-            case NOTI_TRK_004 -> String.format(
-                    "TRK_004:%d:%d:%d",
+            case TRACKER_EXCHANGE_REVIEW_CREATED -> String.format(
+                    "TRACKER_EXCHANGE_REVIEW_CREATED:%d:%d:%d",
                     receiverId,
                     event.groupId(),
                     event.reviewId()
             );
-            case NOTI_TRK_005 -> String.format(
-                    "TRK_005:%d:%d",
+            case TRACKER_EXCHANGE_COMPLETED -> String.format(
+                    "TRACKER_EXCHANGE_COMPLETED:%d:%d",
                     receiverId,
                     event.groupId()
             );

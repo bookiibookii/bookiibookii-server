@@ -84,7 +84,7 @@ public class CommentService {
         matchedMemberRepository.findPartnerUserId(group.getId(), user.getId())
                 .filter(receiverId -> !receiverId.equals(user.getId()))
                 .ifPresent(receiverId -> eventPublisher.publish(new TrackerNotificationEvent(
-                        NotificationType.NOTI_TRK_003,
+                        NotificationType.TRACKER_COMMENT_CREATED,
                         user.getId(),
                         null,
                         user.getNickName(),

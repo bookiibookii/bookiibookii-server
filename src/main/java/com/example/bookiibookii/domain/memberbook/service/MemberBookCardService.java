@@ -32,6 +32,8 @@ import com.example.bookiibookii.domain.memberbook.repository.CardReactionReposit
 import com.example.bookiibookii.domain.memberbook.repository.CardsRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
+import com.example.bookiibookii.domain.notification.event.ReadingCardReactionNotificationEvent;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -68,6 +70,7 @@ public class MemberBookCardService {
     private final CardImageValidationService cardImageValidationService;
     private final UserImageS3Service userImageS3Service;
     private final ReadingCardShareService readingCardShareService;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public MemberCardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
@@ -161,6 +164,7 @@ public class MemberBookCardService {
 
         try {
             cardReactionRepository.saveAndFlush(CardReaction.create(card, matchedMember, reaction));
+            publishReactionNotification(card, matchedMember);
             return MemberCardReactionToggleResponseDTO.builder()
                     .reaction(reaction)
                     .active(true)
@@ -179,6 +183,20 @@ public class MemberBookCardService {
                     .active(false)
                     .build();
         }
+    }
+
+    private void publishReactionNotification(Cards card, MatchedMember reactor) {
+        Long ownerId = card.getMemberBook().getMatchedMember().getUser().getId();
+        if (ownerId.equals(reactor.getUser().getId())) {
+            return;
+        }
+        eventPublisher.publish(new ReadingCardReactionNotificationEvent(
+                reactor.getUser().getId(),
+                reactor.getUser().getNickName(),
+                ownerId,
+                card.getMemberBook().getGroup().getId(),
+                card.getId()
+        ));
     }
 
     /**

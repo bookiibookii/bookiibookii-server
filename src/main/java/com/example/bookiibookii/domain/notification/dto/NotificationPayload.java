@@ -13,6 +13,7 @@ public record NotificationPayload(
         Long groupId,
         ExchangeType exchangeType,
         ExchangeRound exchangeRound,
+        Long cardId,
         Long commentId,
         Long parentCommentId,
         String deliveryId,

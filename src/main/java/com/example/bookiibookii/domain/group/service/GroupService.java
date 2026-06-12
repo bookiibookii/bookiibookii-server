@@ -441,6 +441,7 @@ public class GroupService {
                 .tradeType(group.getTradeType().name())
                 .placeName(group.getGroupPlace() != null ? group.getGroupPlace().getPlaceName() : null)
                 .address(group.getGroupPlace() != null ? group.getGroupPlace().getAddress() : null)
+                .detailAddress(group.getGroupPlace() != null ? group.getGroupPlace().getAddressDetail() : null)
                 .title(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .author(group.getBook().getAuthor())
@@ -1041,7 +1042,7 @@ public class GroupService {
                 .bookImage(group.getBook().getImage())
                 .bookTitle(group.getBook().getTitle())
                 .author(group.getBook().getAuthor())
-                .groupType(group.getGroupType())
+                .tradeType(group.getTradeType() != null ? group.getTradeType().name() : null)
                 .genre(group.getBook().getCategory().getLabel())
                 .readingPeriod(group.getReadingPeriod())
                 .build();

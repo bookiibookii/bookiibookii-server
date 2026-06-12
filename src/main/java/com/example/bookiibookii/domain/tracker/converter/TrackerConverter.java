@@ -32,12 +32,7 @@ public class TrackerConverter {
             String partnerCurrentReaderProfileImageUrl
     ) {
         Groups group = me.getGroup();
-        DisplayBooks displayBooks = resolveDisplayBooks(
-                me,
-                partner,
-                myCurrentReaderProfileImageUrl,
-                partnerCurrentReaderProfileImageUrl
-        );
+        DisplayBooks displayBooks = resolveDisplayBooks(me, partner);
         DisplayMetadata displayMetadata = resolveDisplayMetadata(displayBooks.myBook(), displayStatus);
 
         return TrackerListItemResDTO.builder()
@@ -51,15 +46,17 @@ public class TrackerConverter {
                 .remainingDays(remainingDays)
                 .myCurrentBook(toBookInfo(
                         displayBooks.myBook(),
-                        displayBooks.myProfileImageUrl(),
+                        me.getUser(),
+                        myCurrentReaderProfileImageUrl,
                         isMyOriginalBook(displayBooks.myBook(), me),
-                        displayBooks.resetProgressForDisplay()
+                        displayBooks.startsNewReading()
                 ))
                 .partnerCurrentBook(toBookInfo(
                         displayBooks.partnerBook(),
-                        displayBooks.partnerProfileImageUrl(),
+                        partner.getUser(),
+                        partnerCurrentReaderProfileImageUrl,
                         isMyOriginalBook(displayBooks.partnerBook(), me),
-                        displayBooks.resetProgressForDisplay()
+                        displayBooks.startsNewReading()
                 ))
                 .build();
     }
@@ -75,12 +72,7 @@ public class TrackerConverter {
             List<TrackerStepInfo> steps
     ) {
         Groups group = me.getGroup();
-        DisplayBooks displayBooks = resolveDisplayBooks(
-                me,
-                partner,
-                myProfileImageUrl,
-                partnerProfileImageUrl
-        );
+        DisplayBooks displayBooks = resolveDisplayBooks(me, partner);
         DisplayMetadata displayMetadata = resolveDisplayMetadata(displayBooks.myBook(), displayStatus);
 
         return TrackerDetailResDTO.builder()
@@ -94,15 +86,17 @@ public class TrackerConverter {
                 .dDay(dDay)
                 .myBook(toBookInfo(
                         displayBooks.myBook(),
-                        displayBooks.myProfileImageUrl(),
+                        me.getUser(),
+                        myProfileImageUrl,
                         isMyOriginalBook(displayBooks.myBook(), me),
-                        displayBooks.resetProgressForDisplay()
+                        displayBooks.startsNewReading()
                 ))
                 .partnerBook(toBookInfo(
                         displayBooks.partnerBook(),
-                        displayBooks.partnerProfileImageUrl(),
+                        partner.getUser(),
+                        partnerProfileImageUrl,
                         isMyOriginalBook(displayBooks.partnerBook(), me),
-                        displayBooks.resetProgressForDisplay()
+                        displayBooks.startsNewReading()
                 ))
                 .steps(steps)
                 .build();
@@ -113,18 +107,24 @@ public class TrackerConverter {
             String currentReaderProfileImageUrl,
             boolean isMyOriginalBook
     ) {
-        return toBookInfo(memberBook, currentReaderProfileImageUrl, isMyOriginalBook, false);
+        return toBookInfo(
+                memberBook,
+                memberBook.getMatchedMember().getUser(),
+                currentReaderProfileImageUrl,
+                isMyOriginalBook,
+                false
+        );
     }
 
     private static BookInfo toBookInfo(
             MemberBook memberBook,
+            User currentReader,
             String currentReaderProfileImageUrl,
             boolean isMyOriginalBook,
-            boolean resetProgressForDisplay
+            boolean startsNewReading
     ) {
         Book book = memberBook.getBook();
-        User currentReader = memberBook.getMatchedMember().getUser();
-        int currentPage = resetProgressForDisplay ? 0 : memberBook.getCurrentPage();
+        int currentPage = startsNewReading ? 0 : memberBook.getCurrentPage();
 
         return BookInfo.builder()
                 .title(book.getTitle())
@@ -150,27 +150,18 @@ public class TrackerConverter {
         return (normalizedPage * 100) / totalPages;
     }
 
-    private static DisplayBooks resolveDisplayBooks(
-            MatchedMember me,
-            MatchedMember partner,
-            String myProfileImageUrl,
-            String partnerProfileImageUrl
-    ) {
+    private static DisplayBooks resolveDisplayBooks(MatchedMember me, MatchedMember partner) {
         if (shouldSwapBooksForPackageTrackerDisplay(me, partner)) {
             return new DisplayBooks(
                     partner.getCurrentMemberBook(),
                     me.getCurrentMemberBook(),
-                    partnerProfileImageUrl,
-                    myProfileImageUrl,
-                    true
+                    me.getReadingStatus() == ReadingStatus.EXCHANGING
             );
         }
 
         return new DisplayBooks(
                 me.getCurrentMemberBook(),
                 partner.getCurrentMemberBook(),
-                myProfileImageUrl,
-                partnerProfileImageUrl,
                 false
         );
     }
@@ -231,9 +222,7 @@ public class TrackerConverter {
     private record DisplayBooks(
             MemberBook myBook,
             MemberBook partnerBook,
-            String myProfileImageUrl,
-            String partnerProfileImageUrl,
-            boolean resetProgressForDisplay
+            boolean startsNewReading
     ) {
     }
 

@@ -108,7 +108,7 @@ public class ReviewService {
         if (roundReady) {
             MatchedMember partner = findPartner(members, me.getId());
             eventPublisher.publish(new TrackerNotificationEvent(
-                    NotificationType.NOTI_TRK_001,
+                    NotificationType.TRACKER_READING_REVIEW_COMPLETED,
                     user.getId(),
                     me.getId(),
                     user.getNickName(),
@@ -171,7 +171,9 @@ public class ReviewService {
             group.updateStatus(GroupStatus.COMPLETED);
         }
         eventPublisher.publish(new TrackerNotificationEvent(
-                partnerAlreadyReviewed ? NotificationType.NOTI_TRK_005 : NotificationType.NOTI_TRK_004,
+                partnerAlreadyReviewed
+                        ? NotificationType.TRACKER_EXCHANGE_COMPLETED
+                        : NotificationType.TRACKER_EXCHANGE_REVIEW_CREATED,
                 user.getId(),
                 me.getId(),
                 user.getNickName(),

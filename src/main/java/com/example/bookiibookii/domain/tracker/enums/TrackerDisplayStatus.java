@@ -20,5 +20,7 @@ public enum TrackerDisplayStatus {
     WAITING_PARTNER_MEETING_COMPLETE, // 상대 교환 완료 처리 대기
     EXCHANGING,           // 교환 중
 
-    EXCHANGE_REVIEW_WRITING // 교환 후기 작성
+    EXCHANGE_REVIEW_WRITING, // 교환 후기 작성
+    EXCHANGE_REVIEW_WAITING_PARTNER, // 내 교환 후기 작성 완료, 파트너 후기 대기
+    COMPLETED // 교환독서 종료
 }

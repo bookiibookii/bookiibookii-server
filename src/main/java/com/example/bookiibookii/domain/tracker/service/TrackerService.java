@@ -308,7 +308,8 @@ public class TrackerService {
     private boolean isReviewStatus(TrackerDisplayStatus displayStatus) {
         return displayStatus == TrackerDisplayStatus.REVIEW_WRITING
                 || displayStatus == TrackerDisplayStatus.REVIEW_WAITING_PARTNER
-                || displayStatus == TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING;
+                || displayStatus == TrackerDisplayStatus.EXCHANGE_REVIEW_WRITING
+                || displayStatus == TrackerDisplayStatus.EXCHANGE_REVIEW_WAITING_PARTNER;
     }
 
     private boolean isExchangeStatus(TrackerDisplayStatus displayStatus) {

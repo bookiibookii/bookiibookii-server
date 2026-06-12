@@ -72,9 +72,33 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
               where mm.group = g
                 and mm.exchangeStatus = :scheduledStatus
                 and (
-                    (m.exchangeRound = :firstRound and mm.readingStatus = :firstReadingStatus)
+                    (
+                        m.exchangeRound = :firstRound
+                        and mm.readingStatus = :firstReadingStatus
+                        and not exists (
+                            select other.id
+                            from MatchedMember other
+                            where other.group = g
+                              and (
+                                  other.readingStatus is null
+                                  or other.readingStatus <> :firstReadingStatus
+                              )
+                        )
+                    )
                     or
-                    (m.exchangeRound = :returnRound and mm.readingStatus = :returnReadingStatus)
+                    (
+                        m.exchangeRound = :returnRound
+                        and mm.readingStatus = :returnReadingStatus
+                        and not exists (
+                            select other.id
+                            from MatchedMember other
+                            where other.group = g
+                              and (
+                                  other.readingStatus is null
+                                  or other.readingStatus <> :returnReadingStatus
+                              )
+                        )
+                    )
                 )
           )
     """)
@@ -89,29 +113,4 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
             @Param("returnReadingStatus") ReadingStatus returnReadingStatus
     );
 
-    @Query("""
-        select (count(m) > 0)
-        from Meeting m
-        join MatchedMember mm on mm.group = m.group
-        where m.group.id = :groupId
-          and m.group.tradeType = :tradeType
-          and m.group.groupStatus = :groupStatus
-          and m.exchangeRound = :exchangeRound
-          and m.scheduledAt = :scheduledAt
-          and m.scheduledAt <= :cutoff
-          and mm.user.id = :receiverId
-          and mm.readingStatus = :readingStatus
-          and mm.exchangeStatus = :exchangeStatus
-    """)
-    boolean existsCurrentReminderTarget(
-            @Param("groupId") Long groupId,
-            @Param("tradeType") TradeType tradeType,
-            @Param("groupStatus") GroupStatus groupStatus,
-            @Param("exchangeRound") ExchangeRound exchangeRound,
-            @Param("scheduledAt") LocalDateTime scheduledAt,
-            @Param("cutoff") LocalDateTime cutoff,
-            @Param("receiverId") Long receiverId,
-            @Param("readingStatus") ReadingStatus readingStatus,
-            @Param("exchangeStatus") ExchangeStatus exchangeStatus
-    );
 }

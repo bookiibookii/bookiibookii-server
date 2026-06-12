@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.notification.event.DirectExchangeNotificationEvent;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.tracker.resolver.ActiveExchangeRoundResolver;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
@@ -30,6 +31,7 @@ public class DirectExchangeReminderScheduler {
     private final MeetingRepository meetingRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
+    private final ActiveExchangeRoundResolver activeExchangeRoundResolver;
 
     @Scheduled(
             cron = "${scheduler.direct-exchange-reminder.cron:0 */5 * * * *}",
@@ -50,18 +52,16 @@ public class DirectExchangeReminderScheduler {
         );
 
         for (Meeting meeting : meetings) {
-            ReadingStatus expectedReadingStatus = expectedReadingStatus(meeting.getExchangeRound());
-            matchedMemberRepository.findAllByGroup_Id(meeting.getGroup().getId()).stream()
-                    .filter(member -> member.getReadingStatus() == expectedReadingStatus)
+            List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(meeting.getGroup().getId());
+            if (activeExchangeRoundResolver.resolve(members)
+                    .filter(meeting.getExchangeRound()::equals)
+                    .isEmpty()) {
+                continue;
+            }
+            members.stream()
                     .filter(member -> member.getExchangeStatus() == ExchangeStatus.MEETING_SCHEDULED)
                     .forEach(member -> publishReminder(meeting, member));
         }
-    }
-
-    private ReadingStatus expectedReadingStatus(ExchangeRound exchangeRound) {
-        return exchangeRound == ExchangeRound.FIRST_EXCHANGE
-                ? ReadingStatus.EXCHANGING
-                : ReadingStatus.RETURNING;
     }
 
     private void publishReminder(Meeting meeting, MatchedMember receiver) {

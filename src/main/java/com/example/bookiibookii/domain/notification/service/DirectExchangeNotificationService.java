@@ -1,7 +1,10 @@
 package com.example.bookiibookii.domain.notification.service;
 
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.entity.Meeting;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.group.repository.MeetingRepository;
 import com.example.bookiibookii.domain.notification.dto.NotificationPayload;
 import com.example.bookiibookii.domain.notification.enums.ExchangeType;
@@ -12,13 +15,14 @@ import com.example.bookiibookii.domain.notification.event.DirectExchangeNotifica
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
-import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.resolver.ActiveExchangeRoundResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -30,6 +34,8 @@ public class DirectExchangeNotificationService {
     private final NotificationStore notificationStore;
     private final NotificationFactory notificationFactory;
     private final MeetingRepository meetingRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
+    private final ActiveExchangeRoundResolver activeExchangeRoundResolver;
 
     public void send(DirectExchangeNotificationEvent event) {
         if (event.receiverId() == null || isSelfNotification(event) || !isCurrentlyEligible(event)) {
@@ -71,20 +77,30 @@ public class DirectExchangeNotificationService {
         if (event.notificationType() != NotificationType.DIRECT_MEETING_CONFIRM_REMINDER) {
             return true;
         }
-        ReadingStatus readingStatus = event.exchangeRound() == ExchangeRound.FIRST_EXCHANGE
-                ? ReadingStatus.EXCHANGING
-                : ReadingStatus.RETURNING;
-        return meetingRepository.existsCurrentReminderTarget(
-                event.groupId(),
-                TradeType.DIRECT,
-                GroupStatus.MATCHED,
-                event.exchangeRound(),
-                event.meetingAt(),
-                LocalDateTime.now(KST).minusHours(1),
-                event.receiverId(),
-                readingStatus,
-                ExchangeStatus.MEETING_SCHEDULED
-        );
+        Meeting meeting = meetingRepository.findByGroupIdAndExchangeRound(
+                        event.groupId(),
+                        event.exchangeRound()
+                )
+                .orElse(null);
+        if (meeting == null
+                || meeting.getGroup().getTradeType() != TradeType.DIRECT
+                || meeting.getGroup().getGroupStatus() != GroupStatus.MATCHED
+                || meeting.getExchangeRound() != event.exchangeRound()
+                || !meeting.getScheduledAt().equals(event.meetingAt())
+                || meeting.getScheduledAt().isAfter(LocalDateTime.now(KST).minusHours(1))) {
+            return false;
+        }
+
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(event.groupId());
+        if (activeExchangeRoundResolver.resolve(members)
+                .filter(event.exchangeRound()::equals)
+                .isEmpty()) {
+            return false;
+        }
+
+        return members.stream()
+                .filter(member -> member.getUser().getId().equals(event.receiverId()))
+                .anyMatch(member -> member.getExchangeStatus() == ExchangeStatus.MEETING_SCHEDULED);
     }
 
     private String title(NotificationType type) {

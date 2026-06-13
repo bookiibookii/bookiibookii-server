@@ -62,6 +62,7 @@ discord:
 app:
   share:
     web-base-url: ${SHARE_WEB_BASE_URL:https://bookiibookii.com/share/reading-card}
+    profile-web-base-url: ${SHARE_PROFILE_WEB_BASE_URL:https://bookiibookii.com/share/profile}
 
 push:
   firebase:

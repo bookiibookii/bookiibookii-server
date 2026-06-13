@@ -42,8 +42,14 @@ public enum UserSuccessCode implements BaseCode {
             "USER200_11",
             "한줄 소개 수정에 성공했습니다."),
     WITHDRAWAL_SUCCESS(HttpStatus.OK,
-            "USER200_11",
+            "USER200_12",
             "회원 탈퇴가 완료되었습니다."),
+    PROFILE_SHARE_TOKEN_CREATED(HttpStatus.CREATED,
+            "USER201_1",
+            "프로필 공유 링크를 발급했습니다."),
+    PUBLIC_PROFILE_FOUND(HttpStatus.OK,
+            "USER200_13",
+            "공유 프로필을 조회했습니다."),
     ;
     private final HttpStatus status;
     private final String code;

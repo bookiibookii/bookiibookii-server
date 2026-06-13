@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
 import com.example.bookiibookii.domain.user.dto.req.BookshelfRequestDTO;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
+import com.example.bookiibookii.domain.user.dto.res.ProfileShareTokenResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -248,5 +249,25 @@ public interface UserControllerDocs {
     })
     @PatchMapping("/api/mypage/bookshelf/representatives/order")
     ApiResponse<Void> reorderRepresentativeBooks(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.MoveRepresentativeReqDTO request);
+
+    @Operation(
+            summary = "프로필 공유 토큰 발급",
+            description = """
+            프로필 공유 버튼 클릭 시 고유 공유 링크를 발급합니다.
+
+            - **엔드포인트**: `POST /api/mypage/share-token`
+            - 로그인이 필요하며 본인 프로필만 공유할 수 있습니다.
+            - 공유 불가: 탈퇴한 사용자
+            - 재공유 시 기존 활성 토큰은 폐기(revoke)되고 새 고유 링크가 발급됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "공유 링크 발급 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "공유 불가 프로필 (USER400_12)")
+    })
+    @PostMapping("/api/mypage/share-token")
+    ApiResponse<ProfileShareTokenResponseDTO> createProfileShareToken(
+            @AuthenticationPrincipal User user
+    );
 
 }

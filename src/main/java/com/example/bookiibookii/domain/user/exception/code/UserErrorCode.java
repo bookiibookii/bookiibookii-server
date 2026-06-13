@@ -56,7 +56,13 @@ public enum UserErrorCode implements BaseCode {
             "대표 책에 인생 책이 최소 1권 포함되어 있어야 합니다."),
     INVALID_BIRTH_DATE(HttpStatus.BAD_REQUEST,
             "USER400_11",
-            "생년월일은 오늘 이전 날짜여야 합니다.")
+            "생년월일은 오늘 이전 날짜여야 합니다."),
+    PROFILE_NOT_SHAREABLE(HttpStatus.BAD_REQUEST,
+            "USER400_12",
+            "공유할 수 없는 프로필입니다."),
+    PROFILE_SHARE_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "USER404_3",
+            "공유 링크를 찾을 수 없거나 만료되었습니다.")
     ;
     private final HttpStatus status;
     private final String code;

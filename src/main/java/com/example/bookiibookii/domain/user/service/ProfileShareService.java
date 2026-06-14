@@ -40,11 +40,13 @@ public class ProfileShareService {
 
     @Transactional
     public ProfileShareTokenResponseDTO createShareToken(User user) {
-        validateShareable(user);
-        revokeActiveTokensForUser(user.getId());
+        User lockedUser = userRepository.findByIdForUpdate(user.getId())
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        validateShareable(lockedUser);
+        revokeActiveTokensForUser(lockedUser.getId());
 
         ProfileShareToken shareToken = profileShareTokenRepository.save(
-                ProfileShareToken.create(userRepository.getReferenceById(user.getId()))
+                ProfileShareToken.create(lockedUser)
         );
 
         return ProfileShareTokenResponseDTO.builder()
@@ -59,7 +61,7 @@ public class ProfileShareService {
                 .orElseThrow(() -> new UserException(UserErrorCode.PROFILE_SHARE_TOKEN_NOT_FOUND));
 
         User user = shareToken.getUser();
-        validateShareableForPublic(user);
+        validateShareable(user);
 
         return toPublicResponse(user);
     }
@@ -69,17 +71,6 @@ public class ProfileShareService {
         LocalDateTime now = LocalDateTime.now();
         List<ProfileShareToken> activeTokens = profileShareTokenRepository.findAllActiveByUserId(userId);
         activeTokens.forEach(token -> token.revoke(now));
-    }
-
-    private void validateShareableForPublic(User user) {
-        try {
-            validateShareable(user);
-        } catch (UserException e) {
-            if (e.getCode() == UserErrorCode.PROFILE_NOT_SHAREABLE) {
-                throw new UserException(UserErrorCode.PROFILE_SHARE_TOKEN_NOT_FOUND);
-            }
-            throw e;
-        }
     }
 
     private void validateShareable(User user) {

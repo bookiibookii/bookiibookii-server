@@ -24,7 +24,8 @@ public interface PublicProfileShareControllerDocs {
 
             - 비로그인 공개 API입니다.
             - userId, 성별, 생년월일, 후기 등 내부/개인정보는 포함하지 않습니다.
-            - revoked 토큰, 탈퇴한 사용자 프로필은 404로 처리됩니다.
+            - revoked/expired 토큰은 404로 처리됩니다.
+            - 탈퇴한 사용자 등 공유 불가 프로필은 400으로 처리됩니다.
             """
     )
     @ApiResponses({
@@ -32,6 +33,10 @@ public interface PublicProfileShareControllerDocs {
                     responseCode = "200",
                     description = "조회 성공",
                     content = @Content(schema = @Schema(implementation = PublicProfileResponseDTO.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "공유할 수 없는 프로필 (USER400_12)"
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "공유 링크 없음 또는 만료")
     })

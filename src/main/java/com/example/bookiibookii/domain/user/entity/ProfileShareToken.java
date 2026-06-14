@@ -44,6 +44,9 @@ public class ProfileShareToken extends BaseEntity {
     }
 
     public void revoke(LocalDateTime revokedAt) {
+        if (revokedAt == null) {
+            throw new IllegalArgumentException("revokedAt must not be null");
+        }
         this.revokedAt = revokedAt;
     }
 

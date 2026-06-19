@@ -12,6 +12,8 @@ import com.example.bookiibookii.domain.location.exception.LocationException;
 import com.example.bookiibookii.domain.location.exception.code.LocationErrorCode;
 import com.example.bookiibookii.domain.location.repository.UserDeliveryRepository;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.dto.req.DeliveryAddressDirectUpdateRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.DeliveryRegisterRequestDTO;
 import com.example.bookiibookii.domain.tracker.dto.req.DeliveryAddressSavedUpdateRequestDTO;
@@ -19,6 +21,7 @@ import com.example.bookiibookii.domain.tracker.dto.res.DeliveryAddressResponseDT
 import com.example.bookiibookii.domain.tracker.dto.res.PartnerDeliveryResponseDTO;
 import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.entity.DeliveryAddress;
+import com.example.bookiibookii.domain.tracker.event.DeliveryNotificationEvent;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
@@ -48,6 +51,7 @@ public class PackageDeliveryService {
     private final DeliveryAddressRepository deliveryAddressRepository;
     private final DeliveryRepository deliveryRepository;
     private final UserDeliveryRepository userDeliveryRepository;
+    private final DomainEventPublisher eventPublisher;
 
     public DeliveryAddressResponseDTO getAddresses(Long groupId, User user) {
         Groups group = validatePackageGroup(groupId);
@@ -168,6 +172,17 @@ public class PackageDeliveryService {
         }
 
         me.updateExchangeStatus(ExchangeStatus.TRACKING_REGISTERED);
+
+        eventPublisher.publish(new DeliveryNotificationEvent(
+                NotificationType.TRACKER_SHIPMENT_REGISTERED,
+                me.getUser().getId(),
+                me.getUser().getNickName(),
+                delivery.getReceiver().getUser().getId(),
+                group.getId(),
+                currentExchangeRound,
+                delivery.getId(),
+                findDeliveredBookTitle(delivery)
+        ));
     }
 
     public PartnerDeliveryResponseDTO getPartnerDelivery(Long groupId, User user) {
@@ -210,6 +225,17 @@ public class PackageDeliveryService {
 
         partnerDelivery.confirmReceived(LocalDateTime.now());
         me.updateExchangeStatus(ExchangeStatus.RECEIVED_CONFIRMED);
+
+        eventPublisher.publish(new DeliveryNotificationEvent(
+                NotificationType.TRACKER_DELIVERY_CONFIRMED,
+                me.getUser().getId(),
+                me.getUser().getNickName(),
+                partnerDelivery.getSender().getUser().getId(),
+                groupId,
+                currentExchangeRound,
+                partnerDelivery.getId(),
+                findDeliveredBookTitle(partnerDelivery)
+        ));
 
         if (members.stream().allMatch(member -> member.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED)) {
             LocalDateTime now = LocalDateTime.now();
@@ -388,6 +414,15 @@ public class PackageDeliveryService {
         return matchedMember.getMemberBooks().stream()
                 .filter(MemberBook::isMine)
                 .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
+    }
+
+    public static String findDeliveredBookTitle(Delivery delivery) {
+        boolean sentBookIsMine = delivery.getExchangeRound() == ExchangeRound.FIRST_EXCHANGE;
+        return delivery.getSender().getMemberBooks().stream()
+                .filter(memberBook -> memberBook.isMine() == sentBookIsMine)
+                .findFirst()
+                .map(memberBook -> memberBook.getBook().getTitle())
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
     }
 }

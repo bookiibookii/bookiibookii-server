@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.tracker.event.DeliveryNotificationEvent;
 import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
 import com.example.bookiibookii.domain.tracker.service.PackageDeliveryService;
 import com.example.bookiibookii.domain.tracker.util.DeliveryNotificationDedupKey;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
+@Slf4j
 @Component
 public class DeliveryReceiveReminderScheduler {
 
@@ -59,27 +61,45 @@ public class DeliveryReceiveReminderScheduler {
                 .minusHours(REMINDER_DELAY_HOURS);
 
         for (Delivery delivery : deliveryRepository.findReceiveReminderCandidates(cutoff)) {
-            String dedupKey = DeliveryNotificationDedupKey.create(
-                    NotificationType.TRACKER_DELIVERY_RECEIVE_REMINDER,
-                    delivery.getGroup().getId(),
-                    delivery.getExchangeRound(),
-                    delivery.getId()
-            );
-            Long receiverId = delivery.getReceiver().getUser().getId();
-            if (notificationRepository.existsByReceiver_IdAndDedupKey(receiverId, dedupKey)) {
-                continue;
+            try {
+                processReceiveReminderCandidate(delivery);
+            } catch (Exception exception) {
+                log.error(
+                        "Delivery receive reminder candidate processing failed. "
+                                + "deliveryId={}, groupId={}, exchangeRound={}, receiverId={}",
+                        delivery == null ? null : delivery.getId(),
+                        delivery == null || delivery.getGroup() == null ? null : delivery.getGroup().getId(),
+                        delivery == null ? null : delivery.getExchangeRound(),
+                        delivery == null || delivery.getReceiver() == null
+                                || delivery.getReceiver().getUser() == null
+                                ? null : delivery.getReceiver().getUser().getId(),
+                        exception
+                );
             }
-
-            eventPublisher.publish(new DeliveryNotificationEvent(
-                    NotificationType.TRACKER_DELIVERY_RECEIVE_REMINDER,
-                    delivery.getSender().getUser().getId(),
-                    delivery.getSender().getUser().getNickName(),
-                    receiverId,
-                    delivery.getGroup().getId(),
-                    delivery.getExchangeRound(),
-                    delivery.getId(),
-                    PackageDeliveryService.findDeliveredBookTitle(delivery)
-            ));
         }
+    }
+
+    private void processReceiveReminderCandidate(Delivery delivery) {
+        String dedupKey = DeliveryNotificationDedupKey.create(
+                NotificationType.TRACKER_DELIVERY_RECEIVE_REMINDER,
+                delivery.getGroup().getId(),
+                delivery.getExchangeRound(),
+                delivery.getId()
+        );
+        Long receiverId = delivery.getReceiver().getUser().getId();
+        if (notificationRepository.existsByReceiver_IdAndDedupKey(receiverId, dedupKey)) {
+            return;
+        }
+
+        eventPublisher.publish(new DeliveryNotificationEvent(
+                NotificationType.TRACKER_DELIVERY_RECEIVE_REMINDER,
+                delivery.getSender().getUser().getId(),
+                delivery.getSender().getUser().getNickName(),
+                receiverId,
+                delivery.getGroup().getId(),
+                delivery.getExchangeRound(),
+                delivery.getId(),
+                PackageDeliveryService.findDeliveredBookTitle(delivery)
+        ));
     }
 }

@@ -11,6 +11,7 @@ import com.example.bookiibookii.domain.tracker.event.DeliveryNotificationEvent;
 import com.example.bookiibookii.domain.tracker.util.DeliveryNotificationDedupKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -27,7 +28,7 @@ public class DeliveryNotificationService {
         }
 
         try {
-            notificationStore.save(notificationFactory.create(
+            boolean saved = notificationStore.save(notificationFactory.create(
                     event.receiverId(),
                     null,
                     NotificationCategory.SYSTEM,
@@ -41,10 +42,27 @@ public class DeliveryNotificationService {
                             event.exchangeRound(),
                             event.deliveryId()
                     )
-            ));
+            )).isPresent();
+            if (!saved) {
+                log.debug(
+                        "Duplicate delivery notification ignored. type={}, receiverId={}, deliveryId={}",
+                        event.notificationType(),
+                        event.receiverId(),
+                        event.deliveryId()
+                );
+            }
+        } catch (DataAccessException exception) {
+            // 알림 저장 실패는 비즈니스 성공을 롤백하지 않지만, 중복 외 장애는 error 로그로 남긴다.
+            log.error(
+                    "Delivery notification database operation failed. type={}, receiverId={}, deliveryId={}",
+                    event.notificationType(),
+                    event.receiverId(),
+                    event.deliveryId(),
+                    exception
+            );
         } catch (RuntimeException exception) {
-            log.warn(
-                    "Delivery notification save failed. type={}, receiverId={}, deliveryId={}",
+            log.error(
+                    "Unexpected delivery notification processing failure. type={}, receiverId={}, deliveryId={}",
                     event.notificationType(),
                     event.receiverId(),
                     event.deliveryId(),

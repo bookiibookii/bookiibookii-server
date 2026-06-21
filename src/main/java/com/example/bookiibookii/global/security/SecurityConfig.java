@@ -30,12 +30,6 @@ public class SecurityConfig {
             "/health",
             "/error",
 
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger/login/**",
-            "/swagger-resources/**",
-            "/swagger-ui.html",
-
             "/api/auth/login",
             "/api/auth/refresh",
             "/kakao/callback",

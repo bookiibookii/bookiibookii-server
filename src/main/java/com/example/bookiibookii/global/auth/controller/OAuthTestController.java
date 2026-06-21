@@ -25,6 +25,7 @@ import java.util.Map;
  * - 실제 배포 시 삭제
  */
 @Slf4j
+@Profile("!v1")
 @RestController
 @RequiredArgsConstructor
 public class OAuthTestController {

@@ -14,6 +14,8 @@ import java.util.List;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
+    boolean existsByReceiver_IdAndDedupKey(Long receiverId, String dedupKey);
+
     @Query("""
         select n from Notification n
         where n.receiver.id = :receiverId

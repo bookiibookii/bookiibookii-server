@@ -11,6 +11,8 @@ import com.example.bookiibookii.domain.notification.service.DirectExchangeNotifi
 import com.example.bookiibookii.domain.notification.service.KeywordNotificationService;
 import com.example.bookiibookii.domain.notification.service.ReadingCardReactionNotificationService;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
+import com.example.bookiibookii.domain.tracker.event.DeliveryNotificationEvent;
+import com.example.bookiibookii.domain.tracker.service.DeliveryNotificationService;
 import com.example.bookiibookii.domain.tracker.service.TrackerNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
@@ -28,6 +30,7 @@ public class NotificationEventListener {
     private final GroupNotificationService groupNotificationService;
     private final DirectExchangeNotificationService directExchangeNotificationService;
     private final ReadingCardReactionNotificationService readingCardReactionNotificationService;
+    private final DeliveryNotificationService deliveryNotificationService;
 
     @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -45,6 +48,12 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTracker(TrackerNotificationEvent event) {
         trackerNotificationService.send(event);
+    }
+
+    @Async("notiExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleDelivery(DeliveryNotificationEvent event) {
+        deliveryNotificationService.send(event);
     }
 
     @Async("notiExecutor")

@@ -21,7 +21,7 @@ public class SwaggerConfig {
     public OpenAPI swagger() {
         Info info = new Info()
                 .title("부키부키 V1 API 명세서")
-                .description("부키부키 V1 백엔드 API 명세서입니다.")
+                .description("부키부키 V1 백엔드 API 명세서입니다")
                 .version("0.1.0");
 
         String securityScheme = "JWT TOKEN";

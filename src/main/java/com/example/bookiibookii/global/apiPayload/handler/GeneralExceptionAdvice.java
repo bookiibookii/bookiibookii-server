@@ -6,14 +6,19 @@ import com.example.bookiibookii.global.apiPayload.code.GeneralErrorCode;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.notification.DiscordWebhookService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -78,6 +83,70 @@ public class GeneralExceptionAdvice {
                         code,
                         errors
                 ));
+    }
+
+    // JSON 파싱 실패, 잘못된 enum 값 등 요청 본문을 읽을 수 없는 경우
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex
+    ) {
+        log.warn("HttpMessageNotReadable: {}", ex.getMessage());
+        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, null));
+    }
+
+    // 경로 변수 또는 쿼리 파라미터 타입 불일치
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex
+    ) {
+        log.warn("MethodArgumentTypeMismatch: param={}, value={}", ex.getName(), ex.getValue());
+        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, null));
+    }
+
+    // 필수 쿼리 파라미터 누락
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex
+    ) {
+        log.warn("MissingServletRequestParameter: param={}", ex.getParameterName());
+        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, null));
+    }
+
+    // 폼 데이터 또는 모델 어트리뷰트 바인딩 실패
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponse<List<String>>> handleBindException(
+            BindException ex
+    ) {
+        log.warn("BindException occurred", ex);
+        List<String> errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage)
+                .toList();
+        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, errors));
+    }
+
+    // @Validated 클래스 레벨 또는 메서드 파라미터 제약 조건 위반
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<List<String>>> handleConstraintViolation(
+            ConstraintViolationException ex
+    ) {
+        log.warn("ConstraintViolationException occurred", ex);
+        List<String> errors = ex.getConstraintViolations()
+                .stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .toList();
+        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, errors));
     }
 
     // 존재하지 않는 리소스 요청은 DEBUG 레벨로 로깅

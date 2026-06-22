@@ -17,7 +17,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "matchedmember")
+@Table(
+        name = "matchedmember",
+        indexes = {
+                @Index(
+                        name = "idx_matchedmember_user_id_group_id",
+                        columnList = "user_id, group_id"
+                )
+        }
+)
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

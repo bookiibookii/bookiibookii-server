@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.memberbook.entity.Cards;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.memberbook.entity.MemberCard;
 import com.example.bookiibookii.domain.memberbook.enums.CardType;
+import com.example.bookiibookii.domain.memberbook.enums.ShareLayout;
 import com.example.bookiibookii.domain.memberbook.exception.MemberBookException;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookErrorCode;
 import com.example.bookiibookii.domain.memberbook.repository.CardShareTokenRepository;
@@ -41,17 +42,18 @@ public class ReadingCardShareService {
     private final UserRepository userRepository;
 
     @Transactional
-    public ShareTokenResponseDTO createShareToken(Long cardId, User user) {
+    public ShareTokenResponseDTO createShareToken(Long cardId, User user, ShareLayout shareLayout) {
         Cards card = getShareableCardForMember(cardId, user.getId());
         revokeActiveTokensForCard(card.getId());
 
         CardShareToken shareToken = cardShareTokenRepository.save(
-                CardShareToken.create(card, userRepository.getReferenceById(user.getId()))
+                CardShareToken.create(card, userRepository.getReferenceById(user.getId()), shareLayout)
         );
 
         return ShareTokenResponseDTO.builder()
                 .shareToken(shareToken.getToken())
                 .shareUrl(buildShareUrl(shareToken.getToken()))
+                .shareLayout(shareToken.getShareLayout())
                 .build();
     }
 
@@ -63,7 +65,7 @@ public class ReadingCardShareService {
         Cards card = shareToken.getCard();
         validateShareableForPublic(card);
 
-        return toPublicResponse(card);
+        return toPublicResponse(card, shareToken.getShareLayout());
     }
 
     @Transactional
@@ -120,7 +122,7 @@ public class ReadingCardShareService {
                 });
     }
 
-    private PublicReadingCardResponseDTO toPublicResponse(Cards card) {
+    private PublicReadingCardResponseDTO toPublicResponse(Cards card, ShareLayout shareLayout) {
         MemberBook memberBook = card.getMemberBook();
         var book = memberBook.getBook();
         var owner = memberBook.getMatchedMember().getUser();
@@ -138,6 +140,7 @@ public class ReadingCardShareService {
         }
 
         return PublicReadingCardResponseDTO.builder()
+                .shareLayout(shareLayout)
                 .cardType(card.getCardType())
                 .bookTitle(book.getTitle())
                 .bookAuthor(book.getAuthor())

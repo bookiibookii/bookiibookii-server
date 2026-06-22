@@ -9,6 +9,7 @@ import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardReactionTogg
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardListResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardResponseDTO;
+import com.example.bookiibookii.domain.memberbook.dto.req.ShareTokenCreateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.ShareTokenResponseDTO;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookCardSuccessCode;
 import com.example.bookiibookii.domain.memberbook.service.MemberBookCardService;
@@ -136,9 +137,14 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
     @PostMapping("/cards/{cardId}/share-token")
     public ApiResponse<ShareTokenResponseDTO> createShareToken(
             @AuthenticationPrincipal(expression = "user") User user,
-            @PathVariable Long cardId
+            @PathVariable Long cardId,
+            @Valid @RequestBody ShareTokenCreateRequestDTO request
     ) {
-        ShareTokenResponseDTO response = readingCardShareService.createShareToken(cardId, user);
+        ShareTokenResponseDTO response = readingCardShareService.createShareToken(
+                cardId,
+                user,
+                request.getShareLayout()
+        );
         return ApiResponse.onSuccess(MemberBookCardSuccessCode.SHARE_TOKEN_CREATED, response);
     }
 

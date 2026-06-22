@@ -4,6 +4,7 @@ import com.example.bookiibookii.domain.memberbook.dto.res.PresignedUrlResponseDT
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardCreateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardReactionToggleRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.req.MemberCardUpdateRequestDTO;
+import com.example.bookiibookii.domain.memberbook.dto.req.ShareTokenCreateRequestDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardBookmarkResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardReactionToggleResponseDTO;
 import com.example.bookiibookii.domain.memberbook.dto.res.MemberCardCreateResponseDTO;
@@ -249,6 +250,8 @@ public interface MemberBookCardControllerDocs {
             독서카드 공유 버튼 클릭 시 고유 공유 링크를 발급합니다.
 
             - **엔드포인트**: `POST /api/member-books/cards/{cardId}/share-token`
+            - **요청 body**: `{ "shareLayout": "OVERLAY" }` — `OVERLAY`(이미지 위 텍스트) 또는 `SPLIT`(이미지 아래 텍스트)
+            - 링크 공유 웹 페이지는 발급 시 저장된 `shareLayout`으로 렌더링합니다.
             - 로그인 및 그룹 멤버 권한이 필요합니다.
             - 공유 불가: 삭제된 카드, 서재 제거된 memberBook, 작성자가 hidden 처리한 카드
             - 재공유 시 기존 활성 토큰은 폐기(revoke)되고 새 고유 링크가 발급됩니다.
@@ -263,6 +266,7 @@ public interface MemberBookCardControllerDocs {
     ApiResponse<ShareTokenResponseDTO> createShareToken(
             @AuthenticationPrincipal(expression = "user") User user,
             @Parameter(description = "독서카드 식별자(ID)", example = "1")
-            @PathVariable Long cardId
+            @PathVariable Long cardId,
+            @Valid @RequestBody ShareTokenCreateRequestDTO request
     );
 }

@@ -23,6 +23,7 @@ public interface PublicReadingCardShareControllerDocs {
             웹 공유 페이지에서 고유 링크(token)로 독서카드를 조회합니다.
 
             - 비로그인 공개 API입니다.
+            - `shareLayout`(OVERLAY/SPLIT)과 카드 데이터를 반환하며, 웹은 이 값으로 공유 레이아웃을 분기합니다.
             - userId, groupId, 북마크, 리액션 등 내부/개인정보는 포함하지 않습니다.
             - revoked/expired 토큰, 삭제된 카드, 공유 불가 상태 카드는 404로 처리됩니다.
             """

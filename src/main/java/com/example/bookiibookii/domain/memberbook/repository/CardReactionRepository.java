@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.memberbook.repository;
 import com.example.bookiibookii.domain.memberbook.entity.CardReaction;
 import com.example.bookiibookii.domain.memberbook.enums.CardReactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -36,4 +37,8 @@ public interface CardReactionRepository extends JpaRepository<CardReaction, Long
             @Param("userId") Long userId,
             @Param("cardIds") List<Long> cardIds
     );
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM CardReaction cr WHERE cr.matchedMember.id = :matchedMemberId")
+    void deleteByMatchedMember_Id(@Param("matchedMemberId") Long matchedMemberId);
 }

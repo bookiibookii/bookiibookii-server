@@ -157,6 +157,7 @@ public interface MemberBookCardControllerDocs {
             현재 로그인한 사용자가 북마크한 memberBook 독서카드 목록을 최신 북마크 순으로 반환합니다.
 
             - **엔드포인트**: `GET /api/member-books/cards/bookmarks`
+            - 그룹에서 탈퇴(현재 MatchedMember 없음)한 그룹의 북마크는 제외합니다.
             - 각 항목은 `MemberCardResponseDTO`이며 `isBookmarked`는 true입니다.
             - 내 화면에서 숨긴 카드(`hidden=true`)는 목록에서 제외됩니다.
             """

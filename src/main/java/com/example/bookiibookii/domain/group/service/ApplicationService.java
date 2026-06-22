@@ -24,6 +24,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.memberbook.service.MemberBookService;
+import com.example.bookiibookii.domain.memberbook.service.MatchedMemberCardStateCleanupService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -49,6 +50,7 @@ public class ApplicationService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher publisher;
     private final MemberBookService memberBookService;
+    private final MatchedMemberCardStateCleanupService matchedMemberCardStateCleanupService;
     private final UserImageS3Service userImageS3Service;
     private final BookService bookService;
 
@@ -291,6 +293,7 @@ public class ApplicationService {
                     if (member.getRole() == RoleStatus.HOST) {
                         throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
                     }
+                    matchedMemberCardStateCleanupService.deleteByMatchedMember(member);
                     matchedMemberRepository.delete(member);
                 });
 

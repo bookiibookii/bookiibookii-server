@@ -252,26 +252,21 @@ public class MemberBookCardService {
      */
     @Transactional(readOnly = true)
     public List<MemberCardResponseDTO> getMyBookmarkedCards(Long userId, int presignedGetUrlExpirationMinutes) {
-        List<Cards> cards = memberCardRepository.findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(MemberCard::getCard)
+        List<MemberCard> memberCards = memberCardRepository
+                .findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(userId);
+
+        List<Long> cardIds = memberCards.stream()
+                .map(mc -> mc.getCard().getId())
                 .toList();
-
-        List<Long> cardIds = cards.stream().map(Cards::getId).toList();
         CardReactionContext reactionContext = loadCardReactionContext(userId, cardIds);
-        Map<Long, MatchedMember> viewerByGroupId = new HashMap<>();
 
-        return cards.stream()
-                .map(card -> {
-                    Long groupId = card.getMemberBook().getGroup().getId();
-                    MatchedMember viewer = viewerByGroupId.computeIfAbsent(
-                            groupId,
-                            gid -> matchedMemberRepository.findByGroup_IdAndUser_Id(gid, userId)
-                                    .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND))
-                    );
-                    return buildListItemResponse(
-                            card, presignedGetUrlExpirationMinutes, true, reactionContext, viewer);
-                })
+        return memberCards.stream()
+                .map(mc -> buildListItemResponse(
+                        mc.getCard(),
+                        presignedGetUrlExpirationMinutes,
+                        true,
+                        reactionContext,
+                        mc.getMatchedMember()))
                 .toList();
     }
 

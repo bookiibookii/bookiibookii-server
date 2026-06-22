@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -115,6 +116,22 @@ public class GeneralExceptionAdvice {
         BaseCode code = GeneralErrorCode.BAD_REQUEST;
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, null));
+    }
+
+    // 폼 데이터 또는 모델 어트리뷰트 바인딩 실패
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponse<List<String>>> handleBindException(
+            BindException ex
+    ) {
+        log.warn("BindException occurred", ex);
+        List<String> errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage)
+                .toList();
+        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, errors));
     }
 
     // @Validated 클래스 레벨 또는 메서드 파라미터 제약 조건 위반

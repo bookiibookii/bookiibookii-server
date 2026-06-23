@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Slf4j
@@ -24,7 +25,7 @@ public class GroupScheduler {
     public void forceCompleteGroups() {
         log.info("[Scheduler] 리뷰 기간 만료 그룹 강제 종료 프로세스 시작");
 
-        LocalDate deadline = LocalDate.now().minusDays(3);
+        LocalDate deadline = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(3);
         List<Groups> timeoutGroups = groupsRepository.findGroupsPastReviewDeadline(deadline);
 
         for (Groups group : timeoutGroups) {

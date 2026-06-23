@@ -39,7 +39,7 @@ public class SwaggerSecurityConfig {
         authProvider.setPasswordEncoder(encoder);
 
         http
-                .securityMatcher("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
+                .securityMatcher("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger/login/**", "/swagger-resources/**")
                 .authenticationProvider(authProvider)
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())

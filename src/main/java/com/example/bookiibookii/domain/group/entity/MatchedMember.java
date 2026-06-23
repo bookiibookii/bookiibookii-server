@@ -89,11 +89,14 @@ public class MatchedMember extends BaseEntity {
     @Column(name = "partner_reviewing_started_at")
     private LocalDateTime partnerReviewingStartedAt;
 
+    private static final java.time.ZoneId SEOUL_ZONE = java.time.ZoneId.of("Asia/Seoul");
+
     public void updateReadingStatus(ReadingStatus newStatus) {
-        this.readingStatus = newStatus;
-        if (newStatus == ReadingStatus.PARTNER_REVIEWING) {
-            this.partnerReviewingStartedAt = LocalDateTime.now();
+        if (this.readingStatus != ReadingStatus.PARTNER_REVIEWING
+                && newStatus == ReadingStatus.PARTNER_REVIEWING) {
+            this.partnerReviewingStartedAt = LocalDateTime.now(SEOUL_ZONE);
         }
+        this.readingStatus = newStatus;
     }
 
     public void updateExchangeStatus(ExchangeStatus newStatus) {

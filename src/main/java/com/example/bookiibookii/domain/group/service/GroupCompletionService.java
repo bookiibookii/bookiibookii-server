@@ -51,7 +51,7 @@ public class GroupCompletionService {
             return;
         }
 
-        LocalDateTime completedAt = LocalDateTime.now();
+        LocalDateTime completedAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"));
         members.forEach(member -> member.completeReading(completedAt));
         group.updateStatus(GroupStatus.COMPLETED);
 

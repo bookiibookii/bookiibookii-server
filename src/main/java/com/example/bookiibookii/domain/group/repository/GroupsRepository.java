@@ -106,6 +106,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     );
 
     // PARTNER_REVIEWING 진입 후 14일 이상 파트너 후기 미작성 그룹 조회
+    // partner_reviewing_started_at이 NULL인 기존 데이터는 updated_at을 기준으로 처리
     @Query(value = """
             SELECT g.* FROM `groups` g
             WHERE g.group_status = 'MATCHED'
@@ -113,7 +114,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
                 SELECT COUNT(*) FROM matchedmember mm
                 WHERE mm.group_id = g.group_id
                 AND mm.reading_status = 'PARTNER_REVIEWING'
-                AND mm.partner_reviewing_started_at <= :cutoff
+                AND COALESCE(mm.partner_reviewing_started_at, mm.updated_at) <= :cutoff
             ) >= 2
             """, nativeQuery = true)
     List<Groups> findGroupsForForceComplete(@Param("cutoff") LocalDateTime cutoff);

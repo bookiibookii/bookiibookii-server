@@ -86,7 +86,16 @@ public class MatchedMember extends BaseEntity {
     @Column(name = "is_review_written", nullable = false)
     private boolean isReviewWritten = false;
 
+    @Column(name = "partner_reviewing_started_at")
+    private LocalDateTime partnerReviewingStartedAt;
+
+    private static final java.time.ZoneId SEOUL_ZONE = java.time.ZoneId.of("Asia/Seoul");
+
     public void updateReadingStatus(ReadingStatus newStatus) {
+        if (this.readingStatus != ReadingStatus.PARTNER_REVIEWING
+                && newStatus == ReadingStatus.PARTNER_REVIEWING) {
+            this.partnerReviewingStartedAt = LocalDateTime.now(SEOUL_ZONE);
+        }
         this.readingStatus = newStatus;
     }
 

@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Slf4j
 @Component
@@ -18,11 +19,11 @@ public class WithdrawnUserCleanupScheduler {
     private final UserRepository userRepository;
 
     // 매일 새벽 3시 실행
-    @Scheduled(cron = "0 0 3 * * *")
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
     @Transactional
     public void deleteExpiredWithdrawnUsers() {
 
-        LocalDateTime deleteBefore = LocalDateTime.now().minusDays(30);
+        LocalDateTime deleteBefore = LocalDateTime.now(ZoneId.of("Asia/Seoul")).minusDays(30);
         userRepository.deleteWithdrawnUsersBefore(deleteBefore);
     }
 }

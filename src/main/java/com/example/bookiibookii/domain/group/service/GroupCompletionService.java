@@ -7,8 +7,12 @@ import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +29,7 @@ public class GroupCompletionService {
 
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void forceCompleteSingleGroup(Long groupId) {
@@ -37,18 +42,27 @@ public class GroupCompletionService {
         }
 
         List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(groupId);
-        boolean readyToComplete = members.size() == 2 && members.stream().allMatch(member ->
+        boolean readyToForceComplete = members.size() == 2 && members.stream().allMatch(member ->
                 member.getReadingStatus() == ReadingStatus.PARTNER_REVIEWING
                         && member.getExchangeStatus() == ExchangeStatus.NOT_STARTED
-                        && member.isReviewWritten()
         );
-        if (!readyToComplete) {
-            log.info("최종 교환독서 후기 작성이 완료되지 않은 그룹입니다. groupId={}", groupId);
+        if (!readyToForceComplete) {
+            log.info("강제 종료 조건 미충족 그룹입니다. groupId={}", groupId);
             return;
         }
 
-        LocalDateTime completedAt = LocalDateTime.now();
+        LocalDateTime completedAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"));
         members.forEach(member -> member.completeReading(completedAt));
         group.updateStatus(GroupStatus.COMPLETED);
+
+        List<Long> receiverIds = members.stream().map(mm -> mm.getUser().getId()).toList();
+        eventPublisher.publish(new TrackerNotificationEvent(
+                NotificationType.TRACKER_GROUP_FORCE_COMPLETED,
+                null, null, null,
+                receiverIds,
+                groupId,
+                ExchangeType.from(group.getTradeType()),
+                null, null, null, null, null, null
+        ));
     }
 }

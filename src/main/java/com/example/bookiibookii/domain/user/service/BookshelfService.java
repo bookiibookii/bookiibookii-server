@@ -26,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -199,7 +201,13 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
         }
 
-        int nextOrder = (int) currentCount + 1;
+        Set<Integer> usedOrders = userBookRepository.findRepresentativeBooks(userId).stream()
+                .map(UserBook::getDisplayOrder)
+                .collect(Collectors.toSet());
+        int nextOrder = IntStream.rangeClosed(1, MAX_REPRESENTATIVE_BOOKS)
+                .filter(i -> !usedOrders.contains(i))
+                .findFirst()
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED));
 
         if (userBookId != null) {
             addRepresentativeFromFavorite(userId, userBookId, nextOrder);

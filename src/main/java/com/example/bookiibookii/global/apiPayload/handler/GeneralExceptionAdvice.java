@@ -7,6 +7,7 @@ import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.notification.DiscordWebhookService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.TransactionSystemException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -148,6 +149,17 @@ public class GeneralExceptionAdvice {
         BaseCode code = GeneralErrorCode.BAD_REQUEST;
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, errors));
+    }
+
+    // DB 유니크/FK 제약 조건 위반 (중복 삽입 등)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex
+    ) {
+        log.warn("DataIntegrityViolationException: {}", ex.getMostSpecificCause().getMessage());
+        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, null));
     }
 
     // JPA flush/commit 시점 Bean Validation 실패 (서비스 로직에서 처리 못하고 트랜잭션까지 넘어온 경우)

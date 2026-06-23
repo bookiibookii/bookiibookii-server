@@ -30,6 +30,7 @@ public enum NotificationType {
     TRACKER_RETURN_SHIPMENT_REGISTERED(NotificationCategory.SYSTEM), // TRK-010 (반납 출발)
     // TODO: 외부 택배사 상태 API 연동 전까지 배송 상태 업데이트 알림(NOTI-DEL-002)은 구현하지 않는다.
     TRACKER_EXCHANGE_COMPLETED(NotificationCategory.SYSTEM),  // TRK-030 (후기작성)
+    TRACKER_GROUP_FORCE_COMPLETED(NotificationCategory.SYSTEM),
     TRACKER_COMMENT_CREATED(NotificationCategory.SYSTEM),
     TRACKER_EXCHANGE_REVIEW_CREATED(NotificationCategory.SYSTEM),
 

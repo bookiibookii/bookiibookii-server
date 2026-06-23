@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -104,9 +105,16 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             @Param("deletedStatus") GroupStatus deletedStatus
     );
 
-    // 독서 종료일로부터 3일이 지났는데 아직 종료되지 않은(MATCHED) 그룹 조회
-    @Query(value = "SELECT * FROM `groups` g WHERE g.group_status = 'MATCHED' " +
-            "AND DATE_ADD(g.start_date, INTERVAL (g.reading_period - 1) DAY) <= :deadline",
-            nativeQuery = true)
-    List<Groups> findGroupsPastReviewDeadline(@Param("deadline") LocalDate deadline);
+    // PARTNER_REVIEWING 진입 후 14일 이상 파트너 후기 미작성 그룹 조회
+    @Query(value = """
+            SELECT g.* FROM `groups` g
+            WHERE g.group_status = 'MATCHED'
+            AND (
+                SELECT COUNT(*) FROM matchedmember mm
+                WHERE mm.group_id = g.group_id
+                AND mm.reading_status = 'PARTNER_REVIEWING'
+                AND mm.partner_reviewing_started_at <= :cutoff
+            ) >= 2
+            """, nativeQuery = true)
+    List<Groups> findGroupsForForceComplete(@Param("cutoff") LocalDateTime cutoff);
 }

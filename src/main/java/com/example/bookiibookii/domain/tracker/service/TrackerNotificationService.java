@@ -55,8 +55,11 @@ public class TrackerNotificationService {
     }
 
     private boolean shouldSkipSelf(TrackerNotificationEvent event, Long receiverId) {
-        return event.notificationType() != NotificationType.TRACKER_EXCHANGE_COMPLETED
-                && receiverId.equals(event.actorId());
+        if (event.notificationType() == NotificationType.TRACKER_EXCHANGE_COMPLETED
+                || event.notificationType() == NotificationType.TRACKER_GROUP_FORCE_COMPLETED) {
+            return false;
+        }
+        return receiverId.equals(event.actorId());
     }
 
     private NotificationPayload payload(TrackerNotificationEvent event) {
@@ -79,6 +82,7 @@ public class TrackerNotificationService {
         return type == NotificationType.TRACKER_COMMENT_CREATED
                 ? RedirectType.TRACKER_COMMENT
                 : type == NotificationType.TRACKER_EXCHANGE_COMPLETED
+                || type == NotificationType.TRACKER_GROUP_FORCE_COMPLETED
                 ? RedirectType.TRACKER_HOME
                 : RedirectType.TRACKER_DETAIL;
     }
@@ -90,6 +94,7 @@ public class TrackerNotificationService {
             case TRACKER_COMMENT_CREATED -> "새로운 댓글이 달렸어요";
             case TRACKER_EXCHANGE_REVIEW_CREATED -> "파트너가 교환독서 후기를 남겼어요";
             case TRACKER_EXCHANGE_COMPLETED -> "교환독서가 종료됐어요";
+            case TRACKER_GROUP_FORCE_COMPLETED -> "교환독서가 자동 종료됐어요";
             default -> throw new IllegalArgumentException("Unsupported tracker notification type: " + type);
         };
     }
@@ -117,6 +122,8 @@ public class TrackerNotificationService {
                     "%s 교환독서가 모두 완료됐어요. 새로운 교환독서를 시작해볼까요?",
                     event.bookTitle()
             );
+            case TRACKER_GROUP_FORCE_COMPLETED ->
+                    "14일 동안 파트너 후기가 작성되지 않아 교환독서가 자동 종료됐어요.";
             default -> throw new IllegalArgumentException(
                     "Unsupported tracker notification type: " + event.notificationType()
             );
@@ -153,6 +160,11 @@ public class TrackerNotificationService {
             );
             case TRACKER_EXCHANGE_COMPLETED -> String.format(
                     "TRACKER_EXCHANGE_COMPLETED:%d:%d",
+                    receiverId,
+                    event.groupId()
+            );
+            case TRACKER_GROUP_FORCE_COMPLETED -> String.format(
+                    "TRACKER_GROUP_FORCE_COMPLETED:%d:%d",
                     receiverId,
                     event.groupId()
             );

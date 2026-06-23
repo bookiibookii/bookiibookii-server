@@ -86,8 +86,14 @@ public class MatchedMember extends BaseEntity {
     @Column(name = "is_review_written", nullable = false)
     private boolean isReviewWritten = false;
 
+    @Column(name = "partner_reviewing_started_at")
+    private LocalDateTime partnerReviewingStartedAt;
+
     public void updateReadingStatus(ReadingStatus newStatus) {
         this.readingStatus = newStatus;
+        if (newStatus == ReadingStatus.PARTNER_REVIEWING) {
+            this.partnerReviewingStartedAt = LocalDateTime.now();
+        }
     }
 
     public void updateExchangeStatus(ExchangeStatus newStatus) {

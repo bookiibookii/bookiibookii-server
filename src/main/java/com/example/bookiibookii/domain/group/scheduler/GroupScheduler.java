@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -23,10 +23,10 @@ public class GroupScheduler {
 
     @Scheduled(cron = "0 0 3 * * *", zone="Asia/Seoul")
     public void forceCompleteGroups() {
-        log.info("[Scheduler] 리뷰 기간 만료 그룹 강제 종료 프로세스 시작");
+        log.info("[Scheduler] 파트너 후기 미작성 그룹 강제 종료 프로세스 시작");
 
-        LocalDate deadline = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(3);
-        List<Groups> timeoutGroups = groupsRepository.findGroupsPastReviewDeadline(deadline);
+        LocalDateTime cutoff = LocalDateTime.now(ZoneId.of("Asia/Seoul")).minusDays(14);
+        List<Groups> timeoutGroups = groupsRepository.findGroupsForForceComplete(cutoff);
 
         for (Groups group : timeoutGroups) {
             try {

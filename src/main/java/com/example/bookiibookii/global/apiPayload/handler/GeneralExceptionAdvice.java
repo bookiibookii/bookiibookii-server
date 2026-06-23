@@ -7,6 +7,7 @@ import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.notification.DiscordWebhookService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.transaction.TransactionSystemException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -147,6 +148,27 @@ public class GeneralExceptionAdvice {
         BaseCode code = GeneralErrorCode.BAD_REQUEST;
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, errors));
+    }
+
+    // JPA flush/commit 시점 Bean Validation 실패 (서비스 로직에서 처리 못하고 트랜잭션까지 넘어온 경우)
+    // ConstraintViolationException이 원인이면 400, 그 외에는 500 + Discord 알림
+    @ExceptionHandler(TransactionSystemException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTransactionSystemException(
+            TransactionSystemException ex,
+            HttpServletRequest request
+    ) {
+        Throwable cause = ex.getRootCause();
+        if (cause instanceof ConstraintViolationException) {
+            log.warn("요청 데이터가 유효성 검증을 통과하지 못했습니다: {}", cause.getMessage());
+            BaseCode code = GeneralErrorCode.BAD_REQUEST;
+            return ResponseEntity.status(code.getStatus())
+                    .body(ApiResponse.onFailure(code, null));
+        }
+        discordWebhookService.sendUnexpectedExceptionAlert(request, ex);
+        log.error("TransactionSystemException: {}", ex.getMessage(), ex);
+        BaseCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, null));
     }
 
     // 존재하지 않는 리소스 요청은 DEBUG 레벨로 로깅

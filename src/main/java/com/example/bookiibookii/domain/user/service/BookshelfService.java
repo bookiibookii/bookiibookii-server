@@ -194,11 +194,12 @@ public class BookshelfService {
         userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        if (userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId) >= MAX_REPRESENTATIVE_BOOKS) {
+        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+        if (currentCount >= MAX_REPRESENTATIVE_BOOKS) {
             throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
         }
 
-        int nextOrder = userBookRepository.findMaxDisplayOrderByUserId(userId) + 1;
+        int nextOrder = (int) currentCount + 1;
 
         if (userBookId != null) {
             addRepresentativeFromFavorite(userId, userBookId, nextOrder);
@@ -275,11 +276,18 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.REPRESENTATIVE_MUST_CONTAIN_FAVORITE);
         }
 
+        int deletedOrder = userBook.getDisplayOrder();
+
         if (userBook.isFavorite()) {
             userBook.updateDisplayOrder(null);
         } else {
             userBookRepository.delete(userBook);
         }
+
+        // 삭제된 자리 이후 순서를 한 칸씩 당겨 gap 제거
+        userBookRepository.findRepresentativeBooks(userId).stream()
+                .filter(ub -> !ub.getId().equals(userBookId) && ub.getDisplayOrder() > deletedOrder)
+                .forEach(ub -> ub.updateDisplayOrder(ub.getDisplayOrder() - 1));
     }
 
     // 대표책 순서 변경 (드래그앤드롭)

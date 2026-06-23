@@ -9,7 +9,7 @@ import com.example.bookiibookii.global.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
+
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -25,7 +25,6 @@ import java.util.Map;
  * - 실제 배포 시 삭제
  */
 @Slf4j
-@Profile("!v1")
 @RestController
 @RequiredArgsConstructor
 public class OAuthTestController {

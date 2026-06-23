@@ -7,12 +7,14 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Profile({"local", "dev"})
+@PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/api/dev/admin/scheduler")
 @RequiredArgsConstructor
 public class DevSchedulerController {

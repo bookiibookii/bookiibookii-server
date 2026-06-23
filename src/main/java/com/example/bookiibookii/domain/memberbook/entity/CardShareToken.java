@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.memberbook.entity;
 
+import com.example.bookiibookii.domain.memberbook.enums.ShareLayout;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -38,14 +39,19 @@ public class CardShareToken extends BaseEntity {
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdBy;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "share_layout", nullable = false, length = 20)
+    private ShareLayout shareLayout;
+
     @Column(name = "revoked_at")
     private LocalDateTime revokedAt;
 
-    public static CardShareToken create(Cards card, User createdBy) {
+    public static CardShareToken create(Cards card, User createdBy, ShareLayout shareLayout) {
         return CardShareToken.builder()
                 .card(card)
                 .token(UUID.randomUUID().toString())
                 .createdBy(createdBy)
+                .shareLayout(shareLayout)
                 .build();
     }
 

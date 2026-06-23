@@ -100,13 +100,16 @@ public class MemberBookCardService {
                 : memberCardRepository.findBookmarkedCardIdsByUserIdAndCardIdIn(userId, cardIds);
 
         CardReactionContext reactionContext = loadCardReactionContext(userId, cardIds);
+        MatchedMember viewer = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
 
         List<MemberCardResponseDTO> cardDTOs = cards.stream()
                 .map(card -> buildListItemResponse(
                         card,
                         presignedGetUrlExpirationMinutes,
                         bookmarkedCardIds.contains(card.getId()),
-                        reactionContext
+                        reactionContext,
+                        viewer
                 ))
                 .toList();
 
@@ -127,7 +130,10 @@ public class MemberBookCardService {
 
         boolean bookmarked = stateOpt.map(MemberCard::isBookmarked).orElse(false);
         CardReactionContext reactionContext = loadCardReactionContext(userId, List.of(cardId));
-        return buildListItemResponse(card, presignedGetUrlExpirationMinutes, bookmarked, reactionContext);
+        Long groupId = card.getMemberBook().getGroup().getId();
+        MatchedMember viewer = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));
+        return buildListItemResponse(card, presignedGetUrlExpirationMinutes, bookmarked, reactionContext, viewer);
     }
 
     /**
@@ -246,17 +252,21 @@ public class MemberBookCardService {
      */
     @Transactional(readOnly = true)
     public List<MemberCardResponseDTO> getMyBookmarkedCards(Long userId, int presignedGetUrlExpirationMinutes) {
-        List<Cards> cards = memberCardRepository.findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(MemberCard::getCard)
-                .toList();
+        List<MemberCard> memberCards = memberCardRepository
+                .findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(userId);
 
-        List<Long> cardIds = cards.stream().map(Cards::getId).toList();
+        List<Long> cardIds = memberCards.stream()
+                .map(mc -> mc.getCard().getId())
+                .toList();
         CardReactionContext reactionContext = loadCardReactionContext(userId, cardIds);
 
-        return cards.stream()
-                .map(card -> buildListItemResponse(
-                        card, presignedGetUrlExpirationMinutes, true, reactionContext))
+        return memberCards.stream()
+                .map(mc -> buildListItemResponse(
+                        mc.getCard(),
+                        presignedGetUrlExpirationMinutes,
+                        true,
+                        reactionContext,
+                        mc.getMatchedMember()))
                 .toList();
     }
 
@@ -587,7 +597,8 @@ public class MemberBookCardService {
             Cards card,
             int presignedGetUrlExpirationMinutes,
             boolean isBookmarked,
-            CardReactionContext reactionContext
+            CardReactionContext reactionContext,
+            MatchedMember viewer
     ) {
         MemberBook memberBook = card.getMemberBook();
         String bookTitle = "";
@@ -622,7 +633,7 @@ public class MemberBookCardService {
                 .totalPages(totalPages)
                 .genre(genre)
                 .completedAt(completedAt)
-                .isMine(memberBook != null && memberBook.isMine())
+                .isMine(isMyBookForViewer(memberBook, viewer))
                 .isBookmarked(isBookmarked)
                 .creatorName(creatorName)
                 .creatorProfileImageUrl(creatorProfileImageUrl)
@@ -709,6 +720,17 @@ public class MemberBookCardService {
                 .creatorName(resolveCreatorName(memberBook))
                 .creatorProfileImageUrl(resolveCreatorProfileImageUrl(memberBook, presignedGetUrlExpirationMinutes))
                 .build();
+    }
+
+    /**
+     * 조회자 기준 본인 책 여부. MemberBook.isMine은 카드 작성자 MatchedMember 기준이므로
+     * 그룹 카드 목록처럼 상대 카드를 함께 볼 때는 조회자 MatchedMember로 변환합니다.
+     */
+    private boolean isMyBookForViewer(MemberBook memberBook, MatchedMember viewer) {
+        if (memberBook == null || viewer == null) {
+            return false;
+        }
+        return memberBook.isMine() == memberBook.isOwnedBy(viewer);
     }
 
     private String resolveCreatorName(MemberBook memberBook) {

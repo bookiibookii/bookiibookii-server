@@ -1,12 +1,15 @@
 package com.example.bookiibookii.domain.memberbook.dto.res;
 
 import com.example.bookiibookii.domain.memberbook.enums.CardType;
+import com.example.bookiibookii.domain.memberbook.enums.ShareLayout;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 @Builder
 @Schema(description = "공유 토큰 기반 독서카드 공개 조회 응답")
 public record PublicReadingCardResponseDTO(
+        @Schema(description = "링크 공유 웹 렌더링 레이아웃", example = "OVERLAY")
+        ShareLayout shareLayout,
         @Schema(description = "카드 타입", example = "TEXT")
         CardType cardType,
         @Schema(description = "책 제목", example = "어린 왕자")

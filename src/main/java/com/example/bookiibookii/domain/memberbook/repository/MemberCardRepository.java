@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.memberbook.repository;
 
 import com.example.bookiibookii.domain.memberbook.entity.MemberCard;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -65,9 +66,17 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
         LEFT JOIN FETCH u.userImage
         WHERE mm.user.id = :userId AND mc.bookmarked = true AND mc.hidden = false
         AND c.deletedAt IS NULL
+        AND EXISTS (
+            SELECT 1 FROM MatchedMember activeMm
+            WHERE activeMm.user.id = :userId AND activeMm.group.id = mb.group.id
+        )
         ORDER BY mc.updatedAt DESC
         """)
     List<MemberCard> findByUserIdAndBookmarkedTrueWithCardDetailsOrderByCreatedAtDesc(
             @Param("userId") Long userId
     );
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM MemberCard mc WHERE mc.matchedMember.id = :matchedMemberId")
+    void deleteByMatchedMember_Id(@Param("matchedMemberId") Long matchedMemberId);
 }

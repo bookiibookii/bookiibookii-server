@@ -35,6 +35,7 @@ public interface MeetingControllerDocs {
             - 두 matchedMember 모두 EXCHANGING 또는 모두 RETURNING 상태여야 합니다.
             - 등록 성공 시 두 matchedMember의 ExchangeStatus가 MEETING_SCHEDULED로 변경됩니다.
             - meetingAt이 미래여도 이후 교환완료 확인이 가능합니다.
+            - 요청 meetingAt은 offset 포함 형식(예: 2026-05-20T14:30:00+09:00), 응답 meetingAt은 UTC Z 형식(예: 2026-05-20T05:30:00Z)입니다.
             """
     )
     @ApiResponses({
@@ -96,6 +97,7 @@ public interface MeetingControllerDocs {
             
             - 프론트가 meetingId를 들고 있지 않아도 됩니다.
             - 수정 가능 필드: placeName, address, zipCode, x, y, addressDetail, meetingAt
+            - 요청 meetingAt은 offset 포함 형식(예: 2026-05-20T14:30:00+09:00), 응답 meetingAt은 UTC Z 형식(예: 2026-05-20T05:30:00Z)입니다.
             """
     )
     @ApiResponses({
@@ -156,6 +158,7 @@ public interface MeetingControllerDocs {
             
             - 조회 전 현재 로그인 사용자가 교환 단계(EXCHANGING 또는 RETURNING)인지 먼저 검증합니다.
             - 교환완료 버튼 활성화 여부는 별도로 계산하지 않습니다.
+            - 응답 meetingAt은 UTC Z 형식(예: 2026-05-20T05:30:00Z)입니다.
             """
     )
     @ApiResponses({

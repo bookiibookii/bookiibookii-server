@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public interface PolicyDocumentRepository extends JpaRepository<PolicyDocument, Long> {
@@ -23,5 +23,5 @@ public interface PolicyDocumentRepository extends JpaRepository<PolicyDocument, 
         )
         order by p.required desc, p.type asc
     """)
-    List<PolicyDocument> findCurrentPolicies(@Param("now") LocalDateTime now);
+    List<PolicyDocument> findCurrentPolicies(@Param("now") Instant now);
 }

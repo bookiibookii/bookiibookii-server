@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.LockModeType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,7 +49,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     WHERE u.status = 'WITHDRAWN'
     AND u.updatedAt <= :deleteBefore
     """)
-    int deleteWithdrawnUsersBefore(@Param("deleteBefore") LocalDateTime deleteBefore);
+    int deleteWithdrawnUsersBefore(@Param("deleteBefore") Instant deleteBefore);
 
     /*
     // 태그 기반 매칭 후보 조회

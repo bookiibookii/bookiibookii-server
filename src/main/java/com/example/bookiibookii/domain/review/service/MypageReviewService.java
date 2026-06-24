@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
 import com.example.bookiibookii.domain.tracker.resolver.UserProfileImageUrlResolver;
+import com.example.bookiibookii.global.time.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -66,7 +67,7 @@ public class MypageReviewService {
                 review.getComment(),
                 exchangeType,
                 exchangeTypeLabel(exchangeType),
-                review.getCreatedAt().format(DATE_FMT)
+                TimeUtils.formatKst(review.getCreatedAt(), DATE_FMT)
         );
     }
 
@@ -81,7 +82,7 @@ public class MypageReviewService {
                 review.getReaction(),
                 partnerReviewLabel(review.getReaction()),
                 review.getComment(),
-                review.getCreatedAt().format(DATE_FMT)
+                TimeUtils.formatKst(review.getCreatedAt(), DATE_FMT)
         );
     }
 

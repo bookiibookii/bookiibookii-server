@@ -14,7 +14,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -34,7 +34,7 @@ public class MemberBookService {
             Groups group,
             MatchedMember guestMember,
             Book guestBook,
-            LocalDateTime matchedAt
+            Instant matchedAt
     ) {
         MatchedMember hostMember = matchedMemberRepository
                 .findByGroup_IdAndRole(group.getId(), RoleStatus.HOST)

@@ -13,7 +13,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +24,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     public NotificationResDTO.NotificationListRes getNotifications(
             Long receiverId,
@@ -65,7 +67,7 @@ public class NotificationService {
             throw new NotificationException(NotificationErrorCode.NOTIFICATION_FORBIDDEN);
         }
 
-        n.markAsRead();
+        n.markAsRead(clock.instant());
 
         return toReadRes(n);
     }
@@ -109,7 +111,7 @@ public class NotificationService {
     }
 
     //  cursor utils
-    private record Cursor(boolean read, LocalDateTime createdAt, Long id) {
+    private record Cursor(boolean read, Instant createdAt, Long id) {
     }
 
     private Cursor parseCursor(String cursor) {
@@ -123,8 +125,8 @@ public class NotificationService {
         }
 
         try {
-            boolean read = Boolean.parseBoolean(cursor.substring(0, first));
-            LocalDateTime createdAt = LocalDateTime.parse(cursor.substring(first + 1, last));
+            boolean read = parseCursorRead(cursor.substring(0, first));
+            Instant createdAt = Instant.parse(cursor.substring(first + 1, last));
             Long id = Long.parseLong(cursor.substring(last + 1));
             return new Cursor(read, createdAt, id);
         } catch (Exception e) {
@@ -132,8 +134,17 @@ public class NotificationService {
         }
     }
 
-    private String buildCursor(boolean read, LocalDateTime createdAt, Long id) {
+    private boolean parseCursorRead(String value) {
+        if ("true".equals(value)) {
+            return true;
+        }
+        if ("false".equals(value)) {
+            return false;
+        }
+        throw new NotificationException(NotificationErrorCode.INVALID_CURSOR);
+    }
+
+    private String buildCursor(boolean read, Instant createdAt, Long id) {
         return read + "_" + createdAt + "_" + id;
     }
 }
-

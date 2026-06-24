@@ -1,7 +1,9 @@
 package com.example.bookiibookii.domain.group.util;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public final class HomeSeedUtil {
@@ -13,7 +15,13 @@ public final class HomeSeedUtil {
     }
 
     public static String currentSeedKey() {
-        return seedKey(LocalDateTime.now(KST));
+        // TODO: Clock 주입 가능 구조로 바꾸면 테스트 가능한 현재시각으로 교체한다.
+        return seedKey(ZonedDateTime.now(KST));
+    }
+
+    public static String seedKey(ZonedDateTime kstDateTime) {
+        int sixHourSlot = kstDateTime.getHour() / 6;
+        return kstDateTime.format(SEED_DATE_FORMATTER) + "_" + sixHourSlot;
     }
 
     public static String seedKey(LocalDateTime kstDateTime) {
@@ -36,7 +44,8 @@ public final class HomeSeedUtil {
         return userId + "_" + sixHourSeedKey;
     }
 
-    public static LocalDateTime twentyFourHoursAgoKst() {
-        return LocalDateTime.now(KST).minusHours(24);
+    public static Instant twentyFourHoursAgoKst() {
+        // TODO: Clock 주입 가능 구조로 바꾸면 테스트 가능한 현재시각으로 교체한다.
+        return Instant.now().minusSeconds(24 * 60 * 60);
     }
 }

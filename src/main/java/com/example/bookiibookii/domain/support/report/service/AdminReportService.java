@@ -14,12 +14,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AdminReportService {
     private final UserRepository userRepository;
     private final ReportRepository reportRepository;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public Page<ReportResponseDTO.AdminReportListDTO> getAllReports(Pageable pageable) {
@@ -71,7 +74,7 @@ public class AdminReportService {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ReportException(ReportErrorCode.REPORT_NOT_FOUND));
 
-        report.resolveReport(request.adminReply(), request.adminMemo());
+        report.resolveReport(request.adminReply(), request.adminMemo(), clock.instant());
 
         reportRepository.save(report);
 

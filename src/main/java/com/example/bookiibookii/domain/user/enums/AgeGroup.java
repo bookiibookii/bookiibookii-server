@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.user.enums;
 
+import com.example.bookiibookii.global.time.TimeUtils;
+
 import java.time.LocalDate;
 import java.time.Period;
 
@@ -11,7 +13,7 @@ public enum AgeGroup {
     ;
 
     public static AgeGroup from(LocalDate birth) {
-        int age = Period.between(birth, LocalDate.now()).getYears();
+        int age = Period.between(birth, TimeUtils.todayKst()).getYears();
         if (age < 20) return TEENS;
         if (age < 30) return TWENTIES;
         if (age < 40) return THIRTIES;

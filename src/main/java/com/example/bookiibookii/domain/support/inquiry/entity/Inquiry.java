@@ -6,7 +6,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "inquiry")
@@ -38,15 +38,15 @@ public class Inquiry extends BaseEntity {
     @Column(name = "admin_reply", length = 255)
     private String adminReply;
 
-    private LocalDateTime resolvedAt;
+    private Instant resolvedAt;
 
 
     /**
      * 관리자 답변 등록 및 상태 변경
      */
-    public void updateAnswer(String adminReply) {
+    public void updateAnswer(String adminReply, Instant resolvedAt) {
         this.adminReply = adminReply;
         this.supportStatus = SupportStatus.RESOLVED;
-        this.resolvedAt = LocalDateTime.now();
+        this.resolvedAt = resolvedAt;
     }
 }

@@ -42,7 +42,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -72,6 +73,7 @@ public class MemberBookCardService {
     private final UserImageS3Service userImageS3Service;
     private final ReadingCardShareService readingCardShareService;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public MemberCardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
@@ -296,7 +298,7 @@ public class MemberBookCardService {
                     throw new MemberBookException(MemberBookErrorCode.BOOKMARKED_CARD_CANNOT_DELETE);
                 });
 
-        card.markDeleted();
+        card.markDeleted(clock.instant());
         readingCardShareService.revokeActiveTokensForCard(card.getId());
     }
 
@@ -604,7 +606,7 @@ public class MemberBookCardService {
         String bookTitle = "";
         Integer totalPages = null;
         String genre = null;
-        LocalDateTime completedAt = null;
+        Instant completedAt = null;
         if (memberBook != null && memberBook.getBook() != null) {
             bookTitle = memberBook.getBook().getTitle() != null ? memberBook.getBook().getTitle() : "";
             totalPages = memberBook.getBook().getTotalPages();

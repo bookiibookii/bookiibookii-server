@@ -23,7 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -40,6 +41,7 @@ public class ReadingCardShareService {
     private final CardImageS3Service cardImageS3Service;
     private final ShareWebProperties shareWebProperties;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     @Transactional
     public ShareTokenResponseDTO createShareToken(Long cardId, User user, ShareLayout shareLayout) {
@@ -70,7 +72,7 @@ public class ReadingCardShareService {
 
     @Transactional
     public void revokeActiveTokensForCard(Long cardId) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = clock.instant();
         List<CardShareToken> activeTokens = cardShareTokenRepository.findAllActiveByCardId(cardId);
         activeTokens.forEach(token -> token.revoke(now));
     }

@@ -27,6 +27,7 @@ import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.service.BadWordService;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
+import com.example.bookiibookii.global.time.TimeUtils;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -34,9 +35,9 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -66,6 +67,7 @@ public class GroupService {
     private final UserExchangeRepository userExchangeRepository;
     private final UserDeliveryRepository userDeliveryRepository;
     private final GroupPlaceRepository groupPlaceRepository;
+    private final Clock clock;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
     private static final Set<Tag> READING_STYLE_TAGS = Set.of(Tag.MEMO, Tag.POSTIT, Tag.PHOTO, Tag.All_ROUNDER);
@@ -150,7 +152,7 @@ public class GroupService {
         return GroupResponseDTO.CreateResultDTO.builder()
                 .groupId(savedGroup.getId()) //
                 .groupStatus(savedGroup.getGroupStatus()) //
-                .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
+                .createdAt(TimeUtils.formatKst(savedGroup.getCreatedAt(), DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
     }
 
@@ -362,7 +364,7 @@ public class GroupService {
 
         return GroupResponseDTO.UpdateResultDTO.builder()
                 .groupId(group.getId())
-                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .updatedAt(TimeUtils.formatKst(clock.instant(), DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
     }
 
@@ -406,7 +408,7 @@ public class GroupService {
 
         return GroupResponseDTO.DeleteResultDTO.builder()
                 .groupId(groupId)
-                .deletedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .deletedAt(TimeUtils.formatKst(clock.instant(), DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
 
     }
@@ -453,7 +455,7 @@ public class GroupService {
                 .isHot(isHot)
                 .hostNickname(group.getHost().getNickName())
                 .hostProfileImageUrl(userProfileImageUrl(group.getHost()))
-                .createdAt(group.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
+                .createdAt(TimeUtils.formatKst(group.getCreatedAt(), DateTimeFormatter.ofPattern("yyyy. MM. dd."))) // 그룹생성일
                 .startDate(group.getStartDate() != null ? group.getStartDate().toString() : null)
                 .participantSlots(participantSlots)
                 .buttonStatus(buttonStatus)

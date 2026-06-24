@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 @Schema(description = "직접 교환 약속 상세 응답")
@@ -20,8 +20,8 @@ public record MeetingResponseDTO(
         LocationInfo location,
         @Schema(description = "상세 주소", example = "2층 창가 자리")
         String addressDetail,
-        @Schema(description = "약속 일시", example = "2026-05-20T14:30:00")
-        LocalDateTime scheduledAt,
+        @Schema(description = "약속 일시", example = "2026-05-20T05:30:00Z")
+        Instant meetingAt,
         @Schema(description = "약속 등록자 정보")
         CreatedByInfo createdBy
 ) {
@@ -32,7 +32,7 @@ public record MeetingResponseDTO(
                 .exchangeRound(meeting.getExchangeRound())
                 .location(LocationInfo.from(meeting))
                 .addressDetail(meeting.getAddressDetail())
-                .scheduledAt(meeting.getScheduledAt())
+                .meetingAt(meeting.getMeetingAt())
                 .createdBy(CreatedByInfo.from(meeting))
                 .build();
     }

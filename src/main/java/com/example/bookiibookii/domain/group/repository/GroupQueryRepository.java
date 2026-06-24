@@ -23,7 +23,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -190,7 +190,7 @@ public class GroupQueryRepository {
 
     public List<Groups> findRecentGroups(
             Long userId,
-            LocalDateTime createdAfter,
+            Instant createdAfter,
             int limit
     ) {
         return homeGroupQuery(userId)
@@ -209,7 +209,7 @@ public class GroupQueryRepository {
                         ? isbn13WithVisibleRecruitingGroups(userId)
                         : null;
         NumberExpression<Long> groupCount = groups.id.count();
-        DateTimeExpression<LocalDateTime> latestGroupCreatedAt = groups.createdAt.max();
+        DateTimeExpression<Instant> latestGroupCreatedAt = groups.createdAt.max();
 
         return queryFactory
                 .select(Projections.constructor(

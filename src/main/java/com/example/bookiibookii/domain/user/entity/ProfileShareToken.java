@@ -4,7 +4,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -34,7 +34,7 @@ public class ProfileShareToken extends BaseEntity {
     private String token;
 
     @Column(name = "revoked_at")
-    private LocalDateTime revokedAt;
+    private Instant revokedAt;
 
     public static ProfileShareToken create(User user) {
         return ProfileShareToken.builder()
@@ -43,7 +43,7 @@ public class ProfileShareToken extends BaseEntity {
                 .build();
     }
 
-    public void revoke(LocalDateTime revokedAt) {
+    public void revoke(Instant revokedAt) {
         if (revokedAt == null) {
             throw new IllegalArgumentException("revokedAt must not be null");
         }

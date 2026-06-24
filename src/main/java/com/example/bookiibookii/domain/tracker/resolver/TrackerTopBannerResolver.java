@@ -8,12 +8,13 @@ import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import com.example.bookiibookii.domain.tracker.enums.TrackerTopBannerType;
+import com.example.bookiibookii.global.time.TimeConfig;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -38,10 +39,6 @@ public class TrackerTopBannerResolver {
             "{nickname} 님과의 교환독서 후기를 남겨주세요.";
     private final Clock clock;
 
-    public TrackerTopBannerResolver() {
-        this(Clock.system(ReadingPeriodDateCalculator.KST));
-    }
-
     public TrackerTopBannerResolver(Clock clock) {
         this.clock = clock;
     }
@@ -65,8 +62,8 @@ public class TrackerTopBannerResolver {
     }
 
     Optional<TrackerTopBannerResponse> resolve(TrackerTopBannerContext context) {
-        LocalDate today = LocalDate.now(clock);
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDate today = LocalDate.now(clock.withZone(TimeConfig.KST));
+        Instant now = clock.instant();
 
         if (isReading(context.readingStatus()) && context.readingEndDate() != null
                 && !context.readingEndDate().isAfter(today)) {
@@ -84,10 +81,10 @@ public class TrackerTopBannerResolver {
             ));
         }
 
-        if (isDirectExchange(context) && context.meetingScheduledAt() != null
+        if (isDirectExchange(context) && context.meetingAt() != null
                 && !isDirectExchangeCompleted(context)) {
-            long remainingSeconds = Math.max(Duration.between(now, context.meetingScheduledAt()).getSeconds(), 0L);
-            boolean meetingOverdue = !context.meetingScheduledAt().isAfter(now);
+            long remainingSeconds = Math.max(Duration.between(now, context.meetingAt()).getSeconds(), 0L);
+            boolean meetingOverdue = !context.meetingAt().isAfter(now);
             // TODO: 약속 시간이 지난 뒤 미완료 상태에서 별도 CTA/상세 문구가 필요한지 PM 확인 후 수정
             return Optional.of(banner(
                     context,
@@ -98,8 +95,8 @@ public class TrackerTopBannerResolver {
                             : DIRECT_MEETING_SCHEDULED_TITLE_TEMPLATE,
                     meetingOverdue ? null : DIRECT_MEETING_SCHEDULED_TITLE_TEMPLATE,
                     context.meetingPlaceName() + "에서 만나요.",
-                    directMeetingDDayLabel(today, context.meetingScheduledAt().toLocalDate()),
-                    context.meetingScheduledAt(),
+                    directMeetingDDayLabel(today, context.meetingAt().atZone(ReadingPeriodDateCalculator.KST).toLocalDate()),
+                    context.meetingAt(),
                     remainingSeconds
             ));
         }
@@ -198,7 +195,7 @@ public class TrackerTopBannerResolver {
             String titleTemplate,
             String subtitle,
             String dDayLabel,
-            LocalDateTime targetAt,
+            Instant targetAt,
             Long remainingSeconds
     ) {
         return TrackerTopBannerResponse.builder()
@@ -232,7 +229,7 @@ public class TrackerTopBannerResolver {
     }
 
     private boolean isDirectMeetingRegistrationRequired(TrackerTopBannerContext context) {
-        if (!isDirectExchange(context) || context.meetingScheduledAt() != null) {
+        if (!isDirectExchange(context) || context.meetingAt() != null) {
             return false;
         }
         return context.myExchangeStatus() == ExchangeStatus.MEETING_SCHEDULE_WAITING

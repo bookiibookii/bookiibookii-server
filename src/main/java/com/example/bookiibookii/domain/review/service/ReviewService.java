@@ -32,12 +32,14 @@ import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
 import com.example.bookiibookii.domain.tracker.resolver.UserProfileImageUrlResolver;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.global.time.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -58,6 +60,7 @@ public class ReviewService {
     private final DeliveryAddressService deliveryAddressService;
     private final UserProfileImageUrlResolver userProfileImageUrlResolver;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional
     public BookReviewResponseDTO createBookReview(
@@ -166,7 +169,7 @@ public class ReviewService {
 
         boolean partnerAlreadyReviewed = memberReviewRepository.existsByGroup_IdAndWriter_Id(group.getId(), partner.getId());
         if (partnerAlreadyReviewed) {
-            LocalDateTime completedAt = LocalDateTime.now();
+            Instant completedAt = clock.instant();
             members.forEach(member -> member.completeReading(completedAt));
             group.updateStatus(GroupStatus.COMPLETED);
         }
@@ -394,7 +397,7 @@ public class ReviewService {
                 .writerProfileImageUrl(userProfileImageUrlResolver.resolve(writer))
                 .star(bookReview.getStar())
                 .comment(bookReview.getComment())
-                .createdAt(bookReview.getCreatedAt().format(DATE_FMT))
+                .createdAt(TimeUtils.formatKst(bookReview.getCreatedAt(), DATE_FMT))
                 .build();
     }
 

@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Schema(
         description = "직접 교환 약속 등록/수정 요청",
@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
           "x": 127.027621,
           "y": 37.497942,
           "addressDetail": "2층",
-          "scheduledAt": "2026-05-20T14:30:00"
+          "meetingAt": "2026-05-20T14:30:00+09:00"
         }
         """
 )
@@ -55,9 +55,9 @@ public record MeetingRequestDTO(
         @Size(max = 200, message = "상세 주소는 200자 이내로 입력해주세요.")
         String addressDetail,
 
-        @Schema(description = "약속 일시", example = "2026-05-20T14:30:00", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "약속 일시", example = "2026-05-20T14:30:00+09:00", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "약속 일시는 필수입니다.")
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        LocalDateTime scheduledAt
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
+        OffsetDateTime meetingAt
 ) {
 }

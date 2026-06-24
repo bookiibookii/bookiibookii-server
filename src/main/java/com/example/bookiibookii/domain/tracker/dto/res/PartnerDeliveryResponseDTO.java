@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.tracker.entity.Delivery;
 import com.example.bookiibookii.domain.tracker.enums.DeliveryCompany;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record PartnerDeliveryResponseDTO(
@@ -12,7 +12,7 @@ public record PartnerDeliveryResponseDTO(
         DeliveryCompany deliveryCompany,
         String deliveryCompanyName,
         String trackingNumber,
-        LocalDateTime registeredAt,
+        Instant trackingRegisteredAt,
         boolean canConfirmReceived
 ) {
     public static PartnerDeliveryResponseDTO of(Delivery delivery, boolean canConfirmReceived) {
@@ -21,7 +21,7 @@ public record PartnerDeliveryResponseDTO(
                 .deliveryCompany(delivery.getDeliveryCompany())
                 .deliveryCompanyName(delivery.getDeliveryCompany().getDisplayName())
                 .trackingNumber(delivery.getTrackingNumber())
-                .registeredAt(delivery.getCreatedAt())
+                .trackingRegisteredAt(delivery.getTrackingRegisteredAt())
                 .canConfirmReceived(canConfirmReceived)
                 .build();
     }

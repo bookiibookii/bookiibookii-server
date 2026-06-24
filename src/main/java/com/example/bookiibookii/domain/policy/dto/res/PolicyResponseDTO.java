@@ -2,7 +2,7 @@ package com.example.bookiibookii.domain.policy.dto.res;
 
 import com.example.bookiibookii.domain.policy.enums.PolicyType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public class PolicyResponseDTO {
@@ -18,9 +18,9 @@ public class PolicyResponseDTO {
             String title,
             String content,
             boolean required,
-            LocalDateTime effectiveFrom,
+            Instant effectiveFrom,
             boolean agreed,
-            LocalDateTime agreedAt
+            Instant agreedAt
     ) {}
 
     public record AgreePolicies(

@@ -25,15 +25,16 @@ import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.memberbook.service.MemberBookService;
 import com.example.bookiibookii.domain.memberbook.service.MatchedMemberCardStateCleanupService;
+import com.example.bookiibookii.global.time.TimeUtils;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +54,7 @@ public class ApplicationService {
     private final MatchedMemberCardStateCleanupService matchedMemberCardStateCleanupService;
     private final UserImageS3Service userImageS3Service;
     private final BookService bookService;
+    private final Clock clock;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -127,7 +129,7 @@ public class ApplicationService {
                     .build();
             matchedMemberRepository.save(newMember);
 
-            LocalDateTime matchedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+            Instant matchedAt = clock.instant();
 
             // 서재: MemberBook 4건(멤버당 2권)
             memberBookService.createLibraryOnMatch(group, newMember, application.getBook(), matchedAt);
@@ -140,7 +142,7 @@ public class ApplicationService {
             ));
 
             // 수락일이 독서 시작일 → 즉시 MATCHED 전환
-            group.setStartDate(LocalDate.now(ZoneId.of("Asia/Seoul")));
+            group.setStartDate(TimeUtils.todayKst());
             group.updateStatus(GroupStatus.MATCHED);
 
             // 나머지 대기자들 자동 거절 처리
@@ -176,7 +178,7 @@ public class ApplicationService {
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus())
                 .groupStatus(group.getGroupStatus())
-                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .updatedAt(TimeUtils.formatKst(clock.instant(), DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
     }
 
@@ -257,7 +259,7 @@ public class ApplicationService {
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus().name())
-                .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
+                .createdAt(TimeUtils.formatKst(application.getCreatedAt(), DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
     }
 
@@ -302,7 +304,7 @@ public class ApplicationService {
 
         return ApplicationResponseDTO.CancelResultDTO.builder()
                 .groupId(groupId)
-                .canceledAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .canceledAt(TimeUtils.formatKst(clock.instant(), DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
     }
 
@@ -358,7 +360,7 @@ public class ApplicationService {
                 .user(guest.getId())
                 .name(guest.getNickName())
                 .profileImageUrl(profileImageUrl)
-                .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
+                .createdAt(TimeUtils.formatKst(application.getCreatedAt(), DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .applyMsg(application.getApplyMsg())
                 .bookTitle(book != null ? book.getTitle() : null)
                 .bookAuthor(book != null ? book.getAuthor() : null)

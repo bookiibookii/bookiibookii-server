@@ -3,6 +3,7 @@ package com.example.bookiibookii.domain.tracker.resolver;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.util.ReadingPeriodDateCalculator;
 import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
+import com.example.bookiibookii.global.time.TimeConfig;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -12,10 +13,6 @@ import java.time.LocalDate;
 public class TrackerDueDateResolver {
 
     private final Clock clock;
-
-    public TrackerDueDateResolver() {
-        this(Clock.system(ReadingPeriodDateCalculator.KST));
-    }
 
     public TrackerDueDateResolver(Clock clock) {
         this.clock = clock;
@@ -35,6 +32,6 @@ public class TrackerDueDateResolver {
             return null;
         }
 
-        return ReadingPeriodDateCalculator.remainingDaysUntil(dueDate, LocalDate.now(clock));
+        return ReadingPeriodDateCalculator.remainingDaysUntil(dueDate, LocalDate.now(clock.withZone(TimeConfig.KST)));
     }
 }

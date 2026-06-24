@@ -7,7 +7,8 @@ import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(
@@ -35,11 +36,11 @@ public class Delivery extends BaseEntity {
     @Column(name = "exchange_round", nullable = false)
     private ExchangeRound exchangeRound;
 
-    @Column(name = "start_date", nullable = false)
-    private LocalDateTime startDate;
+    @Column(name = "tracking_registered_at", nullable = false)
+    private Instant trackingRegisteredAt;
 
-    @Column(name = "end_date")
-    private LocalDateTime endDate;
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "delivery_company")
@@ -57,15 +58,14 @@ public class Delivery extends BaseEntity {
     private MatchedMember receiver;
 
     @Column(name = "received_confirmed_at")
-    private LocalDateTime receivedConfirmedAt;
+    private Instant receivedConfirmedAt;
 
 
-    public void complete(LocalDateTime completedAt) {
-        this.endDate = completedAt;
+    public void complete(Instant deliveredAt) {
+        this.deliveredAt = Objects.requireNonNull(deliveredAt, "deliveredAt must not be null");
     }
 
-    public void confirmReceived(LocalDateTime confirmedAt) {
-        this.receivedConfirmedAt = confirmedAt;
-        this.endDate = confirmedAt;
+    public void confirmReceived(Instant confirmedAt) {
+        this.receivedConfirmedAt = Objects.requireNonNull(confirmedAt, "confirmedAt must not be null");
     }
 }

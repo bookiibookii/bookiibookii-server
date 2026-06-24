@@ -17,13 +17,20 @@ public class KeywordMatchService {
 
     @Transactional(readOnly = true)
     public List<Keyword> matchForBook(String bookTitle, String authorName) {
+        return matchForGroup(bookTitle, authorName, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Keyword> matchForGroup(String bookTitle, String authorName, String groupTitle) {
         String titleNorm = KeywordNormalizer.normalize(bookTitle);
         String authorNorm = KeywordNormalizer.normalize(authorName);
+        String groupTitleNorm = KeywordNormalizer.normalize(groupTitle);
 
         // 완전 조회
         Set<String> exactTargets = new HashSet<>();
         if (notBlank(titleNorm)) exactTargets.add(titleNorm);
         if (notBlank(authorNorm)) exactTargets.add(authorNorm);
+        if (notBlank(groupTitleNorm)) exactTargets.add(groupTitleNorm);
 
         Map<Long, Keyword> matched = new LinkedHashMap<>();
         if (!exactTargets.isEmpty()) {
@@ -34,8 +41,9 @@ public class KeywordMatchService {
 
         // 부분 조회
         Set<String> prefixes = new HashSet<>();
-        prefixes.addAll(twoGrams(titleNorm));
-        prefixes.addAll(twoGrams(authorNorm));
+        prefixes.addAll(candidatePrefixes(titleNorm));
+        prefixes.addAll(candidatePrefixes(authorNorm));
+        prefixes.addAll(candidatePrefixes(groupTitleNorm));
         if (!prefixes.isEmpty()) {
             List<Keyword> candidates = keywordRepository.findAllByPrefix2In(prefixes);
 
@@ -44,7 +52,8 @@ public class KeywordMatchService {
                 if (kn == null || kn.length() < 2) continue;
 
                 if ((notBlank(titleNorm) && titleNorm.contains(kn)) ||
-                        (notBlank(authorNorm) && authorNorm.contains(kn))) {
+                        (notBlank(authorNorm) && authorNorm.contains(kn)) ||
+                        (notBlank(groupTitleNorm) && groupTitleNorm.contains(kn))) {
                     matched.putIfAbsent(k.getId(), k);
                 }
             }
@@ -55,10 +64,10 @@ public class KeywordMatchService {
 
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
 
-    private Set<String> twoGrams(String s) {
+    private Set<String> candidatePrefixes(String s) {
         if (s == null) return Set.of();
-        if (s.length() < 2) return Set.of(); // 2-gram
         Set<String> out = new HashSet<>();
+        for (int i = 0; i < s.length(); i++) out.add(s.substring(i, i + 1));
         for (int i = 0; i <= s.length() - 2; i++) out.add(s.substring(i, i + 2));
         return out;
     }

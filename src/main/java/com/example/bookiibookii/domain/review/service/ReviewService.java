@@ -3,36 +3,45 @@ package com.example.bookiibookii.domain.review.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
 import com.example.bookiibookii.domain.review.dto.req.ReviewRequestDTO;
-import com.example.bookiibookii.domain.review.dto.res.GroupReviewResponseDTO;
-import com.example.bookiibookii.domain.review.entity.GroupReview;
+import com.example.bookiibookii.domain.review.dto.res.BookReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.GroupReviewsResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MemberReviewResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyBookReviewsResponseDTO;
+import com.example.bookiibookii.domain.review.dto.res.MyGroupReviewsResponseDTO;
+import com.example.bookiibookii.domain.review.entity.BookReview;
+import com.example.bookiibookii.domain.review.entity.MemberReview;
+import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.review.exception.ReviewException;
 import com.example.bookiibookii.domain.review.exception.code.ReviewErrorCode;
-import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
-import com.example.bookiibookii.domain.tracker.repository.TrackerRepository;
+import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
+import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
+import com.example.bookiibookii.domain.tracker.service.DeliveryAddressService;
+import com.example.bookiibookii.domain.tracker.resolver.UserProfileImageUrlResolver;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserBadge;
-import com.example.bookiibookii.domain.user.enums.Badge;
-import com.example.bookiibookii.domain.user.repository.UserBadgeRepository;
-import com.example.bookiibookii.domain.userbook.entity.UserBook;
-import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
+import com.example.bookiibookii.global.time.TimeUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,137 +50,370 @@ public class ReviewService {
     private static final double RATING_MIN = 0.0;
     private static final double RATING_MAX = 5.0;
     private static final int BOOK_COMMENT_MAX_LENGTH = 500;
-    private static final int GROUP_COMMENT_MAX_LENGTH = 200;
+    private static final int MEMBER_COMMENT_MAX_LENGTH = 20;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy. MM. dd.");
 
-    private final UserBookRepository userBookRepository;
-    private final TrackerRepository trackerRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final GroupReviewRepository groupReviewRepository;
-    private final UserBadgeRepository userBadgeRepository;
+    private final BookReviewRepository bookReviewRepository;
+    private final MemberReviewRepository memberReviewRepository;
     private final GroupsRepository groupsRepository;
+    private final DeliveryAddressService deliveryAddressService;
+    private final UserProfileImageUrlResolver userProfileImageUrlResolver;
+    private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
-    /**
-     * 1. [함께 읽기] 리뷰 생성
-     * 파트너가 없으므로 본인의 서재(UserBook)에 책 리뷰만 남깁니다.
-     */
     @Transactional
-    public void createTogetherReview(Long userBookId, ReviewRequestDTO.TogetherReviewDTO request, User user) {
-        validateRating(request.rating());
+    public BookReviewResponseDTO createBookReview(
+            Long groupId,
+            ReviewRequestDTO.BookReviewUpsertDTO request,
+            User user
+    ) {
+        validateRating(request.star());
         validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
 
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
-
-        if (!userBook.getUser().getId().equals(user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
-        }
-
-        userBook.updateReview(request.rating(), request.comment());
-
-        //그룹 조회 락 추가
-        Groups group = groupsRepository.findByIdForUpdate(userBook.getGroup().getGroupId())
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroupIdForUpdate(group.getId());
+        validatePairGroup(members);
 
-        // 그룹이 MATCHED 상태일 때만 종료 로직 수행
-        if (group.getGroupStatus() == GroupStatus.MATCHED) {
-            MatchedMember matchedMember = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(group.getGroupId(), user.getId())
-                    .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
+        MatchedMember me = findMe(members, user.getId());
+        MemberBook currentMemberBook = getCurrentMemberBook(me);
+        ReadingStatus currentStatus = validateBookReviewReadingStatus(me.getReadingStatus());
 
-            matchedMember.markReviewAsWritten();
-
-            long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(group.getGroupId());
-
-            if (remainingCount == 0) {
-                group.updateStatus(GroupStatus.COMPLETED);
-            }
-        }
-    }
-
-    /**
-     * 2. [릴레이] 통합 리뷰 생성
-     * 책 리뷰(UserBook)와 상대방 리뷰(GroupReview)를 한 번에 저장하고 트래커를 종료합니다.
-     */
-    @Transactional
-    public void createRelayReview(Long userBookId, ReviewRequestDTO.RelayReviewDTO request, User user) {
-        // 2-1. 모든 평점 및 코멘트 검증
-        validateRating(request.bookRating());
-        validateRating(request.partnerRating());
-        validateCommentLength(request.bookComment(), BOOK_COMMENT_MAX_LENGTH);
-        validateCommentLength(request.partnerComment(), GROUP_COMMENT_MAX_LENGTH);
-
-        // 2-2. UserBook 조회 및 권한 확인
-        UserBook userBook = userBookRepository.findById(userBookId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.USER_BOOK_NOT_FOUND));
-        if (!userBook.getUser().getId().equals(user.getId())) {
-            throw new ReviewException(ReviewErrorCode.NOT_USER_BOOK_OWNER);
-        }
-
-        // [보완] 비관적 락을 사용하여 그룹 조회 (동시성 제어)
-        Groups group = groupsRepository.findByIdForUpdate(userBook.getGroup().getGroupId())
-                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-
-        // [보완] 그룹 상태가 MATCHED일 때만 리뷰 프로세스 진행
-        if (group.getGroupStatus() != GroupStatus.MATCHED) {
-            // 이미 COMPLETED거나 DELETED인 경우 예외를 던지거나 리턴 처리
-            throw new GroupException(GroupErrorCode.INVALID_GROUP_STATUS);
-        }
-
-        Long groupId = group.getGroupId();
-        ensureTrackerReturned(groupId);
-
-        // 2-3. [책 리뷰] 업데이트
-        userBook.updateReview(request.bookRating(), request.bookComment());
-
-        // 2-4. 리뷰어 조회 및 중복 체크
-        MatchedMember reviewer = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, user.getId())
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND));
-
-        if (groupReviewRepository.existsByGroupIdAndReviewerUserId(groupId, user.getId())) {
+        if (bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(me.getId(), currentMemberBook.getId())) {
             throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
-        // 2-5. 내 상태 업데이트
-        reviewer.markReviewAsWritten(); // isReviewWritten = true
+        if (bookReviewRepository.existsByMemberBookId(currentMemberBook.getId())) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
 
-        // 2-6. 상대방 조회 및 리뷰 저장
-        Long partnerUserId = matchedMemberRepository.findPartnerUserId(groupId, user.getId())
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
+        BookReview bookReview = BookReview.create(
+                me,
+                currentMemberBook,
+                request.star(),
+                request.comment()
+        );
 
-        MatchedMember reviewed = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerUserId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_NOT_FOUND));
+        try {
+            bookReview = bookReviewRepository.saveAndFlush(bookReview);
+        } catch (DataIntegrityViolationException e) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
 
-        GroupReview groupReview = GroupReview.builder()
-                .reviewer(reviewer)
-                .reviewed(reviewed)
-                .rating(request.partnerRating())
-                .comment(request.partnerComment())
-                .build();
+        boolean roundReady = isRoundReady(me);
+        updateReadingStatusIfAllBookReviewsWritten(
+                group.getId(),
+                group.getTradeType(),
+                members,
+                currentStatus
+        );
+        if (roundReady) {
+            MatchedMember partner = findPartner(members, me.getId());
+            eventPublisher.publish(new TrackerNotificationEvent(
+                    NotificationType.TRACKER_READING_REVIEW_COMPLETED,
+                    user.getId(),
+                    me.getId(),
+                    user.getNickName(),
+                    List.of(partner.getUser().getId()),
+                    group.getId(),
+                    ExchangeType.from(group.getTradeType()),
+                    currentMemberBook.getBook().getTitle(),
+                    currentMemberBook.getBook().getId(),
+                    null,
+                    null,
+                    exchangeRound(currentStatus),
+                    null
+            ));
+        }
 
-        processGroupReview(reviewed.getUser(), groupReview, request.badgeCodes(), request.partnerRating());
-        groupReviewRepository.save(groupReview);
+        return BookReviewResponseDTO.from(bookReview);
+    }
 
-        // [핵심] 락이 걸린 상태에서 전원 완료 여부 체크
-        long remainingCount = matchedMemberRepository.countByGroup_GroupIdAndIsReviewWrittenFalse(groupId);
+    @Transactional
+    public MemberReviewResponseDTO createMemberReview(
+            Long groupId,
+            ReviewRequestDTO.MemberReviewCreateDTO request,
+            User user
+    ) {
+        validateCommentLength(request.comment(), MEMBER_COMMENT_MAX_LENGTH);
 
-        if (remainingCount == 0) {
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroupIdForUpdate(group.getId());
+        validatePairGroup(members);
+
+        MatchedMember me = findMe(members, user.getId());
+        MatchedMember partner = findPartner(members, me.getId());
+
+        validateSecondExchangeCompleted(members);
+
+        if (memberReviewRepository.existsByGroup_IdAndWriter_Id(group.getId(), me.getId())) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+
+        MemberReview memberReview = MemberReview.create(
+                group,
+                me,
+                partner,
+                request.reaction(),
+                request.comment()
+        );
+
+        try {
+            memberReview = memberReviewRepository.saveAndFlush(memberReview);
+        } catch (DataIntegrityViolationException e) {
+            throw new ReviewException(ReviewErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+        me.markReviewAsWritten();
+
+        boolean partnerAlreadyReviewed = memberReviewRepository.existsByGroup_IdAndWriter_Id(group.getId(), partner.getId());
+        if (partnerAlreadyReviewed) {
+            Instant completedAt = clock.instant();
+            members.forEach(member -> member.completeReading(completedAt));
             group.updateStatus(GroupStatus.COMPLETED);
+        }
+        eventPublisher.publish(new TrackerNotificationEvent(
+                partnerAlreadyReviewed
+                        ? NotificationType.TRACKER_EXCHANGE_COMPLETED
+                        : NotificationType.TRACKER_EXCHANGE_REVIEW_CREATED,
+                user.getId(),
+                me.getId(),
+                user.getNickName(),
+                partnerAlreadyReviewed
+                        ? members.stream().map(member -> member.getUser().getId()).toList()
+                        : List.of(partner.getUser().getId()),
+                group.getId(),
+                ExchangeType.from(group.getTradeType()),
+                group.getBook() == null ? null : group.getBook().getTitle(),
+                group.getBook() == null ? null : group.getBook().getId(),
+                null,
+                partnerAlreadyReviewed ? null : memberReview.getId(),
+                null,
+                null
+        ));
+
+        return MemberReviewResponseDTO.builder()
+                .reviewId(memberReview.getId())
+                .groupCompleted(partnerAlreadyReviewed)
+                .build();
+    }
+
+    @Transactional
+    public BookReviewResponseDTO updateMyBookReview(
+            Long groupId,
+            Long reviewId,
+            ReviewRequestDTO.BookReviewUpsertDTO request,
+            User user
+    ) {
+        validateRating(request.star());
+        validateCommentLength(request.comment(), BOOK_COMMENT_MAX_LENGTH);
+
+        MatchedMember me = getMatchedMember(groupId, user.getId());
+
+        BookReview bookReview = bookReviewRepository
+                .findByIdAndMatchedMember_IdAndMatchedMember_Group_Id(reviewId, me.getId(), groupId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.BOOK_REVIEW_NOT_FOUND));
+
+        bookReview.updateReview(request.star(), request.comment());
+
+        return BookReviewResponseDTO.from(bookReview);
+    }
+
+    @Transactional(readOnly = true)
+    public MyBookReviewsResponseDTO getMyBookReviews(Long groupId, User user) {
+        MatchedMember me = getMatchedMember(groupId, user.getId());
+
+        List<MyBookReviewsResponseDTO.BookReviewItem> reviews = bookReviewRepository
+                .findMyBookReviewsWithBook(me.getId(), groupId)
+                .stream()
+                .map(MyBookReviewsResponseDTO.BookReviewItem::from)
+                .toList();
+
+        return MyBookReviewsResponseDTO.builder()
+                .reviews(reviews)
+                .build();
+    }
+
+    @Transactional
+    public MyGroupReviewsResponseDTO updateMyGroupReviews(
+            Long groupId,
+            ReviewRequestDTO.MyGroupReviewsUpdateDTO request,
+            User user
+    ) {
+        validateCompletedGroupReviewAccess(groupId, user.getId());
+        MatchedMember me = getMatchedMember(groupId, user.getId());
+        validateHasUpdates(request);
+
+        if (request.bookReviews() != null) {
+            for (ReviewRequestDTO.MyGroupReviewsUpdateDTO.BookReviewUpdateItem item : request.bookReviews()) {
+                updateMyBookReviewItem(me, item);
+            }
+        }
+
+        if (request.memberReview() != null) {
+            updateMyMemberReview(groupId, me, request.memberReview());
+        }
+
+        return buildMyGroupReviewsResponse(me.getId(), groupId);
+    }
+
+    @Transactional(readOnly = true)
+    public GroupReviewsResponseDTO getGroupReviews(Long groupId, User user) {
+        validateCompletedGroupReviewAccess(groupId, user.getId());
+
+        List<GroupReviewsResponseDTO.BookReviewItem> bookReviews = bookReviewRepository
+                .findAllByGroupIdWithDetails(groupId)
+                .stream()
+                .map(this::toBookReviewItem)
+                .toList();
+
+        List<GroupReviewsResponseDTO.MemberReviewItem> memberReviews = memberReviewRepository
+                .findAllByGroupIdWithDetails(groupId)
+                .stream()
+                .map(this::toMemberReviewItem)
+                .toList();
+
+        return GroupReviewsResponseDTO.builder()
+                .bookReviews(bookReviews)
+                .memberReviews(memberReviews)
+                .build();
+    }
+
+    private void validateCompletedGroupReviewAccess(Long groupId, Long userId) {
+        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId)) {
+            throw new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER);
+        }
+
+        if (group.getGroupStatus() != GroupStatus.COMPLETED) {
+            throw new ReviewException(ReviewErrorCode.GROUP_REVIEW_NOT_AVAILABLE);
         }
     }
 
-    /**
-     * 그룹 리뷰(파트너 리뷰) 저장 시 뱃지 부여 및 매너 온도 업데이트 처리
-     */
-    private void processGroupReview(User targetUser, GroupReview groupReview, List<Badge> badgeCodes, Double rating) {
-        int badgeCount = 0;
-        if (badgeCodes != null && !badgeCodes.isEmpty()) {
-            badgeCount = badgeCodes.size();
-            for (Badge badge : badgeCodes) {
-                groupReview.addBadge(badge);
-                increaseUserBadgeCount(targetUser, badge);
-            }
+    private void validateHasUpdates(ReviewRequestDTO.MyGroupReviewsUpdateDTO request) {
+        boolean hasBookUpdates = request.bookReviews() != null
+                && request.bookReviews().stream().anyMatch(this::hasBookReviewChanges);
+
+        boolean hasMemberUpdate = request.memberReview() != null
+                && (request.memberReview().reaction() != null || request.memberReview().comment() != null);
+
+        if (!hasBookUpdates && !hasMemberUpdate) {
+            throw new ReviewException(ReviewErrorCode.NOTHING_TO_UPDATE);
         }
-        targetUser.updateManner(rating, badgeCount);
+    }
+
+    private boolean hasBookReviewChanges(ReviewRequestDTO.MyGroupReviewsUpdateDTO.BookReviewUpdateItem item) {
+        return item.star() != null || item.comment() != null;
+    }
+
+    private void updateMyBookReviewItem(
+            MatchedMember me,
+            ReviewRequestDTO.MyGroupReviewsUpdateDTO.BookReviewUpdateItem item
+    ) {
+        if (!hasBookReviewChanges(item)) {
+            throw new ReviewException(ReviewErrorCode.NOTHING_TO_UPDATE);
+        }
+
+        BookReview bookReview = bookReviewRepository
+                .findByMatchedMember_IdAndMemberBook_Id(me.getId(), item.memberBookId())
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.BOOK_REVIEW_NOT_FOUND));
+
+        if (!bookReview.getMemberBook().isOwnedBy(me)) {
+            throw new ReviewException(ReviewErrorCode.BOOK_REVIEW_NOT_FOUND);
+        }
+
+        Double newStar = item.star() != null ? item.star() : bookReview.getStar();
+        String newComment = item.comment() != null ? item.comment() : bookReview.getComment();
+
+        if (item.star() != null) {
+            validateRating(item.star());
+        }
+        if (item.comment() != null) {
+            validateCommentLength(item.comment(), BOOK_COMMENT_MAX_LENGTH);
+        }
+
+        bookReview.updateReview(newStar, newComment);
+    }
+
+    private void updateMyMemberReview(
+            Long groupId,
+            MatchedMember me,
+            ReviewRequestDTO.MyGroupReviewsUpdateDTO.MemberReviewUpdateItem item
+    ) {
+        if (item.reaction() == null && item.comment() == null) {
+            throw new ReviewException(ReviewErrorCode.NOTHING_TO_UPDATE);
+        }
+
+        MemberReview memberReview = memberReviewRepository
+                .findByGroupIdAndWriterIdWithDetails(groupId, me.getId())
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.MEMBER_REVIEW_NOT_FOUND));
+
+        MemberReviewReaction newReaction = item.reaction() != null
+                ? item.reaction()
+                : memberReview.getReaction();
+        String newComment = item.comment() != null
+                ? item.comment()
+                : memberReview.getComment();
+
+        if (item.comment() != null) {
+            validateCommentRequired(item.comment(), MEMBER_COMMENT_MAX_LENGTH);
+        }
+
+        memberReview.updateReview(newReaction, newComment);
+    }
+
+    private MyGroupReviewsResponseDTO buildMyGroupReviewsResponse(Long matchedMemberId, Long groupId) {
+        List<GroupReviewsResponseDTO.BookReviewItem> bookReviews = bookReviewRepository
+                .findAllByMatchedMemberIdAndGroupIdWithDetails(matchedMemberId, groupId)
+                .stream()
+                .map(this::toBookReviewItem)
+                .toList();
+
+        GroupReviewsResponseDTO.MemberReviewItem memberReview = memberReviewRepository
+                .findByGroupIdAndWriterIdWithDetails(groupId, matchedMemberId)
+                .map(this::toMemberReviewItem)
+                .orElse(null);
+
+        return MyGroupReviewsResponseDTO.builder()
+                .bookReviews(bookReviews)
+                .memberReview(memberReview)
+                .build();
+    }
+
+    private GroupReviewsResponseDTO.BookReviewItem toBookReviewItem(BookReview bookReview) {
+        var book = bookReview.getMemberBook().getBook();
+        var writer = bookReview.getMatchedMember().getUser();
+
+        return GroupReviewsResponseDTO.BookReviewItem.builder()
+                .bookId(book.getId())
+                .bookTitle(book.getTitle())
+                .bookAuthor(book.getAuthor())
+                .bookImage(book.getImage())
+                .writerId(writer.getId())
+                .writerNickname(writer.getNickName())
+                .writerProfileImageUrl(userProfileImageUrlResolver.resolve(writer))
+                .star(bookReview.getStar())
+                .comment(bookReview.getComment())
+                .createdAt(TimeUtils.formatKst(bookReview.getCreatedAt(), DATE_FMT))
+                .build();
+    }
+
+    private GroupReviewsResponseDTO.MemberReviewItem toMemberReviewItem(MemberReview memberReview) {
+        var group = memberReview.getGroup();
+        var writer = memberReview.getWriter().getUser();
+
+        return GroupReviewsResponseDTO.MemberReviewItem.builder()
+                .groupName(group.getGroupName())
+                .readingPeriod(group.getReadingPeriod())
+                .writerId(writer.getId())
+                .writerNickname(writer.getNickName())
+                .writerProfileImageUrl(userProfileImageUrlResolver.resolve(writer))
+                .reaction(memberReview.getReaction())
+                .comment(memberReview.getComment())
+                .build();
     }
 
     private void validateRating(Double rating) {
@@ -186,109 +428,135 @@ public class ReviewService {
         }
     }
 
-    private Tracker ensureTrackerReturned(Long groupId) {
-        Tracker tracker = trackerRepository.findByGroupId(groupId)
-                .orElseThrow(() -> new ReviewException(ReviewErrorCode.TRACKER_NOT_FOUND));
-        if (tracker.getTrackerStatus() != TrackerStatus.RETURNED) {
-            throw new ReviewException(ReviewErrorCode.TRACKER_NOT_RETURNED);
+    private void validateCommentRequired(String comment, int limit) {
+        if (comment == null || comment.isBlank()) {
+            throw new ReviewException(ReviewErrorCode.COMMENT_REQUIRED);
+        }
+        validateCommentLength(comment, limit);
+    }
+
+    private MatchedMember getMatchedMember(Long groupId, Long userId) {
+        return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private ReadingStatus validateBookReviewReadingStatus(ReadingStatus readingStatus) {
+        if (readingStatus == ReadingStatus.MY_BOOK_REVIEWING
+                || readingStatus == ReadingStatus.PARTNER_BOOK_REVIEWING) {
+            return readingStatus;
+        }
+        throw new ReviewException(ReviewErrorCode.INVALID_REVIEW_READING_STATUS);
+    }
+
+    private void updateReadingStatusIfAllBookReviewsWritten(
+            Long groupId,
+            TradeType tradeType,
+            List<MatchedMember> members,
+            ReadingStatus reviewStatus
+    ) {
+        boolean allMembersInSameReviewStatus = members.stream()
+                .allMatch(member -> member.getReadingStatus() == reviewStatus);
+        boolean allMembersReady = members.stream().allMatch(this::isRoundReady);
+
+        if (!allMembersInSameReviewStatus || !allMembersReady) {
+            return;
         }
 
-        return tracker;
+        ReadingStatus nextStatus = reviewStatus == ReadingStatus.MY_BOOK_REVIEWING
+                ? ReadingStatus.EXCHANGING
+                : ReadingStatus.RETURNING;
+        members.forEach(member -> member.updateReadingStatus(nextStatus));
+        updateExchangeStatusIfAllMembersReady(groupId, tradeType);
     }
 
-    private void increaseUserBadgeCount(User user, Badge badge) {
-        UserBadge userBadge = userBadgeRepository.findByUserAndBadge(user, badge)
-                .orElseGet(() -> userBadgeRepository.save(UserBadge.builder()
-                        .user(user)
-                        .badge(badge)
-                        .count(0)
-                        .build()));
-        userBadge.increaseCount();
-        userBadgeRepository.save(userBadge);
+    private boolean isRoundReady(MatchedMember matchedMember) {
+        MemberBook currentMemberBook = getCurrentMemberBook(matchedMember);
+        Integer totalPages = currentMemberBook.getBook().getTotalPages();
+        boolean readingCompleted = totalPages != null
+                && totalPages > 0
+                && currentMemberBook.getCurrentPage() >= totalPages;
+        return readingCompleted && bookReviewRepository.existsByMatchedMember_IdAndMemberBook_Id(
+                matchedMember.getId(),
+                currentMemberBook.getId()
+        );
     }
 
+    private ExchangeRound exchangeRound(ReadingStatus reviewStatus) {
+        return reviewStatus == ReadingStatus.MY_BOOK_REVIEWING
+                ? ExchangeRound.FIRST_EXCHANGE
+                : ExchangeRound.RETURN_EXCHANGE;
+    }
 
-    @Transactional(readOnly = true)
-    public GroupReviewResponseDTO.GroupReviewDetailDTO getMyRelayReviewHistory(User user) {
-        // 1. 내가 받은 리뷰 목록 조회 (RELAY 그룹만)
-        List<GroupReview> partnerToMeReviews = groupReviewRepository.findByReviewedUserIdAndGroupType(
-                user.getId(), GroupType.RELAY);
-        if (partnerToMeReviews == null || partnerToMeReviews.isEmpty()) {
-            return GroupReviewResponseDTO.GroupReviewDetailDTO.builder().reviews(List.of()).build();
+    private void validatePairGroup(List<MatchedMember> matchedMembers) {
+        if (matchedMembers.size() != 2) {
+            throw new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND);
+        }
+    }
+
+    private MatchedMember findMe(List<MatchedMember> matchedMembers, Long userId) {
+        return matchedMembers.stream()
+                .filter(member -> member.getUser().getId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private MatchedMember findPartner(List<MatchedMember> matchedMembers, Long myMatchedMemberId) {
+        return matchedMembers.stream()
+                .filter(member -> !member.getId().equals(myMatchedMemberId))
+                .findFirst()
+                .orElseThrow(() -> new ReviewException(ReviewErrorCode.PARTNER_MEMBER_NOT_FOUND));
+    }
+
+    private void validateSecondExchangeCompleted(List<MatchedMember> matchedMembers) {
+        boolean returnExchangeCompleted = matchedMembers.stream()
+                .allMatch(member -> member.getReadingStatus() == ReadingStatus.PARTNER_REVIEWING
+                        && member.getExchangeStatus() == ExchangeStatus.NOT_STARTED);
+        if (!returnExchangeCompleted) {
+            throw new ReviewException(ReviewErrorCode.INVALID_MEMBER_REVIEW_STATUS);
+        }
+    }
+
+    private MemberBook getCurrentMemberBook(MatchedMember matchedMember) {
+        MemberBook currentMemberBook = matchedMember.getCurrentMemberBook();
+        if (currentMemberBook == null) {
+            throw new ReviewException(ReviewErrorCode.CURRENT_MEMBER_BOOK_NOT_FOUND);
+        }
+        return currentMemberBook;
+    }
+
+    private void updateExchangeStatusIfAllMembersReady(Long groupId, TradeType tradeType) {
+        List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroup_Id(groupId);
+        if (matchedMembers.isEmpty()) {
+            throw new ReviewException(ReviewErrorCode.MATCHED_MEMBER_NOT_FOUND);
+        }
+        if (matchedMembers.size() != 2) {
+            return;
         }
 
-        // 2. 등장하는 groupId 목록 수집
-        List<Long> groupIds = partnerToMeReviews.stream()
-                .map(gr -> gr.getReviewer().getGroup().getGroupId())
-                .distinct()
-                .toList();
+        boolean allExchanging = matchedMembers.stream()
+                .allMatch(member -> member.getReadingStatus() == ReadingStatus.EXCHANGING);
+        boolean allReturning = matchedMembers.stream()
+                .allMatch(member -> member.getReadingStatus() == ReadingStatus.RETURNING);
 
-        // 3. Tracker / UserBook 배치 조회 (N+1 방지)
-        List<Tracker> trackers = trackerRepository.findByGroup_GroupIdIn(groupIds);
-        Map<Long, Tracker> trackerByGroupId = trackers.stream()
-                .collect(Collectors.toMap(t -> t.getGroup().getGroupId(), t -> t, (a, b) -> a));
+        if (!allExchanging && !allReturning) {
+            return;
+        }
 
-        List<UserBook> userBooksInGroups = userBookRepository.findByGroup_GroupIdInWithUserAndGroup(groupIds);
-        Map<String, UserBook> userBookByUserAndGroup = userBooksInGroups.stream()
-                .collect(Collectors.toMap(
-                        ub -> ub.getUser().getId() + "_" + ub.getGroup().getGroupId(),
-                        ub -> ub,
-                        (a, b) -> a
-                ));
+        ExchangeStatus initialExchangeStatus = resolveInitialExchangeStatus(tradeType);
+        matchedMembers.forEach(member -> member.updateExchangeStatus(initialExchangeStatus));
 
-        // 4. 각 리뷰에 대해 맵에서 조회 후 DTO 생성
-        List<GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO> reviewItems = partnerToMeReviews.stream()
-                .map(gr -> {
-                    MatchedMember partnerMM = gr.getReviewer();
-                    if (partnerMM == null) return null;
-
-                    Groups group = partnerMM.getGroup();
-                    Long groupId = group.getGroupId();
-                    Long partnerUserId = partnerMM.getUser().getId();
-
-                    Tracker tracker = trackerByGroupId.get(groupId);
-                    UserBook partnerBookReview = userBookByUserAndGroup.get(partnerUserId + "_" + groupId);
-
-                    return buildReviewItemDTO(group, tracker, partnerMM, gr, partnerBookReview);
-                })
-                .filter(Objects::nonNull)
-                .toList();
-
-        return GroupReviewResponseDTO.GroupReviewDetailDTO.builder()
-                .reviews(reviewItems)
-                .build();
+        if (tradeType == TradeType.DELIVERY && allExchanging) {
+            deliveryAddressService.createFirstExchangeAddressesIfAbsent(groupId);
+        }
+        if (tradeType == TradeType.DELIVERY && allReturning) {
+            deliveryAddressService.createReturnExchangeAddressesIfAbsent(groupId);
+        }
     }
 
-    private GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO buildReviewItemDTO(
-            Groups group, Tracker tracker, MatchedMember partnerMM, GroupReview gr, UserBook pub) {
-
-        // 5. 뱃지 변환 로직
-        List<GroupReviewResponseDTO.BadgeInfo> badges = (gr != null) ? gr.getBadges().stream()
-                .map(b -> GroupReviewResponseDTO.BadgeInfo.builder()
-                        .code(b.getBadge().name())
-                        .description(b.getBadge().getDescription())
-                        .build())
-                .toList() : new ArrayList<>();
-
-        return GroupReviewResponseDTO.GroupReviewDetailDTO.MyReviewItemDTO.builder()
-                .groupId(group.getGroupId())
-                .bookTitle(group.getBook().getTitle())
-                .bookImage(group.getBook().getImage())
-                .startDate(group.getStartDate().format(DATE_FMT))
-                // 6. finishedDate 처리
-                .finishedDate(tracker != null && tracker.getUpdatedAt() != null ?
-                        tracker.getUpdatedAt().format(DATE_FMT) : "진행중")
-                .partnerNickname(partnerMM != null ? partnerMM.getUser().getNickName() : "알 수 없음")
-                // 7. DTO 필드명과 일치시킴 (partnerBadges)
-                .partnerToMeRating(gr != null ? gr.getRating() : 0.0)
-                .partnerToMeComment(gr != null ? gr.getComment() : "평가가 없습니다.")
-                .partnerBadges(badges)
-                // 8. 상대방 책 리뷰 (pub.getComment() 사용)
-                .partnerBookRating(pub != null ? pub.getRating() : 0.0)
-                .partnerBookComment(pub != null ? pub.getComment() : "리뷰가 없습니다.")
-                .partnerBookReviewDate(pub != null && pub.getUpdatedAt() != null ?
-                        pub.getUpdatedAt().format(DATE_FMT) : null)
-                .build();
+    private ExchangeStatus resolveInitialExchangeStatus(TradeType tradeType) {
+        if (tradeType == TradeType.DIRECT) {
+            return ExchangeStatus.MEETING_SCHEDULE_WAITING;
+        }
+        return ExchangeStatus.TRACKING_REGISTER_WAITING;
     }
 }
-

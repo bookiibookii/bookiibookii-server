@@ -1,0 +1,78 @@
+spring:
+  jackson:
+    time-zone: UTC
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  data:
+    redis:
+      prefix: "v1:"
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      ssl:
+        enabled: false
+      timeout: 500ms
+      connect-timeout: 500ms
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+jwt:
+  token:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration:
+      access: 1800000      # 30분
+      refresh: 1209600000  # 14일
+
+oauth:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+  kakao:
+    client-id: ${KAKAO_REST_API_KEY}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+
+aladin:
+  ttbkey: ${ALADIN_TTB_KEY}
+
+aws:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME}
+    region: ${AWS_REGION}
+
+server:
+  forward-headers-strategy: framework
+
+discord:
+  webhook:
+    enabled: ${DISCORD_WEBHOOK_ENABLED:false}
+    url: ${DISCORD_WEBHOOK_URL}
+
+swagger:
+  auth:
+    username: ${SWAGGER_USERNAME}
+    password: ${SWAGGER_PASSWORD}
+
+app:
+  share:
+    web-base-url: ${SHARE_WEB_BASE_URL:https://bookiibookii.com/share/reading-card}
+    profile-web-base-url: ${SHARE_PROFILE_WEB_BASE_URL:https://bookiibookii.com/share/profile}
+
+push:
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    project-id: ${FIREBASE_PROJECT_ID:}

@@ -1,0 +1,430 @@
+package com.example.bookiibookii.domain.tracker.service;
+
+import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.group.exception.GroupException;
+import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
+import com.example.bookiibookii.domain.group.repository.GroupsRepository;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.location.entity.UserDelivery;
+import com.example.bookiibookii.domain.location.exception.LocationException;
+import com.example.bookiibookii.domain.location.exception.code.LocationErrorCode;
+import com.example.bookiibookii.domain.location.repository.UserDeliveryRepository;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.tracker.dto.req.DeliveryAddressDirectUpdateRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.DeliveryRegisterRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.req.DeliveryAddressSavedUpdateRequestDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.DeliveryAddressResponseDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.PartnerDeliveryResponseDTO;
+import com.example.bookiibookii.domain.tracker.entity.Delivery;
+import com.example.bookiibookii.domain.tracker.entity.DeliveryAddress;
+import com.example.bookiibookii.domain.tracker.event.DeliveryNotificationEvent;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.exception.TrackerException;
+import com.example.bookiibookii.domain.tracker.exception.code.TrackerErrorCode;
+import com.example.bookiibookii.domain.tracker.repository.DeliveryAddressRepository;
+import com.example.bookiibookii.domain.tracker.repository.DeliveryRepository;
+import com.example.bookiibookii.domain.user.entity.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class PackageDeliveryService {
+
+    private static final String TRACKING_NUMBER_PATTERN = "\\d+";
+
+    private final GroupsRepository groupsRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
+    private final DeliveryAddressRepository deliveryAddressRepository;
+    private final DeliveryRepository deliveryRepository;
+    private final UserDeliveryRepository userDeliveryRepository;
+    private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
+
+    public DeliveryAddressResponseDTO getAddresses(Long groupId, User user) {
+        Groups group = validatePackageGroup(groupId);
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        MatchedMember partner = getPartnerMember(groupId, me.getId());
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+
+        DeliveryAddress myAddress = getAddressSnapshot(group.getId(), currentExchangeRound, me.getId());
+        DeliveryAddress partnerAddress = getAddressSnapshot(group.getId(), currentExchangeRound, partner.getId());
+
+        return DeliveryAddressResponseDTO.builder()
+                .myAddress(DeliveryAddressResponseDTO.AddressDTO.from(myAddress))
+                .partnerAddress(DeliveryAddressResponseDTO.AddressDTO.from(partnerAddress))
+                .canEditMyAddress(canEditAddress(groupId, currentExchangeRound, me, partner))
+                .build();
+    }
+
+    @Transactional
+    public DeliveryAddressResponseDTO updateMyAddressFromSavedAddress(
+            Long groupId,
+            DeliveryAddressSavedUpdateRequestDTO request,
+            User user
+    ) {
+        Groups group = validatePackageGroupForUpdate(groupId);
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        MatchedMember partner = getPartnerMember(groupId, me.getId());
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+        validateAddressEditable(groupId, currentExchangeRound, me, partner);
+
+        UserDelivery userDelivery = userDeliveryRepository
+                .findByIdAndUser_Id(request.userDeliveryId(), user.getId())
+                .orElseThrow(() -> new LocationException(LocationErrorCode.NOT_FOUND));
+        DeliveryAddress myAddress = getOrCreateAddressSnapshotFromUserDelivery(group, currentExchangeRound, me, userDelivery);
+        myAddress.update(
+                userDelivery.getReceiverName(),
+                userDelivery.getPhone(),
+                userDelivery.getLocation().getAddress(),
+                userDelivery.getAddressDetail(),
+                userDelivery.getLocation().getZipCode()
+        );
+
+        return buildAddressResponse(groupId, currentExchangeRound, me, partner, myAddress);
+    }
+
+    @Transactional
+    public DeliveryAddressResponseDTO updateMyAddressDirectly(
+            Long groupId,
+            DeliveryAddressDirectUpdateRequestDTO request,
+            User user
+    ) {
+        Groups group = validatePackageGroupForUpdate(groupId);
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        MatchedMember partner = getPartnerMember(groupId, me.getId());
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+        validateAddressEditable(groupId, currentExchangeRound, me, partner);
+
+        DeliveryAddress myAddress = deliveryAddressRepository
+                .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(groupId, currentExchangeRound, me.getId())
+                .orElseGet(() -> createDirectInputAddressSnapshot(group, currentExchangeRound, me, request));
+        myAddress.updateAddress(request.address(), request.addressDetail(), request.zipCode());
+
+        return buildAddressResponse(groupId, currentExchangeRound, me, partner, myAddress);
+    }
+
+    private DeliveryAddressResponseDTO buildAddressResponse(
+            Long groupId,
+            ExchangeRound currentExchangeRound,
+            MatchedMember me,
+            MatchedMember partner,
+            DeliveryAddress myAddress
+    ) {
+        DeliveryAddress partnerAddress = getAddressSnapshot(groupId, currentExchangeRound, partner.getId());
+        return DeliveryAddressResponseDTO.builder()
+                .myAddress(DeliveryAddressResponseDTO.AddressDTO.from(myAddress))
+                .partnerAddress(DeliveryAddressResponseDTO.AddressDTO.from(partnerAddress))
+                .canEditMyAddress(canEditAddress(groupId, currentExchangeRound, me, partner))
+                .build();
+    }
+
+    @Transactional
+    public void registerDelivery(Long groupId, DeliveryRegisterRequestDTO request, User user) {
+        Groups group = validatePackageGroupForUpdate(groupId);
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        MatchedMember partner = getPartnerMember(groupId, me.getId());
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+
+        if (me.getExchangeStatus() != ExchangeStatus.TRACKING_REGISTER_WAITING) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_CANNOT_BE_CHANGED);
+        }
+        if (deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, currentExchangeRound, me.getId())) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_REGISTERED);
+        }
+        if (request.deliveryCompany() == null) {
+            throw new TrackerException(TrackerErrorCode.INVALID_DELIVERY_COMPANY);
+        }
+        if (request.trackingNumber() == null || !request.trackingNumber().matches(TRACKING_NUMBER_PATTERN)) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKING_NUMBER);
+        }
+
+        getAddressSnapshot(groupId, currentExchangeRound, me.getId());
+        getAddressSnapshot(groupId, currentExchangeRound, partner.getId());
+
+        Delivery delivery = Delivery.builder()
+                .id(UUID.randomUUID().toString())
+                .group(group)
+                .exchangeRound(currentExchangeRound)
+                .sender(me)
+                .receiver(partner)
+                .deliveryCompany(request.deliveryCompany())
+                .trackingNumber(request.trackingNumber())
+                .trackingRegisteredAt(clock.instant())
+                .build();
+
+        try {
+            deliveryRepository.save(delivery);
+        } catch (DataIntegrityViolationException e) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_REGISTERED);
+        }
+
+        me.updateExchangeStatus(ExchangeStatus.TRACKING_REGISTERED);
+
+        eventPublisher.publish(new DeliveryNotificationEvent(
+                NotificationType.TRACKER_SHIPMENT_REGISTERED,
+                me.getUser().getId(),
+                me.getUser().getNickName(),
+                delivery.getReceiver().getUser().getId(),
+                group.getId(),
+                currentExchangeRound,
+                delivery.getId(),
+                findDeliveredBookTitle(delivery)
+        ));
+    }
+
+    public PartnerDeliveryResponseDTO getPartnerDelivery(Long groupId, User user) {
+        validatePackageGroup(groupId);
+        MatchedMember me = getMyMatchedMember(groupId, user.getId());
+        MatchedMember partner = getPartnerMember(groupId, me.getId());
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+
+        if (me.getExchangeStatus() != ExchangeStatus.TRACKING_REGISTERED
+                && me.getExchangeStatus() != ExchangeStatus.RECEIVED_CONFIRMED) {
+            throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
+        }
+
+        Delivery partnerDelivery = getPartnerToMeDelivery(groupId, currentExchangeRound, partner, me);
+        boolean canConfirmReceived = me.getExchangeStatus() == ExchangeStatus.TRACKING_REGISTERED
+                && partnerDelivery.getReceivedConfirmedAt() == null;
+        return PartnerDeliveryResponseDTO.of(partnerDelivery, canConfirmReceived);
+    }
+
+    @Transactional
+    public void confirmPartnerDeliveryReceived(Long groupId, User user) {
+        validatePackageGroupForUpdate(groupId);
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroupIdForUpdate(groupId);
+        MatchedMember me = findMe(members, user.getId());
+        MatchedMember partner = findPartner(members, me.getId());
+        ExchangeRound currentExchangeRound = validatePackageExchangeStage(me);
+
+        ExchangeStatus exchangeStatus = me.getExchangeStatus();
+        if (exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_RECEIVED);
+        }
+        if (exchangeStatus != ExchangeStatus.TRACKING_REGISTERED) {
+            throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
+        }
+
+        Delivery partnerDelivery = getPartnerToMeDelivery(groupId, currentExchangeRound, partner, me);
+        if (partnerDelivery.getReceivedConfirmedAt() != null) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_RECEIVED);
+        }
+
+        partnerDelivery.confirmReceived(clock.instant());
+        me.updateExchangeStatus(ExchangeStatus.RECEIVED_CONFIRMED);
+
+        eventPublisher.publish(new DeliveryNotificationEvent(
+                NotificationType.TRACKER_DELIVERY_CONFIRMED,
+                me.getUser().getId(),
+                me.getUser().getNickName(),
+                partnerDelivery.getSender().getUser().getId(),
+                groupId,
+                currentExchangeRound,
+                partnerDelivery.getId(),
+                findDeliveredBookTitle(partnerDelivery)
+        ));
+
+        if (members.stream().allMatch(member -> member.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED)) {
+            Instant now = clock.instant();
+            if (currentExchangeRound == ExchangeRound.RETURN_EXCHANGE) {
+                members.forEach(member -> {
+                    member.changeCurrentMemberBook(findMyBook(member), now);
+                    member.updateReadingStatus(ReadingStatus.PARTNER_REVIEWING, now);
+                    member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
+                });
+                return;
+            }
+
+            members.forEach(member -> {
+                member.changeCurrentMemberBook(findPartnerBook(member), now);
+                member.updateReadingStatus(ReadingStatus.PARTNER_BOOK_READING);
+                member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
+            });
+        }
+    }
+
+    // 내부 메서드
+    private Groups validatePackageGroup(Long groupId) {
+        Groups group = groupsRepository.findById(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        if (group.getTradeType() != TradeType.DELIVERY) {
+            throw new TrackerException(TrackerErrorCode.NOT_PACKAGE_TRADE_GROUP);
+        }
+        return group;
+    }
+
+    private Groups validatePackageGroupForUpdate(Long groupId) {
+        Groups group = groupsRepository.findByIdForUpdate(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        if (group.getTradeType() != TradeType.DELIVERY) {
+            throw new TrackerException(TrackerErrorCode.NOT_PACKAGE_TRADE_GROUP);
+        }
+        return group;
+    }
+
+    private MatchedMember getMyMatchedMember(Long groupId, Long userId) {
+        return matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private MatchedMember getPartnerMember(Long groupId, Long myMemberId) {
+        return matchedMemberRepository.findAllByGroup_Id(groupId).stream()
+                .filter(member -> !member.getId().equals(myMemberId))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
+    }
+
+    private MatchedMember findMe(List<MatchedMember> members, Long userId) {
+        return members.stream()
+                .filter(member -> member.getUser().getId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.NOT_GROUP_MEMBER));
+    }
+
+    private MatchedMember findPartner(List<MatchedMember> members, Long myMemberId) {
+        return members.stream()
+                .filter(member -> !member.getId().equals(myMemberId))
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_NOT_FOUND));
+    }
+
+    private ExchangeRound validatePackageExchangeStage(MatchedMember me) {
+        return switch (me.getReadingStatus()) {
+            case EXCHANGING -> ExchangeRound.FIRST_EXCHANGE;
+            case RETURNING -> ExchangeRound.RETURN_EXCHANGE;
+            default -> throw new TrackerException(TrackerErrorCode.NOT_EXCHANGE_STAGE);
+        };
+    }
+
+    private DeliveryAddress getAddressSnapshot(Long groupId, ExchangeRound exchangeRound, Long matchedMemberId) {
+        return deliveryAddressRepository
+                .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(groupId, exchangeRound, matchedMemberId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
+    }
+
+    private DeliveryAddress getOrCreateAddressSnapshotFromUserDelivery(
+            Groups group,
+            ExchangeRound exchangeRound,
+            MatchedMember me,
+            UserDelivery userDelivery
+    ) {
+        return deliveryAddressRepository
+                .findByGroup_IdAndExchangeRoundAndMatchedMember_Id(group.getId(), exchangeRound, me.getId())
+                .orElseGet(() -> deliveryAddressRepository.save(
+                        DeliveryAddress.builder()
+                                .group(group)
+                                .matchedMember(me)
+                                .exchangeRound(exchangeRound)
+                                .receiverName(userDelivery.getReceiverName())
+                                .phoneNumber(userDelivery.getPhone())
+                                .address(userDelivery.getLocation().getAddress())
+                                .addressDetail(userDelivery.getAddressDetail())
+                                .zipCode(userDelivery.getLocation().getZipCode())
+                                .build()
+                ));
+    }
+
+    private DeliveryAddress createDirectInputAddressSnapshot(
+            Groups group,
+            ExchangeRound exchangeRound,
+            MatchedMember me,
+            DeliveryAddressDirectUpdateRequestDTO request
+    ) {
+        UserDelivery userDelivery = userDeliveryRepository
+                .findFirstByUser_IdOrderByCreatedAtAsc(me.getUser().getId())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
+
+        return deliveryAddressRepository.save(
+                DeliveryAddress.builder()
+                        .group(group)
+                        .matchedMember(me)
+                        .exchangeRound(exchangeRound)
+                        .receiverName(userDelivery.getReceiverName())
+                        .phoneNumber(userDelivery.getPhone())
+                        .address(request.address())
+                        .addressDetail(request.addressDetail())
+                        .zipCode(request.zipCode())
+                        .build()
+        );
+    }
+
+    private boolean canEditAddress(Long groupId, ExchangeRound exchangeRound, MatchedMember me, MatchedMember partner) {
+        return me.getExchangeStatus() == ExchangeStatus.TRACKING_REGISTER_WAITING
+                && !deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, exchangeRound, me.getId())
+                && !deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
+                groupId,
+                exchangeRound,
+                partner.getId(),
+                me.getId()
+        );
+    }
+
+    private void validateAddressEditable(Long groupId, ExchangeRound exchangeRound, MatchedMember me, MatchedMember partner) {
+        if (me.getExchangeStatus() != ExchangeStatus.TRACKING_REGISTER_WAITING) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_CANNOT_BE_CHANGED);
+        }
+        if (deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_Id(groupId, exchangeRound, me.getId())
+                || deliveryRepository.existsByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
+                groupId,
+                exchangeRound,
+                partner.getId(),
+                me.getId()
+        )) {
+            throw new TrackerException(TrackerErrorCode.DELIVERY_ADDRESS_ALREADY_USED);
+        }
+    }
+
+    private Delivery getPartnerToMeDelivery(
+            Long groupId,
+            ExchangeRound exchangeRound,
+            MatchedMember partner,
+            MatchedMember me
+    ) {
+        return deliveryRepository
+                .findByGroup_IdAndExchangeRoundAndSender_IdAndReceiver_Id(
+                        groupId,
+                        exchangeRound,
+                        partner.getId(),
+                        me.getId()
+                )
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.PARTNER_DELIVERY_NOT_REGISTERED));
+    }
+
+    private MemberBook findPartnerBook(MatchedMember matchedMember) {
+        return matchedMember.getMemberBooks().stream()
+                .filter(memberBook -> !memberBook.isMine())
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
+    }
+
+    private MemberBook findMyBook(MatchedMember matchedMember) {
+        return matchedMember.getMemberBooks().stream()
+                .filter(MemberBook::isMine)
+                .findFirst()
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
+    }
+
+    public static String findDeliveredBookTitle(Delivery delivery) {
+        boolean sentBookIsMine = delivery.getExchangeRound() == ExchangeRound.FIRST_EXCHANGE;
+        return delivery.getSender().getMemberBooks().stream()
+                .filter(memberBook -> memberBook.isMine() == sentBookIsMine)
+                .findFirst()
+                .map(memberBook -> memberBook.getBook().getTitle())
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.INVALID_CURRENT_MEMBER_BOOK));
+    }
+}

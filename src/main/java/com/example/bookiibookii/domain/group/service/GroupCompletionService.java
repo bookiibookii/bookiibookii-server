@@ -3,22 +3,24 @@ package com.example.bookiibookii.domain.group.service;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.review.entity.GroupReview;
-import com.example.bookiibookii.domain.review.repository.GroupReviewRepository;
-import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -28,52 +30,41 @@ public class GroupCompletionService {
 
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
-    private final GroupReviewRepository groupReviewRepository; // 리뷰 레포지토리 추가
-    private final UserRepository userRepository;
+    private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void forceCompleteSingleGroup(Long groupId) {
         Groups group = groupsRepository.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
-        if(group.getGroupStatus()!=GroupStatus.MATCHED){
-            log.info("MATCHED 상태가 아닌 그룹");
+        if (group.getGroupStatus() != GroupStatus.MATCHED) {
+            log.info("MATCHED 상태가 아닌 그룹입니다. groupId={}", groupId);
             return;
         }
 
-        List<MatchedMember> lazyMembers = matchedMemberRepository
-                .findAllByGroup_GroupIdAndIsReviewWrittenFalse(groupId);
-
-        for (MatchedMember mm : lazyMembers) {
-            if (group.getGroupType() == GroupType.RELAY) {
-                // 1. 파트너의 User ID가 아니라 MatchedMember 자체를 찾아야 합니다.
-                matchedMemberRepository.findPartnerUserId(groupId, mm.getUser().getId())
-                        .ifPresent(partnerId -> {
-                            // 파트너의 MatchedMember 엔티티 조회
-                            MatchedMember partnerMM = matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, partnerId)
-                                    .orElseThrow(() -> new GroupException(GroupErrorCode.MATCHED_MEMBER_NOT_FOUND));
-
-                            if (partnerMM != null) {
-                                // 2. 파트너 매너 점수 업데이트 (User 엔티티)
-                                partnerMM.getUser().updateManner(3.0, 0);
-
-                                // 3. 기본 리뷰 생성 (수정된 메서드 호출)
-                                createDefaultReview(mm, partnerMM);
-                            }
-                        });
-            }
-            mm.markReviewAsWritten();
+        List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(groupId);
+        boolean readyToForceComplete = members.size() == 2 && members.stream().allMatch(member ->
+                member.getReadingStatus() == ReadingStatus.PARTNER_REVIEWING
+                        && member.getExchangeStatus() == ExchangeStatus.NOT_STARTED
+        );
+        if (!readyToForceComplete) {
+            log.info("강제 종료 조건 미충족 그룹입니다. groupId={}", groupId);
+            return;
         }
-        group.updateStatus(GroupStatus.COMPLETED);
-    }
 
-    private void createDefaultReview(MatchedMember reviewer, MatchedMember reviewed) {
-        GroupReview defaultReview = GroupReview.builder()
-                .reviewer(reviewer)   // MatchedMember 타입
-                .reviewed(reviewed)   // MatchedMember 타입
-                .rating(3.0)          // score -> rating
-                .comment(null) // content -> comment
-                .build();
-        groupReviewRepository.save(defaultReview);
+        Instant completedAt = clock.instant();
+        members.forEach(member -> member.completeReading(completedAt));
+        group.updateStatus(GroupStatus.COMPLETED);
+
+        List<Long> receiverIds = members.stream().map(mm -> mm.getUser().getId()).toList();
+        eventPublisher.publish(new TrackerNotificationEvent(
+                NotificationType.TRACKER_GROUP_FORCE_COMPLETED,
+                null, null, null,
+                receiverIds,
+                groupId,
+                ExchangeType.from(group.getTradeType()),
+                null, null, null, null, null, null
+        ));
     }
 }

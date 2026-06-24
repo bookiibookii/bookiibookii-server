@@ -43,6 +43,21 @@ public class AladinClient {
                 .body(AladinItemSearchResponse.class);
     }
 
+    public AladinItemSearchResponse fetchBestsellers(int maxResults) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/ItemList.aspx")
+                        .queryParam("ttbkey", aladinKey)
+                        .queryParam("QueryType", "Bestseller")
+                        .queryParam("MaxResults", maxResults)
+                        .queryParam("SearchTarget", "Book")
+                        .queryParam("output", "JS")
+                        .queryParam("Version", "20131101")
+                        .build())
+                .retrieve()
+                .body(AladinItemSearchResponse.class);
+    }
+
     public AladinBookItem lookupBookByIsbn13(String isbn13) {
         AladinItemLookupResponse raw = restClient.get()
                 .uri(uriBuilder -> uriBuilder

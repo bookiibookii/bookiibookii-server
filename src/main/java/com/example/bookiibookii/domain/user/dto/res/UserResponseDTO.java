@@ -1,50 +1,64 @@
 package com.example.bookiibookii.domain.user.dto.res;
 
-import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
+import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
+import com.example.bookiibookii.domain.user.enums.Gender;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
-import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.util.List;
 
 public class UserResponseDTO {
+
     @Builder
-    public record UserProfileResDTO  (
+    public record UserProfileResDTO(
             Long userId,
-            /** 프로필 이미지 표시용 Presigned GET URL. 없으면 null */
             String profileImageUrl,
             String nickname,
-            Double manner,
-            List<String> topTags,
-            Integer completeBook,
-            Integer relayGroup,
-            Integer togetherGroup,
-            List<UserBadgeDTO>  userBadges,
-            List<GroupResponseDTO.MypageGroupDto> groups,
-            List<UserBookResponseDTO.MypageBookDto> books,
-            String receiverName,
-            String phone,
-            String zipCode,
-            String address,
-            String addressDetail,
-            String region,
-            String meetPlace
-    ){}
+            String introduction,
+            @Schema(description = "성별", example = "FEMALE", nullable = true)
+            Gender gender,
+            @Schema(description = "생년월일(yyyy-MM-dd)", example = "1995-03-15", nullable = true)
+            String birthDate,
+            List<UserBookDto> userBooks,
+            Integer bookReviewCount,
+            List<BookReviewSummaryDto> recentBookReviews,
+            Integer boomUpCount,
+            List<ReceivedMemberReviewDto> recentReceivedReviews
+    ) {}
+
+    public record UserBookDto(
+            String title,
+            String auth,
+            String image
+    ) {}
 
     @Builder
-    public record UserBadgeDTO  (
-            String userBadge,
-            Integer count
-    ){}
+    public record BookReviewSummaryDto(
+            String bookTitle,
+            String bookAuthor,
+            TradeType tradeType,
+            Double rating,
+            String comment,
+            String reviewDate
+    ) {}
 
     @Builder
-    public record NicknameValidationDTO  (
+    public record ReceivedMemberReviewDto(
+            String reviewerNickname,
+            String reviewerProfileUrl,
+            MemberReviewReaction reaction,
+            String comment,
+            String createdAt
+    ) {}
+
+    @Builder
+    public record NicknameValidationDTO(
             boolean isAvailable,
             String code,
             String message
-    ){
+    ) {
         public static NicknameValidationDTO from(NicknameStatus status) {
             return switch (status) {
                 case AVAILABLE -> NicknameValidationDTO.builder()

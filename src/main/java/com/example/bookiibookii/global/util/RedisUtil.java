@@ -2,13 +2,13 @@ package com.example.bookiibookii.global.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.bookiibookii.global.time.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -105,7 +105,8 @@ public class RedisUtil {
 
         try {
             String cleanKeyword = keyword.trim();
-            String todayKey = RANKING_KEY_PREFIX + LocalDate.now();
+            // TODO: 검색어 랭킹 기준일도 Clock 주입으로 테스트 가능하게 정리한다.
+            String todayKey = RANKING_KEY_PREFIX + TimeUtils.todayKst();
             String prefixedKey = applyPrefix(todayKey);
 
             // 오늘자 키에 점수 1 증가
@@ -127,8 +128,9 @@ public class RedisUtil {
 
             // 합산된 결과(캐시)가 없으면 새로 생성
             if (Boolean.FALSE.equals(redisTemplate.hasKey(combinedKeyWithPrefix))) {
+                // TODO: 검색어 랭킹 기준일도 Clock 주입으로 테스트 가능하게 정리한다.
                 List<String> last90DaysKeys = IntStream.range(0, 90)
-                        .mapToObj(i -> applyPrefix(RANKING_KEY_PREFIX + LocalDate.now().minusDays(i)))
+                        .mapToObj(i -> applyPrefix(RANKING_KEY_PREFIX + TimeUtils.todayKst().minusDays(i)))
                         .filter(key -> Boolean.TRUE.equals(redisTemplate.hasKey(key)))
                         .collect(Collectors.toList());
 

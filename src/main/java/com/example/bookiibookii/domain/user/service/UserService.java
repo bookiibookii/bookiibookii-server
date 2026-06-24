@@ -1,19 +1,12 @@
 package com.example.bookiibookii.domain.user.service;
 
-import com.example.bookiibookii.domain.group.dto.res.GroupResponseDTO;
-import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.enums.GroupStatus;
-import com.example.bookiibookii.domain.group.enums.GroupType;
-import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
-import com.example.bookiibookii.domain.tag.entity.Tag;
-import com.example.bookiibookii.domain.tag.enums.TagType;
-import com.example.bookiibookii.domain.tag.exception.TagException;
-import com.example.bookiibookii.domain.tag.exception.code.TagErrorCode;
-import com.example.bookiibookii.domain.tag.repository.TagRepository;
+import com.example.bookiibookii.domain.review.entity.BookReview;
+import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
 import com.example.bookiibookii.domain.user.enums.NicknameStatus;
+import com.example.bookiibookii.domain.user.enums.OnboardingStatus;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
@@ -21,19 +14,21 @@ import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
-import com.example.bookiibookii.domain.userbook.dto.res.UserBookResponseDTO;
-import com.example.bookiibookii.domain.userbook.repository.UserBookQueryRepository;
-import com.example.bookiibookii.domain.userbook.repository.UserBookRepository;
+import com.example.bookiibookii.domain.review.entity.MemberReview;
+import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
+import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
+
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
+import com.example.bookiibookii.global.time.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,20 +36,18 @@ import java.util.stream.Collectors;
 @Transactional
 public class UserService {
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy. MM. dd.");
 
     private final UserRepository userRepository;
     private final UserTagRepository userTagRepository;
-    private final TagRepository tagRepository;
     private final UserImageRepository userImageRepository;
     private final UserImageValidationService userImageValidationService;
     private final UserImageS3Service userImageS3Service;
-    private final UserTagService userTagService;
-    private final UserBookRepository userBookRepository;
-    private final MatchedMemberRepository matchedMemberRepository;
-    private final AddressRepository addressRepository;
-    private final UserBadgeRepository userBadgeRepository;
-    private final UserBookQueryRepository userBookQueryRepository;
+    private final BookReviewRepository bookReviewRepository;
     private final BadWordService badWordService;
+    private final UserBookRepository userBookRepository;
+    private final BookshelfService bookshelfService;
+    private final MemberReviewRepository memberReviewRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -78,16 +71,12 @@ public class UserService {
 
     @Transactional
     public NicknameStatus checkNicknameStatus(String nickname) {
-        // 금칙어 검사
         if (badWordService.containsBadWord(nickname)) {
             return NicknameStatus.BAD_WORD;
         }
-
-        // 중복 검사
         if (userRepository.existsByNickName(nickname)) {
             return NicknameStatus.DUPLICATE;
         }
-
         return NicknameStatus.AVAILABLE;
     }
 
@@ -100,32 +89,35 @@ public class UserService {
         requireAvailableNickname(request.name());
         user.updateName(request.name());
 
-        // 프로필 이미지(s3Key) 처리: 있으면 검증 후 UserImage 생성/갱신
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        List<UserTag> userTags = new ArrayList<>();
-        for (UserRequestDTO.TagSettingDTO tagDto : request.tags()) {
-            TagType type = tagDto.type();
-            List<String> codes = tagDto.value();
-            List<Tag> tags = tagRepository.findByTypeAndCodeIn(type, codes);
+        List<UserTag> userTags = request.tags().stream().map(tag -> UserTag.create(user, tag)).toList();
 
-            if (tags.size() != codes.size()) {
-                throw new TagException(TagErrorCode.INVALID_TAG_CODE);
-            }
-            tags.forEach(tag -> userTags.add(UserTag.create(user, tag)));
-        }
+        bookshelfService.replaceAllFavoriteBooks(user, request.userBooks());
+        user.updateIntroduction(request.introduction());
+        requireValidBirth(request.birth());
+        user.updateUserInform(request.gender(), request.birth());
 
         userTagRepository.deleteAllByUser(user);
         userTagRepository.saveAll(userTags);
+
+        user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
+    }
+
+    // 온보딩 스킵 상태로 업데이트
+    @Transactional
+    public void completeSplashOnboarding(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        user.updateOnboardingStatus(OnboardingStatus.SPLASH_DONE);
     }
 
     private void saveOrUpdateUserImage(User user, String s3Key) {
         if (!userImageValidationService.isValidS3Key(s3Key)) {
             throw new UserImageException(UserImageErrorCode.INVALID_S3_KEY_FORMAT);
         }
-        // s3Key 형식: image/users/{userId}/{uuid} — 소유자 검증
         long keyUserId;
         try {
             String[] parts = s3Key.split("/");
@@ -171,52 +163,9 @@ public class UserService {
 
     // 유저 프로필 조회
     @Transactional(readOnly = true)
-    public UserResponseDTO.UserProfileResDTO getProfileInfo(Long userId, List<GroupStatus> targetGroupStatuses) {
+    public UserResponseDTO.UserProfileResDTO getProfileInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
-
-        // Top Tag 3개 조회
-        List<TagType> targetTypes = List.of(TagType.METHOD, TagType.VIBE);
-        List<UserTag> currentUserTags = userTagRepository.findByUserIdAndTagTypeIn(userId, targetTypes);
-        // 누적도 -> 최신 등록 -> ID 순으로 태그 정렬 후 상위태그 추출
-        List<Tag> TopTags = userTagService.extractTopTags(currentUserTags, 3);
-        List<String> topTagCodes = TopTags.stream().map(ut -> ut.getCode()).toList();
-
-        // 배지 조회 (count가 0보다 큰 배지만 조회)
-        List<UserBadge> userBadges = userBadgeRepository.findByUserAndCountGreaterThan(user, 0);
-        List<UserResponseDTO.UserBadgeDTO> badgeList = userBadges.stream()
-                .map(ub -> UserResponseDTO.UserBadgeDTO.builder()
-                        .userBadge(ub.getBadge().name())
-                        .count(ub.getCount())
-                        .build()).toList();
-
-        // 완독 수 (로직에 따라 조건 추가 가능)
-        Long completeBookCount = userBookRepository.countByUser_IdAndRemovedAtIsNull(userId);
-        // 참여한 그룹 수 (타입별)
-        Long relayCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.RELAY);
-        Long togetherCount = matchedMemberRepository.countByUser_IdAndGroup_GroupType(userId, GroupType.TOGETHER);
-
-        // 그룹 조회 (모집중, 진행중)
-        List<Groups> targetGroups = matchedMemberRepository.findMyActiveGroups(
-                userId, targetGroupStatuses //List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED)
-        );
-        List<GroupResponseDTO.MypageGroupDto> groupList = targetGroups.stream()
-                .map(this::toMypageGroupDto)
-                .collect(Collectors.toList());
-
-        // 최근 읽은 책 조회 (최대 3개)
-        List<UserBookResponseDTO.MypageBookDto> recentBooks = userBookQueryRepository.findRecentBooksWithRating(
-                userId,
-                PageRequest.of(0, 3)
-        );
-
-        // Address 정보 조회
-        Address address = addressRepository.findByUserId(userId).orElse(null);
-        String receiverName = address != null ? address.getReceiverName() : null;
-        String phone = address != null ? address.getPhone() : null;
-        String zipCode = address != null ? address.getZipCode() : null;
-        String addressValue = address != null ? address.getAddress() : null;
-        String addressDetail = address != null ? address.getAddressDetail() : null;
 
         String profileImageUrl = null;
         if (user.getUserImage() != null) {
@@ -224,44 +173,71 @@ public class UserService {
                     user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         }
 
+        // 대표책 목록
+        List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findRepresentativeBooks(userId).stream()
+                .map(ub -> new UserResponseDTO.UserBookDto(ub.getBook().getTitle(), ub.getBook().getAuthor(), ub.getBook().getImage()))
+                .toList();
+
+        // 책 후기 개수
+        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId);
+
+        // 최신 후기 2개
+        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, PageRequest.of(0, 2));
+        List<UserResponseDTO.BookReviewSummaryDto> recentBookReviewSummaries = recentBookReviews.stream()
+                .map(br -> UserResponseDTO.BookReviewSummaryDto.builder()
+                        .bookTitle(br.getMemberBook().getBook().getTitle())
+                        .bookAuthor(br.getMemberBook().getBook().getAuthor())
+                        .tradeType(br.getMemberBook().getGroup().getTradeType())
+                        .rating(br.getStar())
+                        .comment(br.getComment())
+                        .reviewDate(TimeUtils.formatKst(br.getUpdatedAt(), DATE_FMT))
+                        .build())
+                .collect(Collectors.toList());
+
+        // 받은 BOOM_UP 총 개수
+        long boomUpCount = memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP);
+
+        // 최신 받은 후기 3개
+        List<MemberReview> receivedReviews = memberReviewRepository.findLatestReceivedByUserId(userId, PageRequest.of(0, 3));
+        List<UserResponseDTO.ReceivedMemberReviewDto> recentReceivedReviews = receivedReviews.stream()
+                .map(mr -> {
+                    User writer = mr.getWriter().getUser();
+                    String writerProfileUrl = null;
+                    if (writer.getUserImage() != null) {
+                        writerProfileUrl = userImageS3Service.generatePresignedGetUrl(
+                                writer.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+                    }
+                    return UserResponseDTO.ReceivedMemberReviewDto.builder()
+                            .reviewerNickname(writer.getNickName())
+                            .reviewerProfileUrl(writerProfileUrl)
+                            .reaction(mr.getReaction())
+                            .comment(mr.getComment())
+                            .createdAt(TimeUtils.formatKst(mr.getCreatedAt(), DATE_FMT))
+                            .build();
+                })
+                .collect(Collectors.toList());
+
         return UserResponseDTO.UserProfileResDTO.builder()
                 .userId(userId)
                 .profileImageUrl(profileImageUrl)
                 .nickname(user.getNickName())
-                .manner(user.getManner())
-                .topTags(topTagCodes)
-                .completeBook(completeBookCount.intValue())
-                .relayGroup(relayCount.intValue())
-                .togetherGroup(togetherCount.intValue())
-                .userBadges(badgeList)
-                .groups(groupList)
-                .books(recentBooks)
-                .receiverName(receiverName)
-                .phone(phone)
-                .zipCode(zipCode)
-                .address(addressValue)
-                .addressDetail(addressDetail)
-                .region(user.getRegion())
-                .meetPlace(user.getMeetPlace())
+                .introduction(user.getIntroduction())
+                .gender(user.getGender())
+                .birthDate(user.getBirth() == null ? null : user.getBirth().toString())
+                .userBooks(userBooks)
+                .bookReviewCount((int) bookReviewCount)
+                .recentBookReviews(recentBookReviewSummaries)
+                .boomUpCount((int) boomUpCount)
+                .recentReceivedReviews(recentReceivedReviews)
                 .build();
     }
 
-    // 그룹 엔티티 -> 마이페이지용 DTO 변환 메서드
-    private GroupResponseDTO.MypageGroupDto toMypageGroupDto(Groups group) {
-        String genre = group.getBook().getCategory().name();
-        List<String> displayTags = group.getGroupTags().stream()
-                .map(gt -> gt.getTag().getCode())
-                .toList();
-        String author = group.getBook().getAuthor();
-
-        return GroupResponseDTO.MypageGroupDto.builder()
-                .groupId(group.getGroupId())
-                .bookTitle(group.getBook().getTitle())
-                .auth(author)
-                .genre(genre)
-                .groupStatus(group.getGroupStatus())
-                .groupTags(displayTags)
-                .build();
+    // 한줄 소개 수정
+    @Transactional
+    public void updateIntroduction(Long userId, String introduction) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        user.updateIntroduction(introduction);
     }
 
     // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)
@@ -281,33 +257,25 @@ public class UserService {
             requireAvailableNickname(request.nickname());
             user.updateName(request.nickname());
         }
-        user.updateRegion(request.region());
-        user.updateMeetPlace(request.meetPlace());
 
         if (request.s3Key() != null && !request.s3Key().isBlank()) {
             saveOrUpdateUserImage(user, request.s3Key());
         }
 
-        Address address = addressRepository.findByUserId(userId).orElse(null);
-
-        if (address == null) {
-            address = Address.builder()
-                    .user(user)
-                    .receiverName(request.receiverName())
-                    .phone(request.phone())
-                    .zipCode(request.zipCode())
-                    .address(request.address())
-                    .addressDetail(request.addressDetail())
-                    .build();
-            addressRepository.save(address);
-        } else {
-            address.updateAddressInfo(
-                    request.receiverName(),
-                    request.phone(),
-                    request.zipCode(),
-                    request.address(),
-                    request.addressDetail()
+        if (request.gender() != null || request.birth() != null) {
+            if (request.birth() != null) {
+                requireValidBirth(request.birth());
+            }
+            user.updateUserInform(
+                    request.gender() != null ? request.gender() : user.getGender(),
+                    request.birth() != null ? request.birth() : user.getBirth()
             );
+        }
+    }
+
+    private void requireValidBirth(LocalDate birth) {
+        if (!birth.isBefore(TimeUtils.todayKst())) {
+            throw new UserException(UserErrorCode.INVALID_BIRTH_DATE);
         }
     }
 
@@ -315,7 +283,6 @@ public class UserService {
         if (nickname == null || nickname.isBlank()) {
             throw new UserException(UserErrorCode.INVALID_NICKNAME);
         }
-
         NicknameStatus status = checkNicknameStatus(nickname);
         if (status == NicknameStatus.DUPLICATE) {
             throw new UserException(UserErrorCode.NICKNAME_DUPLICATE);

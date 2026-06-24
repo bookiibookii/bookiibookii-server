@@ -1,5 +1,6 @@
 package com.example.bookiibookii.domain.notification.util;
 
+import com.example.bookiibookii.domain.notification.dto.NotificationPayload;
 import com.example.bookiibookii.domain.notification.entity.Notification;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
@@ -12,8 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 @Component
 @RequiredArgsConstructor
 public class NotificationFactory {
@@ -24,20 +23,31 @@ public class NotificationFactory {
     // converter
     public Notification create(Long receiverId, NotificationCategory category, NotificationType type,
                                String title, String message, String payload) {
+        return create(receiverId, category, type, title, message, payload, null);
+    }
+
+    public Notification create(Long receiverId, NotificationCategory category, NotificationType type,
+                               String title, String message, String payload, String dedupKey) {
+        return create(receiverId, null, category, type, title, message, payload, dedupKey);
+    }
+
+    public Notification create(Long receiverId, Long actorId, NotificationCategory category, NotificationType type,
+                               String title, String message, String payload, String dedupKey) {
         User receiver = userRepository.getReferenceById(receiverId);
         return Notification.builder()
                 .receiver(receiver)
+                .actor(actorId == null ? null : userRepository.getReferenceById(actorId))
                 .category(category)
                 .type(type)
                 .title(title)
                 .message(message)
                 .payload(payload)
+                .dedupKey(dedupKey)
                 .read(false)
                 .build();
     }
 
-    // payload 필드 위한 json 생성
-    public String toJson(Map<String, Object> payload) {
+    public String toJson(NotificationPayload payload) {
         try {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
@@ -45,4 +55,3 @@ public class NotificationFactory {
         }
     }
 }
-

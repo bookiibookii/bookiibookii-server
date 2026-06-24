@@ -1,6 +1,10 @@
 package com.example.bookiibookii.domain.user.controller;
 
+import com.example.bookiibookii.domain.book.dto.req.BookReqDTO;
+import com.example.bookiibookii.domain.user.dto.req.BookshelfRequestDTO;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
+import com.example.bookiibookii.domain.user.dto.res.BookshelfResponseDTO;
+import com.example.bookiibookii.domain.user.dto.res.ProfileShareTokenResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.dto.res.PresignedUrlResponseDTO;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -12,6 +16,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -74,6 +81,25 @@ public interface UserControllerDocs {
     })
     ApiResponse<Void> createUserOnboarding(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.OnboardingReqDTO request);
 
+
+    // api/onboarding-skip
+    @Operation(
+            summary = "온보딩 스킵 상태 저장 API",
+            description = """
+            스플래시 온보딩 스킵 시 상태를 저장합니다.
+            onboarding_status
+            - NEW : 스플래시 온보딩 이전 상태
+            - SPLASH_DONE : 스플래시 온보딩 완료 or 스킵 상태 -> 필수 정보 입력 페이지로 바로 이동
+            - COMPLETED : 정보 입력 후 확인 버튼 클릭 완료 -> 메인 홈 화면으로 진입
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "온보딩 상태 저장 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "온보딩 상태 저장 실패")
+    })
+    ApiResponse<Void> completeSplashOnboarding(@AuthenticationPrincipal User user);
+
+
     // api/mypage
     @Operation(
             summary = "마이페이지 조회 API",
@@ -104,17 +130,165 @@ public interface UserControllerDocs {
     @Operation(
             summary = "마이페이지 정보 수정 API",
             description = """
-            유저의 닉네임, 프로필 이미지, 주소 정보를 생성·업데이트합니다.
-
-            - **프로필 이미지 변경**: `POST /api/users/me/image/presigned-url` 로 Presigned PUT URL 발급 후, 발급된 presignedPutUrl로 S3에 업로드하고, 응답의 s3Key를 본 API 요청 body의 s3Key에 넣어 호출하세요. s3Key를 보내지 않으면 프로필 이미지는 변경되지 않습니다.
-            - s3Key 형식: image/users/{userId}/{uuid}
+            닉네임, 성별, 생년월일, 프로필 이미지를 수정합니다.
+            - 프로필 이미지: /api/users/me/image/presigned-url로 Presigned URL 발급 후 업로드하고, s3Key를 전달합니다. null이면 변경 없음.
             """
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "마이페이지 설정 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마이페이지 설정 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "전화번호 형식이 올바르지 않습니다.")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "닉네임 검증 실패")
     })
     ApiResponse<Void> updateMypage(@AuthenticationPrincipal User user, @Valid @RequestBody UserRequestDTO.MypageReqDTO request);
+
+    @Operation(
+            summary = "한줄 소개 수정 API",
+            description = """
+            유저의 한줄 소개를 수정합니다.
+            - introduction: 최대 255자. null 또는 빈 문자열 전달 시 소개 삭제.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "한줄 소개 수정 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "255자 초과"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @PatchMapping("/api/mypage/introduction")
+    ApiResponse<Void> updateIntroduction(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Valid @RequestBody UserRequestDTO.UpdateIntroductionReqDTO request
+    );
+
+    @Operation(
+            summary = "나의 책장 조회 API",
+            description = """
+            - completedBooks: 완독한 책 목록 (완독날짜, 책 제목, 작가, 장르, 별점)
+            - favoriteBooks: 온보딩에서 등록한 인생 책 (최대 3개)
+            - representativeBooks: 나를 대표하는 책 (최대 7개, displayOrder 순, 사용자가 작성한 책 후기 별점 포함)
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "나의 책장 조회 성공")
+    })
+    @GetMapping("/api/mypage/bookshelf")
+    ApiResponse<BookshelfResponseDTO.BookshelfResDTO> getBookshelf(@AuthenticationPrincipal User user);
+
+    @Operation(
+            summary = "인생 책 등록 API",
+            description = """
+            인생 책을 등록합니다. (최대 3개)
+            - isbn13으로 책을 식별하며, DB에 없는 책은 자동으로 등록됩니다.
+            - 이미 대표책으로만 등록된 책이면 인생책 플래그만 추가합니다.
+            - 이미 인생책으로 등록된 책이면 400 오류를 반환합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 등록 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "3개 초과 또는 이미 등록된 책")
+    })
+    @PostMapping("/api/mypage/bookshelf/favorites")
+    ApiResponse<Void> addFavoriteBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookReqDTO.UserPickISBN request);
+
+    @Operation(
+            summary = "인생 책 교체 API",
+            description = """
+            등록된 인생 책을 다른 책으로 교체합니다.
+            - 구 책이 대표책이었다면 신 책도 자동으로 대표책으로 등록됩니다 (빈 슬롯 기준 위치).
+            - 신 책이 이미 대표책으로만 등록된 경우 인생책 플래그만 추가합니다.
+            - 같은 책으로 교체 요청 시 아무 변화 없이 성공으로 응답합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 교체 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "이미 인생책으로 등록된 책"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 인생 책을 찾을 수 없음")
+    })
+    @PatchMapping("/api/mypage/bookshelf/favorites/{userBookId}")
+    ApiResponse<Void> replaceFavoriteBook(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long userBookId,
+            @Valid @RequestBody BookReqDTO.UserPickISBN request
+    );
+
+    @Operation(
+            summary = "인생 책 삭제 API",
+            description = """
+            나의 책장에서 인생 책을 삭제합니다.
+            - 대표책으로도 등록된 경우 대표책은 유지되고, 인생책 상태만 해제됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 인생 책을 찾을 수 없음")
+    })
+    @DeleteMapping("/api/mypage/bookshelf/favorites/{userBookId}")
+    ApiResponse<Void> deleteFavoriteBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
+
+    @Operation(
+            summary = "대표책 등록 API",
+            description = """
+            나를 대표하는 책을 등록합니다. (최대 7개)
+            - userBookId: 인생책 목록에서 선택 시 (FavoriteBookDto.userBookId)
+            - memberBookId: 완독책 목록에서 선택 시 (CompletedBookDto.memberBookId) — 별점 등록 완료 필수
+            - 둘 중 하나만 전달하세요.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대표책 등록 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "7개 초과 또는 별점 없는 완독책"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "책을 찾을 수 없음")
+    })
+    @PostMapping("/api/mypage/bookshelf/representatives")
+    ApiResponse<Void> addRepresentativeBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.AddRepresentativeReqDTO request);
+
+    @Operation(
+            summary = "대표책 삭제 API",
+            description = """
+            나를 대표하는 책을 삭제합니다.
+            - 인생책이기도 한 경우 → displayOrder만 해제 (인생책 유지)
+            - 대표책으로만 등록된 경우 → 행 완전 삭제
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "대표책 삭제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 대표책을 찾을 수 없음")
+    })
+    @DeleteMapping("/api/mypage/bookshelf/representatives/{userBookId}")
+    ApiResponse<Void> deleteRepresentativeBook(@AuthenticationPrincipal User user, @PathVariable Long userBookId);
+
+    @Operation(
+            summary = "대표책 순서 변경 API",
+            description = """
+            드래그한 책을 원하는 위치에 삽입합니다. 사이에 있는 책들은 자동으로 한 칸씩 밀립니다.
+            - userBookId: 드래그한 책의 userBookId
+            - targetOrder: 드롭한 위치 (1~7)
+            - 예시: 3번 책을 1번으로 드래그 → {"userBookId": 3, "targetOrder": 1}
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "순서 변경 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "targetOrder가 유효 범위(1~현재 대표책 수) 초과")
+    })
+    @PatchMapping("/api/mypage/bookshelf/representatives/order")
+    ApiResponse<Void> reorderRepresentativeBooks(@AuthenticationPrincipal User user, @Valid @RequestBody BookshelfRequestDTO.MoveRepresentativeReqDTO request);
+
+    @Operation(
+            summary = "프로필 공유 토큰 발급",
+            description = """
+            프로필 공유 버튼 클릭 시 고유 공유 링크를 발급합니다.
+
+            - **엔드포인트**: `POST /api/mypage/share-token`
+            - 로그인이 필요하며 본인 프로필만 공유할 수 있습니다.
+            - 공유 불가: 탈퇴한 사용자
+            - 재공유 시 기존 활성 토큰은 폐기(revoke)되고 새 고유 링크가 발급됩니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "공유 링크 발급 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "공유 불가 프로필 (USER400_12)")
+    })
+    @PostMapping("/api/mypage/share-token")
+    ApiResponse<ProfileShareTokenResponseDTO> createProfileShareToken(
+            @AuthenticationPrincipal User user
+    );
 
 }

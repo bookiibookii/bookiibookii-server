@@ -1,18 +1,25 @@
 package com.example.bookiibookii.domain.tracker.event;
 
-import com.example.bookiibookii.domain.tracker.enums.TrackerAction;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.List;
 
 public record TrackerNotificationEvent(
-        TrackerAction action,
-
-        // 발신자
+        NotificationType notificationType,
         Long actorId,
-
-        // redirect
+        Long actorMatchedMemberId,
+        String actorNickname,
+        List<Long> receiverIds,
         Long groupId,
-
-        // 알림 내용
-        LocalDateTime returnDueAt // 반납 예정일
-) {}
+        ExchangeType exchangeType,
+        String bookTitle,
+        Long bookId,
+        Long commentId,
+        Long reviewId,
+        ExchangeRound exchangeRound,
+        LocalDate periodEnd
+) {
+}

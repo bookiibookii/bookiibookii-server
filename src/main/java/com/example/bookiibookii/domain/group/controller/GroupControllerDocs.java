@@ -11,22 +11,52 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@Tag(name = "Group", description = "그룹 생성 및 관리 관련 API")
+@Tag(name = "Group", description = "그룹 관련 API")
 public interface GroupControllerDocs {
-    @Operation(summary = "그룹 생성 API", description = "새로운 독서 그룹을 생성합니다. 직접교환(DIRECT)인 경우 지역 정보가 필수이며, 함께읽기(TOGETHER)는 최대 8명까지 가능합니다.")
+    @Operation(
+            summary = "그룹 생성 API",
+            description = """
+                    새로운 독서 그룹을 생성합니다.
+                    장소 선택 필드는 tradeType에 따라 하나만 전달합니다.
+                    - DIRECT: userExchangeId에 /api/mypage/addresses/exchanges 응답의 userExchangeId(id)를 전달합니다.
+                    - DELIVERY: userDeliveryId에 /api/mypage/addresses/deliveries 응답의 userDeliveryId(id)를 전달합니다.
+                    locationId는 받지 않으며, 그룹 생성 시 선택 장소는 group_place 스냅샷으로 복사 저장됩니다.
+                    
+                    DIRECT 예시:
+                    {
+                      "tradeType": "DIRECT",
+                      "userExchangeId": 1
+                    }
+                    
+                    DELIVERY 예시:
+                    {
+                      "tradeType": "DELIVERY",
+                      "userDeliveryId": 1
+                    }
+                    """
+    )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_4", description = "도서 미선택"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_5", description = "부적절한 시작 날짜"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_7", description = "호스트 장소 정보 없음")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_25", description = "DIRECT 요청에 userExchangeId 누락"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_26", description = "DIRECT 요청에 userDeliveryId 전달"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_27", description = "DELIVERY 요청에 userDeliveryId 누락"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_28", description = "DELIVERY 요청에 userExchangeId 전달"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP400_24", description = "교환 방식과 선택 장소 불일치"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_5", description = "본인 배송지가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP403_6", description = "본인 희망교환장소가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_8", description = "직접교환 장소 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "GROUP404_9", description = "배송지 없음")
     })
     ApiResponse<GroupResponseDTO.CreateResultDTO> createGroup(
             @AuthenticationPrincipal User host,
@@ -60,6 +90,23 @@ public interface GroupControllerDocs {
             @AuthenticationPrincipal User host
     );
 
+    @Operation(
+            summary = "내가 만든 그룹 목록 조회 API",
+            description = """
+                    현재 로그인한 사용자가 host인 그룹을 페이징 없이 최신 생성순으로 조회합니다.
+                    - RECRUITING: BEFORE_MATCHING
+                    - MATCHED: IN_PROGRESS
+                    - COMPLETED: COMPLETED
+                    - DELETED 그룹은 제외됩니다.
+                    """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공")
+    })
+    ApiResponse<List<GroupResponseDTO.MyHostedGroupDTO>> getMyHostedGroups(
+            @AuthenticationPrincipal User user
+    );
+
     @Operation(summary = "그룹 상세 조회 API", description = "특정 그룹의 상세 정보(도서, 참여 멤버, 신청 상태 등)를 조회합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공"),
@@ -77,7 +124,7 @@ public interface GroupControllerDocs {
     })
     ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
             @AuthenticationPrincipal User user,
-            @ModelAttribute GroupRequestDTO.FilterDTO filter
+            @ParameterObject @Valid @ModelAttribute GroupRequestDTO.FilterDTO filter
     );
 
     @Operation(summary = "그룹 통합 검색 API", description = "제목, 저자, 태그를 기반으로 그룹을 통합 검색합니다. 결과 총 건수를 반환합니다.")
@@ -100,5 +147,20 @@ public interface GroupControllerDocs {
                             """)))
     })
     ApiResponse<List<String>> getPopularKeywords();
+
+    @Operation(summary = "그룹 홈 화면 조회 API",
+            description = """
+                    추천 탭의 홈 섹션을 고정 우선순위로 조회합니다.
+                    각 섹션은 sectionType, title, subtitle, layoutType, items를 포함합니다.
+                    데이터가 없는 그룹 카드 섹션은 sections 목록에서 제외됩니다.
+                    인기 도서와 베스트셀러 책 섹션은 데이터가 없어도 빈 items로 유지됩니다.
+                    홈 요청 중 외부 도서 API는 호출하지 않습니다.
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공")
+    })
+    ApiResponse<GroupResponseDTO.HomeResponseDTO> getHome(
+            @AuthenticationPrincipal User user
+    );
 
 }

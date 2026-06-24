@@ -5,19 +5,22 @@ import com.example.bookiibookii.domain.comment.dto.res.CommentCreateResDTO;
 import com.example.bookiibookii.domain.comment.dto.res.CommentTreeResDTO;
 import com.example.bookiibookii.domain.comment.dto.req.CommentCreateReqDTO;
 import com.example.bookiibookii.domain.comment.entity.Comment;
+import com.example.bookiibookii.domain.comment.enums.CommentContext;
 import com.example.bookiibookii.domain.comment.enums.WriterRole;
 import com.example.bookiibookii.domain.comment.event.CommentEvent;
 import com.example.bookiibookii.domain.comment.exception.code.CommentErrorCode;
 import com.example.bookiibookii.domain.comment.exception.CommentException;
 import com.example.bookiibookii.domain.comment.repository.CommentRepository;
 import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.enums.NotificationType;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final GroupsRepository groupRepository;
     private final MatchedMemberRepository matchedMemberRepository;
+    private final CommentAccessPolicy commentAccessPolicy;
     private final DomainEventPublisher eventPublisher;
     private final UserImageS3Service userImageS3Service;
 
@@ -46,23 +50,103 @@ public class CommentService {
     public CommentCreateResDTO create(Long groupId, User user, CommentCreateReqDTO req) {
         Groups group = groupRepository.findByIdWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+        CommentContext context = commentAccessPolicy.resolveContext(group);
+        commentAccessPolicy.validateAccess(context, groupId, user);
 
-        // 댓글 작성자의 그룹 내 역할
         WriterRole writerRole = matchedMemberRepository.findRoleByGroupIdAndUserId(groupId, user.getId())
                 .map(r -> r == RoleStatus.HOST ? WriterRole.HOST : WriterRole.GUEST)
                 .orElse(WriterRole.NONE);
 
-        // 진행 중 그룹에 그룹 멤버가 아닌 유저가 댓글 달 시 에러처리
-        if (group.getGroupStatus() != GroupStatus.RECRUITING && writerRole == WriterRole.NONE) {
-            throw new CommentException(CommentErrorCode.COMMENT_WRITE_FORBIDDEN);
+        return switch (context) {
+            case GROUP_DETAIL -> createGroupDetailComment(group, user, req, writerRole);
+            case TRACKER -> createTrackerComment(group, user, req, writerRole);
+        };
+    }
+
+    private CommentCreateResDTO createGroupDetailComment(
+            Groups group,
+            User user,
+            CommentCreateReqDTO req,
+            WriterRole writerRole
+    ) {
+        Comment saved = saveComment(group, user, req);
+        publishGroupDetailCommentNotification(group, user, saved);
+        return toCreateResDTO(saved, writerRole);
+    }
+
+    private CommentCreateResDTO createTrackerComment(
+            Groups group,
+            User user,
+            CommentCreateReqDTO req,
+            WriterRole writerRole
+    ) {
+        Comment saved = saveComment(group, user, req);
+        matchedMemberRepository.findPartnerUserId(group.getId(), user.getId())
+                .filter(receiverId -> !receiverId.equals(user.getId()))
+                .ifPresent(receiverId -> eventPublisher.publish(new TrackerNotificationEvent(
+                        NotificationType.TRACKER_COMMENT_CREATED,
+                        user.getId(),
+                        null,
+                        user.getNickName(),
+                        List.of(receiverId),
+                        group.getId(),
+                        ExchangeType.from(group.getTradeType()),
+                        null,
+                        null,
+                        saved.getId(),
+                        null,
+                        null,
+                        null
+                )));
+        return toCreateResDTO(saved, writerRole);
+    }
+
+    private void publishGroupDetailCommentNotification(Groups group, User writer, Comment comment) {
+        Comment parent = comment.getParent();
+        if (parent != null) {
+            Long parentWriterId = parent.getUser().getId();
+            if (!parentWriterId.equals(writer.getId())) {
+                eventPublisher.publish(new CommentEvent(
+                        NotificationType.GROUP_COMMENT_REPLIED,
+                        writer.getNickName(),
+                        groupTitle(group),
+                        List.of(parentWriterId),
+                        group.getId(),
+                        comment.getId(),
+                        parent.getId()
+                ));
+            }
+            return;
         }
 
+        Long hostId = group.getHost().getId();
+        if (hostId.equals(writer.getId())) return;
+
+        eventPublisher.publish(new CommentEvent(
+                NotificationType.GROUP_COMMENT_CREATED,
+                writer.getNickName(),
+                groupTitle(group),
+                List.of(hostId),
+                group.getId(),
+                comment.getId(),
+                null
+        ));
+    }
+
+    private String groupTitle(Groups group) {
+        if (group.getGroupName() != null && !group.getGroupName().isBlank()) {
+            return group.getGroupName();
+        }
+        return group.getBook().getTitle();
+    }
+
+    private Comment saveComment(Groups group, User user, CommentCreateReqDTO req) {
         Comment parent = null;
         if (req.getParentId() != null) {
             parent = commentRepository.findById(req.getParentId())
                     .orElseThrow(() -> new CommentException(CommentErrorCode.PARENT_COMMENT_NOT_FOUND));
 
-            if (!parent.getGroup().getGroupId().equals(groupId)) {
+            if (!parent.getGroup().getId().equals(group.getId())) {
                 throw new CommentException(CommentErrorCode.PARENT_COMMENT_GROUP_MISMATCH);
             }
 
@@ -89,19 +173,16 @@ public class CommentService {
                 .secret(isSecret)
                 .secretTargetUserId(secretTargetUserId)
                 .build();
-        Comment saved = commentRepository.save(comment);
-
-        Long notifyUserId = isSecret ? secretTargetUserId : group.getHost().getId();
-        if (!user.getId().equals(notifyUserId)) {
-            eventPublisher.publish(new CommentEvent(user.getNickName(), group.getBook().getTitle(), notifyUserId, group.getGroupId()));
-        }
-        return toCreateResDTO(saved, writerRole);
+        return commentRepository.save(comment);
     }
 
-    // 그룹 페이지 내 모든 댓글 조회(대댓글 포함)
     @Transactional(readOnly = true)
-    public List<CommentTreeResDTO> getTree(Long groupId, Long viewerId) {
-        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewerId);
+    public List<CommentTreeResDTO> getTree(Long groupId, User viewer) {
+        Groups group = getGroup(groupId);
+        CommentContext context = commentAccessPolicy.resolveContext(group);
+        commentAccessPolicy.validateAccess(context, groupId, viewer);
+
+        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewer.getId());
 
         // 그룹 멤버 역할 전체 로드 (user_id, mm.RoleStatus 가져옴)
         Map<Long, WriterRole> writerRoleMap = matchedMemberRepository.findWriterRowsByGroupId(groupId)
@@ -136,8 +217,11 @@ public class CommentService {
 
     @Transactional
     public void delete(Long groupId, Long commentId, User user) {
-        Comment comment = commentRepository.findByIdAndGroupIdWithUser(commentId, groupId)
-                .orElseThrow(() -> new CommentException(CommentErrorCode.COMMENT_NOT_FOUND));
+        Groups group = getGroup(groupId);
+        CommentContext context = commentAccessPolicy.resolveContext(group);
+        commentAccessPolicy.validateAccess(context, groupId, user);
+
+        Comment comment = getComment(groupId, commentId);
 
         if (!comment.getUser().getId().equals(user.getId())) {
             throw new CommentException(CommentErrorCode.COMMENT_DELETE_FORBIDDEN);
@@ -146,6 +230,16 @@ public class CommentService {
         if (comment.isDeleted()) return;
 
         comment.markDeleted();
+    }
+
+    private Groups getGroup(Long groupId) {
+        return groupRepository.findByIdWithBookAndHost(groupId)
+                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+    }
+
+    private Comment getComment(Long groupId, Long commentId) {
+        return commentRepository.findByIdAndGroupIdWithUser(commentId, groupId)
+                .orElseThrow(() -> new CommentException(CommentErrorCode.COMMENT_NOT_FOUND));
     }
 
     private static WriterRole toWriterRole(RoleStatus roleStatus) {
@@ -157,7 +251,7 @@ public class CommentService {
     private CommentCreateResDTO toCreateResDTO(Comment c, WriterRole writerRole) {
         return CommentCreateResDTO.builder()
                 .commentId(c.getId())
-                .groupId(c.getGroup().getGroupId())
+                .groupId(c.getGroup().getId())
                 .parentId(c.getParent() != null ? c.getParent().getId() : null)
                 .content(c.getContent())
                 .createdAt(c.getCreatedAt())

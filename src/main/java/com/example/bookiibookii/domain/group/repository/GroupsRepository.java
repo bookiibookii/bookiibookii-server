@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,43 +27,43 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     Slice<Groups> findAllWithBookAndHost(Pageable pageable);
 
     // 지역별 필터링 조회 (Slice 적용) 그룹리스트api용?
-    @Query("select g from Groups g " +
-            "join fetch g.book " +
-            "join fetch g.host h " +
-            "where h.region = :region " +
-            "and g.tradeType = 'DIRECT' " +
-            "and g.groupStatus != 'DELETED'")
-    Slice<Groups> findAllByHostRegion(@Param("region") String region, Pageable pageable);
+//    @Query("select g from Groups g " +
+//            "join fetch g.book " +
+//            "join fetch g.host h " +
+//            "where h.region = :region " +
+//            "and g.tradeType = 'DIRECT' " +
+//            "and g.groupStatus != 'DELETED'")
+//    Slice<Groups> findAllByHostRegion(@Param("region") String region, Pageable pageable);
 
     // [추가] 동시성 제어를 위한 비관적 락 메서드
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select g from Groups g where g.groupId = :groupId and g.groupStatus != 'DELETED'")
+    @Query("select g from Groups g where g.id = :groupId and g.groupStatus != 'DELETED'")
     Optional<Groups> findByIdForUpdate(@Param("groupId") Long groupId);
 
+    // 신청 시 동시성 제어용 — 락 + book/host fetch join
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+    select g from Groups g
+    join fetch g.book
+    join fetch g.host
+    where g.id = :groupId
+    and g.groupStatus != 'DELETED'
+    """)
+    Optional<Groups> findByIdForUpdateWithBookAndHost(@Param("groupId") Long groupId);
 
-    // UserTag와 GroupTag 일치도가 높은 그룹 조회
-    @Query("SELECT g FROM Groups g " +
-            "JOIN g.groupTags gt " +
-            "WHERE gt.tag.id IN :tagIds " +
-            "AND g.groupStatus = :status " +
-            "GROUP BY g " +
-            "ORDER BY COUNT(gt) DESC")
-    List<Groups> findGroupsByTagMatching(
-            @Param("tagIds") List<Long> tagIds,
-            @Param("status") GroupStatus status,
-            Pageable pageable
-    );
 
     // 랜덤 그룹 조회 (이미 뽑힌 그룹 제외)
     @Query("""
       select g
       from Groups g
       join fetch g.book
-      where g.groupId not in :excludedIds
+      where g.id not in :excludedIds
         and g.groupStatus = :status
+        and g.host.id != :userId
       order by function('rand')
     """)
     List<Groups> findRandomGroupsExcludingFetchBook(
+            @Param("userId") Long userId,
             @Param("excludedIds") List<Long> excludedIds,
             @Param("status") GroupStatus status,
             Pageable pageable
@@ -74,7 +74,7 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             "JOIN FETCH g.book " +
             "JOIN FETCH g.host h " +
             "LEFT JOIN FETCH h.userImage " +
-            "WHERE g.groupId = :groupId AND g.groupStatus != 'DELETED'")
+            "WHERE g.id = :groupId AND g.groupStatus != 'DELETED'")
     Optional<Groups> findDetailById(@Param("groupId") Long groupId);
 
     // fetch join 적용된 기본 그룹 조회
@@ -82,28 +82,39 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
     select g from Groups g
     join fetch g.book
     join fetch g.host
-    where g.groupId = :groupId
+    where g.id = :groupId
     and g.groupStatus != 'DELETED'
     """)
     Optional<Groups> findByIdWithBookAndHost(@Param("groupId") Long groupId);
 
-    // 상태가 RECRUITING이고, 시작일(startDate)이 오늘이거나 이미 지난 그룹 조회
-    @Query("""
-        SELECT g
-        FROM Groups g
-        JOIN FETCH g.host
-        JOIN FETCH g.book
-        WHERE g.groupStatus = 'RECRUITING'
-          AND g.startDate <= :today
-    """)
-    List<Groups> findGroupsToStart(@Param("today") LocalDate today);
-
     // 내가 방장인 그룹 중 '모집 중' 또는 '진행 중'인 개수
     long countByHostIdAndGroupStatusIn(Long hostId, List<GroupStatus> statuses);
 
-    // 독서 종료일로부터 3일이 지났는데 아직 종료되지 않은(MATCHED) 그룹 조회
-    @Query(value = "SELECT * FROM `groups` g WHERE g.group_status = 'MATCHED' " +
-            "AND DATE_ADD(g.start_date, INTERVAL g.reading_period DAY) <= :deadline",
-            nativeQuery = true)
-    List<Groups> findGroupsPastReviewDeadline(@Param("deadline") LocalDate deadline);
+    @Query("""
+    select g from Groups g
+    join fetch g.book
+    join fetch g.host h
+    left join fetch h.userImage
+    where h.id = :hostId
+      and g.groupStatus <> :deletedStatus
+    order by g.createdAt desc, g.id desc
+    """)
+    List<Groups> findMyHostedGroups(
+            @Param("hostId") Long hostId,
+            @Param("deletedStatus") GroupStatus deletedStatus
+    );
+
+    // PARTNER_REVIEWING 진입 후 14일 이상 파트너 후기 미작성 그룹 조회
+    // partner_reviewing_started_at이 NULL인 기존 데이터는 updated_at을 기준으로 처리
+    @Query(value = """
+            SELECT g.* FROM `groups` g
+            WHERE g.group_status = 'MATCHED'
+            AND (
+                SELECT COUNT(*) FROM matchedmember mm
+                WHERE mm.group_id = g.group_id
+                AND mm.reading_status = 'PARTNER_REVIEWING'
+                AND COALESCE(mm.partner_reviewing_started_at, mm.updated_at) <= :cutoff
+            ) >= 2
+            """, nativeQuery = true)
+	    List<Groups> findGroupsForForceComplete(@Param("cutoff") Instant cutoff);
 }

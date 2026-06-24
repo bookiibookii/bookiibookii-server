@@ -19,6 +19,7 @@ public class BookService {
     private final BookRepository bookRepository;
     private final AladinClient aladinClient;
     private final BookCategoryMapper bookCategoryMapper;
+    private final BookAuthorMapper bookAuthorMapper;
 
     // Transactional 수정 필요 (save에만 걸리게끔)
     @Transactional
@@ -29,7 +30,12 @@ public class BookService {
                 .orElseGet(() -> { // 없을 시
                     // 1) 알라딘에서 단건 조회
                     AladinClient.AladinBookItem item = aladinClient.lookupBookByIsbn13(isbn13);
-                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(item.categoryName());
+                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(
+                            item.categoryId(),
+                            item.categoryName(),
+                            item.isbn13(),
+                            item.title()
+                    );
                     if (cc.isEmpty()) {
                         throw new BookException(BookErrorCode.BLOCKED_CATEGORY);
                     }
@@ -38,7 +44,7 @@ public class BookService {
                     Book book = Book.builder()
                             .isbn13(item.isbn13())
                             .title(item.title())
-                            .author(item.author())
+                            .author(bookAuthorMapper.mapFirstWriterOnly(item.author()))
                             .publisher(item.publisher())
                             .image(item.cover())
                             .totalPages(item.itemPage())

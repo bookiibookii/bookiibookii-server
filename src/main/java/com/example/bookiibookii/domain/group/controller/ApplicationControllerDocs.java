@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@Tag(name = "Application", description = "그룹 및 신청 관리 API")
+@Tag(name = "Application", description = "그룹 신청 관련 API")
 public interface ApplicationControllerDocs {
     @Operation(
             summary = "신청자 명단 조회 API",
@@ -71,6 +71,21 @@ public interface ApplicationControllerDocs {
             @PathVariable(name = "groupId") Long groupId,
             @AuthenticationPrincipal(expression = "user") User user,
             @RequestBody @Valid ApplicationRequestDTO.JoinApplicationDTO request
+    );
+
+    @Operation(
+            summary = "내가 신청한 그룹 목록 조회 API",
+            description = """
+                    로그인한 유저가 게스트로 신청한 그룹 목록을 반환합니다.
+                    - applicationStatus가 PENDING 또는 REJECTED이며, 그룹이 아직 RECRUITING 상태인 항목만 포함됩니다.
+                    - 그룹이 MATCHED되면 자동으로 목록에서 제외됩니다.
+                    - applicationList 각 항목에 tradeType(DIRECT / DELIVERY)이 포함됩니다.
+                    - applicationStatus: PENDING(승인대기) / REJECTED(신청 거절)
+                    """
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "COMMON200", description = "성공입니다.")
+    ApiResponse<ApplicationResponseDTO.MyApplicationListDTO> getMyApplicationList(
+            @AuthenticationPrincipal(expression = "user") User user
     );
 
     @Operation(summary = "참여 신청 취소 API", description = "게스트가 본인의 참여 신청을 취소하거나 그룹에서 나갑니다. (모집 중인 그룹만 가능)")

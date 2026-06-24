@@ -36,10 +36,14 @@ public class ApplicationResponseDTO {
         private String name;
         @Schema(description = "신청자 프로필 이미지 표시용 Presigned GET URL. 미등록 시 null", example = "https://...")
         private String profileImageUrl;
-        @Schema(description = "태그 코드 목록 (예: #메모환영, #인사이트)")
-        private List<String> tags;
         private String createdAt;
         private String applyMsg;
+        @Schema(description = "신청자가 제안한 책 제목")
+        private String bookTitle;
+        @Schema(description = "신청자가 제안한 책 저자")
+        private String bookAuthor;
+        @Schema(description = "신청자가 제안한 책 표지 이미지 URL")
+        private String bookImage;
     }
 
     @Getter
@@ -70,6 +74,33 @@ public class ApplicationResponseDTO {
     public static class CancelResultDTO{
         private Long groupId;
         private String canceledAt; //취소한 시간
+    }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MyApplicationCardDTO {
+        private Long groupId;
+        private String groupName;
+        private String hostNickname;
+        private String hostProfileImageUrl;
+        private String bookImage;
+        private String bookTitle;
+        private String author;
+        private Integer readingPeriod;
+        private String tradeType; // DIRECT / DELIVERY
+        private String applicationStatus; // PENDING / REJECTED
+    }
+
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MyApplicationListDTO {
+        @Builder.Default
+        private List<MyApplicationCardDTO> applicationList = new ArrayList<>();
+        private Integer totalCount;
     }
 
 }

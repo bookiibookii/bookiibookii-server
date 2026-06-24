@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.group.service;
 
+import com.example.bookiibookii.domain.book.entity.Book;
+import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.group.dto.req.ApplicationRequestDTO;
 import com.example.bookiibookii.domain.group.dto.res.ApplicationResponseDTO;
 import com.example.bookiibookii.domain.group.entity.Application;
@@ -8,7 +10,6 @@ import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.RoleStatus;
-import com.example.bookiibookii.domain.group.event.GroupMatchedEvent;
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.exception.GroupException;
@@ -16,26 +17,25 @@ import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.GroupsRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.publisher.DomainEventPublisher;
+import com.example.bookiibookii.domain.notification.enums.ExchangeType;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.entity.UserTag;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
-import com.example.bookiibookii.domain.userbook.service.UserBookService;
+import com.example.bookiibookii.domain.memberbook.service.MemberBookService;
+import com.example.bookiibookii.domain.memberbook.service.MatchedMemberCardStateCleanupService;
+import com.example.bookiibookii.global.time.TimeUtils;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,8 +50,11 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher publisher;
-    private final UserBookService userBookService;
+    private final MemberBookService memberBookService;
+    private final MatchedMemberCardStateCleanupService matchedMemberCardStateCleanupService;
     private final UserImageS3Service userImageS3Service;
+    private final BookService bookService;
+    private final Clock clock;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -66,8 +69,8 @@ public class ApplicationService {
             throw new GroupException(GroupErrorCode.MEMBER_NOT_HOST);
         }
 
-        // 3. 신청자 명단 조회 (Fetch Join으로 User와 Tag까지 한 번에!)
-        List<Application> applications = applicationRepository.findAllWithGuestAndTagsByGroupId(groupId);
+        // 3. 신청자 명단 조회
+        List<Application> applications = applicationRepository.findAllWithGuestByGroupId(groupId);
 
         // 4. 엔티티 리스트를 DTO 리스트로 변환
         List<ApplicationResponseDTO.ApplicationDetailDTO> detailDTOs = applications.stream()
@@ -89,7 +92,7 @@ public class ApplicationService {
         Application application = applicationRepository.findById(applyId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
-        Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getGroupId())
+        Groups group = groupsRepository.findByIdForUpdate(application.getGroup().getId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 2. 권한 및 상태 체크
@@ -102,7 +105,7 @@ public class ApplicationService {
         }
 
         // 알림용 그룹 정보 조회 (Fetch Join)
-        Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getGroupId())
+        Groups thisGroup = groupsRepository.findByIdWithBookAndHost(group.getId())
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         // 3. 수락(ACCEPTED) 로직
@@ -117,57 +120,47 @@ public class ApplicationService {
             // 신청서 수락 상태로 업데이트
             application.updateStatus(ApplicationStatus.ACCEPTED);
 
-            // 확정 멤버(MatchedMember) 추가 (readingOrder는 현재 인원 + 1)
+            // 확정 멤버(MatchedMember) 추가
             MatchedMember newMember = MatchedMember.builder()
                     .group(group)
                     .user(application.getGuest())
                     .role(RoleStatus.GUEST)
-                    .readingOrder((int) currentTotalCount + 1)
-                    .currentReadingRate(0)
+                    // .currentReadingRate(0)
                     .build();
             matchedMemberRepository.save(newMember);
 
-            // 서재(UserBook) 추가
-            userBookService.createForParticipation(application.getGuest(), group);
+            Instant matchedAt = clock.instant();
+
+            // 서재: MemberBook 4건(멤버당 2권)
+            memberBookService.createLibraryOnMatch(group, newMember, application.getBook(), matchedAt);
 
             // 개별 수락 알림 발송
             publisher.publish(new GroupNotificationEvent(
-                    MATCH_SUCCEEDED, userId, thisGroup.getBook().getTitle(),
-                    newMember.getUser().getId(), null, group.getGroupId()
+                    MATCH_SUCCEEDED, userId, groupTitle(thisGroup),
+                    newMember.getUser().getId(), null, group.getId(),
+                    application.getApplicationId(), ExchangeType.from(group.getTradeType())
             ));
 
-            // 그룹 상태 동기화 및 전이 판단
-            GroupStatus oldStatus = group.getGroupStatus();
-            long newTotalCount = currentTotalCount + 1; // 방금 추가된 멤버 포함
+            // 수락일이 독서 시작일 → 즉시 MATCHED 전환
+            group.setStartDate(TimeUtils.todayKst());
+            group.updateStatus(GroupStatus.MATCHED);
 
-            LocalDate seoulToday = LocalDate.now(ZoneId.of("Asia/Seoul"));
-            group.syncStatus(newTotalCount, seoulToday); // 엔티티의 통합 로직 호출
+            // 나머지 대기자들 자동 거절 처리
+            List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getId());
+            List<Long> autoRejectedReceiverIds = pendingApplications.stream()
+                    .map(app -> app.getGuest().getId())
+                    .distinct()
+                    .toList();
 
-            // 상태가 MATCHED로 변경되었을 경우에만 후속 작업 실행
-            if (oldStatus != GroupStatus.MATCHED && group.getGroupStatus() == GroupStatus.MATCHED) {
-                // 매칭 성공 이벤트 발행
-                publisher.publish(new GroupMatchedEvent(
-                        group.getGroupId(), group.getHost().getId(), group.getStartDate(), group.getMaxCapacity()
+            for (Application pendingApp : pendingApplications) {
+                pendingApp.updateStatus(ApplicationStatus.REJECTED);
+            }
+
+            if (!autoRejectedReceiverIds.isEmpty()) {
+                publisher.publish(new GroupNotificationEvent(
+                        MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
+                        null, autoRejectedReceiverIds, group.getId(), null, null
                 ));
-
-                // 나머지 대기자들 자동 거절 처리
-                List<Application> pendingApplications = applicationRepository.findAllPendingByGroupId(group.getGroupId());
-                List<Long> autoRejectedReceiverIds = pendingApplications.stream()
-                        .map(app -> app.getGuest().getId())
-                        .distinct()
-                        .toList();
-
-                for (Application pendingApp : pendingApplications) {
-                    pendingApp.updateStatus(ApplicationStatus.REJECTED);
-                }
-
-                // 자동 거절 알림 발송
-                if (!autoRejectedReceiverIds.isEmpty()) {
-                    publisher.publish(new GroupNotificationEvent(
-                            MATCH_AUTO_REJECTED, userId, thisGroup.getBook().getTitle(),
-                            null, autoRejectedReceiverIds, group.getGroupId()
-                    ));
-                }
             }
 
         }
@@ -175,8 +168,9 @@ public class ApplicationService {
         else {
             application.updateStatus(ApplicationStatus.REJECTED);
             publisher.publish(new GroupNotificationEvent(
-                    MATCH_REJECTED, userId, thisGroup.getBook().getTitle(),
-                    application.getGuest().getId(), null, group.getGroupId()
+                    MATCH_REJECTED, userId, groupTitle(thisGroup),
+                    application.getGuest().getId(), null, group.getId(),
+                    application.getApplicationId(), null
             ));
         }
 
@@ -184,7 +178,7 @@ public class ApplicationService {
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus())
                 .groupStatus(group.getGroupStatus())
-                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .updatedAt(TimeUtils.formatKst(clock.instant(), DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
                 .build();
     }
 
@@ -192,8 +186,8 @@ public class ApplicationService {
     @Transactional(readOnly = false)
     public ApplicationResponseDTO.JoinResultDTO joinGroup(Long groupId, Long userId, ApplicationRequestDTO.JoinApplicationDTO request){
 
-        //그룹 존재여부 확인
-        Groups group = groupsRepository.findByIdWithBookAndHost(groupId)
+        //그룹 존재여부 확인 (락 적용 — 수락 트랜잭션과 동일한 락을 사용해 MATCHED 직후 신청 유입 차단)
+        Groups group = groupsRepository.findByIdForUpdateWithBookAndHost(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
         //그룹 상태 확인(RECRUTING)
@@ -211,6 +205,7 @@ public class ApplicationService {
         long pendingApplyCount = applicationRepository.countByGuestIdAndApplicationStatus(userId, ApplicationStatus.PENDING);
 
         //그룹 신청 3개 이상인 경우
+        //demoday 대비 그룹참여 제한 300 설정
         if (matchedGuestCount + pendingApplyCount >= 300) {
             throw new GroupException(GroupErrorCode.GUEST_MAX_LIMIT_EXCEEDED);
         }
@@ -222,7 +217,7 @@ public class ApplicationService {
         }
 
         //중복신청확인
-        if(applicationRepository.existsByGroupGroupIdAndGuestId(groupId,userId)){
+        if(applicationRepository.existsByGroupIdAndGuestId(groupId,userId)){
             throw new GroupException(GroupErrorCode.ALREADY_PROCESSED_APPLICATION);
         }
 
@@ -230,10 +225,14 @@ public class ApplicationService {
         User guest = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
+        // 교환할 책 조회/생성
+        Book book = bookService.getOrCreateByIsbn13(request.getIsbn13());
+
         // 신청 엔티티 생성 및 저장
         Application application = Application.builder()
                 .group(group)
                 .guest(guest)
+                .book(book)
                 .applyMsg(request.getApplyMsg())
                 .applicationStatus(ApplicationStatus.PENDING)
                 .build();
@@ -246,13 +245,29 @@ public class ApplicationService {
         }
 
         // 알림 publish
-        publisher.publish( new GroupNotificationEvent(JOIN_REQUESTED, userId, group.getBook().getTitle(), group.getHost().getId(), null, groupId) );
+        publisher.publish(new GroupNotificationEvent(
+                JOIN_REQUESTED,
+                userId,
+                groupTitle(group),
+                group.getHost().getId(),
+                null,
+                groupId,
+                application.getApplicationId(),
+                null
+        ));
 
         return ApplicationResponseDTO.JoinResultDTO.builder()
                 .applicationId(application.getApplicationId())
                 .status(application.getApplicationStatus().name())
-                .createdAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
+                .createdAt(TimeUtils.formatKst(application.getCreatedAt(), DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .build();
+    }
+
+    private String groupTitle(Groups group) {
+        if (group.getGroupName() != null && !group.getGroupName().isBlank()) {
+            return group.getGroupName();
+        }
+        return group.getBook().getTitle();
     }
 
     //참여 취소하기
@@ -271,49 +286,66 @@ public class ApplicationService {
         }
 
         // 3. Application을 조회
-        Application application = applicationRepository.findByGroupGroupIdAndGuestId(groupId, userId)
+        Application application = applicationRepository.findByGroupIdAndGuestId(groupId, userId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.APPLICATION_NOT_FOUND));
 
         // 4. 만약 이미 승인까지 난 멤버라면 MatchedMember에서도 데이터 삭제
-        matchedMemberRepository.findByGroup_GroupIdAndUser_Id(groupId, userId)
+        matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .ifPresent(member -> {
                     if (member.getRole() == RoleStatus.HOST) {
                         throw new GroupException(GroupErrorCode.HOST_CANNOT_LEAVE);
                     }
+                    matchedMemberCardStateCleanupService.deleteByMatchedMember(member);
                     matchedMemberRepository.delete(member);
                 });
 
         // 5. 신청 내역(Application) 삭제
         applicationRepository.delete(application);
 
-        // 6. 인원 재계산 및 필요 시 모집 중(RECRUITING)으로 상태 복구
-        long currentCount = matchedMemberRepository.countByGroup(group);
-
-        //통합 로직 호출 후 재계산
-
-        LocalDate seoulToday = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        group.syncStatus(currentCount, seoulToday);
-
         return ApplicationResponseDTO.CancelResultDTO.builder()
                 .groupId(groupId)
-                .canceledAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .canceledAt(TimeUtils.formatKst(clock.instant(), DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm")))
+                .build();
+    }
+
+    // 내가 신청한 그룹 목록 조회
+    public ApplicationResponseDTO.MyApplicationListDTO getMyApplicationList(Long userId) {
+        List<Application> applications = applicationRepository.findMyActiveApplications(userId);
+
+        List<ApplicationResponseDTO.MyApplicationCardDTO> cards = applications.stream()
+                .map(this::toMyApplicationCardDTO)
+                .collect(Collectors.toList());
+
+        return ApplicationResponseDTO.MyApplicationListDTO.builder()
+                .applicationList(cards)
+                .totalCount(cards.size())
+                .build();
+    }
+
+    private ApplicationResponseDTO.MyApplicationCardDTO toMyApplicationCardDTO(Application application) {
+        Groups group = application.getGroup();
+        String hostProfileImageUrl = null;
+        if (group.getHost().getUserImage() != null) {
+            hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                    group.getHost().getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        }
+
+        return ApplicationResponseDTO.MyApplicationCardDTO.builder()
+                .groupId(group.getId())
+                .groupName(group.getGroupName())
+                .hostNickname(group.getHost().getNickName())
+                .hostProfileImageUrl(hostProfileImageUrl)
+                .bookImage(group.getBook().getImage())
+                .bookTitle(group.getBook().getTitle())
+                .author(group.getBook().getAuthor())
+                .readingPeriod(group.getReadingPeriod())
+                .tradeType(group.getTradeType().name())
+                .applicationStatus(application.getApplicationStatus().name())
                 .build();
     }
 
     private ApplicationResponseDTO.ApplicationDetailDTO toDetailDTO(Application application) {
         User guest = application.getGuest();
-
-        // 태그 이름만 String 리스트로 추출
-        // 1. ERD 구조대로 유저 -> 유저태그 리스트 -> 각 태그의 코드를 추출
-        List<String> top3Tags = (guest.getUserTags() == null) ? new ArrayList<>() :
-                guest.getUserTags().stream()
-                        // 1. 점수(score) 높은 순서대로 정렬
-                        .sorted(Comparator.comparingInt(UserTag::getScore).reversed())
-                        // 2. 상위 3개만 자르기
-                        .limit(3)
-                        // 3. 태그의 이름(또는 코드) 꺼내기
-                        .map(ut -> ut.getTag().getCode())
-                        .toList();
 
         String profileImageUrl = null;
         if (guest.getUserImage() != null) {
@@ -321,14 +353,18 @@ public class ApplicationService {
                     guest.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         }
 
+        Book book = application.getBook();
+
         return ApplicationResponseDTO.ApplicationDetailDTO.builder()
                 .applicationId(application.getApplicationId())
                 .user(guest.getId())
                 .name(guest.getNickName())
                 .profileImageUrl(profileImageUrl)
-                .createdAt(application.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
-                .tags(top3Tags)
+                .createdAt(TimeUtils.formatKst(application.getCreatedAt(), DateTimeFormatter.ofPattern("yyyy. MM. dd.")))
                 .applyMsg(application.getApplyMsg())
+                .bookTitle(book != null ? book.getTitle() : null)
+                .bookAuthor(book != null ? book.getAuthor() : null)
+                .bookImage(book != null ? book.getImage() : null)
                 .build();
     }
 }

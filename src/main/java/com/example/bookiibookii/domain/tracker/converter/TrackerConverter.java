@@ -3,201 +3,234 @@ package com.example.bookiibookii.domain.tracker.converter;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.group.entity.Groups;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
-import com.example.bookiibookii.domain.group.entity.Meeting;
-import com.example.bookiibookii.domain.group.enums.GroupType;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResponseDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerHistoryResponseDTO;
-import com.example.bookiibookii.domain.tracker.dto.res.TrackerListResponseDTO;
-import com.example.bookiibookii.domain.tracker.entity.Tracker;
-import com.example.bookiibookii.domain.tracker.entity.TrackerHistory;
-import com.example.bookiibookii.domain.tracker.enums.TrackerStatus;
-import com.example.bookiibookii.domain.user.entity.Address;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.tracker.dto.BookInfo;
+import com.example.bookiibookii.domain.tracker.dto.TrackerStepInfo;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerDetailResDTO;
+import com.example.bookiibookii.domain.tracker.dto.res.TrackerListItemResDTO;
+import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.tracker.enums.TrackerDisplayStatus;
 import com.example.bookiibookii.domain.user.entity.User;
-import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class TrackerConverter {
 
-    private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
+    // 트래커 리스트 조회
+    public static TrackerListItemResDTO toListItem(
+            MatchedMember me,
+            MatchedMember partner,
+            TrackerDisplayStatus displayStatus,
+            Integer remainingDays,
+            String myCurrentReaderProfileImageUrl,
+            String partnerCurrentReaderProfileImageUrl
+    ) {
+        Groups group = me.getGroup();
+        DisplayBooks displayBooks = resolveDisplayBooks(me, partner);
+        DisplayMetadata displayMetadata = resolveDisplayMetadata(displayBooks.myBook(), displayStatus);
 
-    private final UserImageS3Service userImageS3Service;
-
-
-    public TrackerDetailResponseDTO toDetailResponse(Tracker tracker, Meeting latestMeeting,
-                                                     Address partnerAddress, User partnerUser,
-                                                     TrackerHistory latestHistory) {
-
-        int remainingDays = calculateRemainingDays(tracker, latestMeeting);
-
-        // 1. 공통 빌더 생성
-        TrackerDetailResponseDTO.TrackerDetailResponseDTOBuilder builder = TrackerDetailResponseDTO.builder()
-                .trackerId(tracker.getId())
-                .bookTitle(tracker.getGroup().getBook().getTitle())
-                .partnerNickname(partnerUser.getNickName())
-                .trackerStatus(tracker.getTrackerStatus())
-                .startDate(tracker.getStartDate())
-                .endDate(tracker.getEndDate())
-                .extensionCount(tracker.getExtensionCount())
-                .extensionDays(tracker.getExtensionDays())
-                .readingPeriod(tracker.getGroup().getReadingPeriod())
-                .remainingDays(remainingDays);
-
-        // 2. TradeType에 따른 분기 처리
-        TradeType tradeType = tracker.getGroup().getTradeType();
-
-        if (tradeType == TradeType.DELIVERY) {
-            if (partnerAddress != null) {
-                // DeliveryInfo 빌더 생성
-                TrackerDetailResponseDTO.DeliveryInfo.DeliveryInfoBuilder deliveryBuilder = TrackerDetailResponseDTO.DeliveryInfo.builder()
-                        .receiverName(partnerAddress.getReceiverName())
-                        .receiverPhone(partnerAddress.getPhone())
-                        .receiverAddress(String.format("[%s] %s %s",
-                                partnerAddress.getZipCode(),
-                                partnerAddress.getAddress(),
-                                partnerAddress.getAddressDetail()))
-                        .isVerified(tracker.getIsVerified());
-
-                // 운송 정보 추출
-                if (latestHistory != null) {
-                    deliveryBuilder.deliveryCompany(latestHistory.getDeliveryCompany())
-                            .trackingNumber(latestHistory.getTrackingNumber());
-                }
-
-                builder.deliveryInfo(deliveryBuilder.build());
-            }
-        } else if (tradeType == TradeType.DIRECT) {
-            // 직접 교환일 경우: 최신 약속 정보 세팅
-            if (latestMeeting != null) {
-                builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
-                        .meetingTime(latestMeeting.getMeetingTime())
-                        .meetingPlace(latestMeeting.getMeetingPlace())
-                        .build());
-            } else {
-                // 약속 전이면 호스트가 설정한 기본 장소 노출
-                builder.meetingInfo(TrackerDetailResponseDTO.MeetingInfo.builder()
-                        .meetingPlace(tracker.getGroup().getPreferRegion())
-                        .build());
-            }
-        }
-
-        return builder.build();
-    }
-
-
-    public TrackerHistoryResponseDTO toHistoryResponse(TrackerHistory history, Long senderUserId, Long receiverUserId) {
-        return TrackerHistoryResponseDTO.builder()
-                .trackerId(history.getTracker().getId())
-                .groupId(history.getTracker().getGroup().getGroupId())
-                // Service에서 조회해서 넘겨준 유저의 진짜 ID
-                .senderUserId(senderUserId)
-                .receiverUserId(receiverUserId)
-                .trackerStatus(history.getTrackerStatus())
-                .deliveryCompany(history.getDeliveryCompany())
-                .trackingNumber(history.getTrackingNumber())
-                .start_date(history.getStartDate())
-                .end_date(history.getEndDate())
-                .createdAt(history.getCreatedAt())
+        return TrackerListItemResDTO.builder()
+                .groupId(group.getId())
+                .groupName(group.getGroupName())
+                .tradeType(group.getTradeType())
+                .myRole(me.getRole())
+                .displayStatus(displayStatus)
+                .displayBookTitle(displayMetadata.bookTitle())
+                .displayStatusLabel(displayMetadata.statusLabel())
+                .remainingDays(remainingDays)
+                .myCurrentBook(toBookInfo(
+                        displayBooks.myBook(),
+                        me.getUser(),
+                        myCurrentReaderProfileImageUrl,
+                        isMyOriginalBook(displayBooks.myBook(), me),
+                        displayBooks.startsNewReading()
+                ))
+                .partnerCurrentBook(toBookInfo(
+                        displayBooks.partnerBook(),
+                        partner.getUser(),
+                        partnerCurrentReaderProfileImageUrl,
+                        isMyOriginalBook(displayBooks.partnerBook(), me),
+                        displayBooks.startsNewReading()
+                ))
                 .build();
     }
 
-    public TrackerListResponseDTO toListResponse(Tracker tracker, Groups group,
-                                                 String targetNickname, List<String> stepDates,
-                                                 Integer myRate, Integer groupRate) {
+    // 트래커(교환독서) 상세조회
+    public static TrackerDetailResDTO toDetail(
+            MatchedMember me,
+            MatchedMember partner,
+            TrackerDisplayStatus displayStatus,
+            Integer dDay,
+            String myProfileImageUrl,
+            String partnerProfileImageUrl,
+            List<TrackerStepInfo> steps
+    ) {
+        Groups group = me.getGroup();
+        DisplayBooks displayBooks = resolveDisplayBooks(me, partner);
+        DisplayMetadata displayMetadata = resolveDisplayMetadata(displayBooks.myBook(), displayStatus);
 
-        String groupType = group.getGroupType().toString();
-
-        Book book = group.getBook();
-
-        // 3. 최상위 공통 빌더 구성
-        TrackerListResponseDTO.TrackerListResponseDTOBuilder builder = TrackerListResponseDTO.builder()
-                .groupId(group.getGroupId())
-                .groupType(groupType)
-                .bookTitle(book != null ? book.getTitle() : null)
-                .bookImage(book != null ? book.getImage() : null)
-                .bookAuthor(book != null ? book.getAuthor() : null)
-                .bookCategory(book != null && book.getCategory() != null ? book.getCategory().toString() : null)
-                .tradeType(group.getTradeType());
-
-        // 4. 타입별 상세 데이터 매핑
-        if (group.getGroupType() == GroupType.RELAY) {
-            // 게스트 프로필 이미지 Presigned GET URL 리스트 추출 (호스트 제외)
-            List<String> guestProfileImageUrls = group.getMatchedMember().stream()
-                    .filter(mm -> !mm.getRole().equals(RoleStatus.HOST)) // 그룹 내 역할 기준으로 호스트 제외
-                    .map(MatchedMember::getUser) // MatchedMember에서 User 추출
-                    .map(user -> {
-                        if (user.getUserImage() == null) {
-                            return null;
-                        }
-                        return userImageS3Service.generatePresignedGetUrl(
-                                user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
-                    })
-                    .toList();
-
-            String hostProfileImageUrl = null;
-            if (group.getHost().getUserImage() != null) {
-                hostProfileImageUrl = userImageS3Service.generatePresignedGetUrl(
-                        group.getHost().getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
-            }
-
-            builder.relayDetail(TrackerListResponseDTO.RelayDetail.builder()
-                    .partnerNickname(targetNickname) // 서비스에서 조회한 현재 나의 파트너 닉네임
-                    .hostProfileImageUrl(hostProfileImageUrl)
-                    .guestProfileImageUrls(guestProfileImageUrls) // 위에서 추출한 게스트 이미지 Presigned GET URL 리스트
-                    .stepDates(stepDates)
-                    .build());
-        }
-        else if (group.getGroupType() == GroupType.TOGETHER) {
-            builder.togetherDetail(TrackerListResponseDTO.TogetherDetail.builder()
-                    .hostNickname(group.getHost().getNickName())
-                    .participantCount(group.getMatchedMember().size())
-                    .myReadingRate(myRate)
-                    .groupReadingRate(groupRate)
-                    .build());
-        }
-
-        return builder.build();
+        return TrackerDetailResDTO.builder()
+                .groupId(group.getId())
+                .groupName(group.getGroupName())
+                .tradeType(group.getTradeType())
+                .myRole(me.getRole())
+                .displayStatus(displayStatus)
+                .displayBookTitle(displayMetadata.bookTitle())
+                .displayStatusLabel(displayMetadata.statusLabel())
+                .dDay(dDay)
+                .myBook(toBookInfo(
+                        displayBooks.myBook(),
+                        me.getUser(),
+                        myProfileImageUrl,
+                        isMyOriginalBook(displayBooks.myBook(), me),
+                        displayBooks.startsNewReading()
+                ))
+                .partnerBook(toBookInfo(
+                        displayBooks.partnerBook(),
+                        partner.getUser(),
+                        partnerProfileImageUrl,
+                        isMyOriginalBook(displayBooks.partnerBook(), me),
+                        displayBooks.startsNewReading()
+                ))
+                .steps(steps)
+                .build();
     }
 
-    public int calculateRemainingDays(Tracker tracker, Meeting latestMeeting) {
-        //  '현재 날짜'를 기준으로 비교
-        LocalDate today = LocalDate.now();
-        TrackerStatus status = tracker.getTrackerStatus();
-
-        // 1. 독서 중인 경우 (현재 날짜부터 종료 예정일까지 남은 일수)
-        if (status == TrackerStatus.HOST_READING || status == TrackerStatus.GUEST_READING ||
-        status == TrackerStatus.HOST_EXTENSION || status == TrackerStatus.GUEST_EXTENSION) {
-            if (tracker.getEndDate() == null) return 0;
-            return (int) ChronoUnit.DAYS.between(today, tracker.getEndDate().toLocalDate());
-        }
-
-        // 2. 직접 교환 약속이 있는 경우 (오늘부터 약속 날짜까지)
-        if ((status == TrackerStatus.SHIPPING_TO_GUEST || status == TrackerStatus.SHIPPING_TO_HOST)
-                && latestMeeting != null && latestMeeting.getMeetingTime() != null) {
-            return (int) ChronoUnit.DAYS.between(today, latestMeeting.getMeetingTime().toLocalDate());
-        }
-
-        // 3. 3일 제한이 있는 상태들
-        List<TrackerStatus> threeDayLimitStatuses = List.of(
-                TrackerStatus.HOST_DONE, TrackerStatus.RECEIVED,
-                TrackerStatus.GUEST_DONE, TrackerStatus.RETURNED
+    public static BookInfo toBookInfo(
+            MemberBook memberBook,
+            String currentReaderProfileImageUrl,
+            boolean isMyOriginalBook
+    ) {
+        return toBookInfo(
+                memberBook,
+                memberBook.getMatchedMember().getUser(),
+                currentReaderProfileImageUrl,
+                isMyOriginalBook,
+                false
         );
+    }
 
-        if (threeDayLimitStatuses.contains(status)) {
-            LocalDateTime baseTime = tracker.getUpdatedAt() != null ? tracker.getUpdatedAt() : LocalDateTime.now();
-            LocalDate deadline = baseTime.plusDays(3).toLocalDate();
-            return (int) ChronoUnit.DAYS.between(today, deadline);
+    private static BookInfo toBookInfo(
+            MemberBook memberBook,
+            User currentReader,
+            String currentReaderProfileImageUrl,
+            boolean isMyOriginalBook,
+            boolean startsNewReading
+    ) {
+        Book book = memberBook.getBook();
+        int currentPage = startsNewReading ? 0 : memberBook.getCurrentPage();
+
+        return BookInfo.builder()
+                .title(book.getTitle())
+                .image(book.getImage())
+                .totalPages(book.getTotalPages())
+                .currentPage(currentPage)
+                .isMyOriginalBook(isMyOriginalBook)
+                .currentReaderNickname(currentReader.getNickName())
+                .currentReaderProfileImageUrl(currentReaderProfileImageUrl)
+                .currentReadingRate(calculateProgressRate(currentPage, book.getTotalPages()))
+                .build();
+    }
+
+    private static boolean isMyOriginalBook(MemberBook memberBook, MatchedMember me) {
+        return memberBook.isMine() == memberBook.isOwnedBy(me);
+    }
+
+    private static int calculateProgressRate(Integer currentPage, Integer totalPages) {
+        if (currentPage == null || totalPages == null || totalPages <= 0) {
+            return 0;
+        }
+        int normalizedPage = Math.min(Math.max(currentPage, 0), totalPages);
+        return (normalizedPage * 100) / totalPages;
+    }
+
+    private static DisplayBooks resolveDisplayBooks(MatchedMember me, MatchedMember partner) {
+        if (shouldSwapBooksForPackageTrackerDisplay(me, partner)) {
+            return new DisplayBooks(
+                    partner.getCurrentMemberBook(),
+                    me.getCurrentMemberBook(),
+                    me.getReadingStatus() == ReadingStatus.EXCHANGING
+            );
         }
 
-        return 0;
+        return new DisplayBooks(
+                me.getCurrentMemberBook(),
+                partner.getCurrentMemberBook(),
+                false
+        );
+    }
+
+    private static boolean shouldSwapBooksForPackageTrackerDisplay(MatchedMember me, MatchedMember partner) {
+        return me.getGroup().getTradeType() == TradeType.DELIVERY
+                && isPackageExchangeBooksInTransit(me.getReadingStatus())
+                && hasBothMembersRegisteredTracking(me, partner);
+    }
+
+    private static boolean isPackageExchangeBooksInTransit(ReadingStatus readingStatus) {
+        return readingStatus == ReadingStatus.EXCHANGING || readingStatus == ReadingStatus.RETURNING;
+    }
+
+    private static boolean hasBothMembersRegisteredTracking(MatchedMember me, MatchedMember partner) {
+        return isTrackingRegisteredOrReceived(me.getExchangeStatus())
+                && isTrackingRegisteredOrReceived(partner.getExchangeStatus());
+    }
+
+    private static boolean isTrackingRegisteredOrReceived(ExchangeStatus exchangeStatus) {
+        return exchangeStatus == ExchangeStatus.TRACKING_REGISTERED
+                || exchangeStatus == ExchangeStatus.RECEIVED_CONFIRMED;
+    }
+
+    private static DisplayMetadata resolveDisplayMetadata(
+            MemberBook displayBook,
+            TrackerDisplayStatus displayStatus
+    ) {
+        return new DisplayMetadata(
+                displayBook.getBook().getTitle(),
+                resolveDisplayStatusLabel(displayStatus)
+        );
+    }
+
+    private static String resolveDisplayStatusLabel(TrackerDisplayStatus displayStatus) {
+        return switch (displayStatus) {
+            case READING -> "읽는 중";
+            case REVIEW_WRITING -> "후기 작성";
+            case REVIEW_WAITING_PARTNER -> "후기 수정";
+
+            case TRACKING_REQUIRED -> "운송장 등록";
+            case SHIPPING -> "배송 중";
+            case RETURN_TRACKING_REQUIRED -> "반납 운송장 등록";
+            case RETURNING -> "반납 중";
+            case WAITING_PARTNER_TRACKING_REGISTER -> "상대 운송장 등록 대기";
+            case WAITING_PARTNER_RECEIPT_CONFIRM -> "상대 수령 인증 대기";
+
+            case MEETING_REQUIRED -> "약속 등록";
+            case MEETING_REGISTER_REQUIRED -> "약속 등록";
+            case WAITING_HOST_MEETING_REGISTER -> "약속 등록 대기";
+            case WAITING_PARTNER_MEETING_COMPLETE -> "상대 교환 완료 대기";
+            case EXCHANGING -> "교환 중";
+
+            case EXCHANGE_REVIEW_WRITING -> "교환 후기 작성";
+            case EXCHANGE_REVIEW_WAITING_PARTNER -> "파트너 후기 대기";
+            case COMPLETED -> "교환독서 완료";
+        };
+    }
+
+    private record DisplayBooks(
+            MemberBook myBook,
+            MemberBook partnerBook,
+            boolean startsNewReading
+    ) {
+    }
+
+    private record DisplayMetadata(
+            String bookTitle,
+            String statusLabel
+    ) {
     }
 }

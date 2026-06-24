@@ -1,8 +1,14 @@
 package com.example.bookiibookii.domain.group.dto.res;
 
-import com.example.bookiibookii.domain.group.entity.GroupTag;
+import com.example.bookiibookii.domain.group.dto.RuleDTO;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
+import com.example.bookiibookii.domain.group.enums.GroupType;
+import com.example.bookiibookii.domain.group.enums.HomeLayoutType;
+import com.example.bookiibookii.domain.group.enums.HomeSectionType;
+import com.example.bookiibookii.domain.group.enums.HostedGroupDisplayStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -48,17 +54,18 @@ public class GroupResponseDTO {
     public static class GroupDetailDTO {
         // 1. 그룹 및 상태 정보
         private Long groupId;
-        private String title;          // 도서 제목
         private String groupStatus;    // RECRUITING, MATCHED
         private Boolean isHost;        // 조회자가 방장인지 여부
-        private String preferRegion;
-        private String meetPlace;
+        private String tradeType;      // DIRECT, DELIVERY
+        private String placeName;
+        private String address;
+        private String detailAddress;
 
         // 2. 도서 상세 정보 (Book 엔티티와 매핑)
-        private String bookTitle;
+        private String title;
         private String bookImage;
         private String author;
-        private String category;       // CustomCategory 명칭
+        private String genre;          // CustomCategory 명칭
 
         // 3. 그룹 설정 및 배지 정보
         private Integer readingPeriod; // 독서 기간 (day)
@@ -69,20 +76,19 @@ public class GroupResponseDTO {
         private String createdAt;
         private String startDate;
 
-        // 4. 호스트 정보 및 태그
+        // 4. 호스트 정보 및 규칙
         private String hostNickname;
         private String hostProfileImageUrl;  // 프로필 이미지 Presigned GET URL
-        private List<String> groupTags;
-        private String customTag;
 
         // 5. 그룹 소개 및 참여 멤버 슬롯
         private String groupComment;   // 그룹 소개글
 
+        private String groupName;
+        private List<RuleDTO> rules;
 
         // 예: 정원 4명 중 2명 참여 시 -> [방장, 게스트1, EMPTY, EMPTY] 순서로 구성
         private List<ParticipantSlotDTO> participantSlots;
 
-        // 6. 하단 버튼 상태 (프론트엔드 버튼 분기용)
         // APPLY(신청하기), CANCEL(취소하기), MANAGE(요청관리), TRACKER(트래커보기), FULL(인원마감)
         private String buttonStatus;
 
@@ -102,30 +108,45 @@ public class GroupResponseDTO {
     @Builder
     public record GroupSummaryDTO(
             Long groupId,
+            String groupName,
             String title,
             String author,
             String genre,
             String bookImage,
             String hostNickname,
-            String hostProfileImageUrl,  // 프로필 이미지 Presigned GET URL
-            List<String> tags,
-            String customTag,
+            String hostProfileImageUrl,
             String groupStatus,
             int currentCount,
             int maxCapacity,
             int waitingCount,
             boolean isHot,
-            String groupType,
             String tradeType,
             Integer readingPeriod,
-            String startDate,
-            String pictureBadge //그룹의 최종배너 -> ex) 서울, 택배, 마포구, 함께읽기
+            String pictureBadge
     ) {}
 
     public record GroupSliceResponseDTO(
             List<GroupSummaryDTO> groupList,
+            long totalCount,
             int currentPage,
             boolean hasNext
+    ) {}
+
+    @Builder
+    public record MyHostedGroupDTO(
+            Long groupId,
+            String groupName,
+            String groupType,
+            String tradeType,
+            Long bookId,
+            String bookTitle,
+            String author,
+            String bookCoverImageUrl,
+            Integer readingPeriod,
+            Long hostId,
+            String hostNickname,
+            String hostProfileImageUrl,
+            HostedGroupDisplayStatus displayStatus
     ) {}
 
     public record SearchResultDTO(
@@ -161,4 +182,50 @@ public class GroupResponseDTO {
             GroupStatus groupStatus,
             List<String> groupTags
     ){}
+
+    // ===== 그룹 홈 화면 (GET /api/groups/home) =====
+
+    /** 홈 화면 전 섹션 공통 그룹 카드 */
+    @Builder
+    public record HomeGroupCardDTO(
+            Long groupId,
+            String groupName,
+            String hostNickname,
+            String hostProfileImageUrl,
+            String bookImage,
+            String bookTitle,
+            String author,
+            @Schema(description = "교환 방식", example = "DELIVERY")
+            String tradeType,
+            @Schema(description = "책 장르 표시명", example = "한국소설")
+            String genre,
+            Integer readingPeriod
+    ) {}
+
+    @Builder
+    public record HomeBookThumbnailDTO(
+            String isbn13,
+            String title,
+            String author,
+            String bookImage,
+            String searchKeyword,
+            Integer rank
+    ) {}
+
+    @Builder
+    public record HomeSectionDTO(
+            HomeSectionType sectionType,
+            String title,
+            String subtitle,
+            HomeLayoutType layoutType,
+            @ArraySchema(schema = @Schema(
+                    oneOf = {HomeGroupCardDTO.class, HomeBookThumbnailDTO.class}
+            ))
+            List<?> items
+    ) {}
+
+    @Builder
+    public record HomeResponseDTO(
+            List<HomeSectionDTO> sections
+    ) {}
 }

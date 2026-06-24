@@ -51,6 +51,15 @@ public class ApplicationController implements ApplicationControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 
+    // 내가 신청한 그룹 목록 조회
+    @GetMapping("/apply/me")
+    public ApiResponse<ApplicationResponseDTO.MyApplicationListDTO> getMyApplicationList(
+            @AuthenticationPrincipal(expression = "user") User user
+    ) {
+        ApplicationResponseDTO.MyApplicationListDTO result = applicationService.getMyApplicationList(user.getId());
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
     //그룹 신청 취소
     @DeleteMapping("/{groupId}/apply")
     public ApiResponse<ApplicationResponseDTO.CancelResultDTO> cancelApplication(

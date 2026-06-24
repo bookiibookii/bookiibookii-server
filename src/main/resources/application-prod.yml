@@ -13,7 +13,9 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
+        jdbc:
+          time_zone: UTC
 
   data:
     redis:
@@ -21,19 +23,26 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
       ssl:
-        enabled: true
-      timeout: 3s
+        enabled: false
+      timeout: 500ms
+      connect-timeout: 500ms
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 logging:
   level:
-    org.hibernate.SQL: warn
+    org.hibernate.SQL: info
 
 jwt:
   token:
     secret-key: ${JWT_SECRET_KEY}
     expiration:
-      access: 1800000      # 30분
-      refresh: 1209600000  # 14일
+      access: 1800000
+      refresh: 1209600000
 
 oauth:
   google:
@@ -52,3 +61,19 @@ aws:
 
 server:
   forward-headers-strategy: framework
+
+discord:
+  webhook:
+    enabled: ${DISCORD_WEBHOOK_ENABLED:false}
+    url: ${DISCORD_WEBHOOK_URL:}
+
+app:
+  share:
+    web-base-url: ${SHARE_WEB_BASE_URL:https://bookiibookii.com/share/reading-card}
+    profile-web-base-url: ${SHARE_PROFILE_WEB_BASE_URL:https://bookiibookii.com/share/profile}
+
+push:
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    project-id: ${FIREBASE_PROJECT_ID:}

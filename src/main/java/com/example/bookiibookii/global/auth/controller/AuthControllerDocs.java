@@ -5,10 +5,9 @@ import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface AuthControllerDocs {
@@ -21,6 +20,7 @@ public interface AuthControllerDocs {
             - socialType: KAKAO | GOOGLE
             - token:
               - KAKAO → Access Token
+                Test: https://kauth.kakao.com/oauth/authorize?client_id=1d55fc7fcf8b8f41295f87d737babee3&redirect_uri=https://bookii.gyeonseo.com/kakao/callback&response_type=code
               - GOOGLE → ID Token
 
             인증 성공 시 Access Token, Refresh Token을 반환합니다.
@@ -55,7 +55,7 @@ public interface AuthControllerDocs {
     })
     @PostMapping("/refresh")
     ApiResponse<AuthResponseDTO.TokenResponse> refresh(
-            @RequestBody AuthRequestDTO.RefreshRequest requestRefreshToken, HttpServletRequest request);
+            @Valid @RequestBody AuthRequestDTO.RefreshRequest requestRefreshToken, HttpServletRequest request);
 
     @Operation(
             summary = "로그아웃",
@@ -73,24 +73,4 @@ public interface AuthControllerDocs {
     ApiResponse<Void> logout(HttpServletRequest request);
 
 
-    @Operation(
-            summary = "회원탈퇴",
-            description = "회원탈퇴 처리 API입니다."
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
-                    description = "회원탈퇴 성공"
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "400",
-                    description = "Access Token이 불일치합니다."
-            ),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404",
-                    description = "Access Token을 찾을 수 없습니다."
-            )
-    })
-    @DeleteMapping("/withdraw")
-    ApiResponse<Void> withdraw(HttpServletRequest request);
 }

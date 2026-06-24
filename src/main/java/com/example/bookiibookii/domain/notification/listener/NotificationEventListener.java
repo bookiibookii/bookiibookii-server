@@ -5,8 +5,14 @@ import com.example.bookiibookii.domain.comment.service.CommentNotificationServic
 import com.example.bookiibookii.domain.group.event.GroupNotificationEvent;
 import com.example.bookiibookii.domain.group.service.GroupNotificationService;
 import com.example.bookiibookii.domain.notification.event.KeywordGroupCreatedEvent;
+import com.example.bookiibookii.domain.notification.event.DirectExchangeNotificationEvent;
+import com.example.bookiibookii.domain.notification.event.ReadingCardReactionNotificationEvent;
+import com.example.bookiibookii.domain.notification.service.DirectExchangeNotificationService;
 import com.example.bookiibookii.domain.notification.service.KeywordNotificationService;
+import com.example.bookiibookii.domain.notification.service.ReadingCardReactionNotificationService;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
+import com.example.bookiibookii.domain.tracker.event.DeliveryNotificationEvent;
+import com.example.bookiibookii.domain.tracker.service.DeliveryNotificationService;
 import com.example.bookiibookii.domain.tracker.service.TrackerNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
@@ -22,6 +28,9 @@ public class NotificationEventListener {
     private final KeywordNotificationService keywordNotificationService;
     private final CommentNotificationService commentNotificationService;
     private final GroupNotificationService groupNotificationService;
+    private final DirectExchangeNotificationService directExchangeNotificationService;
+    private final ReadingCardReactionNotificationService readingCardReactionNotificationService;
+    private final DeliveryNotificationService deliveryNotificationService;
 
     @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -43,7 +52,25 @@ public class NotificationEventListener {
 
     @Async("notiExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleDelivery(DeliveryNotificationEvent event) {
+        deliveryNotificationService.send(event);
+    }
+
+    @Async("notiExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleGroup(GroupNotificationEvent event) {
         groupNotificationService.send(event);
+    }
+
+    @Async("notiExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleDirectExchange(DirectExchangeNotificationEvent event) {
+        directExchangeNotificationService.send(event);
+    }
+
+    @Async("notiExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleReadingCardReaction(ReadingCardReactionNotificationEvent event) {
+        readingCardReactionNotificationService.send(event);
     }
 }

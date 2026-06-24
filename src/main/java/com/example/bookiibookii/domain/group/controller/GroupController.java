@@ -8,6 +8,7 @@ import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -54,6 +55,13 @@ public class GroupController implements GroupControllerDocs {
     }
 
     //그룹 조회 API
+    @GetMapping("/my-hosted")
+    public ApiResponse<List<GroupResponseDTO.MyHostedGroupDTO>> getMyHostedGroups(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        List<GroupResponseDTO.MyHostedGroupDTO> result = groupService.getMyHostedGroups(user);
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
     @GetMapping("/{groupId}")
     public ApiResponse<GroupResponseDTO.GroupDetailDTO> getGroupDetail(
             @PathVariable(name = "groupId") Long groupId,
@@ -66,7 +74,7 @@ public class GroupController implements GroupControllerDocs {
     @GetMapping
     public ApiResponse<GroupResponseDTO.GroupSliceResponseDTO> getGroupList(
             @AuthenticationPrincipal(expression = "user") User user, // 로그인 상태면 유저 정보
-            @ModelAttribute @Valid GroupRequestDTO.FilterDTO filter) {
+            @ParameterObject @ModelAttribute @Valid GroupRequestDTO.FilterDTO filter) {
 
         // 서비스에서 QueryDSL을 사용하여 필터링 및 추천 가중치가 적용된 목록
         GroupResponseDTO.GroupSliceResponseDTO result = groupService.getGroupList(user, filter);
@@ -88,6 +96,14 @@ public class GroupController implements GroupControllerDocs {
     @GetMapping("/popular-keywords")
     public ApiResponse<List<String>> getPopularKeywords() {
         List<String> result = groupService.getPopularKeywords();
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
+    }
+
+    //그룹 홈 화면 조회 API
+    @GetMapping("/home")
+    public ApiResponse<GroupResponseDTO.HomeResponseDTO> getHome(
+            @AuthenticationPrincipal(expression = "user") User user) {
+        GroupResponseDTO.HomeResponseDTO result = groupService.getHome(user);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 

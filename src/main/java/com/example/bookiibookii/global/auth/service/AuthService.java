@@ -60,6 +60,10 @@ public class AuthService {
         // 유저 조회 or 생성
         User user = userService.findOrCreateSocialUser(socialUserInfo, social);
 
+        return issueLoginToken(user);
+    }
+
+    public AuthResponseDTO.LoginResponse issueLoginToken(User user) {
         Long userId = user.getId();
         String role = user.getRole().name();
 
@@ -79,7 +83,8 @@ public class AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(userId)
-                .onboardingDone(user.getNickName() != null)
+                .onboardingStatus(user.getOnboardingStatus())
+                .role(user.getRole())
                 .build();
     }
 
@@ -167,30 +172,6 @@ public class AuthService {
         } catch (Exception e) {
             log.error("로그아웃 중 Redis 처리 에러 발생.", e);
         }
-    }
-
-    // 회원탈퇴
-    public void withdraw(HttpServletRequest request) {
-
-        String accessToken = jwtTokenResolver.resolve(request);
-        if (accessToken == null) {
-            throw new AuthException(AuthErrorCode.NOT_FOUND_ACCESS_TOKEN);
-        }
-
-        try {
-            jwtProvider.validateToken(accessToken);
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
-        }
-        Long userId = jwtProvider.getUserId(accessToken);
-
-        User user = userRepository
-                .findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
-
-        String rtKey = "RT:" + userId;
-        redisUtil.delete(rtKey); // RefreshToken 제거
-        user.withdraw();
     }
 
 }

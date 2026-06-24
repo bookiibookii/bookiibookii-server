@@ -1,100 +1,176 @@
 package com.example.bookiibookii.domain.tracker.service;
 
-import com.example.bookiibookii.domain.group.entity.Groups;
-import com.example.bookiibookii.domain.group.enums.RoleStatus;
-import com.example.bookiibookii.domain.group.exception.GroupException;
-import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
-import com.example.bookiibookii.domain.group.repository.GroupsRepository;
-import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.dto.NotificationPayload;
 import com.example.bookiibookii.domain.notification.enums.NotificationCategory;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
-import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
-import com.example.bookiibookii.domain.notification.util.NotiTemplateRenderer;
+import com.example.bookiibookii.domain.notification.enums.RedirectType;
+import com.example.bookiibookii.domain.notification.service.NotificationStore;
 import com.example.bookiibookii.domain.notification.util.NotificationFactory;
-import com.example.bookiibookii.domain.tracker.enums.TrackerAction;
-import com.example.bookiibookii.domain.tracker.enums.TrackerNotiType;
 import com.example.bookiibookii.domain.tracker.event.TrackerNotificationEvent;
-import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
-import com.example.bookiibookii.domain.user.exception.UserException;
-import com.example.bookiibookii.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class TrackerNotificationService {
 
-    private static final java.time.format.DateTimeFormatter DUE_FORMAT =
-            java.time.format.DateTimeFormatter.ofPattern("yy.MM.dd");
-
-    private final NotificationRepository notificationRepository;
+    private final NotificationStore notificationStore;
     private final NotificationFactory notificationFactory;
-    private final NotiTemplateRenderer templateRenderer;
 
-    private final MatchedMemberRepository matchedMemberRepository;
-    private final UserRepository userRepository;
-    private final GroupsRepository groupsRepository;
-
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void send(TrackerNotificationEvent event) {
+        if (event.receiverIds() == null || event.receiverIds().isEmpty()) {
+            return;
+        }
 
-        RoleStatus myRole = matchedMemberRepository.findRoleByGroupIdAndUserId(event.groupId(), event.actorId())
-                .orElseThrow(() -> new GroupException(GroupErrorCode.MATCHED_MEMBER_NOT_FOUND));
-
-        Long receiverId = matchedMemberRepository
-                .findPartnerUserId(event.groupId(), event.actorId())
-                .orElseThrow(() -> new GroupException(GroupErrorCode.PARTNER_NOT_FOUND));
-
-        TrackerNotiType type = resolveNotiType(event.action(), myRole);
-        NotificationType notiType = type.getNotificationType();
-
-        // 알림 필드
-        String nickname = userRepository.findNickNameById(event.actorId())
-                .orElseThrow(()->new UserException(UserErrorCode.NOT_FOUND));
-
-        Groups group = groupsRepository.findByIdWithBookAndHost(event.groupId())
-                .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
-        String bookTitle = group.getBook().getTitle();
-
-        String due = (event.returnDueAt() == null) ? "" : event.returnDueAt().toLocalDate().format(DUE_FORMAT);
-
-        var vars = java.util.Map.of(
-                "nickname", nickname,
-                "bookTitle", bookTitle,
-                "returnDueAt", due
-        );
-        String bodyMessage = templateRenderer.render(type.getBodyTemplate(), vars);
-
-        String payload = notificationFactory.toJson(java.util.Map.of("groupId", event.groupId()));
-
-        notificationRepository.save(
-                notificationFactory.create(
+        String payload = notificationFactory.toJson(payload(event));
+        for (Long receiverId : event.receiverIds()) {
+            if (receiverId == null || shouldSkipSelf(event, receiverId)) {
+                continue;
+            }
+            try {
+                notificationStore.save(notificationFactory.create(
                         receiverId,
+                        event.notificationType() == NotificationType.TRACKER_READING_REVIEW_COMPLETED
+                                ? event.actorId()
+                                : null,
                         NotificationCategory.SYSTEM,
-                        notiType,
-                        type.title,
-                        bodyMessage,
-                        payload
-                )
-        );
+                        event.notificationType(),
+                        title(event.notificationType()),
+                        message(event),
+                        payload,
+                        dedupKey(event, receiverId)
+                ));
+            } catch (RuntimeException exception) {
+                log.warn(
+                        "Tracker notification save failed. type={}, receiverId={}, groupId={}",
+                        event.notificationType(),
+                        receiverId,
+                        event.groupId(),
+                        exception
+                );
+            }
+        }
     }
 
-    private TrackerNotiType resolveNotiType(TrackerAction action, RoleStatus actorRole) {
-        return switch (action) {
-            case SHIPPING_REGISTERED -> (actorRole == RoleStatus.GUEST)
-                    ? TrackerNotiType.RETURN_SHIPPING_REGISTERED
-                    : TrackerNotiType.SHIPPING_REGISTERED;
+    private boolean shouldSkipSelf(TrackerNotificationEvent event, Long receiverId) {
+        if (event.notificationType() == NotificationType.TRACKER_EXCHANGE_COMPLETED
+                || event.notificationType() == NotificationType.TRACKER_GROUP_FORCE_COMPLETED) {
+            return false;
+        }
+        return receiverId.equals(event.actorId());
+    }
 
-            case RECEIVED_CONFIRMED -> (actorRole == RoleStatus.HOST)
-                    ? TrackerNotiType.EXCHANGE_FINISHED
-                    : TrackerNotiType.RECEIVED_CONFIRMED;
+    private NotificationPayload payload(TrackerNotificationEvent event) {
+        NotificationPayload.NotificationPayloadBuilder builder = NotificationPayload.builder()
+                .redirectType(redirectType(event.notificationType()))
+                .groupId(event.groupId())
+                .exchangeType(event.exchangeType())
+                .commentId(event.commentId())
+                .reviewId(event.reviewId());
+        if (event.notificationType() == NotificationType.TRACKER_READING_REVIEW_COMPLETED) {
+            builder.actorId(event.actorId())
+                    .matchedMemberId(event.actorMatchedMemberId())
+                    .exchangeRound(event.exchangeRound())
+                    .bookId(event.bookId());
+        }
+        return builder.build();
+    }
 
-            case READING_STARTED -> TrackerNotiType.READING_STARTED;
-            case READING_FINISHED -> TrackerNotiType.READING_FINISHED;
-            case EXTEND_REQUESTED -> TrackerNotiType.EXTEND_REQUESTED;
+    private RedirectType redirectType(NotificationType type) {
+        return type == NotificationType.TRACKER_COMMENT_CREATED
+                ? RedirectType.TRACKER_COMMENT
+                : type == NotificationType.TRACKER_EXCHANGE_COMPLETED
+                || type == NotificationType.TRACKER_GROUP_FORCE_COMPLETED
+                ? RedirectType.TRACKER_HOME
+                : RedirectType.TRACKER_DETAIL;
+    }
+
+    private String title(NotificationType type) {
+        return switch (type) {
+            case TRACKER_READING_REVIEW_COMPLETED -> "파트너가 책 교환 준비를 마쳤어요";
+            case TRACKER_PERIOD_EXTENDED -> "독서 기간이 변경됐어요";
+            case TRACKER_COMMENT_CREATED -> "새로운 댓글이 달렸어요";
+            case TRACKER_EXCHANGE_REVIEW_CREATED -> "파트너가 교환독서 후기를 남겼어요";
+            case TRACKER_EXCHANGE_COMPLETED -> "교환독서가 종료됐어요";
+            case TRACKER_GROUP_FORCE_COMPLETED -> "교환독서가 자동 종료됐어요";
+            default -> throw new IllegalArgumentException("Unsupported tracker notification type: " + type);
+        };
+    }
+
+    private String message(TrackerNotificationEvent event) {
+        return switch (event.notificationType()) {
+            case TRACKER_READING_REVIEW_COMPLETED -> String.format(
+                    "%s님이 %s 독서를 마치고 후기를 남겼어요.",
+                    event.actorNickname(),
+                    event.bookTitle()
+            );
+            case TRACKER_PERIOD_EXTENDED -> String.format(
+                    "%s님이 예상 독서 기간을 변경했어요.",
+                    event.actorNickname()
+            );
+            case TRACKER_COMMENT_CREATED -> String.format(
+                    "%s님이 새 댓글을 남겼어요.",
+                    event.actorNickname()
+            );
+            case TRACKER_EXCHANGE_REVIEW_CREATED -> String.format(
+                    "%s님이 이번 교환독서 후기를 작성했어요.",
+                    event.actorNickname()
+            );
+            case TRACKER_EXCHANGE_COMPLETED -> String.format(
+                    "%s 교환독서가 모두 완료됐어요. 새로운 교환독서를 시작해볼까요?",
+                    event.bookTitle()
+            );
+            case TRACKER_GROUP_FORCE_COMPLETED ->
+                    "14일 동안 파트너 후기가 작성되지 않아 교환독서가 자동 종료됐어요.";
+            default -> throw new IllegalArgumentException(
+                    "Unsupported tracker notification type: " + event.notificationType()
+            );
+        };
+    }
+
+    private String dedupKey(TrackerNotificationEvent event, Long receiverId) {
+        return switch (event.notificationType()) {
+            case TRACKER_READING_REVIEW_COMPLETED -> String.format(
+                    "TRACKER_READING_REVIEW_COMPLETED:%d:%d:%d:%d:%s",
+                    receiverId,
+                    event.groupId(),
+                    event.actorId(),
+                    event.actorMatchedMemberId(),
+                    event.exchangeRound()
+            );
+            case TRACKER_PERIOD_EXTENDED -> String.format(
+                    "TRACKER_PERIOD_EXTENDED:%d:%d:%s",
+                    receiverId,
+                    event.groupId(),
+                    event.periodEnd()
+            );
+            case TRACKER_COMMENT_CREATED -> String.format(
+                    "TRACKER_COMMENT_CREATED:%d:%d:%d",
+                    receiverId,
+                    event.groupId(),
+                    event.commentId()
+            );
+            case TRACKER_EXCHANGE_REVIEW_CREATED -> String.format(
+                    "TRACKER_EXCHANGE_REVIEW_CREATED:%d:%d:%d",
+                    receiverId,
+                    event.groupId(),
+                    event.reviewId()
+            );
+            case TRACKER_EXCHANGE_COMPLETED -> String.format(
+                    "TRACKER_EXCHANGE_COMPLETED:%d:%d",
+                    receiverId,
+                    event.groupId()
+            );
+            case TRACKER_GROUP_FORCE_COMPLETED -> String.format(
+                    "TRACKER_GROUP_FORCE_COMPLETED:%d:%d",
+                    receiverId,
+                    event.groupId()
+            );
+            default -> throw new IllegalArgumentException(
+                    "Unsupported tracker notification type: " + event.notificationType()
+            );
         };
     }
 }

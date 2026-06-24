@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static jakarta.persistence.FetchType.LAZY;
 
@@ -47,23 +47,23 @@ public class UserPolicyAgreement {
     private boolean agreed;
 
     @Column(name = "acted_at")
-    private LocalDateTime actedAt;
+    private Instant actedAt;
 
-    public static UserPolicyAgreement agree(User user, PolicyDocument policyDocument) {
+    public static UserPolicyAgreement agree(User user, PolicyDocument policyDocument, Instant actedAt) {
         return UserPolicyAgreement.builder()
                 .user(user)
                 .policyDocument(policyDocument)
                 .agreed(true)
-                .actedAt(LocalDateTime.now())
+                .actedAt(actedAt)
                 .build();
     }
 
-    public static UserPolicyAgreement disagree(User user, PolicyDocument policyDocument) {
+    public static UserPolicyAgreement disagree(User user, PolicyDocument policyDocument, Instant actedAt) {
         return UserPolicyAgreement.builder()
                 .user(user)
                 .policyDocument(policyDocument)
                 .agreed(false)
-                .actedAt(LocalDateTime.now())
+                .actedAt(actedAt)
                 .build();
     }
 }

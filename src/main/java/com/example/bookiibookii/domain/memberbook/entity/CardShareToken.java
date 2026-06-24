@@ -6,7 +6,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -44,7 +44,7 @@ public class CardShareToken extends BaseEntity {
     private ShareLayout shareLayout;
 
     @Column(name = "revoked_at")
-    private LocalDateTime revokedAt;
+    private Instant revokedAt;
 
     public static CardShareToken create(Cards card, User createdBy, ShareLayout shareLayout) {
         return CardShareToken.builder()
@@ -55,7 +55,7 @@ public class CardShareToken extends BaseEntity {
                 .build();
     }
 
-    public void revoke(LocalDateTime revokedAt) {
+    public void revoke(Instant revokedAt) {
         this.revokedAt = revokedAt;
     }
 

@@ -8,7 +8,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "report")
@@ -51,12 +51,12 @@ public class Report extends BaseEntity {
     @Column(name = "admin_memo", length = 1000)
     private String adminMemo;
 
-    private LocalDateTime resolvedAt;
+    private Instant resolvedAt;
 
-    public void resolveReport(String adminReply, String adminMemo) {
+    public void resolveReport(String adminReply, String adminMemo, Instant resolvedAt) {
         this.supportStatus = SupportStatus.RESOLVED;
         this.adminReply = adminReply;
         this.adminMemo = adminMemo;
-        this.resolvedAt = LocalDateTime.now();
+        this.resolvedAt = resolvedAt;
     }
 }

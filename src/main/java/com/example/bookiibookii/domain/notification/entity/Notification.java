@@ -9,7 +9,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(
@@ -66,12 +66,13 @@ public class Notification extends BaseEntity {
     private boolean read;
 
     @Column(name = "read_at")
-    private LocalDateTime readAt;
+    private Instant readAt;
 
-    public void markAsRead() {
+    // Future scheduledAt/sentAt notification timestamps should also use Instant.
+    public void markAsRead(Instant readAt) {
         if (!this.read) {
             this.read = true;
-            this.readAt = LocalDateTime.now();
+            this.readAt = readAt;
         }
     }
 }

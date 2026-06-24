@@ -21,7 +21,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(
@@ -54,9 +54,9 @@ public class DeviceToken extends BaseEntity {
     private boolean active;
 
     @Column(name = "last_used_at", nullable = false)
-    private LocalDateTime lastUsedAt;
+    private Instant lastUsedAt;
 
-    public static DeviceToken register(User user, String token, DevicePlatform platform, LocalDateTime usedAt) {
+    public static DeviceToken register(User user, String token, DevicePlatform platform, Instant usedAt) {
         return DeviceToken.builder()
                 .user(user)
                 .token(token)
@@ -66,7 +66,7 @@ public class DeviceToken extends BaseEntity {
                 .build();
     }
 
-    public void refresh(User user, DevicePlatform platform, LocalDateTime usedAt) {
+    public void refresh(User user, DevicePlatform platform, Instant usedAt) {
         this.user = user;
         this.platform = platform;
         this.active = true;

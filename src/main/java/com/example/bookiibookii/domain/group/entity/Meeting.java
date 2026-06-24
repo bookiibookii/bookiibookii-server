@@ -21,7 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 
 @Entity
@@ -73,8 +73,8 @@ public class Meeting extends BaseEntity {
     @Column(name = "address_detail", length = 200)
     private String addressDetail;
 
-    @Column(name = "scheduled_at", nullable = false)
-    private LocalDateTime scheduledAt;
+    @Column(name = "meeting_at", nullable = false)
+    private Instant meetingAt;
 
     public static Meeting create(
             Groups group,
@@ -86,9 +86,9 @@ public class Meeting extends BaseEntity {
             BigDecimal x,
             BigDecimal y,
             String addressDetail,
-            LocalDateTime scheduledAt
+            Instant meetingAt
     ) {
-        validate(group, createdBy, exchangeRound, placeName, address, x, y, scheduledAt);
+        validate(group, createdBy, exchangeRound, placeName, address, x, y, meetingAt);
 
         return Meeting.builder()
                 .group(group)
@@ -100,7 +100,7 @@ public class Meeting extends BaseEntity {
                 .x(x)
                 .y(y)
                 .addressDetail(normalizeNullable(addressDetail))
-                .scheduledAt(scheduledAt)
+                .meetingAt(meetingAt)
                 .build();
     }
 
@@ -111,13 +111,13 @@ public class Meeting extends BaseEntity {
             BigDecimal x,
             BigDecimal y,
             String addressDetail,
-            LocalDateTime scheduledAt
+            Instant meetingAt
     ) {
         Objects.requireNonNull(placeName, "placeName must not be null");
         Objects.requireNonNull(address, "address must not be null");
         Objects.requireNonNull(x, "x must not be null");
         Objects.requireNonNull(y, "y must not be null");
-        Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
+        Objects.requireNonNull(meetingAt, "meetingAt must not be null");
 
         this.placeName = normalize(placeName);
         this.address = normalize(address);
@@ -125,7 +125,7 @@ public class Meeting extends BaseEntity {
         this.x = x;
         this.y = y;
         this.addressDetail = normalizeNullable(addressDetail);
-        this.scheduledAt = scheduledAt;
+        this.meetingAt = meetingAt;
     }
 
     public boolean hasSameScheduleAndPlace(
@@ -135,7 +135,7 @@ public class Meeting extends BaseEntity {
             BigDecimal x,
             BigDecimal y,
             String addressDetail,
-            LocalDateTime scheduledAt
+            Instant meetingAt
     ) {
         return Objects.equals(normalize(this.placeName), normalize(placeName))
                 && Objects.equals(normalize(this.address), normalize(address))
@@ -143,7 +143,7 @@ public class Meeting extends BaseEntity {
                 && sameNumber(this.x, x)
                 && sameNumber(this.y, y)
                 && Objects.equals(normalizeNullable(this.addressDetail), normalizeNullable(addressDetail))
-                && Objects.equals(this.scheduledAt, scheduledAt);
+                && Objects.equals(this.meetingAt, meetingAt);
     }
 
     private boolean sameNumber(BigDecimal current, BigDecimal requested) {
@@ -166,7 +166,7 @@ public class Meeting extends BaseEntity {
             String address,
             BigDecimal x,
             BigDecimal y,
-            LocalDateTime scheduledAt
+            Instant meetingAt
     ) {
         Objects.requireNonNull(group, "group must not be null");
         Objects.requireNonNull(createdBy, "createdBy must not be null");
@@ -175,6 +175,6 @@ public class Meeting extends BaseEntity {
         Objects.requireNonNull(address, "address must not be null");
         Objects.requireNonNull(x, "x must not be null");
         Objects.requireNonNull(y, "y must not be null");
-        Objects.requireNonNull(scheduledAt, "scheduledAt must not be null");
+        Objects.requireNonNull(meetingAt, "meetingAt must not be null");
     }
 }

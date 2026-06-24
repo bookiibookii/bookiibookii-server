@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.policy.enums.PolicyType;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(
@@ -48,5 +48,5 @@ public class PolicyDocument {
      * 현재 노출할 약관 조회 시 effectiveFrom <= now 중 type별 최신 문서를 가져온다.
      */
     @Column(name = "effective_from", nullable = false)
-    private LocalDateTime effectiveFrom;
+    private Instant effectiveFrom;
 }

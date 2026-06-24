@@ -12,7 +12,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,25 +76,30 @@ public class MatchedMember extends BaseEntity {
 
     // 독서 시작 날짜 (교환독서 내 1차 읽는중, 2차 읽는중 시작 시점으로 설정)
     @Column(name = "reading_started_at")
-    private LocalDateTime readingStartedAt;
+    private Instant readingStartedAt;
 
     // 이거 모르겠음
     @Column(name = "completed_at")
-    private LocalDateTime completedAt;
+    private Instant completedAt;
 
     @Builder.Default
     @Column(name = "is_review_written", nullable = false)
     private boolean isReviewWritten = false;
 
     @Column(name = "partner_reviewing_started_at")
-    private LocalDateTime partnerReviewingStartedAt;
-
-    private static final java.time.ZoneId SEOUL_ZONE = java.time.ZoneId.of("Asia/Seoul");
+    private Instant partnerReviewingStartedAt;
 
     public void updateReadingStatus(ReadingStatus newStatus) {
+        this.readingStatus = newStatus;
+    }
+
+    public void updateReadingStatus(ReadingStatus newStatus, Instant changedAt) {
         if (this.readingStatus != ReadingStatus.PARTNER_REVIEWING
                 && newStatus == ReadingStatus.PARTNER_REVIEWING) {
-            this.partnerReviewingStartedAt = LocalDateTime.now(SEOUL_ZONE);
+            if (changedAt == null) {
+                throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+            }
+            this.partnerReviewingStartedAt = changedAt;
         }
         this.readingStatus = newStatus;
     }
@@ -107,7 +112,7 @@ public class MatchedMember extends BaseEntity {
         this.isReviewWritten = true;
     }
 
-    public void completeReading(LocalDateTime completedAt) {
+    public void completeReading(Instant completedAt) {
         if (completedAt == null) {
             throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
         }
@@ -115,7 +120,7 @@ public class MatchedMember extends BaseEntity {
         this.completedAt = completedAt;
     }
 
-    public void startMatchedReading(MemberBook initialBook, LocalDateTime matchedAt) {
+    public void startMatchedReading(MemberBook initialBook, Instant matchedAt) {
         validateCurrentBook(initialBook);
 
         if (!initialBook.isMine()) {
@@ -129,7 +134,7 @@ public class MatchedMember extends BaseEntity {
         this.currentMemberBook = initialBook;
         this.readingStartedAt = matchedAt;
     }
-    public void changeCurrentBook(MemberBook nextBook, LocalDateTime changedAt) {
+    public void changeCurrentBook(MemberBook nextBook, Instant changedAt) {
         validateCurrentBook(nextBook);
 
         if (changedAt == null) {
@@ -143,7 +148,7 @@ public class MatchedMember extends BaseEntity {
         this.readingStartedAt = changedAt;
     }
 
-    public void changeCurrentMemberBook(MemberBook memberBook, LocalDateTime changedAt) {
+    public void changeCurrentMemberBook(MemberBook memberBook, Instant changedAt) {
         changeCurrentBook(memberBook, changedAt);
     }
 

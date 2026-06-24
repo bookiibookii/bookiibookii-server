@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -22,7 +22,7 @@ public class LibraryMemberBookResponseDTO {
     private String image;
     private Integer totalPages;
     private String genre;
-    private LocalDateTime completedAt;
+    private Instant completedAt;
     private Long hostId;
     private String hostNickName;
     private String hostProfileImageUrl;

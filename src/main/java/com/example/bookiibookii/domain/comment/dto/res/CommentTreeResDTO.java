@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.comment.dto.WriterDto;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +17,7 @@ public class CommentTreeResDTO {
     private String content;
     private Long parentId;
     private WriterDto writer;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Builder.Default
     private List<CommentTreeResDTO> children = new ArrayList<>();

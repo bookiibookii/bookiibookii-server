@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.support.inquiry.enums.SupportStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class InquiryResponseDTO {
     public record InquiryListDTO(
@@ -12,13 +12,13 @@ public class InquiryResponseDTO {
             Long userId,
             String nickname,
             @JsonFormat(pattern = "yyyy.MM.dd")
-            LocalDateTime createdAt,
+            Instant createdAt,
             String title,
             String content,
             SupportStatus supportStatus,
             String adminReply,
             @JsonFormat(pattern = "yyyy.MM.dd")
-            LocalDateTime resolvedAt
+            Instant resolvedAt
     ){}
 
 

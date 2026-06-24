@@ -4,7 +4,7 @@ import com.example.bookiibookii.domain.memberbook.enums.CardType;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Builder
@@ -15,7 +15,7 @@ public class MemberCardCreateResponseDTO {
     private String memo;
     private String quotation;
     private MemberCardImageResponseDTO cardImage;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private String creatorName;
     private String creatorProfileImageUrl;
 }

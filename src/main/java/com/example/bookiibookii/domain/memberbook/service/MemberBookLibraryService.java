@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ public class MemberBookLibraryService {
     private final MemberBookRepository memberBookRepository;
     private final BookReviewRepository bookReviewRepository;
     private final UserImageS3Service userImageS3Service;
+    private final Clock clock;
 
     private static final int PRESIGNED_GET_URL_EXPIRATION_MINUTES = 60;
 
@@ -38,7 +40,7 @@ public class MemberBookLibraryService {
     public void removeFromLibrary(Long memberBookId, Long userId) {
         MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_Id(memberBookId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
-        memberBook.markRemoved();
+        memberBook.markRemoved(clock.instant());
     }
 
     /**

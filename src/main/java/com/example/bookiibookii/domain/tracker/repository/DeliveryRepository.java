@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,7 +51,7 @@ public interface DeliveryRepository extends JpaRepository<Delivery, String> {
         join fetch senderBook.book
         join fetch d.receiver receiver
         join fetch receiver.user
-        where d.createdAt <= :cutoff
+        where d.trackingRegisteredAt <= :cutoff
           and d.receivedConfirmedAt is null
           and g.tradeType = com.example.bookiibookii.domain.group.enums.TradeType.DELIVERY
           and g.groupStatus = com.example.bookiibookii.domain.group.enums.GroupStatus.MATCHED
@@ -64,5 +64,5 @@ public interface DeliveryRepository extends JpaRepository<Delivery, String> {
                 and receiver.readingStatus = com.example.bookiibookii.domain.tracker.enums.ReadingStatus.RETURNING)
           )
     """)
-    List<Delivery> findReceiveReminderCandidates(@Param("cutoff") LocalDateTime cutoff);
+    List<Delivery> findReceiveReminderCandidates(@Param("cutoff") Instant cutoff);
 }

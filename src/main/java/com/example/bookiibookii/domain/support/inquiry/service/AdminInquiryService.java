@@ -13,7 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.time.Clock;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +21,7 @@ import java.util.List;
 public class AdminInquiryService {
 
     private final InquiryRepository inquiryRepository;
+    private final Clock clock;
 
     /**
      * 전체 문의 리스트 조회
@@ -52,6 +53,6 @@ public class AdminInquiryService {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new InquiryException(InquiryErrorCode.INQUIRY_NOT_FOUND));
 
-        inquiry.updateAnswer(request.adminReply());
+        inquiry.updateAnswer(request.adminReply(), clock.instant());
     }
 }

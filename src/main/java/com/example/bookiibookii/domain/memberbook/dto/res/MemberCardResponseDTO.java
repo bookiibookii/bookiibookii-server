@@ -5,7 +5,7 @@ import com.example.bookiibookii.domain.memberbook.enums.CardType;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -18,11 +18,11 @@ public class MemberCardResponseDTO {
     private String memo;
     private String quotation;
     private MemberCardImageResponseDTO cardImage;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private String bookTitle;
     private Integer totalPages;
     private String genre;
-    private LocalDateTime completedAt;
+    private Instant completedAt;
     private Boolean isMine;
     private Boolean isBookmarked;
     private String creatorName;

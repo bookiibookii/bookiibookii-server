@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Builder
@@ -40,10 +40,10 @@ public record MyBookReviewsResponseDTO(
             @Schema(description = "수정 가능 여부", example = "true")
             @JsonProperty("isEditable")
             boolean isEditable,
-            @Schema(description = "리뷰 작성 시각", example = "2026-06-08T10:30:00")
-            LocalDateTime createdAt,
-            @Schema(description = "리뷰 수정 시각", example = "2026-06-08T11:00:00")
-            LocalDateTime updatedAt
+            @Schema(description = "리뷰 작성 시각", example = "2026-06-08T01:30:00Z")
+            Instant createdAt,
+            @Schema(description = "리뷰 수정 시각", example = "2026-06-08T02:00:00Z")
+            Instant updatedAt
     ) {
 
         public static BookReviewItem from(BookReview review) {

@@ -35,7 +35,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,6 +53,7 @@ public class PackageDeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final UserDeliveryRepository userDeliveryRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public DeliveryAddressResponseDTO getAddresses(Long groupId, User user) {
         Groups group = validatePackageGroup(groupId);
@@ -162,7 +164,7 @@ public class PackageDeliveryService {
                 .receiver(partner)
                 .deliveryCompany(request.deliveryCompany())
                 .trackingNumber(request.trackingNumber())
-                .startDate(LocalDateTime.now())
+                .trackingRegisteredAt(clock.instant())
                 .build();
 
         try {
@@ -223,7 +225,7 @@ public class PackageDeliveryService {
             throw new TrackerException(TrackerErrorCode.DELIVERY_ALREADY_RECEIVED);
         }
 
-        partnerDelivery.confirmReceived(LocalDateTime.now());
+        partnerDelivery.confirmReceived(clock.instant());
         me.updateExchangeStatus(ExchangeStatus.RECEIVED_CONFIRMED);
 
         eventPublisher.publish(new DeliveryNotificationEvent(
@@ -238,7 +240,7 @@ public class PackageDeliveryService {
         ));
 
         if (members.stream().allMatch(member -> member.getExchangeStatus() == ExchangeStatus.RECEIVED_CONFIRMED)) {
-            LocalDateTime now = LocalDateTime.now();
+            Instant now = clock.instant();
             if (currentExchangeRound == ExchangeRound.RETURN_EXCHANGE) {
                 members.forEach(member -> {
                     member.changeCurrentMemberBook(findMyBook(member), now);

@@ -39,10 +39,6 @@ public class TrackerTopBannerResolver {
             "{nickname} 님과의 교환독서 후기를 남겨주세요.";
     private final Clock clock;
 
-    public TrackerTopBannerResolver() {
-        this(Clock.system(ReadingPeriodDateCalculator.KST));
-    }
-
     public TrackerTopBannerResolver(Clock clock) {
         this.clock = clock;
     }

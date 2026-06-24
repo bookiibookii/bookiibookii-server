@@ -14,10 +14,6 @@ public class TrackerDueDateResolver {
 
     private final Clock clock;
 
-    public TrackerDueDateResolver() {
-        this(Clock.system(ReadingPeriodDateCalculator.KST));
-    }
-
     public TrackerDueDateResolver(Clock clock) {
         this.clock = clock;
     }

@@ -105,6 +105,7 @@ public class RedisUtil {
 
         try {
             String cleanKeyword = keyword.trim();
+            // TODO: 검색어 랭킹 기준일도 Clock 주입으로 테스트 가능하게 정리한다.
             String todayKey = RANKING_KEY_PREFIX + TimeUtils.todayKst();
             String prefixedKey = applyPrefix(todayKey);
 
@@ -127,6 +128,7 @@ public class RedisUtil {
 
             // 합산된 결과(캐시)가 없으면 새로 생성
             if (Boolean.FALSE.equals(redisTemplate.hasKey(combinedKeyWithPrefix))) {
+                // TODO: 검색어 랭킹 기준일도 Clock 주입으로 테스트 가능하게 정리한다.
                 List<String> last90DaysKeys = IntStream.range(0, 90)
                         .mapToObj(i -> applyPrefix(RANKING_KEY_PREFIX + TimeUtils.todayKst().minusDays(i)))
                         .filter(key -> Boolean.TRUE.equals(redisTemplate.hasKey(key)))

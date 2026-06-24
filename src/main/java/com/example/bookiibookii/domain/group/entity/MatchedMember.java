@@ -90,6 +90,9 @@ public class MatchedMember extends BaseEntity {
     private Instant partnerReviewingStartedAt;
 
     public void updateReadingStatus(ReadingStatus newStatus) {
+        if (newStatus == ReadingStatus.PARTNER_REVIEWING) {
+            throw new TrackerException(TrackerErrorCode.INVALID_TRACKER_STATUS);
+        }
         this.readingStatus = newStatus;
     }
 

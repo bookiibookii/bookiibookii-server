@@ -1,8 +1,6 @@
 spring:
   application:
     name: bookiibookii
-  profiles:
-    active: v1
 
 springdoc:
   swagger-ui:

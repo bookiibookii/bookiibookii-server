@@ -19,6 +19,7 @@ import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
 
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
+import com.example.bookiibookii.global.time.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -189,7 +190,7 @@ public class UserService {
                         .tradeType(br.getMemberBook().getGroup().getTradeType())
                         .rating(br.getStar())
                         .comment(br.getComment())
-                        .reviewDate(br.getUpdatedAt().format(DATE_FMT))
+                        .reviewDate(TimeUtils.formatKst(br.getUpdatedAt(), DATE_FMT))
                         .build())
                 .collect(Collectors.toList());
 
@@ -211,7 +212,7 @@ public class UserService {
                             .reviewerProfileUrl(writerProfileUrl)
                             .reaction(mr.getReaction())
                             .comment(mr.getComment())
-                            .createdAt(mr.getCreatedAt().format(DATE_FMT))
+                            .createdAt(TimeUtils.formatKst(mr.getCreatedAt(), DATE_FMT))
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -273,7 +274,7 @@ public class UserService {
     }
 
     private void requireValidBirth(LocalDate birth) {
-        if (!birth.isBefore(LocalDate.now())) {
+        if (!birth.isBefore(TimeUtils.todayKst())) {
             throw new UserException(UserErrorCode.INVALID_BIRTH_DATE);
         }
     }

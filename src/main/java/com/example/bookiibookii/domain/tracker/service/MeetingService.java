@@ -56,7 +56,7 @@ public class MeetingService {
         validateHost(me);
         ExchangeRound exchangeRound = resolveExchangeRound(validateMeetingPhase(members));
 
-        if (meetingRepository.existsByGroup_IdAndExchangeRound(groupId, exchangeRound)) {
+        if (meetingRepository.existsByGroupIdAndExchangeRound(groupId, exchangeRound)) {
             throw new TrackerException(TrackerErrorCode.MEETING_ALREADY_EXISTS);
         }
 

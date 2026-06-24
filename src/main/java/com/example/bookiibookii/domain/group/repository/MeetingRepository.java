@@ -20,7 +20,16 @@ import java.util.Optional;
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
-    boolean existsByGroup_IdAndExchangeRound(Long groupId, ExchangeRound exchangeRound);
+    @Query("""
+        select count(m) > 0
+        from Meeting m
+        where m.group.id = :groupId
+          and m.exchangeRound = :exchangeRound
+    """)
+    boolean existsByGroupIdAndExchangeRound(
+            @Param("groupId") Long groupId,
+            @Param("exchangeRound") ExchangeRound exchangeRound
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

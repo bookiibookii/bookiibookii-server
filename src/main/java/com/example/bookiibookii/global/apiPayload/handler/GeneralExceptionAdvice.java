@@ -151,13 +151,28 @@ public class GeneralExceptionAdvice {
                 .body(ApiResponse.onFailure(code, errors));
     }
 
-    // DB 유니크/FK 제약 조건 위반 (중복 삽입 등)
+    // DB 무결성 제약 위반
+    // 중복 키(Duplicate entry, MySQL 1062)처럼 클라이언트 요청 기준으로 예상 가능한 충돌만 400,
+    // FK/NOT NULL/스키마 오류 등 서버 로직·데이터 문제는 500 + Discord 알림
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(
-            DataIntegrityViolationException ex
+            DataIntegrityViolationException ex,
+            HttpServletRequest request
     ) {
-        log.warn("DataIntegrityViolationException: {}", ex.getMostSpecificCause().getMessage());
-        BaseCode code = GeneralErrorCode.BAD_REQUEST;
+        Throwable cause = ex.getMostSpecificCause();
+        String message = cause.getMessage();
+
+        boolean isDuplicateEntry = message != null && message.contains("Duplicate entry");
+        if (isDuplicateEntry) {
+            log.warn("DataIntegrityViolationException (duplicate key): {}", message);
+            BaseCode code = GeneralErrorCode.BAD_REQUEST;
+            return ResponseEntity.status(code.getStatus())
+                    .body(ApiResponse.onFailure(code, null));
+        }
+
+        discordWebhookService.sendUnexpectedExceptionAlert(request, ex);
+        log.error("DataIntegrityViolationException (unexpected): {}", message, ex);
+        BaseCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, null));
     }

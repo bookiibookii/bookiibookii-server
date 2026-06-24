@@ -197,38 +197,31 @@ public class BookshelfService {
         userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
-        if (currentCount >= MAX_REPRESENTATIVE_BOOKS) {
-            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
-        }
-
-        Set<Integer> usedOrders = userBookRepository.findRepresentativeBooks(userId).stream()
-                .map(UserBook::getDisplayOrder)
-                .collect(Collectors.toSet());
-        int nextOrder = IntStream.rangeClosed(1, MAX_REPRESENTATIVE_BOOKS)
-                .filter(i -> !usedOrders.contains(i))
-                .findFirst()
-                .orElseThrow(() -> new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED));
-
         if (userBookId != null) {
-            addRepresentativeFromFavorite(userId, userBookId, nextOrder);
+            addRepresentativeFromFavorite(userId, userBookId);
         } else {
-            addRepresentativeFromCompleted(userId, memberBookId, nextOrder);
+            addRepresentativeFromCompleted(userId, memberBookId);
         }
     }
 
     // 인생책을 대표책으로 등록
-    private void addRepresentativeFromFavorite(Long userId, Long userBookId, int nextOrder) {
+    private void addRepresentativeFromFavorite(Long userId, Long userBookId) {
         UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
         if (!userBook.isFavorite()) {
             throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
         }
-        userBook.updateDisplayOrder(nextOrder);
+        if (userBook.getDisplayOrder() != null) return;
+
+        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+        if (currentCount >= MAX_REPRESENTATIVE_BOOKS) {
+            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
+        }
+        userBook.updateDisplayOrder(nextAvailableOrder(userId));
     }
 
     // 완독책을 대표책으로 등록
-    private void addRepresentativeFromCompleted(Long userId, Long memberBookId, int nextOrder) {
+    private void addRepresentativeFromCompleted(Long userId, Long memberBookId) {
         MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_IdWithBook(memberBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
         if (!bookReviewRepository.existsByMemberBookId(memberBookId)) {
@@ -237,6 +230,13 @@ public class BookshelfService {
 
         Book book = memberBook.getBook();
         Optional<UserBook> existing = userBookRepository.findByUser_IdAndBook_Id(userId, book.getId());
+        if (existing.isPresent() && existing.get().getDisplayOrder() != null) return;
+
+        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+        if (currentCount >= MAX_REPRESENTATIVE_BOOKS) {
+            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
+        }
+        int nextOrder = nextAvailableOrder(userId);
         if (existing.isPresent()) {
             existing.get().updateDisplayOrder(nextOrder);
         } else {
@@ -244,6 +244,16 @@ public class BookshelfService {
                     .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
             userBookRepository.save(UserBook.createRepresentative(user, book, nextOrder));
         }
+    }
+
+    private int nextAvailableOrder(Long userId) {
+        Set<Integer> usedOrders = userBookRepository.findRepresentativeBooks(userId).stream()
+                .map(UserBook::getDisplayOrder)
+                .collect(Collectors.toSet());
+        return IntStream.rangeClosed(1, MAX_REPRESENTATIVE_BOOKS)
+                .filter(i -> !usedOrders.contains(i))
+                .findFirst()
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED));
     }
 
     // 인생 책 교체 (구 책 제거 + 신 책 등록 + 대표책 연동 원자적 처리)
@@ -341,14 +351,7 @@ public class BookshelfService {
         if (wasRepresentative && newUserBook.getDisplayOrder() == null) {
             long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
             if (currentCount < MAX_REPRESENTATIVE_BOOKS) {
-                Set<Integer> usedOrders = userBookRepository.findRepresentativeBooks(userId).stream()
-                        .map(UserBook::getDisplayOrder)
-                        .collect(Collectors.toSet());
-                int nextOrder = IntStream.rangeClosed(1, MAX_REPRESENTATIVE_BOOKS)
-                        .filter(i -> !usedOrders.contains(i))
-                        .findFirst()
-                        .orElseThrow(() -> new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED));
-                newUserBook.updateDisplayOrder(nextOrder);
+                newUserBook.updateDisplayOrder(nextAvailableOrder(userId));
             }
         }
     }

@@ -26,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +79,7 @@ public class BookshelfService {
                     Instant completedAt = completionDateByGroupId.get(mb.getGroup().getId());
                     return new BookshelfResponseDTO.CompletedBookDto(
                             mb.getId(),
+                            mb.getGroup().getId(),
                             book.getTitle(),
                             book.getAuthor(),
                             book.getImage(),
@@ -194,32 +197,31 @@ public class BookshelfService {
         userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 
-        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
-        if (currentCount >= MAX_REPRESENTATIVE_BOOKS) {
-            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
-        }
-
-        int nextOrder = (int) currentCount + 1;
-
         if (userBookId != null) {
-            addRepresentativeFromFavorite(userId, userBookId, nextOrder);
+            addRepresentativeFromFavorite(userId, userBookId);
         } else {
-            addRepresentativeFromCompleted(userId, memberBookId, nextOrder);
+            addRepresentativeFromCompleted(userId, memberBookId);
         }
     }
 
     // 인생책을 대표책으로 등록
-    private void addRepresentativeFromFavorite(Long userId, Long userBookId, int nextOrder) {
+    private void addRepresentativeFromFavorite(Long userId, Long userBookId) {
         UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
         if (!userBook.isFavorite()) {
             throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
         }
-        userBook.updateDisplayOrder(nextOrder);
+        if (userBook.getDisplayOrder() != null) return;
+
+        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+        if (currentCount >= MAX_REPRESENTATIVE_BOOKS) {
+            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
+        }
+        userBook.updateDisplayOrder(nextAvailableOrder(userId));
     }
 
     // 완독책을 대표책으로 등록
-    private void addRepresentativeFromCompleted(Long userId, Long memberBookId, int nextOrder) {
+    private void addRepresentativeFromCompleted(Long userId, Long memberBookId) {
         MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_IdWithBook(memberBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
         if (!bookReviewRepository.existsByMemberBookId(memberBookId)) {
@@ -228,12 +230,129 @@ public class BookshelfService {
 
         Book book = memberBook.getBook();
         Optional<UserBook> existing = userBookRepository.findByUser_IdAndBook_Id(userId, book.getId());
+        if (existing.isPresent() && existing.get().getDisplayOrder() != null) return;
+
+        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+        if (currentCount >= MAX_REPRESENTATIVE_BOOKS) {
+            throw new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED);
+        }
+        int nextOrder = nextAvailableOrder(userId);
         if (existing.isPresent()) {
             existing.get().updateDisplayOrder(nextOrder);
         } else {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
             userBookRepository.save(UserBook.createRepresentative(user, book, nextOrder));
+        }
+    }
+
+    private int nextAvailableOrder(Long userId) {
+        Set<Integer> usedOrders = userBookRepository.findRepresentativeBooks(userId).stream()
+                .map(UserBook::getDisplayOrder)
+                .collect(Collectors.toSet());
+        return IntStream.rangeClosed(1, MAX_REPRESENTATIVE_BOOKS)
+                .filter(i -> !usedOrders.contains(i))
+                .findFirst()
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_PICK_LIMIT_EXCEEDED));
+    }
+
+    // 인생 책 교체 (구 책 제거 + 신 책 등록 + 대표책 연동 원자적 처리)
+    @Transactional
+    public void replaceFavoriteBook(Long userId, Long userBookId, String newIsbn13) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        UserBook oldBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
+
+        if (!oldBook.isFavorite()) {
+            throw new UserException(UserErrorCode.USER_BOOK_NOT_FOUND);
+        }
+
+        Book newBook = bookService.getOrCreateByIsbn13(newIsbn13);
+
+        if (oldBook.getBook().getId().equals(newBook.getId())) {
+            return;
+        }
+
+        Optional<UserBook> existingNew = userBookRepository.findByUser_IdAndBook_Id(userId, newBook.getId());
+        if (existingNew.isPresent() && existingNew.get().isFavorite()) {
+            throw new UserException(UserErrorCode.FAVORITE_BOOK_ALREADY_EXISTS);
+        }
+        Long existingNewId = existingNew.map(UserBook::getId).orElse(null);
+
+        boolean wasRepresentative = oldBook.getDisplayOrder() != null;
+        int oldDisplayOrder = wasRepresentative ? oldBook.getDisplayOrder() : -1;
+
+        // ── 대표책 순서 재배치 준비 ──────────────────────────────────────────
+        // user_book 테이블의 (user_id, display_order)에는 UNIQUE 제약이 걸려 있음
+        // 예) 구 책이 슬롯 3에 있고 슬롯 [4, 5]가 뒤에 있다면, 구 책을 제거한 뒤 4→3, 5→4로 당겨야 함
+        //
+        // [스냅샷 찍기]
+        // Hibernate는 엔티티의 변경(dirty tracking)을 모아두었다가 flush 시점에 한꺼번에 DB에 반영.
+        // 이때 UPDATE 실행 순서는 보장되지 않음.
+        // 만약 순서가 어긋나면:
+        //   - 슬롯 3에 구 책이 아직 남아 있는 상태에서 슬롯 4짜리 책을 display_order=3 으로 UPDATE → UNIQUE 위반 발생
+        //
+        // [해결 방법: null 경유 2-step 업데이트]
+        //   1) 아직 아무 변경도 가하지 않은 시점에 이동 대상 목록과 각각의 현재 순서(snapshot)를 메모리에 보관
+        //   2) 구 책의 display_order를 null로 마킹하고, 인생책 제거를 수행
+        //   3) clearDisplayOrderInRange()로 이동 대상 범위를 일괄 null 로 초기화
+        //      (@Modifying이 flush를 먼저 강제하므로 위 2)의 변경이 DB에 반영됨)
+        //   4) 재조회 후 snapshotOrder-1 을 각각 배정
+        //      null → 새 값 으로 가는 UPDATE는 같은 숫자끼리 충돌할 일 없음
+        // ──────────────────────────────────────────────────────────────────
+        List<UserBook> toShift = List.of();
+        if (wasRepresentative) {
+            // 변경 전 시점에 이동 대상(구 책보다 뒤 슬롯)의 목록과 현재 순서를 확보
+            toShift = userBookRepository.findRepresentativeBooks(userId).stream()
+                    .filter(ub -> !ub.getId().equals(userBookId) && ub.getDisplayOrder() > oldDisplayOrder)
+                    .toList();
+            oldBook.updateDisplayOrder(null); // 구 책 슬롯 해제 (dirty tracking)
+        }
+
+        // 구 책 인생책 제거
+        boolean hasReview = bookReviewRepository.existsReviewedBookByUserIdAndBookId(userId, oldBook.getBook().getId());
+        if (hasReview) {
+            oldBook.updateIsFavorite(false);
+        } else {
+            userBookRepository.delete(oldBook);
+        }
+
+        // 이동 대상 범위를 null로 일괄 초기화한 뒤 snapshotOrder - 1 로 재배정
+        if (wasRepresentative && !toShift.isEmpty()) {
+            List<Long> toShiftIds = toShift.stream().map(UserBook::getId).toList();
+            // null 초기화 후에는 원래 순서를 DB에서 읽을 수 없으므로 미리 보관
+            Map<Long, Integer> snapshotOrders = toShift.stream()
+                    .collect(Collectors.toMap(UserBook::getId, UserBook::getDisplayOrder));
+            int maxShiftOrder = snapshotOrders.values().stream().mapToInt(Integer::intValue).max().orElseThrow();
+
+            // 범위 내 display_order를 null로 초기화 + L1 캐시 초기화(clearAutomatically)
+            userBookRepository.clearDisplayOrderInRange(userId, oldDisplayOrder + 1, maxShiftOrder);
+            // 캐시 초기화 후 DB에서 재조회(display_order = null 상태), 이후 새 순서 배정
+            userBookRepository.findAllById(toShiftIds)
+                    .forEach(ub -> ub.updateDisplayOrder(snapshotOrders.get(ub.getId()) - 1));
+        }
+
+        // 신 책 인생책 등록
+        // clearDisplayOrderInRange 호출 후 L1 캐시가 초기화되므로 ID로 재조회
+        UserBook newUserBook;
+        if (existingNewId != null) {
+            newUserBook = userBookRepository.findById(existingNewId)
+                    .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
+            newUserBook.updateIsFavorite(true);
+        } else {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+            newUserBook = userBookRepository.save(UserBook.create(user, newBook, true));
+        }
+
+        // 구 책이 대표책이었다면 신 책도 대표책으로 등록 (아직 대표책이 아닌 경우에만)
+        if (wasRepresentative && newUserBook.getDisplayOrder() == null) {
+            long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+            if (currentCount < MAX_REPRESENTATIVE_BOOKS) {
+                newUserBook.updateDisplayOrder(nextAvailableOrder(userId));
+            }
         }
     }
 
@@ -264,6 +383,9 @@ public class BookshelfService {
     // 대표책 삭제
     @Transactional
     public void deleteRepresentativeBook(Long userId, Long userBookId) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
         UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
 
@@ -278,21 +400,37 @@ public class BookshelfService {
 
         int deletedOrder = userBook.getDisplayOrder();
 
+        // 이동 대상 책들의 스냅샷을 미리 확보
+        List<UserBook> toShift = userBookRepository.findRepresentativeBooks(userId).stream()
+                .filter(ub -> !ub.getId().equals(userBookId) && ub.getDisplayOrder() > deletedOrder)
+                .toList();
+
         if (userBook.isFavorite()) {
             userBook.updateDisplayOrder(null);
         } else {
             userBookRepository.delete(userBook);
         }
 
-        // 삭제된 자리 이후 순서를 한 칸씩 당겨 gap 제거
-        userBookRepository.findRepresentativeBooks(userId).stream()
-                .filter(ub -> !ub.getId().equals(userBookId) && ub.getDisplayOrder() > deletedOrder)
-                .forEach(ub -> ub.updateDisplayOrder(ub.getDisplayOrder() - 1));
+        if (toShift.isEmpty()) return;
+
+        List<Long> toShiftIds = toShift.stream().map(UserBook::getId).toList();
+        Map<Long, Integer> snapshotOrders = toShift.stream()
+                .collect(Collectors.toMap(UserBook::getId, UserBook::getDisplayOrder));
+        int maxShiftOrder = snapshotOrders.values().stream().mapToInt(Integer::intValue).max().orElseThrow();
+
+        // unique 제약 충돌 방지: 이동 범위를 먼저 null로 초기화 후 재배치
+        userBookRepository.clearDisplayOrderInRange(userId, deletedOrder + 1, maxShiftOrder);
+
+        userBookRepository.findAllById(toShiftIds)
+                .forEach(ub -> ub.updateDisplayOrder(snapshotOrders.get(ub.getId()) - 1));
     }
 
     // 대표책 순서 변경 (드래그앤드롭)
     @Transactional
     public void reorderRepresentativeBooks(Long userId, Long userBookId, Integer targetOrder) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
         UserBook dragged = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
 

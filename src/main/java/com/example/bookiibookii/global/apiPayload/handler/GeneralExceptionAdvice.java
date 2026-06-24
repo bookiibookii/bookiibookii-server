@@ -7,6 +7,7 @@ import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import com.example.bookiibookii.global.notification.DiscordWebhookService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.TransactionSystemException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -148,6 +149,32 @@ public class GeneralExceptionAdvice {
         BaseCode code = GeneralErrorCode.BAD_REQUEST;
         return ResponseEntity.status(code.getStatus())
                 .body(ApiResponse.onFailure(code, errors));
+    }
+
+    // DB 무결성 제약 위반
+    // 중복 키(Duplicate entry, MySQL 1062)처럼 클라이언트 요청 기준으로 예상 가능한 충돌만 400,
+    // FK/NOT NULL/스키마 오류 등 서버 로직·데이터 문제는 500 + Discord 알림
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request
+    ) {
+        Throwable cause = ex.getMostSpecificCause();
+        String message = cause.getMessage();
+
+        boolean isDuplicateEntry = message != null && message.contains("Duplicate entry");
+        if (isDuplicateEntry) {
+            log.warn("DataIntegrityViolationException (duplicate key): {}", message);
+            BaseCode code = GeneralErrorCode.BAD_REQUEST;
+            return ResponseEntity.status(code.getStatus())
+                    .body(ApiResponse.onFailure(code, null));
+        }
+
+        discordWebhookService.sendUnexpectedExceptionAlert(request, ex);
+        log.error("DataIntegrityViolationException (unexpected): {}", message, ex);
+        BaseCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.onFailure(code, null));
     }
 
     // JPA flush/commit 시점 Bean Validation 실패 (서비스 로직에서 처리 못하고 트랜잭션까지 넘어온 경우)

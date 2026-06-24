@@ -10,6 +10,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(
@@ -70,6 +71,7 @@ public class Notification extends BaseEntity {
 
     // Future scheduledAt/sentAt notification timestamps should also use Instant.
     public void markAsRead(Instant readAt) {
+        Objects.requireNonNull(readAt, "readAt must not be null");
         if (!this.read) {
             this.read = true;
             this.readAt = readAt;

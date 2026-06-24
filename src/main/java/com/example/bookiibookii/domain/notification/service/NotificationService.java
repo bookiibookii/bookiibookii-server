@@ -125,13 +125,23 @@ public class NotificationService {
         }
 
         try {
-            boolean read = Boolean.parseBoolean(cursor.substring(0, first));
+            boolean read = parseCursorRead(cursor.substring(0, first));
             Instant createdAt = Instant.parse(cursor.substring(first + 1, last));
             Long id = Long.parseLong(cursor.substring(last + 1));
             return new Cursor(read, createdAt, id);
         } catch (Exception e) {
             throw new NotificationException(NotificationErrorCode.INVALID_CURSOR);
         }
+    }
+
+    private boolean parseCursorRead(String value) {
+        if ("true".equals(value)) {
+            return true;
+        }
+        if ("false".equals(value)) {
+            return false;
+        }
+        throw new NotificationException(NotificationErrorCode.INVALID_CURSOR);
     }
 
     private String buildCursor(boolean read, Instant createdAt, Long id) {

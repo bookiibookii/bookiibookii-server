@@ -15,6 +15,7 @@ public final class HomeSeedUtil {
     }
 
     public static String currentSeedKey() {
+        // TODO: Clock 주입 가능 구조로 바꾸면 테스트 가능한 현재시각으로 교체한다.
         return seedKey(ZonedDateTime.now(KST));
     }
 
@@ -44,6 +45,7 @@ public final class HomeSeedUtil {
     }
 
     public static Instant twentyFourHoursAgoKst() {
+        // TODO: Clock 주입 가능 구조로 바꾸면 테스트 가능한 현재시각으로 교체한다.
         return Instant.now().minusSeconds(24 * 60 * 60);
     }
 }

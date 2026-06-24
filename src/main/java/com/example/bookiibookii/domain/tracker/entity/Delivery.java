@@ -8,6 +8,7 @@ import com.example.bookiibookii.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(
@@ -61,11 +62,10 @@ public class Delivery extends BaseEntity {
 
 
     public void complete(Instant deliveredAt) {
-        this.deliveredAt = deliveredAt;
+        this.deliveredAt = Objects.requireNonNull(deliveredAt, "deliveredAt must not be null");
     }
 
     public void confirmReceived(Instant confirmedAt) {
-        this.receivedConfirmedAt = confirmedAt;
-        this.deliveredAt = confirmedAt;
+        this.receivedConfirmedAt = Objects.requireNonNull(confirmedAt, "confirmedAt must not be null");
     }
 }

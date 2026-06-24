@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
@@ -18,11 +19,12 @@ public class DeviceTokenRegistrationExecutor {
 
     private final DeviceTokenRepository deviceTokenRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void register(Long userId, DeviceTokenRequest.Register request) {
         User user = userRepository.getReferenceById(userId);
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = clock.instant();
 
         DeviceToken deviceToken = deviceTokenRepository.findByToken(request.token())
                 .map(existing -> {
@@ -39,7 +41,7 @@ public class DeviceTokenRegistrationExecutor {
         return deviceTokenRepository.findByToken(request.token())
                 .map(existing -> {
                     User user = userRepository.getReferenceById(userId);
-                    existing.refresh(user, request.platform(), LocalDateTime.now());
+                    existing.refresh(user, request.platform(), clock.instant());
                     deviceTokenRepository.saveAndFlush(existing);
                     return true;
                 })

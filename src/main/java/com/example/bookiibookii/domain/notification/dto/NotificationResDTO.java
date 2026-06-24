@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.notification.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -12,7 +12,7 @@ public class NotificationResDTO {
             String title,
             String message,
             boolean isRead,
-            LocalDateTime createdAt,
+            Instant createdAt,
             Map<String, Object> payload
     ) {}
 
@@ -26,7 +26,7 @@ public class NotificationResDTO {
             Long id,
             String type,
             boolean isRead,
-            LocalDateTime readAt,
+            Instant readAt,
             Map<String, Object> payload
     ) {}
 }

@@ -14,7 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -27,9 +28,10 @@ public class PolicyAgreementService {
     private final PolicyDocumentRepository policyDocumentRepository;
     private final UserPolicyAgreementRepository userPolicyAgreementRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     public PolicyResponseDTO.AgreementStatus getMyPolicyAgreementStatus(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = clock.instant();
 
         List<PolicyDocument> currentPolicies =
                 policyDocumentRepository.findCurrentPolicies(now);
@@ -52,7 +54,7 @@ public class PolicyAgreementService {
                     UserPolicyAgreement latestAgreement = latestAgreementMap.get(policy.getId());
 
                     boolean agreed = latestAgreement != null && latestAgreement.isAgreed();
-                    LocalDateTime actedAt = latestAgreement != null
+                    Instant actedAt = latestAgreement != null
                             ? latestAgreement.getActedAt()
                             : null;
 
@@ -85,7 +87,7 @@ public class PolicyAgreementService {
             throw new PolicyException(PolicyErrorCode.POLICY_AGREEMENT_EMPTY);
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = clock.instant();
 
         List<PolicyDocument> currentPolicies =
                 policyDocumentRepository.findCurrentPolicies(now);
@@ -119,10 +121,10 @@ public class PolicyAgreementService {
             UserPolicyAgreement agreement;
 
             if (Boolean.TRUE.equals(item.agreed())) {
-                agreement = UserPolicyAgreement.agree(user, policyDocument);
+                agreement = UserPolicyAgreement.agree(user, policyDocument, now);
                 agreedPolicyDocumentIds.add(policyDocument.getId());
             } else {
-                agreement = UserPolicyAgreement.disagree(user, policyDocument);
+                agreement = UserPolicyAgreement.disagree(user, policyDocument, now);
             }
 
             agreementsToSave.add(agreement);

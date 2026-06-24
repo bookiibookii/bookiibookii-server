@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 
 // JWT 생성, 검증, Authentication 객체 생성
@@ -34,14 +35,15 @@ public class JwtProvider {
 
     // Access Token 생성
     public String createAccessToken(Long userId, String role) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + accessTokenExpireTime.toMillis());
+        Instant now = Instant.now();
+        Date issuedAt = Date.from(now);
+        Date expiryDate = Date.from(now.plus(accessTokenExpireTime));
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("type", "access")
                 .claim("role", role)
-                .setIssuedAt(now)
+                .setIssuedAt(issuedAt)
                 .setExpiration(expiryDate)
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
@@ -49,13 +51,14 @@ public class JwtProvider {
 
     // Refresh Token 생성
     public String createRefreshToken(Long userId) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + refreshTokenExpireTime.toMillis());
+        Instant now = Instant.now();
+        Date issuedAt = Date.from(now);
+        Date expiryDate = Date.from(now.plus(refreshTokenExpireTime));
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("type", "refresh")
-                .setIssuedAt(now)
+                .setIssuedAt(issuedAt)
                 .setExpiration(expiryDate)
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
@@ -101,8 +104,7 @@ public class JwtProvider {
     // 토큰의 남은 유효 시간 계산 (밀리초 반환)
     public long getRemainingTime(String token) {
         Date expiration = parseClaims(token).getExpiration();
-        long now = new Date().getTime();
-        return expiration.getTime() - now;
+        return expiration.toInstant().toEpochMilli() - Instant.now().toEpochMilli();
     }
 
     // 만료 예외를 무시하고 Claims를 가져오는 로직

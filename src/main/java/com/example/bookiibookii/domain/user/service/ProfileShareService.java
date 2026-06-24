@@ -19,7 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,6 +38,7 @@ public class ProfileShareService {
     private final BookReviewRepository bookReviewRepository;
     private final UserImageS3Service userImageS3Service;
     private final ShareWebProperties shareWebProperties;
+    private final Clock clock;
 
     @Transactional
     public ProfileShareTokenResponseDTO createShareToken(User user) {
@@ -68,7 +70,7 @@ public class ProfileShareService {
 
     @Transactional
     public void revokeActiveTokensForUser(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = clock.instant();
         List<ProfileShareToken> activeTokens = profileShareTokenRepository.findAllActiveByUserId(userId);
         activeTokens.forEach(token -> token.revoke(now));
     }

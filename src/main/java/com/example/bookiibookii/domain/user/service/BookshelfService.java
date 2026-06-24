@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +55,7 @@ public class BookshelfService {
     private List<BookshelfResponseDTO.CompletedBookDto> buildCompletedBooks(Long userId) {
         List<MemberBook> memberBooks = memberBookRepository.findCompletedBooksByUserId(userId);
 
-        Map<Long, LocalDateTime> completionDateByGroupId = matchedMemberRepository
+        Map<Long, Instant> completionDateByGroupId = matchedMemberRepository
                 .findCompletedByUserId(userId)
                 .stream()
                 .collect(Collectors.toMap(
@@ -74,7 +74,7 @@ public class BookshelfService {
                 .map(mb -> {
                     Book book = mb.getGroup().getBook();
                     BookReview review = reviewByMemberBookId.get(mb.getId());
-                    LocalDateTime completedAt = completionDateByGroupId.get(mb.getGroup().getId());
+                    Instant completedAt = completionDateByGroupId.get(mb.getGroup().getId());
                     return new BookshelfResponseDTO.CompletedBookDto(
                             mb.getId(),
                             book.getTitle(),
@@ -82,7 +82,7 @@ public class BookshelfService {
                             book.getImage(),
                             book.getCategory() != null ? book.getCategory().name() : null,
                             review != null ? review.getStar() : null,
-                            completedAt != null ? completedAt.toLocalDate() : null
+                            completedAt != null ? completedAt.atZone(com.example.bookiibookii.global.time.TimeConfig.KST).toLocalDate() : null
                     );
                 })
                 .toList();

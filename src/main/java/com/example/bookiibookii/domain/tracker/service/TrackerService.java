@@ -387,7 +387,7 @@ public class TrackerService {
                 exchangeRound == ExchangeRound.FIRST_EXCHANGE ? currentBookTitle : null,
                 exchangeRound == ExchangeRound.RETURN_EXCHANGE ? currentBookTitle : null,
                 me.isReviewWritten(),
-                meeting == null ? null : meeting.getScheduledAt(),
+                meeting == null ? null : meeting.getMeetingAt(),
                 meeting == null ? null : meeting.getPlaceName()
         );
     }

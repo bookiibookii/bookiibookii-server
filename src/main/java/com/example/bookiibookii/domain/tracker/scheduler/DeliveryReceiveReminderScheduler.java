@@ -15,15 +15,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Duration;
+import java.time.Instant;
 
 @Slf4j
 @Component
 public class DeliveryReceiveReminderScheduler {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    private static final long REMINDER_DELAY_HOURS = 72;
+    private static final Duration REMINDER_DELAY = Duration.ofHours(72);
 
     private final DeliveryRepository deliveryRepository;
     private final NotificationRepository notificationRepository;
@@ -36,7 +35,7 @@ public class DeliveryReceiveReminderScheduler {
             NotificationRepository notificationRepository,
             DomainEventPublisher eventPublisher
     ) {
-        this(deliveryRepository, notificationRepository, eventPublisher, Clock.system(KST));
+        this(deliveryRepository, notificationRepository, eventPublisher, Clock.systemUTC());
     }
 
     DeliveryReceiveReminderScheduler(
@@ -57,8 +56,7 @@ public class DeliveryReceiveReminderScheduler {
     )
     @Transactional(readOnly = true)
     public void sendReceiveReminders() {
-        LocalDateTime cutoff = LocalDateTime.ofInstant(clock.instant(), clock.getZone())
-                .minusHours(REMINDER_DELAY_HOURS);
+        Instant cutoff = clock.instant().minus(REMINDER_DELAY);
 
         for (Delivery delivery : deliveryRepository.findReceiveReminderCandidates(cutoff)) {
             try {

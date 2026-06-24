@@ -7,7 +7,7 @@ import com.example.bookiibookii.domain.tracker.enums.ExchangeStatus;
 import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record TrackerTopBannerContext(
         Long groupId,
@@ -25,7 +25,7 @@ public record TrackerTopBannerContext(
         String firstExchangeSendBookTitle,
         String returnExchangeSendBookTitle,
         boolean partnerReviewWritten,
-        LocalDateTime meetingScheduledAt,
+        Instant meetingAt,
         String meetingPlaceName
 ) {
 }

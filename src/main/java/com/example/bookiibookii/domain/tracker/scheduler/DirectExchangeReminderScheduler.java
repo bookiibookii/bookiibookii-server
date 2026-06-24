@@ -18,20 +18,22 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class DirectExchangeReminderScheduler {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final Duration REMINDER_DELAY = Duration.ofHours(1);
 
     private final MeetingRepository meetingRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
     private final ActiveExchangeRoundResolver activeExchangeRoundResolver;
+    private final Clock clock;
 
     @Scheduled(
             cron = "${scheduler.direct-exchange-reminder.cron:0 */5 * * * *}",
@@ -39,7 +41,7 @@ public class DirectExchangeReminderScheduler {
     )
     @Transactional(readOnly = true)
     public void sendOverdueMeetingReminders() {
-        LocalDateTime cutoff = LocalDateTime.now(KST).minusHours(1);
+        Instant cutoff = clock.instant().minus(REMINDER_DELAY);
         List<Meeting> meetings = meetingRepository.findDueDirectMeetingReminders(
                 cutoff,
                 TradeType.DIRECT,
@@ -73,7 +75,7 @@ public class DirectExchangeReminderScheduler {
                 meeting.getGroup().getId(),
                 meeting.getId(),
                 meeting.getExchangeRound(),
-                meeting.getScheduledAt(),
+                meeting.getMeetingAt(),
                 null,
                 meeting.getGroup().getBook().getTitle()
         ));

@@ -19,7 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -30,6 +31,7 @@ public class GroupCompletionService {
     private final GroupsRepository groupsRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void forceCompleteSingleGroup(Long groupId) {
@@ -51,7 +53,7 @@ public class GroupCompletionService {
             return;
         }
 
-        LocalDateTime completedAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"));
+        Instant completedAt = clock.instant();
         members.forEach(member -> member.completeReading(completedAt));
         group.updateStatus(GroupStatus.COMPLETED);
 

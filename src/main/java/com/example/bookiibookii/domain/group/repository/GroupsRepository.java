@@ -13,8 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -117,5 +116,5 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
                 AND COALESCE(mm.partner_reviewing_started_at, mm.updated_at) <= :cutoff
             ) >= 2
             """, nativeQuery = true)
-    List<Groups> findGroupsForForceComplete(@Param("cutoff") LocalDateTime cutoff);
+	    List<Groups> findGroupsForForceComplete(@Param("cutoff") Instant cutoff);
 }

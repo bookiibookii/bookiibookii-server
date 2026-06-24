@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,6 +14,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -48,11 +53,15 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: prod
+    concurrency:
+      group: prod-deploy-main
+      cancel-in-progress: false
 
     steps:
       - name: Deploy to EC2 with Docker and Redis
         env:
           EC2_SSH_KEY: ${{ secrets.PROD_EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.PROD_EC2_KNOWN_HOSTS }}
           EC2_USERNAME: ${{ secrets.PROD_EC2_USERNAME }}
           EC2_HOST: ${{ secrets.PROD_EC2_HOST }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -60,13 +69,24 @@ jobs:
           IMAGE_TAG: prod-${{ github.sha }}
         run: |
           set -e
-          trap 'rm -f private_key.pem' EXIT
+          trap 'rm -f private_key.pem known_hosts' EXIT
+
+          if [ -z "$EC2_KNOWN_HOSTS" ]; then
+            echo "PROD_EC2_KNOWN_HOSTS secret is required"
+            exit 1
+          fi
 
           printf '%s\n' "$EC2_SSH_KEY" > private_key.pem
           sed -i 's/\r$//' private_key.pem
           chmod 600 private_key.pem
 
-          ssh -i private_key.pem -o StrictHostKeyChecking=no \
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > known_hosts
+          sed -i 's/\r$//' known_hosts
+          chmod 600 known_hosts
+
+          ssh -i private_key.pem \
+            -o UserKnownHostsFile=known_hosts \
+            -o StrictHostKeyChecking=yes \
             "${EC2_USERNAME}@${EC2_HOST}" bash -se <<EOF
           set -e
 
@@ -87,10 +107,54 @@ jobs:
             exit 1
           fi
 
-          if [ ! -f "\$FIREBASE_CREDENTIALS_FILE" ]; then
-            echo "Firebase credentials file not found: \$FIREBASE_CREDENTIALS_FILE"
-            exit 1
+          set -a
+          . "\$ENV_FILE"
+          set +a
+
+          FIREBASE_ENABLED_VALUE="\${FIREBASE_ENABLED:-false}"
+          FIREBASE_DOCKER_ARGS=()
+          if [ "\$FIREBASE_ENABLED_VALUE" = "true" ]; then
+            if [ ! -f "\$FIREBASE_CREDENTIALS_FILE" ]; then
+              echo "Firebase credentials file not found: \$FIREBASE_CREDENTIALS_FILE"
+              exit 1
+            fi
+            FIREBASE_DOCKER_ARGS=(
+              -e "FIREBASE_CREDENTIALS_PATH=\$FIREBASE_CREDENTIALS_FILE"
+              -v "\$FIREBASE_CREDENTIALS_FILE:\$FIREBASE_CREDENTIALS_FILE:ro"
+            )
+            echo "Firebase is enabled; credentials will be mounted"
+          else
+            echo "Firebase is disabled; credentials file is not required"
           fi
+
+          start_app_container() {
+            local image="\$1"
+
+            sudo docker run -d \
+              --name "\$APP_CONTAINER_NAME" \
+              --restart unless-stopped \
+              --network "\$NETWORK_NAME" \
+              --env-file "\$ENV_FILE" \
+              -e SPRING_PROFILES_ACTIVE=prod \
+              -e REDIS_HOST=redis \
+              -p 8080:8080 \
+              -v "\$LOG_DIR:/logs" \
+              "\${FIREBASE_DOCKER_ARGS[@]}" \
+              "\$image"
+          }
+
+          wait_for_health() {
+            local label="\$1"
+            for i in \$(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+                echo "\$label health check passed"
+                return 0
+              fi
+              echo "Waiting for \$label health check... (\$i/30)"
+              sleep 2
+            done
+            return 1
+          }
 
           sudo docker network create "\$NETWORK_NAME" || true
 
@@ -121,34 +185,37 @@ jobs:
           sudo docker stop "\$APP_CONTAINER_NAME" || true
           sudo docker rm "\$APP_CONTAINER_NAME" || true
 
-          sudo docker run -d \
-            --name "\$APP_CONTAINER_NAME" \
-            --restart unless-stopped \
-            --network "\$NETWORK_NAME" \
-            --env-file "\$ENV_FILE" \
-            -e SPRING_PROFILES_ACTIVE=prod \
-            -e REDIS_HOST=redis \
-            -e FIREBASE_CREDENTIALS_PATH="\$FIREBASE_CREDENTIALS_FILE" \
-            -p 8080:8080 \
-            -v "\$LOG_DIR:/logs" \
-            -v "\$FIREBASE_CREDENTIALS_FILE:\$FIREBASE_CREDENTIALS_FILE:ro" \
-            "\$IMAGE"
+          start_app_container "\$IMAGE"
 
           # After Nginx is introduced, prefer binding only to localhost:
           # -p 127.0.0.1:8080:8080
-          for i in \$(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
-              echo "Health check passed"
-              sudo docker image prune -f
-              echo "DEPLOY DONE"
-              exit 0
-            fi
-            echo "Waiting for app health check... (\$i/30)"
-            sleep 2
-          done
+          if wait_for_health "new app"; then
+            sudo docker image prune -f
+            echo "DEPLOY DONE"
+            exit 0
+          fi
 
           echo "Health check failed"
           sudo docker logs "\$APP_CONTAINER_NAME" --tail=200 || true
-          echo "Manual rollback image candidate: \$PREVIOUS_IMAGE"
+
+          # This is not zero-downtime deployment; rollback is best-effort recovery after a failed health check.
+          if [ -z "\$PREVIOUS_IMAGE" ]; then
+            echo "Rollback unavailable: previous image is unknown"
+            exit 1
+          fi
+
+          echo "Rolling back to previous image: \$PREVIOUS_IMAGE"
+          sudo docker stop "\$APP_CONTAINER_NAME" || true
+          sudo docker rm "\$APP_CONTAINER_NAME" || true
+          sudo docker pull "\$PREVIOUS_IMAGE" || true
+          start_app_container "\$PREVIOUS_IMAGE"
+
+          if wait_for_health "rollback app"; then
+            echo "Rollback succeeded"
+          else
+            echo "Rollback failed"
+            sudo docker logs "\$APP_CONTAINER_NAME" --tail=200 || true
+          fi
+
           exit 1
           EOF

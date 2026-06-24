@@ -107,11 +107,16 @@ jobs:
             exit 1
           fi
 
-          set -a
-          . "\$ENV_FILE"
-          set +a
+          FIREBASE_ENABLED_VALUE=\$(grep -E '^[[:space:]]*FIREBASE_ENABLED[[:space:]]*=' "\$ENV_FILE" \
+            | grep -Ev '^[[:space:]]*#' \
+            | tail -n 1 \
+            | cut -d '=' -f 2- \
+            | tr -d '[:space:]' \
+            || true)
+          if [ "\$FIREBASE_ENABLED_VALUE" != "true" ]; then
+            FIREBASE_ENABLED_VALUE="false"
+          fi
 
-          FIREBASE_ENABLED_VALUE="\${FIREBASE_ENABLED:-false}"
           FIREBASE_DOCKER_ARGS=()
           if [ "\$FIREBASE_ENABLED_VALUE" = "true" ]; then
             if [ ! -f "\$FIREBASE_CREDENTIALS_FILE" ]; then

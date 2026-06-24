@@ -5,7 +5,7 @@ import java.time.Instant;
 
 @Schema(description = "직접 교환 약속 상세 응답")
 public record TrackerMeetingResponseDTO(
-        @Schema(description = "교환 일시", example = "2026-02-05T14:30:00")
+        @Schema(description = "교환 일시", example = "2026-02-05T05:30:00Z")
         Instant meetingTime,
         @Schema(description = "장소명", example = "강남역 2번 출구 앞")
         String placeName,

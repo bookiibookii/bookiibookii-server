@@ -31,7 +31,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +46,7 @@ public class MeetingService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final GroupPlaceRepository groupPlaceRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional
     public MeetingResponseDTO createMeeting(Long groupId, MeetingRequestDTO request, User user) {
@@ -68,7 +70,7 @@ public class MeetingService {
                 request.x(),
                 request.y(),
                 request.addressDetail(),
-                request.scheduledAt()
+                request.meetingAt().toInstant()
         );
 
         try {
@@ -106,7 +108,7 @@ public class MeetingService {
                 request.x(),
                 request.y(),
                 request.addressDetail(),
-                request.scheduledAt()
+                request.meetingAt().toInstant()
         );
         meeting.update(
                 request.placeName(),
@@ -115,7 +117,7 @@ public class MeetingService {
                 request.x(),
                 request.y(),
                 request.addressDetail(),
-                request.scheduledAt()
+                request.meetingAt().toInstant()
         );
         if (changed) {
             publishMeetingNotification(
@@ -278,7 +280,7 @@ public class MeetingService {
                 meeting.getGroup().getId(),
                 meeting.getId(),
                 meeting.getExchangeRound(),
-                meeting.getScheduledAt(),
+                meeting.getMeetingAt(),
                 eventId,
                 meeting.getGroup().getBook().getTitle()
         ));
@@ -286,7 +288,7 @@ public class MeetingService {
 
     private void completeMeetingPhase(List<MatchedMember> members) {
         ReadingStatus phase = validateMeetingPhase(members);
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = clock.instant();
 
         if (phase == ReadingStatus.EXCHANGING) {
             members.forEach(member -> {

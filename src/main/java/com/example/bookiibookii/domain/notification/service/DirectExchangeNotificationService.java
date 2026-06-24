@@ -20,8 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -31,13 +31,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DirectExchangeNotificationService {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final Duration REMINDER_DELAY = Duration.ofHours(1);
 
     private final NotificationStore notificationStore;
     private final NotificationFactory notificationFactory;
     private final MeetingRepository meetingRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final ActiveExchangeRoundResolver activeExchangeRoundResolver;
+    private final Clock clock;
 
     public void send(DirectExchangeNotificationEvent event) {
         if (event.receiverId() == null || isSelfNotification(event) || !isCurrentlyEligible(event)) {
@@ -88,8 +89,8 @@ public class DirectExchangeNotificationService {
                 || meeting.getGroup().getTradeType() != TradeType.DIRECT
                 || meeting.getGroup().getGroupStatus() != GroupStatus.MATCHED
                 || meeting.getExchangeRound() != event.exchangeRound()
-                || !meeting.getScheduledAt().equals(event.meetingAt())
-                || meeting.getScheduledAt().isAfter(LocalDateTime.now(KST).minusHours(1))) {
+                || !meeting.getMeetingAt().equals(event.meetingAt())
+                || meeting.getMeetingAt().isAfter(clock.instant().minus(REMINDER_DELAY))) {
             return false;
         }
 

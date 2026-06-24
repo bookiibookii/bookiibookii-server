@@ -3,7 +3,7 @@ package com.example.bookiibookii.domain.notification.event;
 import com.example.bookiibookii.domain.notification.enums.NotificationType;
 import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 public record DirectExchangeNotificationEvent(
@@ -14,7 +14,7 @@ public record DirectExchangeNotificationEvent(
         Long groupId,
         Long meetingId,
         ExchangeRound exchangeRound,
-        LocalDateTime meetingAt,
+        Instant meetingAt,
         UUID eventId,
         String bookTitle
 ) {

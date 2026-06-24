@@ -13,7 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,7 +65,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
         join fetch g.book
         where g.tradeType = :tradeType
           and g.groupStatus = :groupStatus
-          and m.scheduledAt <= :cutoff
+          and m.meetingAt <= :cutoff
           and exists (
               select mm.id
               from MatchedMember mm
@@ -103,7 +103,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
           )
     """)
     List<Meeting> findDueDirectMeetingReminders(
-            @Param("cutoff") LocalDateTime cutoff,
+            @Param("cutoff") Instant cutoff,
             @Param("tradeType") TradeType tradeType,
             @Param("groupStatus") GroupStatus groupStatus,
             @Param("scheduledStatus") ExchangeStatus scheduledStatus,

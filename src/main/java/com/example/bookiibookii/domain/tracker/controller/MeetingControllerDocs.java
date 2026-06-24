@@ -34,7 +34,7 @@ public interface MeetingControllerDocs {
             - 직접교환 그룹에서만 가능합니다.
             - 두 matchedMember 모두 EXCHANGING 또는 모두 RETURNING 상태여야 합니다.
             - 등록 성공 시 두 matchedMember의 ExchangeStatus가 MEETING_SCHEDULED로 변경됩니다.
-            - scheduledAt이 미래여도 이후 교환완료 확인이 가능합니다.
+            - meetingAt이 미래여도 이후 교환완료 확인이 가능합니다.
             """
     )
     @ApiResponses({
@@ -64,7 +64,7 @@ public interface MeetingControllerDocs {
                                               "x": 127.027621,
                                               "y": 37.497942,
                                               "addressDetail": "2층",
-                                              "scheduledAt": "2026-05-20T14:30:00"
+                                              "meetingAt": "2026-05-20T14:30:00+09:00"
                                             }
                                             """
                                     ),
@@ -77,7 +77,7 @@ public interface MeetingControllerDocs {
                                               "x": 127.027621,
                                               "y": 37.497942,
                                               "addressDetail": "11번 출구 앞",
-                                              "scheduledAt": "2026-05-20T14:30:00"
+                                              "meetingAt": "2026-05-20T14:30:00+09:00"
                                             }
                                             """
                                     )
@@ -95,7 +95,7 @@ public interface MeetingControllerDocs {
             HOST가 groupId 기준으로 현재 등록된 직접교환 약속을 수정합니다.
             
             - 프론트가 meetingId를 들고 있지 않아도 됩니다.
-            - 수정 가능 필드: placeName, address, zipCode, x, y, addressDetail, scheduledAt
+            - 수정 가능 필드: placeName, address, zipCode, x, y, addressDetail, meetingAt
             """
     )
     @ApiResponses({
@@ -124,7 +124,7 @@ public interface MeetingControllerDocs {
                                               "x": 127.027621,
                                               "y": 37.497942,
                                               "addressDetail": "2층",
-                                              "scheduledAt": "2026-05-20T14:30:00"
+                                              "meetingAt": "2026-05-20T14:30:00+09:00"
                                             }
                                             """
                                     ),
@@ -137,7 +137,7 @@ public interface MeetingControllerDocs {
                                               "x": 127.027621,
                                               "y": 37.497942,
                                               "addressDetail": "11번 출구 앞",
-                                              "scheduledAt": "2026-05-20T14:30:00"
+                                              "meetingAt": "2026-05-20T14:30:00+09:00"
                                             }
                                             """
                                     )

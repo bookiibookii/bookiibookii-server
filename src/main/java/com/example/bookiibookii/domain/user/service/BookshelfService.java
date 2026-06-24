@@ -79,6 +79,7 @@ public class BookshelfService {
                     LocalDateTime completedAt = completionDateByGroupId.get(mb.getGroup().getId());
                     return new BookshelfResponseDTO.CompletedBookDto(
                             mb.getId(),
+                            mb.getGroup().getId(),
                             book.getTitle(),
                             book.getAuthor(),
                             book.getImage(),

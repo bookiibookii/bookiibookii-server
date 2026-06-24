@@ -244,7 +244,7 @@ public class PackageDeliveryService {
             if (currentExchangeRound == ExchangeRound.RETURN_EXCHANGE) {
                 members.forEach(member -> {
                     member.changeCurrentMemberBook(findMyBook(member), now);
-                    member.updateReadingStatus(ReadingStatus.PARTNER_REVIEWING);
+                    member.updateReadingStatus(ReadingStatus.PARTNER_REVIEWING, now);
                     member.updateExchangeStatus(ExchangeStatus.NOT_STARTED);
                 });
                 return;

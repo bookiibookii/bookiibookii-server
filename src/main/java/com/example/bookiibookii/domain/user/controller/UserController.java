@@ -146,6 +146,18 @@ public class UserController implements UserControllerDocs{
         return ApiResponse.onSuccess(UserSuccessCode.FAVORITE_BOOK_ADD_SUCCESS, null);
     }
 
+    // 인생 책 교체
+    @Override
+    @PatchMapping("/api/mypage/bookshelf/favorites/{userBookId}")
+    public ApiResponse<Void> replaceFavoriteBook(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long userBookId,
+            @Valid @RequestBody BookReqDTO.UserPickISBN request
+    ) {
+        bookshelfService.replaceFavoriteBook(user.getId(), userBookId, request.isbn13());
+        return ApiResponse.onSuccess(UserSuccessCode.FAVORITE_BOOK_REPLACE_SUCCESS, null);
+    }
+
     // 인생 책 삭제
     @Override
     @DeleteMapping("/api/mypage/bookshelf/favorites/{userBookId}")

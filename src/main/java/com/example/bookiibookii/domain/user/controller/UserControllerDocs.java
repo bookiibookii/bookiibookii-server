@@ -189,6 +189,27 @@ public interface UserControllerDocs {
     ApiResponse<Void> addFavoriteBook(@AuthenticationPrincipal User user, @Valid @RequestBody BookReqDTO.UserPickISBN request);
 
     @Operation(
+            summary = "인생 책 교체 API",
+            description = """
+            등록된 인생 책을 다른 책으로 교체합니다.
+            - 구 책이 대표책이었다면 신 책도 자동으로 대표책으로 등록됩니다 (빈 슬롯 기준 위치).
+            - 신 책이 이미 대표책으로만 등록된 경우 인생책 플래그만 추가합니다.
+            - 같은 책으로 교체 요청 시 아무 변화 없이 성공으로 응답합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인생 책 교체 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "이미 인생책으로 등록된 책"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "등록된 인생 책을 찾을 수 없음")
+    })
+    @PatchMapping("/api/mypage/bookshelf/favorites/{userBookId}")
+    ApiResponse<Void> replaceFavoriteBook(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long userBookId,
+            @Valid @RequestBody BookReqDTO.UserPickISBN request
+    );
+
+    @Operation(
             summary = "인생 책 삭제 API",
             description = """
             나의 책장에서 인생 책을 삭제합니다.

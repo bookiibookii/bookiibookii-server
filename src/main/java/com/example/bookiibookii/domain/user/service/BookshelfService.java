@@ -380,6 +380,9 @@ public class BookshelfService {
     // 대표책 삭제
     @Transactional
     public void deleteRepresentativeBook(Long userId, Long userBookId) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
         UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
 
@@ -422,6 +425,9 @@ public class BookshelfService {
     // 대표책 순서 변경 (드래그앤드롭)
     @Transactional
     public void reorderRepresentativeBooks(Long userId, Long userBookId, Integer targetOrder) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
         UserBook dragged = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
 

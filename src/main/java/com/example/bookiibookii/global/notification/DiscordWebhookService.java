@@ -29,6 +29,26 @@ public class DiscordWebhookService {
     private final DiscordWebhookProperties properties;
     private final RestClient discordWebhookRestClient;
 
+    public void sendSchedulerResult(String schedulerName, int total, int success, int fail, long elapsedMs) {
+        send("""
+                [Scheduler 완료] %s
+                처리 대상: %d건 | 성공: %d건 | 실패: %d건
+                실행 시간: %dms
+                """.formatted(schedulerName, total, success, fail, elapsedMs));
+    }
+
+    public void sendSchedulerError(String schedulerName, Exception exception) {
+        send("""
+                [Scheduler 전체 실패] %s
+                exception: %s
+                message: %s
+                """.formatted(
+                schedulerName,
+                exception.getClass().getName(),
+                exception.getMessage() == null ? "(empty)" : exception.getMessage()
+        ));
+    }
+
     public void sendUnexpectedExceptionAlert(HttpServletRequest request, Exception exception) {
         if (!properties.enabled() || properties.url() == null || properties.url().isBlank()) {
             return;
@@ -42,6 +62,22 @@ public class DiscordWebhookService {
                     .toBodilessEntity();
         } catch (Exception e) {
             // 웹훅 실패가 500 으로 이어지지 않도록 삼킴
+            log.warn("Discord webhook alert failed", e);
+        }
+    }
+
+    private void send(String content) {
+        if (!properties.enabled() || properties.url() == null || properties.url().isBlank()) {
+            return;
+        }
+
+        try {
+            discordWebhookRestClient.post()
+                    .uri(properties.url())
+                    .body(new DiscordWebhookRequest(truncate(content)))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
             log.warn("Discord webhook alert failed", e);
         }
     }

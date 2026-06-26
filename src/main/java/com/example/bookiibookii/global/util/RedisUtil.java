@@ -58,6 +58,7 @@ public class RedisUtil {
         } catch (Exception e) {
             log.error("[SET] Redis 연결 에러 : {}", e.getMessage());
             sendRedisAlertIfNeeded("SET", e);
+            throw new RuntimeException("Redis SET 실패", e);
         }
     }
 

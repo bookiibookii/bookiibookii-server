@@ -38,6 +38,7 @@ public class BookshelfResponseDTO {
     // 대표 책
     public record RepresentativeBookDto(
             Long userBookId,
+            Long memberBookId,
             String title,
             Integer displayOrder,
             boolean isFavorite,

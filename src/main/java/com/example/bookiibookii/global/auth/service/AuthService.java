@@ -170,7 +170,7 @@ public class AuthService {
             }
 
         } catch (Exception e) {
-            log.error("로그아웃 중 Redis 처리 에러 발생.", e);
+            log.error("로그아웃 처리 중 에러 발생.", e);
         }
     }
 

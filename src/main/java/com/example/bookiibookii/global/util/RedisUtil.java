@@ -73,7 +73,7 @@ public class RedisUtil {
         } catch (Exception e) {
             log.error("[GET] Redis 연결 에러 : {}", e.getMessage());
             sendRedisAlertIfNeeded("GET", e);
-            return null;
+            throw new RuntimeException("Redis GET 실패", e);
         }
     }
 

@@ -20,6 +20,7 @@ public class NoticeResponseDTO {
             String summary,
             String content,
             String authorNickname,
+            String authorProfileImageUrl,
             Instant createdAt,
             Instant updatedAt
     ) {}
@@ -29,7 +30,9 @@ public class NoticeResponseDTO {
             Instant createdAt,
             String title,
             String summary,
-            boolean isRead
+            boolean isRead,
+            String authorNickname,
+            String authorProfileImageUrl
     ) {}
 
     public record AdminNoticeListDTO(

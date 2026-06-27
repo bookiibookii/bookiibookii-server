@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -105,19 +106,26 @@ public class BookshelfService {
                 .toList();
     }
 
-    // 나를 대표하는 책 조회
+    // 나를 대표하는 책 조회 (내 대표책 + 참여 그룹 상대방 책)
     private List<BookshelfResponseDTO.RepresentativeBookDto> buildRepresentativeBooks(Long userId) {
         List<UserBook> representativeBooks = userBookRepository.findRepresentativeBooks(userId);
-        if (representativeBooks.isEmpty()) {
+        List<MemberBook> partnerBooks = memberBookRepository.findPartnerBooksByParticipatedGroups(userId);
+
+        if (representativeBooks.isEmpty() && partnerBooks.isEmpty()) {
             return List.of();
         }
 
-        List<Long> bookIds = representativeBooks.stream()
+        Set<Long> representativeBookIds = representativeBooks.stream()
                 .map(ub -> ub.getBook().getId())
-                .distinct()
-                .toList();
+                .collect(Collectors.toSet());
+
+        List<Long> allBookIds = Stream.concat(
+                representativeBooks.stream().map(ub -> ub.getBook().getId()),
+                partnerBooks.stream().map(mb -> mb.getBook().getId())
+        ).distinct().toList();
+
         Map<Long, Double> ratingByBookId = bookReviewRepository
-                .findLatestByUserIdAndBookIds(userId, bookIds)
+                .findLatestByUserIdAndBookIds(userId, allBookIds)
                 .stream()
                 .collect(Collectors.toMap(
                         review -> review.getMemberBook().getBook().getId(),
@@ -125,15 +133,32 @@ public class BookshelfService {
                         (latest, ignored) -> latest
                 ));
 
-        return representativeBooks.stream()
+        List<BookshelfResponseDTO.RepresentativeBookDto> result = new ArrayList<>();
+
+        representativeBooks.stream()
                 .map(ub -> new BookshelfResponseDTO.RepresentativeBookDto(
                         ub.getId(),
+                        null,
                         ub.getBook().getTitle(),
                         ub.getDisplayOrder(),
                         ub.isFavorite(),
                         ratingByBookId.get(ub.getBook().getId())
                 ))
-                .toList();
+                .forEach(result::add);
+
+        partnerBooks.stream()
+                .filter(mb -> !representativeBookIds.contains(mb.getBook().getId()))
+                .map(mb -> new BookshelfResponseDTO.RepresentativeBookDto(
+                        null,
+                        mb.getId(),
+                        mb.getBook().getTitle(),
+                        null,
+                        false,
+                        ratingByBookId.get(mb.getBook().getId())
+                ))
+                .forEach(result::add);
+
+        return result;
     }
 
     // 온보딩 전용: 인생책 등록 + displayOrder 자동 부여로 대표책 동시 등록

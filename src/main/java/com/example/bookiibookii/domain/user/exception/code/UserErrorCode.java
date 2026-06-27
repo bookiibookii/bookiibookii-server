@@ -62,7 +62,10 @@ public enum UserErrorCode implements BaseCode {
             "공유할 수 없는 프로필입니다."),
     PROFILE_SHARE_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND,
             "USER404_3",
-            "공유 링크를 찾을 수 없거나 만료되었습니다.")
+            "공유 링크를 찾을 수 없거나 만료되었습니다."),
+    ACTIVE_GROUP_EXISTS(HttpStatus.BAD_REQUEST,
+            "USER400_13",
+            "활동 중인 그룹이 있어 탈퇴할 수 없습니다. 그룹 활동을 모두 종료한 후 탈퇴해 주세요.")
     ;
     private final HttpStatus status;
     private final String code;

@@ -47,7 +47,34 @@ public class AdminNoticeService {
         noticeRepository.save(notice);
     }
 
-    public void updateNotice(Long noticeId, NoticeRequestDTO.UpdateNoticeDTO request) {
+    @Transactional(readOnly = true)
+    public NoticeResponseDTO.AdminNoticeDetailDTO getNoticeDetail(Long noticeId) {
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND));
+
+        User author = userRepository.findById(notice.getUserId())
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        String updatedByNickname = null;
+        if (notice.getUpdatedByUserId() != null) {
+            updatedByNickname = userRepository.findById(notice.getUpdatedByUserId())
+                    .map(User::getNickName)
+                    .orElse(null);
+        }
+
+        return new NoticeResponseDTO.AdminNoticeDetailDTO(
+                notice.getId(),
+                notice.getTitle(),
+                notice.getSummary(),
+                notice.getContent(),
+                author.getNickName(),
+                updatedByNickname,
+                notice.getCreatedAt(),
+                notice.getUpdatedAt()
+        );
+    }
+
+    public void updateNotice(Long updatedByUserId, Long noticeId, NoticeRequestDTO.UpdateNoticeDTO request) {
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND));
 
@@ -60,6 +87,7 @@ public class AdminNoticeService {
         if (request.summary() != null) {
             notice.updateSummary(request.summary());
         }
+        notice.updateUpdatedBy(updatedByUserId);
     }
 
     public void deleteNotice(Long noticeId) {

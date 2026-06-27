@@ -1,7 +1,5 @@
 package com.example.bookiibookii.domain.support.notice.dto.res;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import java.time.Instant;
 
 public class NoticeResponseDTO {
@@ -12,9 +10,7 @@ public class NoticeResponseDTO {
             String content,
             String authorNickname,
             String updatedByNickname,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             Instant createdAt,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             Instant updatedAt
     ) {}
 
@@ -24,9 +20,7 @@ public class NoticeResponseDTO {
             String summary,
             String content,
             String authorNickname,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             Instant createdAt,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             Instant updatedAt
     ) {}
 
@@ -43,9 +37,7 @@ public class NoticeResponseDTO {
             String summary,
             String authorNickname,
             String updatedByNickname,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             Instant createdAt,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             Instant updatedAt
     ) {}
 }

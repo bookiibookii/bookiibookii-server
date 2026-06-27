@@ -15,6 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -23,12 +28,27 @@ public class AdminNoticeService {
     private final UserRepository userRepository;
     private final NoticeRepository noticeRepository;
 
+    @Transactional(readOnly = true)
     public List<NoticeResponseDTO.AdminNoticeListDTO> getNoticeList() {
-        return noticeRepository.findAllByOrderByCreatedAtDesc().stream()
+        List<Notice> notices = noticeRepository.findAllByOrderByCreatedAtDesc();
+
+        Set<Long> userIds = notices.stream()
+                .flatMap(n -> Stream.of(n.getUserId(), n.getUpdatedByUserId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, String> nicknameById = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u.getNickName() != null ? u.getNickName() : ""));
+
+        return notices.stream()
                 .map(notice -> new NoticeResponseDTO.AdminNoticeListDTO(
                         notice.getId(),
+                        notice.getTitle(),
+                        notice.getSummary(),
+                        nicknameById.get(notice.getUserId()),
+                        notice.getUpdatedByUserId() != null ? nicknameById.get(notice.getUpdatedByUserId()) : null,
                         notice.getCreatedAt(),
-                        notice.getTitle()
+                        notice.getUpdatedAt()
                 ))
                 .toList();
     }
@@ -47,7 +67,34 @@ public class AdminNoticeService {
         noticeRepository.save(notice);
     }
 
-    public void updateNotice(Long noticeId, NoticeRequestDTO.UpdateNoticeDTO request) {
+    @Transactional(readOnly = true)
+    public NoticeResponseDTO.AdminNoticeDetailDTO getNoticeDetail(Long noticeId) {
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND));
+
+        User author = userRepository.findById(notice.getUserId())
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        String updatedByNickname = null;
+        if (notice.getUpdatedByUserId() != null) {
+            updatedByNickname = userRepository.findById(notice.getUpdatedByUserId())
+                    .map(User::getNickName)
+                    .orElse(null);
+        }
+
+        return new NoticeResponseDTO.AdminNoticeDetailDTO(
+                notice.getId(),
+                notice.getTitle(),
+                notice.getSummary(),
+                notice.getContent(),
+                author.getNickName(),
+                updatedByNickname,
+                notice.getCreatedAt(),
+                notice.getUpdatedAt()
+        );
+    }
+
+    public void updateNotice(Long updatedByUserId, Long noticeId, NoticeRequestDTO.UpdateNoticeDTO request) {
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND));
 
@@ -60,6 +107,7 @@ public class AdminNoticeService {
         if (request.summary() != null) {
             notice.updateSummary(request.summary());
         }
+        notice.updateUpdatedBy(updatedByUserId);
     }
 
     public void deleteNotice(Long noticeId) {

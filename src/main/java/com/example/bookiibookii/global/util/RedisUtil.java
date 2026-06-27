@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,7 +35,7 @@ public class RedisUtil {
 
     // 연속 Redis 장애 시 Discord 알림 폭주 방지 (1분 쿨다운)
     private static final long ALERT_COOLDOWN_MS = 60_000L;
-    private volatile long lastRedisAlertTime = 0;
+    private final AtomicLong lastRedisAlertTime = new AtomicLong(0);
 
     private String applyPrefix(String key) {
         return (prefix == null ? "" : prefix) + key;
@@ -42,8 +43,8 @@ public class RedisUtil {
 
     private void sendRedisAlertIfNeeded(String operation, Exception e) {
         long now = System.currentTimeMillis();
-        if (now - lastRedisAlertTime >= ALERT_COOLDOWN_MS) {
-            lastRedisAlertTime = now;
+        long last = lastRedisAlertTime.get();
+        if (now - last >= ALERT_COOLDOWN_MS && lastRedisAlertTime.compareAndSet(last, now)) {
             discordWebhookService.sendRedisErrorAlert(operation, e);
         }
     }

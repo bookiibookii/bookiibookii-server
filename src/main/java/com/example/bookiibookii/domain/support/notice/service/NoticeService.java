@@ -2,7 +2,11 @@ package com.example.bookiibookii.domain.support.notice.service;
 
 import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.domain.support.notice.entity.Notice;
+import com.example.bookiibookii.domain.support.notice.entity.UserNoticeRead;
+import com.example.bookiibookii.domain.support.notice.exception.NoticeException;
+import com.example.bookiibookii.domain.support.notice.exception.code.NoticeErrorCode;
 import com.example.bookiibookii.domain.support.notice.repository.NoticeRepository;
+import com.example.bookiibookii.domain.support.notice.repository.UserNoticeReadRepository;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.global.apiPayload.code.GeneralErrorCode;
@@ -12,22 +16,32 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class NoticeService {
     private final NoticeRepository noticeRepository;
+    private final UserNoticeReadRepository userNoticeReadRepository;
     private final UserRepository userRepository;
 
     // 공지사항 리스트 조회
-    public List<NoticeResponseDTO.NoticeListDTO> getNoticeList() {
-        return noticeRepository.findAllByOrderByCreatedAtDesc().stream()
+    @Transactional(readOnly = true)
+    public List<NoticeResponseDTO.NoticeListDTO> getNoticeList(Long userId) {
+        List<Notice> notices = noticeRepository.findAllByOrderByCreatedAtDesc();
+
+        Set<Long> readNoticeIds = (userId != null && !notices.isEmpty())
+                ? userNoticeReadRepository.findReadNoticeIds(userId, notices.stream().map(Notice::getId).toList())
+                : Set.of();
+
+        return notices.stream()
                 .map(notice -> new NoticeResponseDTO.NoticeListDTO(
                         notice.getId(),
                         notice.getCreatedAt(),
                         notice.getTitle(),
-                        notice.getSummary()
+                        notice.getSummary(),
+                        readNoticeIds.contains(notice.getId())
                 ))
                 .toList();
     }
@@ -54,5 +68,18 @@ public class NoticeService {
                 notice.getCreatedAt(),
                 notice.getUpdatedAt()
         );
+    }
+
+    // 공지사항 읽음 처리
+    public void markAsRead(Long userId, Long noticeId) {
+        if (!noticeRepository.existsById(noticeId)) {
+            throw new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND);
+        }
+        if (!userNoticeReadRepository.existsByUserIdAndNoticeId(userId, noticeId)) {
+            userNoticeReadRepository.save(UserNoticeRead.builder()
+                    .userId(userId)
+                    .noticeId(noticeId)
+                    .build());
+        }
     }
 }

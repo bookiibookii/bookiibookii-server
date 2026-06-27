@@ -28,7 +28,8 @@ public class NoticeResponseDTO {
             Long id,
             Instant createdAt,
             String title,
-            String summary
+            String summary,
+            boolean isRead
     ) {}
 
     public record AdminNoticeListDTO(

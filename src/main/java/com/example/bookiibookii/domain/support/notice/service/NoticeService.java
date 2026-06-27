@@ -60,7 +60,7 @@ public class NoticeService {
                     String authorProfileImageUrl = resolveProfileImageUrl(author);
                     return new NoticeResponseDTO.NoticeListDTO(
                             notice.getId(),
-                            notice.getCreatedAt(),
+                            notice.getUpdatedAt(),
                             notice.getTitle(),
                             notice.getSummary(),
                             readNoticeIds.contains(notice.getId()),

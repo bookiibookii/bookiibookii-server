@@ -27,7 +27,7 @@ public class NoticeResponseDTO {
 
     public record NoticeListDTO(
             Long id,
-            Instant createdAt,
+            Instant updatedAt,
             String title,
             String summary,
             boolean isRead,

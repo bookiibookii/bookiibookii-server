@@ -21,9 +21,13 @@ public class NoticeResponseDTO {
     public record NoticeDetailDTO(
             Long id,
             String title,
+            String summary,
             String content,
+            String authorNickname,
             @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
-            Instant createdAt
+            Instant createdAt,
+            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
+            Instant updatedAt
     ) {}
 
     public record NoticeListDTO(
@@ -35,7 +39,13 @@ public class NoticeResponseDTO {
 
     public record AdminNoticeListDTO(
             Long id,
+            String title,
+            String summary,
+            String authorNickname,
+            String updatedByNickname,
+            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
             Instant createdAt,
-            String title
+            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
+            Instant updatedAt
     ) {}
 }

@@ -30,7 +30,7 @@ public class AdminNoticeService {
 
     @Transactional(readOnly = true)
     public List<NoticeResponseDTO.AdminNoticeListDTO> getNoticeList() {
-        List<Notice> notices = noticeRepository.findAllByOrderByCreatedAtDesc();
+        List<Notice> notices = noticeRepository.findAllByOrderByUpdatedAtDesc();
 
         Set<Long> userIds = notices.stream()
                 .flatMap(n -> Stream.of(n.getUserId(), n.getUpdatedByUserId()))

@@ -37,7 +37,7 @@ public class NoticeService {
     // 공지사항 리스트 조회
     @Transactional(readOnly = true)
     public List<NoticeResponseDTO.NoticeListDTO> getNoticeList(Long userId) {
-        List<Notice> notices = noticeRepository.findAllByOrderByCreatedAtDesc();
+        List<Notice> notices = noticeRepository.findAllByOrderByUpdatedAtDesc();
         if (notices.isEmpty()) return List.of();
 
         Set<Long> readNoticeIds = userId != null

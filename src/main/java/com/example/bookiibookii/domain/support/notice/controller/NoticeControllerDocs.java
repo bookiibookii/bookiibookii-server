@@ -31,27 +31,18 @@ public interface NoticeControllerDocs {
 
     @Operation(
             summary = "공지 상세 조회 API",
-            description = "공지 상세 내용을 조회합니다."
+            description = """
+            공지 상세 내용을 조회합니다.
+            - 로그인 상태: 조회 시 자동으로 읽음 처리됩니다. 이미 읽은 공지는 중복 저장하지 않습니다.
+            - 비로그인 상태: 읽음 처리 없이 내용만 반환합니다.
+            """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "공지 상세 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "공지글을 찾을 수 없음")
     })
-    ApiResponse<NoticeResponseDTO.NoticeDetailDTO> getNoticeDetail(@PathVariable Long noticeId);
-
-    @Operation(
-            summary = "공지 읽음 처리 API",
-            description = """
-            공지 상세 진입 시 호출합니다.
-            - 이미 읽은 공지는 중복 저장하지 않습니다.
-            """
-    )
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "읽음 처리 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "공지글을 찾을 수 없음")
-    })
-    ApiResponse<Void> markAsRead(
-            @AuthenticationPrincipal(expression = "user") User user,
+    ApiResponse<NoticeResponseDTO.NoticeDetailDTO> getNoticeDetail(
+            @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : user") User user,
             @PathVariable Long noticeId
     );
 }

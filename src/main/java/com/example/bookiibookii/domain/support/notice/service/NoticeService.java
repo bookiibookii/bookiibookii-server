@@ -3,8 +3,6 @@ package com.example.bookiibookii.domain.support.notice.service;
 import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.domain.support.notice.entity.Notice;
 import com.example.bookiibookii.domain.support.notice.entity.UserNoticeRead;
-import com.example.bookiibookii.domain.support.notice.exception.NoticeException;
-import com.example.bookiibookii.domain.support.notice.exception.code.NoticeErrorCode;
 import com.example.bookiibookii.domain.support.notice.repository.NoticeRepository;
 import com.example.bookiibookii.domain.support.notice.repository.UserNoticeReadRepository;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -72,11 +70,21 @@ public class NoticeService {
                 .toList();
     }
 
-    // 공지사항 상세 조회
-    @Transactional(readOnly = true)
-    public NoticeResponseDTO.NoticeDetailDTO getNoticeDetail(Long noticeId) {
+    // 공지사항 상세 조회 (로그인 상태면 읽음 처리 병행)
+    public NoticeResponseDTO.NoticeDetailDTO getNoticeDetail(Long noticeId, Long userId) {
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
+
+        if (userId != null) {
+            try {
+                userNoticeReadRepository.save(UserNoticeRead.builder()
+                        .userId(userId)
+                        .noticeId(noticeId)
+                        .build());
+            } catch (DataIntegrityViolationException ignored) {
+                // 동시 요청 무시
+            }
+        }
 
         User author = notice.getUserId() != null
                 ? userRepository.findById(notice.getUserId()).orElse(null)
@@ -92,21 +100,6 @@ public class NoticeService {
                 notice.getCreatedAt(),
                 notice.getUpdatedAt()
         );
-    }
-
-    // 공지사항 읽음 처리
-    public void markAsRead(Long userId, Long noticeId) {
-        if (!noticeRepository.existsById(noticeId)) {
-            throw new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND);
-        }
-        try {
-            userNoticeReadRepository.save(UserNoticeRead.builder()
-                    .userId(userId)
-                    .noticeId(noticeId)
-                    .build());
-        } catch (DataIntegrityViolationException ignored) {
-            // 동시 요청 무시
-        }
     }
 
     private String resolveProfileImageUrl(User user) {

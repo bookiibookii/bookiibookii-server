@@ -30,17 +30,11 @@ public class NoticeController implements NoticeControllerDocs {
 
     // 공지사항 상세 조회
     @GetMapping("/{noticeId}")
-    public ApiResponse<NoticeResponseDTO.NoticeDetailDTO> getNoticeDetail(@PathVariable Long noticeId) {
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, noticeService.getNoticeDetail(noticeId));
-    }
-
-    // 공지사항 읽음 처리
-    @PostMapping("/{noticeId}/read")
-    public ApiResponse<Void> markAsRead(
-            @AuthenticationPrincipal(expression = "user") User user,
+    public ApiResponse<NoticeResponseDTO.NoticeDetailDTO> getNoticeDetail(
+            @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : user") User user,
             @PathVariable Long noticeId
     ) {
-        noticeService.markAsRead(user.getId(), noticeId);
-        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
+        Long userId = user != null ? user.getId() : null;
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, noticeService.getNoticeDetail(noticeId, userId));
     }
 }

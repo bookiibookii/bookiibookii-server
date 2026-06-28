@@ -12,8 +12,6 @@ import java.util.Set;
 @Repository
 public interface UserNoticeReadRepository extends JpaRepository<UserNoticeRead, Long> {
 
-    boolean existsByUserIdAndNoticeId(Long userId, Long noticeId);
-
     @Query("SELECT ur.noticeId FROM UserNoticeRead ur WHERE ur.userId = :userId AND ur.noticeId IN :noticeIds")
     Set<Long> findReadNoticeIds(@Param("userId") Long userId, @Param("noticeIds") List<Long> noticeIds);
 }

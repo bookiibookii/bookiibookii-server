@@ -13,6 +13,7 @@ import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.global.apiPayload.code.GeneralErrorCode;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,11 +99,13 @@ public class NoticeService {
         if (!noticeRepository.existsById(noticeId)) {
             throw new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND);
         }
-        if (!userNoticeReadRepository.existsByUserIdAndNoticeId(userId, noticeId)) {
+        try {
             userNoticeReadRepository.save(UserNoticeRead.builder()
                     .userId(userId)
                     .noticeId(noticeId)
                     .build());
+        } catch (DataIntegrityViolationException ignored) {
+            // 동시 요청 무시
         }
     }
 

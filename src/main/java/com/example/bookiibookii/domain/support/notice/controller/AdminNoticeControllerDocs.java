@@ -26,6 +26,20 @@ public interface AdminNoticeControllerDocs {
     ApiResponse<List<NoticeResponseDTO.AdminNoticeListDTO>> getNoticeList();
 
     @Operation(
+            summary = "공지 상세 조회 API (어드민)",
+            description = """
+            어드민 전용 공지 상세 조회 API입니다.
+            - authorNickname: 최초 작성자 닉네임
+            - updatedByNickname: 최종 수정자 닉네임 (수정 이력 없으면 null)
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "공지 상세 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "공지글을 찾을 수 없음")
+    })
+    ApiResponse<NoticeResponseDTO.AdminNoticeDetailDTO> getNoticeDetail(@PathVariable Long noticeId);
+
+    @Operation(
             summary = "공지 등록 API",
             description = "공지글을 등록하는 API입니다."
     )
@@ -45,6 +59,7 @@ public interface AdminNoticeControllerDocs {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "NOTICE404_1", description = "공지글을 찾을 수 없습니다."),
     })
     ApiResponse<Void> updateNotice(
+            @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable Long noticeId,
             @RequestBody NoticeRequestDTO.UpdateNoticeDTO request);
 

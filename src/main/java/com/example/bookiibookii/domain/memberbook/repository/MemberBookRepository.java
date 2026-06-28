@@ -64,6 +64,7 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
         SELECT mb FROM MemberBook mb
         JOIN FETCH mb.group g
         JOIN FETCH g.book
+        JOIN FETCH mb.book
         JOIN FETCH mb.matchedMember mm
         WHERE mm.user.id = :userId
         AND mb.removedAt IS NULL

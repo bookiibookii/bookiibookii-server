@@ -54,9 +54,10 @@ public class BookshelfService {
                 .build();
     }
 
-    // 완독 + 리뷰 완료 책 목록 조회
+    // 완독 + 리뷰 완료 책 목록 조회 (내 책 + 완료된 참여 그룹의 상대방 책)
     private List<BookshelfResponseDTO.CompletedBookDto> buildCompletedBooks(Long userId) {
-        List<MemberBook> memberBooks = memberBookRepository.findCompletedBooksByUserId(userId);
+        List<MemberBook> myBooks = memberBookRepository.findCompletedBooksByUserId(userId);
+        List<MemberBook> partnerBooks = memberBookRepository.findPartnerBooksByParticipatedGroups(userId);
 
         Map<Long, Instant> completionDateByGroupId = matchedMemberRepository
                 .findCompletedByUserId(userId)
@@ -67,15 +68,19 @@ public class BookshelfService {
                         (a, b) -> a
                 ));
 
-        List<Long> memberBookIds = memberBooks.stream().map(MemberBook::getId).toList();
-        Map<Long, BookReview> reviewByMemberBookId = memberBookIds.isEmpty()
+        List<Long> allMemberBookIds = Stream.concat(
+                myBooks.stream().map(MemberBook::getId),
+                partnerBooks.stream().map(MemberBook::getId)
+        ).toList();
+
+        Map<Long, BookReview> reviewByMemberBookId = allMemberBookIds.isEmpty()
                 ? Map.of()
-                : bookReviewRepository.findByMemberBook_IdIn(memberBookIds).stream()
+                : bookReviewRepository.findByMemberBook_IdIn(allMemberBookIds).stream()
                         .collect(Collectors.toMap(br -> br.getMemberBook().getId(), br -> br));
 
-        return memberBooks.stream()
+        return Stream.concat(myBooks.stream(), partnerBooks.stream())
                 .map(mb -> {
-                    Book book = mb.getGroup().getBook();
+                    Book book = mb.getBook();
                     BookReview review = reviewByMemberBookId.get(mb.getId());
                     Instant completedAt = completionDateByGroupId.get(mb.getGroup().getId());
                     return new BookshelfResponseDTO.CompletedBookDto(
@@ -106,26 +111,18 @@ public class BookshelfService {
                 .toList();
     }
 
-    // 나를 대표하는 책 조회 (내 대표책 + 참여 그룹 상대방 책)
+    // 나를 대표하는 책 조회 (내 대표책만)
     private List<BookshelfResponseDTO.RepresentativeBookDto> buildRepresentativeBooks(Long userId) {
         List<UserBook> representativeBooks = userBookRepository.findRepresentativeBooks(userId);
-        List<MemberBook> partnerBooks = memberBookRepository.findPartnerBooksByParticipatedGroups(userId);
 
-        if (representativeBooks.isEmpty() && partnerBooks.isEmpty()) {
+        if (representativeBooks.isEmpty()) {
             return List.of();
         }
 
-        Set<Long> representativeBookIds = representativeBooks.stream()
-                .map(ub -> ub.getBook().getId())
-                .collect(Collectors.toSet());
-
-        List<Long> allBookIds = Stream.concat(
-                representativeBooks.stream().map(ub -> ub.getBook().getId()),
-                partnerBooks.stream().map(mb -> mb.getBook().getId())
-        ).distinct().toList();
+        List<Long> bookIds = representativeBooks.stream().map(ub -> ub.getBook().getId()).toList();
 
         Map<Long, Double> ratingByBookId = bookReviewRepository
-                .findLatestByUserIdAndBookIds(userId, allBookIds)
+                .findLatestByUserIdAndBookIds(userId, bookIds)
                 .stream()
                 .collect(Collectors.toMap(
                         review -> review.getMemberBook().getBook().getId(),
@@ -133,9 +130,7 @@ public class BookshelfService {
                         (latest, ignored) -> latest
                 ));
 
-        List<BookshelfResponseDTO.RepresentativeBookDto> result = new ArrayList<>();
-
-        representativeBooks.stream()
+        return representativeBooks.stream()
                 .map(ub -> new BookshelfResponseDTO.RepresentativeBookDto(
                         ub.getId(),
                         null,
@@ -144,21 +139,7 @@ public class BookshelfService {
                         ub.isFavorite(),
                         ratingByBookId.get(ub.getBook().getId())
                 ))
-                .forEach(result::add);
-
-        partnerBooks.stream()
-                .filter(mb -> !representativeBookIds.contains(mb.getBook().getId()))
-                .map(mb -> new BookshelfResponseDTO.RepresentativeBookDto(
-                        null,
-                        mb.getId(),
-                        mb.getBook().getTitle(),
-                        null,
-                        false,
-                        ratingByBookId.get(mb.getBook().getId())
-                ))
-                .forEach(result::add);
-
-        return result;
+                .toList();
     }
 
     // 온보딩 전용: 인생책 등록 + displayOrder 자동 부여로 대표책 동시 등록
@@ -249,7 +230,7 @@ public class BookshelfService {
     private void addRepresentativeFromCompleted(Long userId, Long memberBookId) {
         MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_IdWithBook(memberBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
-        if (!bookReviewRepository.existsByMemberBookId(memberBookId)) {
+        if (memberBook.isMyBook() && !bookReviewRepository.existsByMemberBookId(memberBookId)) {
             throw new UserException(UserErrorCode.NOT_ELIGIBLE_FOR_REPRESENTATIVE);
         }
 

@@ -72,8 +72,12 @@ public class AdminNoticeService {
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new NoticeException(NoticeErrorCode.NOTICE_NOT_FOUND));
 
-        User author = userRepository.findById(notice.getUserId())
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        String authorNickname = null;
+        if (notice.getUserId() != null) {
+            authorNickname = userRepository.findById(notice.getUserId())
+                    .map(User::getNickName)
+                    .orElse(null);
+        }
 
         String updatedByNickname = null;
         if (notice.getUpdatedByUserId() != null) {
@@ -87,7 +91,7 @@ public class AdminNoticeService {
                 notice.getTitle(),
                 notice.getSummary(),
                 notice.getContent(),
-                author.getNickName(),
+                authorNickname,
                 updatedByNickname,
                 notice.getCreatedAt(),
                 notice.getUpdatedAt()

@@ -17,6 +17,7 @@ public enum NotificationType {
     GROUP_COMMENT_CREATED(NotificationCategory.SYSTEM),       // GRP-010 (그룹 상세/댓글)
     GROUP_COMMENT_REPLIED(NotificationCategory.SYSTEM),
     GROUP_DELETED(NotificationCategory.SYSTEM),               // 문의하기 or GRP-001
+    GROUP_FORCE_CLOSED(NotificationCategory.SYSTEM),          // 어드민 강제 종료
     GROUP_MATCH_FAILED_BY_EXPIRE(NotificationCategory.SYSTEM),// GRP-001 (리스트)
     GROUP_MATCH_FAILED_BY_CAPACITY(NotificationCategory.SYSTEM), // GRP-001 (리스트)
 

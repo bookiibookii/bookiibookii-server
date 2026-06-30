@@ -102,5 +102,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select u.nickName from User u where u.id = :userId")
     Optional<String> findNickNameById(@Param("userId") Long userId);
 
-    List<User> findAllByRole(Role role);
+    List<User> findAllByRoleOrderByIdAsc(Role role);
 }

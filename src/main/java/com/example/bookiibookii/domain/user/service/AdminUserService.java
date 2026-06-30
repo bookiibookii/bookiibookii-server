@@ -17,7 +17,7 @@ public class AdminUserService {
     private final UserRepository userRepository;
 
     public List<UserResponseDTO.AdminUserListDTO> getAdminUsers() {
-        return userRepository.findAllByRole(Role.ADMIN).stream()
+        return userRepository.findAllByRoleOrderByIdAsc(Role.ADMIN).stream()
                 .map(user -> UserResponseDTO.AdminUserListDTO.builder()
                         .id(user.getId())
                         .nickname(user.getNickName())

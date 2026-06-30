@@ -49,6 +49,13 @@ public enum GroupNotiType {
             "호스트가 그룹을 삭제했어요",
             "[{nickname}]님이 {bookTitle} 그룹을 삭제했어요. 호스트와 협의되지 않았다면 문의를 남겨주세요.",
             RedirectType.EXPLORE_HOME
+    ),
+
+    GROUP_FORCE_CLOSED(
+            NotificationType.GROUP_FORCE_CLOSED,
+            "그룹이 강제 종료됐어요",
+            "{groupTitle} 그룹이 관리자에 의해 강제 종료됐어요.",
+            RedirectType.EXPLORE_HOME
     );
 
     private final NotificationType notificationType;

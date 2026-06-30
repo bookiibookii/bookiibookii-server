@@ -104,6 +104,16 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             @Param("deletedStatus") GroupStatus deletedStatus
     );
 
+    // 어드민 강제 종료용 — DELETED 포함 모든 상태에서 락으로 조회
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select g from Groups g
+        join fetch g.book
+        join fetch g.host
+        where g.id = :groupId
+    """)
+    Optional<Groups> findByIdForUpdateAllStatuses(@Param("groupId") Long groupId);
+
     // PARTNER_REVIEWING 진입 후 14일 이상 파트너 후기 미작성 그룹 조회
     // partner_reviewing_started_at이 NULL인 기존 데이터는 updated_at을 기준으로 처리
     @Query(value = """

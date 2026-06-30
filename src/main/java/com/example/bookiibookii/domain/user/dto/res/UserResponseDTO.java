@@ -54,6 +54,13 @@ public class UserResponseDTO {
     ) {}
 
     @Builder
+    public record AdminUserListDTO(
+            Long id,
+            String nickname,
+            String introduction
+    ) {}
+
+    @Builder
     public record NicknameValidationDTO(
             boolean isAvailable,
             String code,

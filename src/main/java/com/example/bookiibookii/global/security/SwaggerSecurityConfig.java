@@ -15,7 +15,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@Profile("v1")
+@Profile({"v1", "prod"})
 public class SwaggerSecurityConfig {
 
     @Value("${swagger.auth.username}")

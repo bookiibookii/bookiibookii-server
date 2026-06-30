@@ -20,6 +20,10 @@ public class Notice extends BaseEntity {
     @Column(name = "user_id")
     private Long userId;
 
+    // 최종 수정자 (최초 등록 후 수정된 적 없으면 null)
+    @Column(name = "updated_by_user_id")
+    private Long updatedByUserId;
+
     @Column(name = "title", length = 255, nullable = false)
     private String title;
 
@@ -37,5 +41,8 @@ public class Notice extends BaseEntity {
     }
     public void updateSummary(String summary) {
         this.summary = summary;
+    }
+    public void updateUpdatedBy(Long userId) {
+        this.updatedByUserId = userId;
     }
 }

@@ -57,8 +57,9 @@ public enum GroupErrorCode implements BaseCode {
     // 404 Not Found
     GROUP_SELECTED_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_7", "그룹 생성 시 선택한 장소를 찾을 수 없습니다."),
     DIRECT_EXCHANGE_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_8", "직접교환 장소를 먼저 등록해주세요."),
-    DELIVERY_ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_9", "배송지를 먼저 등록해주세요.")
+    DELIVERY_ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "GROUP404_9", "배송지를 먼저 등록해주세요."),
 
+    GROUP_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "GROUP400_29", "이미 종료된 그룹입니다.")
 ;
 
     private final HttpStatus status;

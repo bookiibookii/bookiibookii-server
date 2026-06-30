@@ -29,6 +29,12 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, adminNoticeService.getNoticeList());
     }
 
+    // 공지사항 상세 조회 (어드민)
+    @GetMapping("/{noticeId}")
+    public ApiResponse<NoticeResponseDTO.AdminNoticeDetailDTO> getNoticeDetail(@PathVariable Long noticeId) {
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, adminNoticeService.getNoticeDetail(noticeId));
+    }
+
     // 공지사항 등록
     @PostMapping
     public ApiResponse<Void> createNotice(
@@ -41,10 +47,11 @@ public class AdminNoticeController implements AdminNoticeControllerDocs {
     // 공지사항 수정
     @PatchMapping("/{noticeId}")
     public ApiResponse<Void> updateNotice(
+            @AuthenticationPrincipal(expression = "user") User user,
             @PathVariable Long noticeId,
             @RequestBody NoticeRequestDTO.UpdateNoticeDTO request
     ) {
-        adminNoticeService.updateNotice(noticeId, request);
+        adminNoticeService.updateNotice(user.getId(), noticeId, request);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, null);
     }
 

@@ -29,6 +29,34 @@ public class DiscordWebhookService {
     private final DiscordWebhookProperties properties;
     private final RestClient discordWebhookRestClient;
 
+    public void sendRedisErrorAlert(String operation, Exception exception) {
+        if (!properties.enabled() || properties.url() == null || properties.url().isBlank()) {
+            return;
+        }
+
+        try {
+            String message = exception.getMessage();
+            String content = """
+                    [Redis Connection Error]
+                    operation: %s
+                    exception: %s
+                    message: %s
+                    """.formatted(
+                    operation,
+                    exception.getClass().getName(),
+                    message == null || message.isBlank() ? "(empty)" : sanitize(message)
+            );
+
+            discordWebhookRestClient.post()
+                    .uri(properties.url())
+                    .body(new DiscordWebhookRequest(truncate(content)))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.warn("Discord webhook redis alert failed", e);
+        }
+    }
+
     public void sendUnexpectedExceptionAlert(HttpServletRequest request, Exception exception) {
         if (!properties.enabled() || properties.url() == null || properties.url().isBlank()) {
             return;

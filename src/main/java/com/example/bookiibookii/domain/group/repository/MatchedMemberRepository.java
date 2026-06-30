@@ -123,6 +123,8 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
     @Query("select mm.user.id from MatchedMember mm where mm.group.id = :groupId")
     List<Long> findUserIdsByGroupId(@Param("groupId") Long groupId);
 
+    boolean existsByUser_IdAndStatusAndGroup_GroupStatusIn(Long userId, MemberStatus status, List<GroupStatus> groupStatuses);
+
     @Query("""
         SELECT mm FROM MatchedMember mm
         JOIN FETCH mm.group

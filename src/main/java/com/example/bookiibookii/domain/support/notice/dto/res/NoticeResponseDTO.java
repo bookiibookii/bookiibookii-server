@@ -1,28 +1,47 @@
 package com.example.bookiibookii.domain.support.notice.dto.res;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import java.time.Instant;
 
 public class NoticeResponseDTO {
+    public record AdminNoticeDetailDTO(
+            Long noticeId,
+            String title,
+            String summary,
+            String content,
+            String authorNickname,
+            String updatedByNickname,
+            Instant createdAt,
+            Instant updatedAt
+    ) {}
+
     public record NoticeDetailDTO(
             Long id,
             String title,
+            String summary,
             String content,
-            @JsonFormat(pattern = "yyyy.MM.dd HH:mm")
-            Instant createdAt
+            String authorNickname,
+            String authorProfileImageUrl,
+            Instant createdAt,
+            Instant updatedAt
     ) {}
 
     public record NoticeListDTO(
             Long id,
-            Instant createdAt,
+            Instant updatedAt,
             String title,
-            String summary
+            String summary,
+            boolean isRead,
+            String authorNickname,
+            String authorProfileImageUrl
     ) {}
 
     public record AdminNoticeListDTO(
             Long id,
+            String title,
+            String summary,
+            String authorNickname,
+            String updatedByNickname,
             Instant createdAt,
-            String title
+            Instant updatedAt
     ) {}
 }

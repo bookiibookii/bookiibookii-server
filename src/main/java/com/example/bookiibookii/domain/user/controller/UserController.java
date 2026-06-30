@@ -72,16 +72,6 @@ public class UserController implements UserControllerDocs{
         return ApiResponse.onSuccess(UserSuccessCode.ONBOARDING_SUCCESS, null);
     }
 
-    // 스플래시 온보딩 스킵 (온보딩 상태 변경)
-    @Override
-    @PatchMapping("/api/onboarding-skip")
-    public ApiResponse<Void> completeSplashOnboarding(
-            @AuthenticationPrincipal(expression = "user") User user
-    ) {
-        userService.completeSplashOnboarding(user.getId());
-        return ApiResponse.onSuccess(UserSuccessCode.ONBOARDING_SUCCESS, null);
-    }
-
     // MyPage 조회
     @Override
     @GetMapping("/api/mypage")

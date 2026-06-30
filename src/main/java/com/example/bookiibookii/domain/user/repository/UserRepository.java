@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.user.repository;
 
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.enums.Role;
 import com.example.bookiibookii.domain.user.enums.SocialType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -100,4 +101,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("select u.nickName from User u where u.id = :userId")
     Optional<String> findNickNameById(@Param("userId") Long userId);
+
+    List<User> findAllByRoleOrderByIdAsc(Role role);
 }

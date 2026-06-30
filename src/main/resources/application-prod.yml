@@ -29,9 +29,14 @@ spring:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    enabled: false
+    enabled: true
+
+swagger:
+  auth:
+    username: ${SWAGGER_USERNAME}
+    password: ${SWAGGER_PASSWORD}
 
 logging:
   level:

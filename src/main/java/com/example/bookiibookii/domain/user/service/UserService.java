@@ -106,14 +106,6 @@ public class UserService {
         user.updateOnboardingStatus(OnboardingStatus.COMPLETED);
     }
 
-    // 온보딩 스킵 상태로 업데이트
-    @Transactional
-    public void completeSplashOnboarding(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
-        user.updateOnboardingStatus(OnboardingStatus.SPLASH_DONE);
-    }
-
     private void saveOrUpdateUserImage(User user, String s3Key) {
         if (!userImageValidationService.isValidS3Key(s3Key)) {
             throw new UserImageException(UserImageErrorCode.INVALID_S3_KEY_FORMAT);

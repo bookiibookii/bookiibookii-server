@@ -24,7 +24,8 @@
 <br><br>
 
 ## ☁️ ERD
-<img width="3160" height="2432" alt="ERD" src="https://github.com/user-attachments/assets/87a2c9d5-f45c-45c6-ad67-393277843032" />
+<img width="4485" height="2845" alt="bkbk_v1_1 0 0" src="https://github.com/user-attachments/assets/d3bc7baa-2942-4c19-b3c3-dbdc1f5b52f5" />
+
 
 <br><br>
 

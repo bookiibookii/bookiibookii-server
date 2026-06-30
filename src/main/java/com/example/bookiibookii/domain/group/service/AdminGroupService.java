@@ -44,34 +44,41 @@ public class AdminGroupService {
         }
 
         String title = groupTitle(group);
+        Long hostId = group.getHost().getId();
+        ExchangeType exchangeType = ExchangeType.from(group.getTradeType());
 
-        // PENDING 신청 일괄 거절
+        // MATCHED: bulk update 전에 MatchedMember 완료 처리
+        List<Long> memberIds = List.of();
+        if (currentStatus == GroupStatus.MATCHED) {
+            Instant now = clock.instant();
+            List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(groupId);
+            members.forEach(member -> member.completeReading(now));
+            memberIds = members.stream().map(mm -> mm.getUser().getId()).toList();
+        }
+
+        // 그룹 상태 변경 후 flush — bulk update(clearAutomatically=true)로 컨텍스트가
+        // 초기화되기 전에 DB에 반영해 detached 문제 방지
+        group.markAsDELETED();
+        groupsRepository.flush();
+
+        // PENDING 신청 일괄 거절 (flush 이후 실행)
         List<Long> pendingUserIds = applicationRepository.findPendingUserIdsByGroupId(groupId);
         if (!pendingUserIds.isEmpty()) {
             applicationRepository.updatePendingToRejectedByGroupId(groupId, ApplicationStatus.REJECTED);
         }
 
+        // 알림 발송
         if (currentStatus == GroupStatus.RECRUITING) {
-            // 호스트 + 신청자 모두에게 알림
             List<Long> receiverIds = new ArrayList<>(pendingUserIds);
-            receiverIds.add(group.getHost().getId());
+            receiverIds.add(hostId);
             publisher.publish(new GroupNotificationEvent(
                     GROUP_FORCE_CLOSED, null, title, null, receiverIds, groupId, null, null
             ));
         } else {
-            // MATCHED: MatchedMember 완료 처리 후 멤버에게 알림
-            Instant now = clock.instant();
-            List<MatchedMember> members = matchedMemberRepository.findAllByGroup_Id(groupId);
-            members.forEach(member -> member.completeReading(now));
-
-            List<Long> memberIds = members.stream().map(mm -> mm.getUser().getId()).toList();
             publisher.publish(new GroupNotificationEvent(
-                    GROUP_FORCE_CLOSED, null, title, null, memberIds, groupId, null,
-                    ExchangeType.from(group.getTradeType())
+                    GROUP_FORCE_CLOSED, null, title, null, memberIds, groupId, null, exchangeType
             ));
         }
-
-        group.markAsDELETED();
     }
 
     private String groupTitle(Groups group) {

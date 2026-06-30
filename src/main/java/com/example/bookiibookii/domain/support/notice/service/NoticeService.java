@@ -2,7 +2,6 @@ package com.example.bookiibookii.domain.support.notice.service;
 
 import com.example.bookiibookii.domain.support.notice.dto.res.NoticeResponseDTO;
 import com.example.bookiibookii.domain.support.notice.entity.Notice;
-import com.example.bookiibookii.domain.support.notice.entity.UserNoticeRead;
 import com.example.bookiibookii.domain.support.notice.repository.NoticeRepository;
 import com.example.bookiibookii.domain.support.notice.repository.UserNoticeReadRepository;
 import com.example.bookiibookii.domain.user.entity.User;
@@ -11,7 +10,6 @@ import com.example.bookiibookii.domain.user.service.UserImageS3Service;
 import com.example.bookiibookii.global.apiPayload.code.GeneralErrorCode;
 import com.example.bookiibookii.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +28,7 @@ public class NoticeService {
 
     private final NoticeRepository noticeRepository;
     private final UserNoticeReadRepository userNoticeReadRepository;
+    private final UserNoticeReadService userNoticeReadService;
     private final UserRepository userRepository;
     private final UserImageS3Service userImageS3Service;
 
@@ -76,14 +75,7 @@ public class NoticeService {
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
 
         if (userId != null) {
-            try {
-                userNoticeReadRepository.save(UserNoticeRead.builder()
-                        .userId(userId)
-                        .noticeId(noticeId)
-                        .build());
-            } catch (DataIntegrityViolationException ignored) {
-                // 동시 요청 무시
-            }
+            userNoticeReadService.markAsRead(userId, noticeId);
         }
 
         User author = notice.getUserId() != null

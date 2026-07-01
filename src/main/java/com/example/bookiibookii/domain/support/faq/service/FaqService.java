@@ -17,7 +17,7 @@ public class FaqService {
     @Transactional(readOnly = true)
     public List<FaqResponseDTO.FaqItemDTO> getFaqList() {
         return faqRepository.findAllByOrderByCreatedAtDesc().stream()
-                .map(faq -> new FaqResponseDTO.FaqItemDTO(faq.getQuestion(), faq.getAnswer()))
+                .map(faq -> new FaqResponseDTO.FaqItemDTO(faq.getId(), faq.getQuestion(), faq.getAnswer()))
                 .toList();
     }
 }

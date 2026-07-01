@@ -13,6 +13,7 @@ public class FaqResponseDTO {
     ) {}
 
     public record FaqItemDTO(
+            Long id,
             String question,
             String answer
     ) {}

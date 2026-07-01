@@ -79,7 +79,9 @@ public class OAuthTestController {
                 throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
             }
 
-            return (String) body.get("access_token");
+            String accessToken = (String) body.get("access_token");
+            log.info("[KAKAO_TOKEN] access_token={}", accessToken);
+            return accessToken;
 
         } catch (Exception e) {
             log.error("Failed to get Kakao Access Token", e);

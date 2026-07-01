@@ -88,6 +88,16 @@ public class TrackerService {
     // 교환독서 상세조회
     @Transactional(readOnly = true)
     public TrackerDetailResDTO getTrackerDetail(Long groupId, User user) {
+        Groups group = groupsRepository.findById(groupId)
+                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        if (group.getGroupStatus() == GroupStatus.DELETED) {
+            throw new GroupException(GroupErrorCode.GROUP_DELETED);
+        }
+        if (group.getGroupStatus() == GroupStatus.COMPLETED) {
+            throw new GroupException(GroupErrorCode.GROUP_TERMINATED);
+        }
+
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllTrackerMembersByGroupId(groupId);
 
         MatchedMember me = matchedMembers.stream()

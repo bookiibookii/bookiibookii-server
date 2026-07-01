@@ -1,5 +1,7 @@
 package com.example.bookiibookii.domain.memberbook.service;
 
+import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.exception.GroupException;
 import com.example.bookiibookii.domain.group.exception.code.GroupErrorCode;
 import com.example.bookiibookii.domain.group.entity.MatchedMember;
@@ -77,8 +79,12 @@ public class MemberBookCardService {
 
     @Transactional(readOnly = true)
     public MemberCardListResponseDTO getCardsByGroupId(Long groupId, Long userId, int presignedGetUrlExpirationMinutes) {
-        groupsRepository.findById(groupId)
+        Groups group = groupsRepository.findById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if (group.getGroupStatus() == GroupStatus.DELETED) {
+            throw new GroupException(GroupErrorCode.GROUP_DELETED);
+        }
 
         if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId)) {
             throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);

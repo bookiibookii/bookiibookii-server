@@ -11,4 +11,9 @@ public class FaqResponseDTO {
             Instant createdAt,
             Instant updatedAt
     ) {}
+
+    public record FaqItemDTO(
+            String question,
+            String answer
+    ) {}
 }

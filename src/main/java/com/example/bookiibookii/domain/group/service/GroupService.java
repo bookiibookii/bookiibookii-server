@@ -417,8 +417,12 @@ public class GroupService {
     @Transactional(readOnly = true)
     public GroupResponseDTO.GroupDetailDTO getGroupDetail(Long groupId, Long userId) {
 
-        Groups group = groupsRepository.findDetailById(groupId)
+        Groups group = groupsRepository.findDetailByIdAllStatuses(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
+
+        if (group.getGroupStatus() == GroupStatus.DELETED) {
+            throw new GroupException(GroupErrorCode.GROUP_DELETED);
+        }
 
         // 2. 해당 그룹에 참여가 확정된 멤버 리스트를 조회 (동그란 멤버 아이콘 리스트용)
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllByGroupOrderByCreatedAtAsc(group);

@@ -77,6 +77,14 @@ public interface GroupsRepository extends JpaRepository<Groups, Long> {
             "WHERE g.id = :groupId AND g.groupStatus != 'DELETED'")
     Optional<Groups> findDetailById(@Param("groupId") Long groupId);
 
+    // 삭제된 그룹 포함 상세 조회 — DELETED 여부를 서비스에서 직접 판별할 때 사용
+    @Query("SELECT g FROM Groups g " +
+            "JOIN FETCH g.book " +
+            "JOIN FETCH g.host h " +
+            "LEFT JOIN FETCH h.userImage " +
+            "WHERE g.id = :groupId")
+    Optional<Groups> findDetailByIdAllStatuses(@Param("groupId") Long groupId);
+
     // fetch join 적용된 기본 그룹 조회
     @Query("""
     select g from Groups g

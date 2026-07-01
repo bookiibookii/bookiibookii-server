@@ -88,22 +88,21 @@ public class TrackerService {
     // 교환독서 상세조회
     @Transactional(readOnly = true)
     public TrackerDetailResDTO getTrackerDetail(Long groupId, User user) {
-        Groups group = groupsRepository.findById(groupId)
-                .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
-
-        if (group.getGroupStatus() == GroupStatus.DELETED) {
-            throw new GroupException(GroupErrorCode.GROUP_DELETED);
-        }
-        if (group.getGroupStatus() == GroupStatus.COMPLETED) {
-            throw new GroupException(GroupErrorCode.GROUP_TERMINATED);
-        }
-
         List<MatchedMember> matchedMembers = matchedMemberRepository.findAllTrackerMembersByGroupId(groupId);
 
         MatchedMember me = matchedMembers.stream()
                 .filter(matchedMember -> matchedMember.getUser().getId().equals(user.getId()))
                 .findFirst()
                 .orElseThrow(() -> new TrackerException(TrackerErrorCode.TRACKER_NOT_FOUND));
+
+        // 멤버정보 확인 후 그룹 상태 검증 — 비멤버에게 그룹 존재 여부 노출 방지
+        Groups group = me.getGroup();
+        if (group.getGroupStatus() == GroupStatus.DELETED) {
+            throw new GroupException(GroupErrorCode.GROUP_DELETED);
+        }
+        if (group.getGroupStatus() == GroupStatus.COMPLETED) {
+            throw new GroupException(GroupErrorCode.GROUP_TERMINATED);
+        }
 
         MatchedMember partner = matchedMembers.stream()
                 .filter(matchedMember -> !matchedMember.getUser().getId().equals(user.getId()))

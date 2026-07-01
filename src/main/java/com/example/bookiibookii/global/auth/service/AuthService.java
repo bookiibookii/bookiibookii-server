@@ -60,8 +60,6 @@ public class AuthService {
         // 유저 조회 or 생성
         User user = userService.findOrCreateSocialUser(socialUserInfo, social);
 
-        log.info("[LOGIN] socialType={} socialId={} userId={}", social, socialUserInfo.getSocialId(), user.getId());
-
         return issueLoginToken(user);
     }
 

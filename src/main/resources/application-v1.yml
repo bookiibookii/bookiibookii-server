@@ -59,7 +59,7 @@ server:
 discord:
   webhook:
     enabled: ${DISCORD_WEBHOOK_ENABLED:false}
-    url: ${DISCORD_WEBHOOK_URL}
+    url: ${DISCORD_WEBHOOK_URL:}
 
 swagger:
   auth:

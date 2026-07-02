@@ -7,6 +7,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class UserNoticeReadService {
                     .noticeId(noticeId)
                     .build());
         } catch (DataIntegrityViolationException ignored) {
-            // 이미 읽은 공지 — 정상 케이스
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
         }
     }
 }

@@ -187,10 +187,20 @@ public class BookshelfService {
                 throw new UserException(UserErrorCode.FAVORITE_BOOK_ALREADY_EXISTS);
             }
             ub.updateIsFavorite(true);
+            if (ub.getDisplayOrder() == null) {
+                long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+                if (currentCount < MAX_REPRESENTATIVE_BOOKS) {
+                    ub.updateDisplayOrder(nextAvailableOrder(userId));
+                }
+            }
             return;
         }
 
-        userBookRepository.save(UserBook.create(user, book, true));
+        UserBook saved = userBookRepository.save(UserBook.create(user, book, true));
+        long currentCount = userBookRepository.countByUser_IdAndDisplayOrderIsNotNull(userId);
+        if (currentCount < MAX_REPRESENTATIVE_BOOKS) {
+            saved.updateDisplayOrder(nextAvailableOrder(userId));
+        }
     }
 
     // 대표책 등록
@@ -365,6 +375,9 @@ public class BookshelfService {
     // 인생 책 삭제
     @Transactional
     public void deleteFavoriteBook(Long userId, Long userBookId) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
         UserBook userBook = userBookRepository.findByIdAndUser_Id(userBookId, userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_BOOK_NOT_FOUND));
 
@@ -376,10 +389,36 @@ public class BookshelfService {
             throw new UserException(UserErrorCode.FAVORITE_BOOK_MIN_REQUIRED);
         }
 
-        boolean shouldKeep = userBook.getDisplayOrder() != null
-                || bookReviewRepository.existsReviewedBookByUserIdAndBookId(userId, userBook.getBook().getId());
+        if (userBook.getDisplayOrder() != null
+                && userBookRepository.countByUser_IdAndIsFavoriteTrueAndDisplayOrderIsNotNull(userId) <= 1) {
+            throw new UserException(UserErrorCode.REPRESENTATIVE_MUST_CONTAIN_FAVORITE);
+        }
 
-        if (shouldKeep) {
+        boolean hasReview = bookReviewRepository.existsReviewedBookByUserIdAndBookId(userId, userBook.getBook().getId());
+
+        if (userBook.getDisplayOrder() != null) {
+            int deletedOrder = userBook.getDisplayOrder();
+            List<UserBook> toShift = userBookRepository.findRepresentativeBooks(userId).stream()
+                    .filter(ub -> !ub.getId().equals(userBookId) && ub.getDisplayOrder() > deletedOrder)
+                    .toList();
+
+            userBook.updateDisplayOrder(null);
+            if (hasReview) {
+                userBook.updateIsFavorite(false);
+            } else {
+                userBookRepository.delete(userBook);
+            }
+
+            if (!toShift.isEmpty()) {
+                List<Long> toShiftIds = toShift.stream().map(UserBook::getId).toList();
+                Map<Long, Integer> snapshotOrders = toShift.stream()
+                        .collect(Collectors.toMap(UserBook::getId, UserBook::getDisplayOrder));
+                int maxShiftOrder = snapshotOrders.values().stream().mapToInt(Integer::intValue).max().orElseThrow();
+                userBookRepository.clearDisplayOrderInRange(userId, deletedOrder + 1, maxShiftOrder);
+                userBookRepository.findAllById(toShiftIds)
+                        .forEach(ub -> ub.updateDisplayOrder(snapshotOrders.get(ub.getId()) - 1));
+            }
+        } else if (hasReview) {
             userBook.updateIsFavorite(false);
         } else {
             userBookRepository.delete(userBook);

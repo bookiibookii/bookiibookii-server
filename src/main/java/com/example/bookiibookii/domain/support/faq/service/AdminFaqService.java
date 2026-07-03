@@ -20,6 +20,19 @@ public class AdminFaqService {
     private final FaqRepository faqRepository;
 
     @Transactional(readOnly = true)
+    public FaqResponseDTO.FaqListDTO getFaqDetail(Long faqId) {
+        Faq faq = faqRepository.findById(faqId)
+                .orElseThrow(() -> new FaqException(FaqErrorCode.FAQ_NOT_FOUND));
+        return new FaqResponseDTO.FaqListDTO(
+                faq.getId(),
+                faq.getQuestion(),
+                faq.getAnswer(),
+                faq.getCreatedAt(),
+                faq.getUpdatedAt()
+        );
+    }
+
+    @Transactional(readOnly = true)
     public List<FaqResponseDTO.FaqListDTO> getFaqList() {
         return faqRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(faq -> new FaqResponseDTO.FaqListDTO(

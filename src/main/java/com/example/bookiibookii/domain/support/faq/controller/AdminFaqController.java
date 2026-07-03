@@ -27,6 +27,11 @@ public class AdminFaqController implements AdminFaqControllerDocs {
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, adminFaqService.getFaqList());
     }
 
+    @GetMapping("/{faqId}")
+    public ApiResponse<FaqResponseDTO.FaqListDTO> getFaqDetail(@PathVariable Long faqId) {
+        return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, adminFaqService.getFaqDetail(faqId));
+    }
+
     @PostMapping
     public ApiResponse<Void> createFaq(@Valid @RequestBody FaqRequestDTO.CreateFaqDTO request) {
         adminFaqService.createFaq(request);

@@ -21,6 +21,13 @@ public interface AdminFaqControllerDocs {
     })
     ApiResponse<List<FaqResponseDTO.FaqListDTO>> getFaqList();
 
+    @Operation(summary = "FAQ 상세 조회 API", description = "특정 FAQ의 상세 정보를 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "FAQ 상세 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "FAQ를 찾을 수 없습니다.")
+    })
+    ApiResponse<FaqResponseDTO.FaqListDTO> getFaqDetail(@PathVariable Long faqId);
+
     @Operation(summary = "FAQ 등록 API", description = "FAQ를 등록합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "FAQ 등록 성공")

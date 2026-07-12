@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -28,8 +29,8 @@ public class MypageReviewService {
     private final UserProfileImageUrlResolver userProfileImageUrlResolver;
 
     @Transactional(readOnly = true)
-    public MypageReviewResponseDTO.WrittenReviews getWrittenReviews(Long userId, Pageable pageable) {
-        Page<BookReview> reviews = bookReviewRepository.findWrittenReviewsByUserId(userId, pageable);
+    public MypageReviewResponseDTO.WrittenReviews getWrittenReviews(Long userId, Instant since, Pageable pageable) {
+        Page<BookReview> reviews = bookReviewRepository.findWrittenReviewsByUserId(userId, since, pageable);
 
         return new MypageReviewResponseDTO.WrittenReviews(
                 reviews.getTotalElements(),
@@ -39,11 +40,12 @@ public class MypageReviewService {
     }
 
     @Transactional(readOnly = true)
-    public MypageReviewResponseDTO.ReceivedReviews getReceivedReviews(Long userId, Pageable pageable) {
-        Page<MemberReview> reviews = memberReviewRepository.findReceivedReviewsByUserId(userId, pageable);
+    public MypageReviewResponseDTO.ReceivedReviews getReceivedReviews(Long userId, Instant since, Pageable pageable) {
+        Page<MemberReview> reviews = memberReviewRepository.findReceivedReviewsByUserId(userId, since, pageable);
         long positiveCount = memberReviewRepository.countByTargetUserIdAndReaction(
                 userId,
-                MemberReviewReaction.BOOM_UP
+                MemberReviewReaction.BOOM_UP,
+                since
         );
 
         return new MypageReviewResponseDTO.ReceivedReviews(
@@ -77,7 +79,7 @@ public class MypageReviewService {
         return new MypageReviewResponseDTO.ReceivedReviewItem(
                 review.getId(),
                 reviewer.getId(),
-                reviewer.getNickName(),
+                reviewer.getNickName() != null ? reviewer.getNickName() : "(알 수 없음)",
                 userProfileImageUrlResolver.resolve(reviewer),
                 review.getReaction(),
                 partnerReviewLabel(review.getReaction()),

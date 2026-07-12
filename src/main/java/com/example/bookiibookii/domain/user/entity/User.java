@@ -8,6 +8,7 @@ import lombok.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,6 +80,9 @@ public class User extends BaseEntity {
     @Builder.Default
     private OnboardingStatus onboardingStatus = OnboardingStatus.NEW;
 
+    @Column(name = "last_reset_at")
+    private Instant lastResetAt;
+
     // 소셜 로그인 유저 생성
     public static User createSocialUser(
             SocialUserInfo info,
@@ -96,6 +100,14 @@ public class User extends BaseEntity {
     }
     public void reactivate() {
         this.status = Status.ACTIVE;
+    }
+    public void reset() {
+        this.nickName = null;
+        this.introduction = null;
+        this.gender = null;
+        this.birth = null;
+        this.onboardingStatus = OnboardingStatus.NEW;
+        this.lastResetAt = Instant.now();
     }
     public void updateName(String name) { this.nickName = name; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }

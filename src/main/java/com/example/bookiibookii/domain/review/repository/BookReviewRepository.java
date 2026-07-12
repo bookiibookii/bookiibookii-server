@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,6 +66,7 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
                 JOIN br.matchedMember mm
                 WHERE mm.user.id = :userId
                 AND mb.removedAt IS NULL
+                AND (:since IS NULL OR br.createdAt > :since)
                 ORDER BY br.createdAt DESC, br.id DESC
                 """,
             countQuery = """
@@ -73,10 +75,12 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
                 JOIN br.memberBook mb
                 WHERE mm.user.id = :userId
                 AND mb.removedAt IS NULL
+                AND (:since IS NULL OR br.createdAt > :since)
                 """
     )
     Page<BookReview> findWrittenReviewsByUserId(
             @Param("userId") Long userId,
+            @Param("since") Instant since,
             Pageable pageable
     );
 
@@ -88,9 +92,10 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
         JOIN FETCH br.matchedMember mm
         WHERE mm.user.id = :userId
         AND mb.removedAt IS NULL
+        AND (:since IS NULL OR br.createdAt > :since)
         ORDER BY br.updatedAt DESC
         """)
-    List<BookReview> findReviewedBooksByUserId(@Param("userId") Long userId, Pageable pageable);
+    List<BookReview> findReviewedBooksByUserId(@Param("userId") Long userId, @Param("since") Instant since, Pageable pageable);
 
     @Query("""
         SELECT COUNT(br) FROM BookReview br
@@ -98,8 +103,9 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
         JOIN br.memberBook mb
         WHERE mm.user.id = :userId
         AND mb.removedAt IS NULL
+        AND (:since IS NULL OR br.createdAt > :since)
         """)
-    long countReviewedBooksByUserId(@Param("userId") Long userId);
+    long countReviewedBooksByUserId(@Param("userId") Long userId, @Param("since") Instant since);
 
     @Query("""
         SELECT CASE WHEN COUNT(br) > 0 THEN true ELSE false END

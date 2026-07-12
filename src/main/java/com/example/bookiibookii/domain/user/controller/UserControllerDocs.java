@@ -100,13 +100,15 @@ public interface UserControllerDocs {
             summary = "타 유저 프로필 조회 API",
             description = """
             타 유저의 프로필을 조회하는 API입니다.
+            - 대표책, 책 후기 수/최근 2개, 받은 BOOM_UP 수/최근 후기 3개를 반환합니다.
             """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "프로필 조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "프로필 조회 실패")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "탈퇴한 사용자 (USER403_1)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음 (USER404_1)")
     })
-    ApiResponse<UserResponseDTO.UserProfileResDTO> getOtherProfile(@PathVariable("nickname") String nickname);
+    ApiResponse<UserResponseDTO.OtherUserProfileResDTO> getOtherProfile(@PathVariable("nickname") String nickname);
 
     // api/mypage
     @Operation(

@@ -54,6 +54,19 @@ public class UserResponseDTO {
     ) {}
 
     @Builder
+    public record OtherUserProfileResDTO(
+            Long userId,
+            String profileImageUrl,
+            String nickname,
+            String introduction,
+            List<UserBookDto> userBooks,
+            Integer bookReviewCount,
+            List<BookReviewSummaryDto> recentBookReviews,
+            Integer boomUpCount,
+            List<ReceivedMemberReviewDto> recentReceivedReviews
+    ) {}
+
+    @Builder
     public record AdminUserListDTO(
             Long id,
             String nickname,

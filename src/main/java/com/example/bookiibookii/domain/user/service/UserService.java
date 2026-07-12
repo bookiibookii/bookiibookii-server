@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.user.service;
 
-import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
@@ -14,7 +13,6 @@ import com.example.bookiibookii.domain.user.exception.UserImageException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.exception.code.UserImageErrorCode;
 import com.example.bookiibookii.domain.user.repository.*;
-import com.example.bookiibookii.domain.review.entity.MemberReview;
 import com.example.bookiibookii.domain.review.enums.MemberReviewReaction;
 import com.example.bookiibookii.domain.review.repository.MemberReviewRepository;
 
@@ -26,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -48,6 +47,7 @@ public class UserService {
     private final UserBookRepository userBookRepository;
     private final BookshelfService bookshelfService;
     private final MemberReviewRepository memberReviewRepository;
+    private final ProfileShareTokenRepository profileShareTokenRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -58,6 +58,7 @@ public class UserService {
             return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
                     .map(user -> {
                         if (user.getStatus() == Status.WITHDRAWN) {
+                            resetUserData(user);
                             user.reactivate();
                         }
                         return user;
@@ -67,6 +68,14 @@ public class UserService {
             return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
                     .orElseThrow(() -> new UserException(UserErrorCode.SOCIAL_USER_CREATE_RACE_CONDITION));
         }
+    }
+
+    private void resetUserData(User user) {
+        userTagRepository.deleteAllByUser(user);
+        userBookRepository.deleteAllByUser(user);
+        userImageRepository.deleteByUser_Id(user.getId());
+        profileShareTokenRepository.deleteAllByUser_Id(user.getId());
+        user.reset();
     }
 
     @Transactional
@@ -153,11 +162,18 @@ public class UserService {
         }
     }
 
-    // 유저 프로필 조회
-    @Transactional(readOnly = true)
-    public UserResponseDTO.UserProfileResDTO getProfileInfo(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+    private record CommonProfileData(
+            String profileImageUrl,
+            List<UserResponseDTO.UserBookDto> userBooks,
+            int bookReviewCount,
+            List<UserResponseDTO.BookReviewSummaryDto> recentBookReviews,
+            int boomUpCount,
+            List<UserResponseDTO.ReceivedMemberReviewDto> recentReceivedReviews
+    ) {}
+
+    private CommonProfileData buildCommonProfileData(User user) {
+        Long userId = user.getId();
+        Instant since = user.getLastResetAt();
 
         String profileImageUrl = null;
         if (user.getUserImage() != null) {
@@ -165,17 +181,14 @@ public class UserService {
                     user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         }
 
-        // 대표책 목록
         List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findRepresentativeBooks(userId).stream()
                 .map(ub -> new UserResponseDTO.UserBookDto(ub.getBook().getTitle(), ub.getBook().getAuthor(), ub.getBook().getImage()))
                 .toList();
 
-        // 책 후기 개수
-        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId);
+        int bookReviewCount = (int) bookReviewRepository.countReviewedBooksByUserId(userId, since);
 
-        // 최신 후기 2개
-        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, PageRequest.of(0, 2));
-        List<UserResponseDTO.BookReviewSummaryDto> recentBookReviewSummaries = recentBookReviews.stream()
+        List<UserResponseDTO.BookReviewSummaryDto> recentBookReviews = bookReviewRepository
+                .findReviewedBooksByUserId(userId, since, PageRequest.of(0, 2)).stream()
                 .map(br -> UserResponseDTO.BookReviewSummaryDto.builder()
                         .bookTitle(br.getMemberBook().getBook().getTitle())
                         .bookAuthor(br.getMemberBook().getBook().getAuthor())
@@ -186,12 +199,10 @@ public class UserService {
                         .build())
                 .collect(Collectors.toList());
 
-        // 받은 BOOM_UP 총 개수
-        long boomUpCount = memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP);
+        int boomUpCount = (int) memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP, since);
 
-        // 최신 받은 후기 3개
-        List<MemberReview> receivedReviews = memberReviewRepository.findLatestReceivedByUserId(userId, PageRequest.of(0, 3));
-        List<UserResponseDTO.ReceivedMemberReviewDto> recentReceivedReviews = receivedReviews.stream()
+        List<UserResponseDTO.ReceivedMemberReviewDto> recentReceivedReviews = memberReviewRepository
+                .findLatestReceivedByUserId(userId, since, PageRequest.of(0, 3)).stream()
                 .map(mr -> {
                     User writer = mr.getWriter().getUser();
                     String writerProfileUrl = null;
@@ -200,7 +211,7 @@ public class UserService {
                                 writer.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
                     }
                     return UserResponseDTO.ReceivedMemberReviewDto.builder()
-                            .reviewerNickname(writer.getNickName())
+                            .reviewerNickname(writer.getNickName() != null ? writer.getNickName() : "(알 수 없음)")
                             .reviewerProfileUrl(writerProfileUrl)
                             .reaction(mr.getReaction())
                             .comment(mr.getComment())
@@ -209,18 +220,28 @@ public class UserService {
                 })
                 .collect(Collectors.toList());
 
+        return new CommonProfileData(profileImageUrl, userBooks, bookReviewCount, recentBookReviews, boomUpCount, recentReceivedReviews);
+    }
+
+    // 유저 프로필 조회
+    @Transactional(readOnly = true)
+    public UserResponseDTO.UserProfileResDTO getProfileInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        CommonProfileData data = buildCommonProfileData(user);
+
         return UserResponseDTO.UserProfileResDTO.builder()
                 .userId(userId)
-                .profileImageUrl(profileImageUrl)
+                .profileImageUrl(data.profileImageUrl())
                 .nickname(user.getNickName())
                 .introduction(user.getIntroduction())
                 .gender(user.getGender())
                 .birthDate(user.getBirth() == null ? null : user.getBirth().toString())
-                .userBooks(userBooks)
-                .bookReviewCount((int) bookReviewCount)
-                .recentBookReviews(recentBookReviewSummaries)
-                .boomUpCount((int) boomUpCount)
-                .recentReceivedReviews(recentReceivedReviews)
+                .userBooks(data.userBooks())
+                .bookReviewCount(data.bookReviewCount())
+                .recentBookReviews(data.recentBookReviews())
+                .boomUpCount(data.boomUpCount())
+                .recentReceivedReviews(data.recentReceivedReviews())
                 .build();
     }
 
@@ -234,9 +255,32 @@ public class UserService {
 
     // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)
     public Long findUserIdByNickname(String nickname) {
-        return userRepository.findByNickName(nickname)
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND))
-                .getId();
+        User user = userRepository.findByNickName(nickname)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        if (user.getStatus() == Status.WITHDRAWN) {
+            throw new UserException(UserErrorCode.USER_WITHDRAWN);
+        }
+        return user.getId();
+    }
+
+    // 타 유저 프로필 조회
+    @Transactional(readOnly = true)
+    public UserResponseDTO.OtherUserProfileResDTO getOtherUserProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        CommonProfileData data = buildCommonProfileData(user);
+
+        return UserResponseDTO.OtherUserProfileResDTO.builder()
+                .userId(userId)
+                .profileImageUrl(data.profileImageUrl())
+                .nickname(user.getNickName())
+                .introduction(user.getIntroduction())
+                .userBooks(data.userBooks())
+                .bookReviewCount(data.bookReviewCount())
+                .recentBookReviews(data.recentBookReviews())
+                .boomUpCount(data.boomUpCount())
+                .recentReceivedReviews(data.recentReceivedReviews())
+                .build();
     }
 
     // 마이페이지 설정

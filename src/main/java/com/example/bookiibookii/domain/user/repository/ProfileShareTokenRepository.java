@@ -27,4 +27,6 @@ public interface ProfileShareTokenRepository extends JpaRepository<ProfileShareT
         AND t.revokedAt IS NULL
         """)
     Optional<ProfileShareToken> findActiveByTokenWithUserDetails(@Param("token") String token);
+
+    void deleteAllByUser_Id(Long userId);
 }

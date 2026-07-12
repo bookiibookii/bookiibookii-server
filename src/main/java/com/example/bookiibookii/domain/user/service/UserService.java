@@ -234,9 +234,76 @@ public class UserService {
 
     // 닉네임으로 유저 ID 찾기 (타 유저 프로필 조회용)
     public Long findUserIdByNickname(String nickname) {
-        return userRepository.findByNickName(nickname)
-                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND))
-                .getId();
+        User user = userRepository.findByNickName(nickname)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+        if (user.getStatus() == Status.WITHDRAWN) {
+            throw new UserException(UserErrorCode.USER_WITHDRAWN);
+        }
+        return user.getId();
+    }
+
+    // 타 유저 프로필 조회
+    @Transactional(readOnly = true)
+    public UserResponseDTO.OtherUserProfileResDTO getOtherUserProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
+        String profileImageUrl = null;
+        if (user.getUserImage() != null) {
+            profileImageUrl = userImageS3Service.generatePresignedGetUrl(
+                    user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        }
+
+        List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findRepresentativeBooks(userId).stream()
+                .map(ub -> new UserResponseDTO.UserBookDto(ub.getBook().getTitle(), ub.getBook().getAuthor(), ub.getBook().getImage()))
+                .toList();
+
+        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId);
+
+        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, PageRequest.of(0, 2));
+        List<UserResponseDTO.BookReviewSummaryDto> recentBookReviewSummaries = recentBookReviews.stream()
+                .map(br -> UserResponseDTO.BookReviewSummaryDto.builder()
+                        .bookTitle(br.getMemberBook().getBook().getTitle())
+                        .bookAuthor(br.getMemberBook().getBook().getAuthor())
+                        .tradeType(br.getMemberBook().getGroup().getTradeType())
+                        .rating(br.getStar())
+                        .comment(br.getComment())
+                        .reviewDate(TimeUtils.formatKst(br.getUpdatedAt(), DATE_FMT))
+                        .build())
+                .collect(Collectors.toList());
+
+        long boomUpCount = memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP);
+
+        List<MemberReview> receivedReviews = memberReviewRepository.findLatestReceivedByUserId(userId, PageRequest.of(0, 3));
+        List<UserResponseDTO.ReceivedMemberReviewDto> recentReceivedReviews = receivedReviews.stream()
+                .map(mr -> {
+                    User writer = mr.getWriter().getUser();
+                    String writerProfileUrl = null;
+                    if (writer.getUserImage() != null) {
+                        writerProfileUrl = userImageS3Service.generatePresignedGetUrl(
+                                writer.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+                    }
+                    return UserResponseDTO.ReceivedMemberReviewDto.builder()
+                            .reviewerNickname(writer.getNickName())
+                            .reviewerProfileUrl(writerProfileUrl)
+                            .reaction(mr.getReaction())
+                            .comment(mr.getComment())
+                            .createdAt(TimeUtils.formatKst(mr.getCreatedAt(), DATE_FMT))
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return UserResponseDTO.OtherUserProfileResDTO.builder()
+                .userId(userId)
+                .profileImageUrl(profileImageUrl)
+                .nickname(user.getNickName())
+                .introduction(user.getIntroduction())
+                .userBooks(userBooks)
+                .bookReviewCount((int) bookReviewCount)
+                .recentBookReviews(recentBookReviewSummaries)
+                .boomUpCount((int) boomUpCount)
+                .recentReceivedReviews(recentReceivedReviews)
+                .build();
     }
 
     // 마이페이지 설정

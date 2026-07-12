@@ -97,6 +97,13 @@ public class User extends BaseEntity {
     public void reactivate() {
         this.status = Status.ACTIVE;
     }
+    public void reset() {
+        this.nickName = null;
+        this.introduction = null;
+        this.gender = null;
+        this.birth = null;
+        this.onboardingStatus = OnboardingStatus.NEW;
+    }
     public void updateName(String name) { this.nickName = name; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }
     public void updateUserInform(Gender gender, LocalDate birth) { this.gender = gender; this.birth = birth; }

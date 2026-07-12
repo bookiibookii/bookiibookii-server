@@ -48,6 +48,7 @@ public class UserService {
     private final UserBookRepository userBookRepository;
     private final BookshelfService bookshelfService;
     private final MemberReviewRepository memberReviewRepository;
+    private final ProfileShareTokenRepository profileShareTokenRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -58,6 +59,7 @@ public class UserService {
             return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
                     .map(user -> {
                         if (user.getStatus() == Status.WITHDRAWN) {
+                            resetUserData(user);
                             user.reactivate();
                         }
                         return user;
@@ -67,6 +69,14 @@ public class UserService {
             return userRepository.findBySocialIdAndSocialType(info.getSocialId(), socialType)
                     .orElseThrow(() -> new UserException(UserErrorCode.SOCIAL_USER_CREATE_RACE_CONDITION));
         }
+    }
+
+    private void resetUserData(User user) {
+        userTagRepository.deleteAllByUser(user);
+        userBookRepository.deleteAllByUser(user);
+        userImageRepository.deleteByUser_Id(user.getId());
+        profileShareTokenRepository.deleteAllByUser_Id(user.getId());
+        user.reset();
     }
 
     @Transactional

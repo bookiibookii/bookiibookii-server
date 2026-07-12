@@ -12,4 +12,5 @@ public interface UserImageRepository extends JpaRepository<UserImage, Long> {
     boolean existsByS3Key(String s3Key);
     boolean existsByS3KeyAndUser_IdNot(String s3Key, Long userId);
     boolean existsByUser_Id(Long userId);
+    void deleteByUser_Id(Long userId);
 }

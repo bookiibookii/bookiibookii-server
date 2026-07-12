@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -175,16 +176,18 @@ public class UserService {
                     user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         }
 
+        Instant since = user.getLastResetAt();
+
         // 대표책 목록
         List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findRepresentativeBooks(userId).stream()
                 .map(ub -> new UserResponseDTO.UserBookDto(ub.getBook().getTitle(), ub.getBook().getAuthor(), ub.getBook().getImage()))
                 .toList();
 
         // 책 후기 개수
-        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId);
+        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId, since);
 
         // 최신 후기 2개
-        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, PageRequest.of(0, 2));
+        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, since, PageRequest.of(0, 2));
         List<UserResponseDTO.BookReviewSummaryDto> recentBookReviewSummaries = recentBookReviews.stream()
                 .map(br -> UserResponseDTO.BookReviewSummaryDto.builder()
                         .bookTitle(br.getMemberBook().getBook().getTitle())
@@ -197,10 +200,10 @@ public class UserService {
                 .collect(Collectors.toList());
 
         // 받은 BOOM_UP 총 개수
-        long boomUpCount = memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP);
+        long boomUpCount = memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP, since);
 
         // 최신 받은 후기 3개
-        List<MemberReview> receivedReviews = memberReviewRepository.findLatestReceivedByUserId(userId, PageRequest.of(0, 3));
+        List<MemberReview> receivedReviews = memberReviewRepository.findLatestReceivedByUserId(userId, since, PageRequest.of(0, 3));
         List<UserResponseDTO.ReceivedMemberReviewDto> recentReceivedReviews = receivedReviews.stream()
                 .map(mr -> {
                     User writer = mr.getWriter().getUser();
@@ -210,7 +213,7 @@ public class UserService {
                                 writer.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
                     }
                     return UserResponseDTO.ReceivedMemberReviewDto.builder()
-                            .reviewerNickname(writer.getNickName())
+                            .reviewerNickname(writer.getNickName() != null ? writer.getNickName() : "(알 수 없음)")
                             .reviewerProfileUrl(writerProfileUrl)
                             .reaction(mr.getReaction())
                             .comment(mr.getComment())
@@ -264,13 +267,15 @@ public class UserService {
                     user.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
         }
 
+        Instant since = user.getLastResetAt();
+
         List<UserResponseDTO.UserBookDto> userBooks = userBookRepository.findRepresentativeBooks(userId).stream()
                 .map(ub -> new UserResponseDTO.UserBookDto(ub.getBook().getTitle(), ub.getBook().getAuthor(), ub.getBook().getImage()))
                 .toList();
 
-        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId);
+        long bookReviewCount = bookReviewRepository.countReviewedBooksByUserId(userId, since);
 
-        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, PageRequest.of(0, 2));
+        List<BookReview> recentBookReviews = bookReviewRepository.findReviewedBooksByUserId(userId, since, PageRequest.of(0, 2));
         List<UserResponseDTO.BookReviewSummaryDto> recentBookReviewSummaries = recentBookReviews.stream()
                 .map(br -> UserResponseDTO.BookReviewSummaryDto.builder()
                         .bookTitle(br.getMemberBook().getBook().getTitle())
@@ -282,9 +287,9 @@ public class UserService {
                         .build())
                 .collect(Collectors.toList());
 
-        long boomUpCount = memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP);
+        long boomUpCount = memberReviewRepository.countByTargetUserIdAndReaction(userId, MemberReviewReaction.BOOM_UP, since);
 
-        List<MemberReview> receivedReviews = memberReviewRepository.findLatestReceivedByUserId(userId, PageRequest.of(0, 3));
+        List<MemberReview> receivedReviews = memberReviewRepository.findLatestReceivedByUserId(userId, since, PageRequest.of(0, 3));
         List<UserResponseDTO.ReceivedMemberReviewDto> recentReceivedReviews = receivedReviews.stream()
                 .map(mr -> {
                     User writer = mr.getWriter().getUser();
@@ -294,7 +299,7 @@ public class UserService {
                                 writer.getUserImage().getS3Key(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
                     }
                     return UserResponseDTO.ReceivedMemberReviewDto.builder()
-                            .reviewerNickname(writer.getNickName())
+                            .reviewerNickname(writer.getNickName() != null ? writer.getNickName() : "(알 수 없음)")
                             .reviewerProfileUrl(writerProfileUrl)
                             .reaction(mr.getReaction())
                             .comment(mr.getComment())

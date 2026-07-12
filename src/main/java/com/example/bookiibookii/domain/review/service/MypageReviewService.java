@@ -79,7 +79,7 @@ public class MypageReviewService {
         return new MypageReviewResponseDTO.ReceivedReviewItem(
                 review.getId(),
                 reviewer.getId(),
-                reviewer.getNickName(),
+                reviewer.getNickName() != null ? reviewer.getNickName() : "(알 수 없음)",
                 userProfileImageUrlResolver.resolve(reviewer),
                 review.getReaction(),
                 partnerReviewLabel(review.getReaction()),

@@ -115,6 +115,16 @@ public class UserController implements UserControllerDocs{
         return ApiResponse.onSuccess(UserSuccessCode.GET_OTHER_PROFILE_SUCCESS, result);
     }
 
+    // 타 유저 책장 조회
+    @Override
+    @GetMapping("/api/profiles/{nickname}/bookshelf")
+    public ApiResponse<BookshelfResponseDTO.BookshelfResDTO> getOtherUserBookshelf(
+            @PathVariable("nickname") String nickname
+    ) {
+        Long targetUserId = userService.findUserIdByNickname(nickname);
+        return ApiResponse.onSuccess(UserSuccessCode.GET_OTHER_BOOKSHELF_SUCCESS, bookshelfService.getBookshelf(targetUserId));
+    }
+
     // 나의 책장 조회
     @Override
     @GetMapping("/api/mypage/bookshelf")

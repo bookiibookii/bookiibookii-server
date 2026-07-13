@@ -110,6 +110,21 @@ public interface UserControllerDocs {
     })
     ApiResponse<UserResponseDTO.OtherUserProfileResDTO> getOtherProfile(@PathVariable("nickname") String nickname);
 
+    // api/profiles/{nickname}/bookshelf
+    @Operation(
+            summary = "타 유저 책장 조회 API",
+            description = """
+            타 유저의 책장을 조회하는 API입니다.
+            - 완독 책, 인생 책, 대표 책을 모두 반환합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "책장 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "탈퇴한 사용자 (USER403_1)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음 (USER404_1)")
+    })
+    ApiResponse<BookshelfResponseDTO.BookshelfResDTO> getOtherUserBookshelf(@PathVariable("nickname") String nickname);
+
     // api/mypage
     @Operation(
             summary = "마이페이지 정보 수정 API",

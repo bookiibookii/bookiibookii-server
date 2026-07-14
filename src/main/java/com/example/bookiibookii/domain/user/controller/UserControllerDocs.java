@@ -130,7 +130,10 @@ public interface UserControllerDocs {
             summary = "마이페이지 정보 수정 API",
             description = """
             닉네임, 성별, 생년월일, 프로필 이미지를 수정합니다.
-            - 프로필 이미지: /api/users/me/image/presigned-url로 Presigned URL 발급 후 업로드하고, s3Key를 전달합니다. null이면 변경 없음.
+            - 프로필 이미지 변경: /api/users/me/image/presigned-url로 Presigned URL 발급 후 업로드하고, s3Key를 전달합니다.
+            - s3Key: null → 프로필 이미지 변경 없음
+            - s3Key: "DEFAULT" → 기본 이미지로 초기화 (기존 프로필 이미지 삭제)
+            - s3Key: 실제 S3 키 → 해당 이미지로 업데이트
             """
     )
     @ApiResponses({

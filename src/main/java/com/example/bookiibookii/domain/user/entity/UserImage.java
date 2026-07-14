@@ -12,6 +12,9 @@ import lombok.*;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserImage extends BaseEntity {
 
+    /** 기본 이미지로 초기화를 요청할 때 클라이언트가 s3Key 필드에 전달하는 센티넬 값 */
+    public static final String DEFAULT_IMAGE_SENTINEL = "DEFAULT";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_image_id")

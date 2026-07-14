@@ -177,7 +177,7 @@ public interface MemberBookCardControllerDocs {
             그룹 MatchedMember(본인 포함)가 독서카드에 리액션을 남기거나 취소합니다.
 
             - **엔드포인트**: `PATCH /api/member-books/cards/{cardId}/reactions`
-            - **요청 body**: `{ "reaction": "LIKE" }` — `CardReactionType` (LIKE, SAD, CHEERUP, FEELYOU, AWESOME, FUN)
+            - **요청 body**: `{ "reaction": "LIKE" }` — `CardReactionType` (LIKE, SAD, FEELYOU, ANGRY, FUN)
             - 동일 리액션을 다시 누르면 취소됩니다(토글). 응답 `active`: true = 적용, false = 취소.
             - 카드 소유자이거나 같은 그룹 멤버만 가능합니다.
             - 내 화면에서 숨긴 카드(`hidden=true`)는 404로 처리됩니다(상세 조회와 동일).

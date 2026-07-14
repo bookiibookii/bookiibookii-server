@@ -294,8 +294,11 @@ public class UserService {
             user.updateName(request.nickname());
         }
 
-        if (request.s3Key() != null && !request.s3Key().isBlank()) {
-            saveOrUpdateUserImage(user, request.s3Key());
+        String s3Key = request.s3Key();
+        if (UserImage.DEFAULT_IMAGE_SENTINEL.equals(s3Key)) {
+            userImageRepository.findByUser_Id(user.getId()).ifPresent(userImageRepository::delete);
+        } else if (s3Key != null && !s3Key.isBlank()) {
+            saveOrUpdateUserImage(user, s3Key);
         }
 
         if (request.gender() != null || request.birth() != null) {

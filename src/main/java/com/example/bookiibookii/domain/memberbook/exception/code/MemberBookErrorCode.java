@@ -24,6 +24,11 @@ public enum MemberBookErrorCode implements BaseCode {
     MEMBER_CARD_STATE_CONFLICT(HttpStatus.CONFLICT, "MB409_1", "일시적인 충돌이 발생했습니다. 다시 시도해주세요."),
     CARD_REACTION_STATE_CONFLICT(HttpStatus.CONFLICT, "MB409_2", "일시적인 충돌이 발생했습니다. 다시 시도해주세요."),
     CARD_NOT_SHAREABLE(HttpStatus.BAD_REQUEST, "MB400_10", "공유할 수 없는 독서카드입니다."),
+    BOOKMARKED_CARD_CANNOT_REMOVE_FROM_LIBRARY(
+            HttpStatus.BAD_REQUEST,
+            "MB400_11",
+            "북마크된 독서카드가 있습니다. 북마크를 취소하고 서재를 삭제해주세요."
+    ),
     SHARE_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "MB404_4", "공유 링크를 찾을 수 없거나 만료되었습니다.");
 
     private final HttpStatus status;

@@ -1,11 +1,13 @@
 package com.example.bookiibookii.domain.memberbook.service;
 
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.util.ReadingPeriodDateCalculator;
 import com.example.bookiibookii.domain.memberbook.dto.res.LibraryMemberBookResponseDTO;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.memberbook.exception.MemberBookException;
 import com.example.bookiibookii.domain.memberbook.exception.code.MemberBookErrorCode;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
+import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
 import com.example.bookiibookii.domain.review.entity.BookReview;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.user.service.UserImageS3Service;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class MemberBookLibraryService {
 
     private final MemberBookRepository memberBookRepository;
+    private final MemberCardRepository memberCardRepository;
     private final BookReviewRepository bookReviewRepository;
     private final UserImageS3Service userImageS3Service;
     private final Clock clock;
@@ -35,11 +38,22 @@ public class MemberBookLibraryService {
     /**
      * 서재에서만 제거(소프트 삭제). 그룹·카드·상대 MemberBook은 삭제되지 않습니다.
      * 본인 MatchedMember에 속한 MemberBook만 제거할 수 있습니다.
+     * 해당 MemberBook 소속 카드 중 본인이 북마크한 카드가 있으면 제거할 수 없습니다.
      */
     @Transactional
     public void removeFromLibrary(Long memberBookId, Long userId) {
         MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_Id(memberBookId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
+
+        MatchedMember matchedMember = memberBook.getMatchedMember();
+        if (matchedMember != null
+                && memberCardRepository.existsBookmarkedCardByMatchedMemberAndMemberBook(
+                matchedMember.getId(),
+                memberBook.getId()
+        )) {
+            throw new MemberBookException(MemberBookErrorCode.BOOKMARKED_CARD_CANNOT_REMOVE_FROM_LIBRARY);
+        }
+
         memberBook.markRemoved(clock.instant());
     }
 

@@ -224,6 +224,10 @@ public class MemberBookCardService {
     public boolean toggleBookmark(Long cardId, Long userId) {
         Cards card = getCardForDetail(cardId, userId);
         Long groupId = card.getMemberBook().getGroup().getId();
+        // 서재 제거(removeFromLibrary)와 동일 MemberBook 행 락으로 직렬화.
+        // 북마크 검사 → markRemoved 사이에 bookmarked=true 커밋이 끼어들지 못하게 함.
+        memberBookRepository.findByIdForUpdate(card.getMemberBook().getId())
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
 
         MatchedMember matchedMember = matchedMemberRepository.findByGroup_IdAndUser_Id(groupId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MATCHED_MEMBER_NOT_FOUND));

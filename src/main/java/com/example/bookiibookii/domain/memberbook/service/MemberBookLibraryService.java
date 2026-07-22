@@ -39,10 +39,14 @@ public class MemberBookLibraryService {
      * 서재에서만 제거(소프트 삭제). 그룹·카드·상대 MemberBook은 삭제되지 않습니다.
      * 본인 MatchedMember에 속한 MemberBook만 제거할 수 있습니다.
      * 해당 MemberBook 소속 카드 중 본인이 북마크한 카드가 있으면 제거할 수 없습니다.
+     * <p>
+     * 북마크 존재 검사와 {@code markRemoved} 사이에 {@code toggleBookmark}가 끼어드는
+     * TOCTOU를 막기 위해 MemberBook에 비관적 락을 잡고, 북마크 토글 경로와 동일 락을 공유합니다.
      */
     @Transactional
     public void removeFromLibrary(Long memberBookId, Long userId) {
-        MemberBook memberBook = memberBookRepository.findByIdAndMatchedMember_User_Id(memberBookId, userId)
+        MemberBook memberBook = memberBookRepository
+                .findByIdAndMatchedMember_User_IdForUpdate(memberBookId, userId)
                 .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
 
         MatchedMember matchedMember = memberBook.getMatchedMember();

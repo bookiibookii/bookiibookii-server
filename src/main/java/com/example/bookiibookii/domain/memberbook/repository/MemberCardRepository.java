@@ -79,4 +79,23 @@ public interface MemberCardRepository extends JpaRepository<MemberCard, Long> {
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM MemberCard mc WHERE mc.matchedMember.id = :matchedMemberId")
     void deleteByMatchedMember_Id(@Param("matchedMemberId") Long matchedMemberId);
+
+    /**
+     * 서재(MemberBook) 삭제 전 검사: 해당 MemberBook 소속 카드 중
+     * 요청자 MatchedMember가 북마크한(삭제되지 않은) 카드가 있는지 여부.
+     * 독서카드 삭제({@code BOOKMARKED_CARD_CANNOT_DELETE})와 동일한 북마크 제약.
+     */
+    @Query("""
+        SELECT CASE WHEN COUNT(mc) > 0 THEN true ELSE false END
+        FROM MemberCard mc
+        JOIN mc.card c
+        WHERE c.memberBook.id = :memberBookId
+          AND mc.matchedMember.id = :matchedMemberId
+          AND mc.bookmarked = true
+          AND c.deletedAt IS NULL
+        """)
+    boolean existsBookmarkedCardByMatchedMemberAndMemberBook(
+            @Param("matchedMemberId") Long matchedMemberId,
+            @Param("memberBookId") Long memberBookId
+    );
 }

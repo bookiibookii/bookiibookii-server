@@ -77,10 +77,13 @@ public interface MemberBookLibraryControllerDocs {
             - **제거 단위**: `memberBookId` 1건 (그룹당 최대 2권이면 책마다 각각 제거)
             - **권한**: 본인 MatchedMember에 연결된 MemberBook만 제거 가능
             - **그룹 내 다른 멤버**: 해당 그룹·카드·자신의 다른 MemberBook은 계속 조회 가능
+            - **북마크 제약**: 해당 MemberBook 소속 독서카드 중 본인이 북마크한 카드가 있으면 제거할 수 없습니다 (`MB400_11`).
+              독서카드 삭제(`MB400_8`)와 동일하게, 북마크를 해제한 뒤 다시 시도해야 합니다.
             """
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "제거 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "북마크된 독서카드 존재 (MB400_11)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "MemberBook 없음 또는 소유자가 아님")
     })

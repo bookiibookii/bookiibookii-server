@@ -641,7 +641,7 @@ public class MemberBookCardService {
                 .totalPages(totalPages)
                 .genre(genre)
                 .completedAt(completedAt)
-                .isMine(isMyBookForViewer(memberBook, viewer))
+                .isMine(isMyCardForViewer(memberBook, viewer))
                 .isBookmarked(isBookmarked)
                 .creatorName(creatorName)
                 .creatorProfileImageUrl(creatorProfileImageUrl)
@@ -731,14 +731,18 @@ public class MemberBookCardService {
     }
 
     /**
-     * 조회자 기준 본인 책 여부. MemberBook.isMine은 카드 작성자 MatchedMember 기준이므로
-     * 그룹 카드 목록처럼 상대 카드를 함께 볼 때는 조회자 MatchedMember로 변환합니다.
+     * 조회자 기준 본인 작성 카드 여부.
+     * 카드는 MemberBook(=작성자 MatchedMember)에 달리므로, 조회자가 그 MemberBook 소유자인지만 보면 됩니다.
+     *
+     * <p>주의: {@code MemberBook.isMine}은 "내가 가져온 원본 책인지" 플래그라서
+     * {@code isMine == isOwnedBy(viewer)} 로 계산하면 상대 책을 읽으며 쓴 내 카드가 false가 되고,
+     * 상대가 내 원본 책에 쓴 카드가 true가 되어 "내 독서카드만 보기"가 반대로 동작합니다.
      */
-    private boolean isMyBookForViewer(MemberBook memberBook, MatchedMember viewer) {
+    private boolean isMyCardForViewer(MemberBook memberBook, MatchedMember viewer) {
         if (memberBook == null || viewer == null) {
             return false;
         }
-        return memberBook.isMine() == memberBook.isOwnedBy(viewer);
+        return memberBook.isOwnedBy(viewer);
     }
 
     private String resolveCreatorName(MemberBook memberBook) {

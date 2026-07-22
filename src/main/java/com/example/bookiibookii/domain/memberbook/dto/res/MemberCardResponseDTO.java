@@ -23,6 +23,7 @@ public class MemberCardResponseDTO {
     private Integer totalPages;
     private String genre;
     private Instant completedAt;
+    /** 조회자가 작성한 카드 여부 (MemberBook 소유자 == 조회자) */
     private Boolean isMine;
     private Boolean isBookmarked;
     private String creatorName;

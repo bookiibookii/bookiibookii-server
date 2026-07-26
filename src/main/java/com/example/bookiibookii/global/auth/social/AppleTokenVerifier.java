@@ -21,6 +21,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -29,6 +30,7 @@ public class AppleTokenVerifier implements SocialTokenVerifier {
 
     private static final String APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
     private static final String APPLE_ISSUER = "https://appleid.apple.com";
+    private static final long CACHE_TTL_MILLIS = TimeUnit.HOURS.toMillis(24);
 
     @Value("${oauth.apple.bundle-id}")
     private String bundleId;
@@ -36,8 +38,8 @@ public class AppleTokenVerifier implements SocialTokenVerifier {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    // kid → RSAPublicKey 캐시 (Apple 공개키는 자주 바뀌지 않으므로 메모리 캐시)
     private final Map<String, RSAPublicKey> keyCache = new ConcurrentHashMap<>();
+    private volatile long lastRefreshedAt = 0;
 
     @PostConstruct
     private void init() {
@@ -91,18 +93,34 @@ public class AppleTokenVerifier implements SocialTokenVerifier {
         return kid.toString();
     }
 
-    // 캐시에서 공개키 조회, 없으면 Apple JWKS 재조회 후 재시도
     private RSAPublicKey resolvePublicKey(String kid) {
-        RSAPublicKey cached = keyCache.get(kid);
-        if (cached != null) {
-            return cached;
+        boolean refreshed = false;
+
+        // TTL 만료 시 캐시 전체 갱신 (회수된 키 제거 목적)
+        if (isCacheExpired()) {
+            refreshKeys();
+            refreshed = true;
         }
-        refreshKeys();
+
         RSAPublicKey key = keyCache.get(kid);
+        if (key != null) {
+            return key;
+        }
+
+        // 캐시 미스: 아직 갱신 전이면 한 번 더 시도
+        if (!refreshed) {
+            refreshKeys();
+            key = keyCache.get(kid);
+        }
+
         if (key == null) {
             throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
         }
         return key;
+    }
+
+    private boolean isCacheExpired() {
+        return System.currentTimeMillis() - lastRefreshedAt > CACHE_TTL_MILLIS;
     }
 
     @SuppressWarnings("unchecked")
@@ -119,6 +137,7 @@ public class AppleTokenVerifier implements SocialTokenVerifier {
                 RSAPublicKey publicKey = buildRsaPublicKey(jwk.get("n"), jwk.get("e"));
                 keyCache.put(kid, publicKey);
             }
+            lastRefreshedAt = System.currentTimeMillis();
         } catch (AuthException e) {
             throw e;
         } catch (Exception e) {

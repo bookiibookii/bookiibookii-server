@@ -83,6 +83,9 @@ public class User extends BaseEntity {
     @Column(name = "last_reset_at")
     private Instant lastResetAt;
 
+    @Column(name = "apple_refresh_token", length = 1000)
+    private String appleRefreshToken;
+
     // 소셜 로그인 유저 생성
     public static User createSocialUser(
             SocialUserInfo info,
@@ -108,7 +111,9 @@ public class User extends BaseEntity {
         this.birth = null;
         this.onboardingStatus = OnboardingStatus.NEW;
         this.lastResetAt = Instant.now();
+        this.appleRefreshToken = null;
     }
+    public void updateAppleRefreshToken(String token) { this.appleRefreshToken = token; }
     public void updateName(String name) { this.nickName = name; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }
     public void updateUserInform(Gender gender, LocalDate birth) { this.gender = gender; this.birth = birth; }

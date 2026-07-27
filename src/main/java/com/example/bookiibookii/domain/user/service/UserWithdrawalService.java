@@ -7,10 +7,12 @@ import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.entity.UserWithdrawal;
 import com.example.bookiibookii.domain.user.enums.AgeGroup;
 import com.example.bookiibookii.domain.user.enums.Gender;
+import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.WithdrawalReason;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserWithdrawalRepository;
+import com.example.bookiibookii.global.auth.social.AppleAuthClient;
 import com.example.bookiibookii.global.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class UserWithdrawalService {
     private final UserWithdrawalRepository userWithdrawalRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final RedisUtil redisUtil;
+    private final AppleAuthClient appleAuthClient;
 
     private static final List<GroupStatus> ACTIVE_GROUP_STATUSES = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
 
@@ -62,6 +65,12 @@ public class UserWithdrawalService {
 
         userWithdrawalRepository.save(withdrawal);
         redisUtil.delete("RT:" + user.getId());
+
+        // Apple 유저: App Store 심사 지침 준수 — refresh_token revoke
+        if (SocialType.APPLE.equals(user.getSocialType()) && user.getAppleRefreshToken() != null) {
+            appleAuthClient.revokeToken(user.getAppleRefreshToken());
+        }
+
         user.withdraw();
     }
 }

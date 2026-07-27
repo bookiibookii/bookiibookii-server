@@ -45,13 +45,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     );
 
     @Query("""
-    SELECT u FROM User u
+    SELECT u.appleRefreshToken FROM User u
     WHERE u.status = 'WITHDRAWN'
     AND u.updatedAt <= :deleteBefore
     AND u.socialType = 'APPLE'
     AND u.appleRefreshToken IS NOT NULL
     """)
-    List<User> findWithdrawnAppleUsersWithTokenBefore(@Param("deleteBefore") Instant deleteBefore);
+    List<String> findAppleRefreshTokensForDeletion(@Param("deleteBefore") Instant deleteBefore);
 
     @Modifying
     @Query("""

@@ -1,6 +1,5 @@
 package com.example.bookiibookii.global.scheduler;
 
-import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.global.auth.social.AppleAuthClient;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +29,10 @@ public class WithdrawnUserCleanupScheduler {
         Instant deleteBefore = clock.instant().minus(Duration.ofDays(30));
 
         // 탈퇴 시 revoke 실패했던 Apple 유저에 대해 재시도 (App Store 심사 지침)
-        List<User> appleUsers = userRepository.findWithdrawnAppleUsersWithTokenBefore(deleteBefore);
-        for (User user : appleUsers) {
-            appleAuthClient.revokeToken(user.getAppleRefreshToken());
-        }
-        if (!appleUsers.isEmpty()) {
-            log.info("Apple token revoke 재시도: {}건", appleUsers.size());
+        List<String> tokens = userRepository.findAppleRefreshTokensForDeletion(deleteBefore);
+        tokens.forEach(appleAuthClient::revokeToken);
+        if (!tokens.isEmpty()) {
+            log.info("Apple token revoke 재시도: {}건", tokens.size());
         }
 
         int deleted = userRepository.deleteWithdrawnUsersBefore(deleteBefore);

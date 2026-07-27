@@ -66,9 +66,12 @@ public class UserWithdrawalService {
         userWithdrawalRepository.save(withdrawal);
         redisUtil.delete("RT:" + user.getId());
 
-        // Apple 유저: App Store 심사 지침 준수 — refresh_token revoke
+        // Apple 유저: App Store 심사 지침 준수 — refresh_token revoke (실패해도 탈퇴 진행)
         if (SocialType.APPLE.equals(user.getSocialType()) && user.getAppleRefreshToken() != null) {
-            appleAuthClient.revokeToken(user.getAppleRefreshToken());
+            boolean revoked = appleAuthClient.revokeToken(user.getAppleRefreshToken());
+            if (revoked) {
+                user.updateAppleRefreshToken(null);
+            }
         }
 
         user.withdraw();

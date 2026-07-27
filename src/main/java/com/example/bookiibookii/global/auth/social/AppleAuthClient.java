@@ -38,16 +38,16 @@ public class AppleAuthClient {
      * authorizationCode를 Apple refresh_token으로 교환
      */
     public String exchangeAuthCode(String authorizationCode) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", bundleId);
-        params.add("client_secret", clientSecretGenerator.generate());
-        params.add("code", authorizationCode);
-        params.add("grant_type", "authorization_code");
-
         try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", bundleId);
+            params.add("client_secret", clientSecretGenerator.generate());
+            params.add("code", authorizationCode);
+            params.add("grant_type", "authorization_code");
+
             Map<?, ?> response = restTemplate.postForObject(
                     TOKEN_URL, new HttpEntity<>(params, headers), Map.class);
             if (response == null || !response.containsKey("refresh_token")) {
@@ -63,23 +63,25 @@ public class AppleAuthClient {
     }
 
     /**
-     * Apple refresh_token을 revoke
+     * Apple refresh_token을 revoke. 성공 여부를 반환한다.
      */
-    public void revokeToken(String refreshToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("client_id", bundleId);
-        params.add("client_secret", clientSecretGenerator.generate());
-        params.add("token", refreshToken);
-        params.add("token_type_hint", "refresh_token");
-
+    public boolean revokeToken(String refreshToken) {
         try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", bundleId);
+            params.add("client_secret", clientSecretGenerator.generate());
+            params.add("token", refreshToken);
+            params.add("token_type_hint", "refresh_token");
+
             restTemplate.postForObject(REVOKE_URL, new HttpEntity<>(params, headers), String.class);
             log.info("Apple token revoke 완료");
+            return true;
         } catch (Exception e) {
-            log.error("Apple token revoke 실패 — 탈퇴는 계속 진행", e);
+            log.error("Apple token revoke 실패", e);
+            return false;
         }
     }
 }

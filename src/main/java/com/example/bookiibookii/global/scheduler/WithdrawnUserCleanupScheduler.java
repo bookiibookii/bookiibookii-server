@@ -35,10 +35,16 @@ public class WithdrawnUserCleanupScheduler {
         List<User> appleUsers = userRepository.findWithdrawnAppleUsersForRevoke(deleteBefore);
         int successCount = 0;
         for (User user : appleUsers) {
-            boolean revoked = appleAuthClient.revokeToken(user.getAppleRefreshToken());
+            String token = user.getAppleRefreshToken();
+            boolean revoked = appleAuthClient.revokeToken(token);
             if (revoked) {
-                userRepository.clearAppleRefreshToken(user.getId());
-                successCount++;
+                int updated = userRepository.clearAppleRefreshToken(user.getId(), token);
+                if (updated > 0) {
+                    successCount++;
+                } else {
+                    // revoke 성공했으나 DB 상태 불일치 — 재가입 등으로 상태 변경됨, 새 토큰 보존
+                    log.warn("Apple token revoke 완료했으나 DB 초기화 스킵 (userId: {})", user.getId());
+                }
             }
         }
         if (!appleUsers.isEmpty()) {

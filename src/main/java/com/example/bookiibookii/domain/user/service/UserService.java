@@ -73,7 +73,7 @@ public class UserService {
     private void resetUserData(User user) {
         userTagRepository.deleteAllByUser(user);
         userBookRepository.deleteAllByUser(user);
-        userImageRepository.deleteByUser_Id(user.getId());
+        user.clearUserImage();
         profileShareTokenRepository.deleteAllByUser_Id(user.getId());
         user.reset();
     }

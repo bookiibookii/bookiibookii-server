@@ -180,5 +180,8 @@ public class AppleTokenVerifier implements SocialTokenVerifier {
         if (!claims.getAudience().contains(bundleId)) {
             throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
         }
+        if (claims.getSubject() == null || claims.getSubject().isBlank()) {
+            throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
     }
 }

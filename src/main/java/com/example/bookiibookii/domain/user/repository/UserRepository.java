@@ -44,11 +44,36 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("socialType") SocialType socialType
     );
 
+    // revoke 재시도 대상: WITHDRAWN + APPLE + appleRefreshToken 있는 유저
+    @Query("""
+    SELECT u FROM User u
+    WHERE u.status = 'WITHDRAWN'
+    AND u.updatedAt <= :deleteBefore
+    AND u.socialType = 'APPLE'
+    AND u.appleRefreshToken IS NOT NULL
+    """)
+    List<User> findWithdrawnAppleUsersForRevoke(@Param("deleteBefore") Instant deleteBefore);
+
+    // revoke 성공 후 토큰 제거 (다음 삭제 대상에 포함되도록)
+    // 토큰값·WITHDRAWN 상태 일치 조건: 조회 후 재가입한 유저의 새 토큰을 덮어쓰지 않도록 방어
+    @Modifying
+    @Query("""
+    UPDATE User u SET u.appleRefreshToken = null
+    WHERE u.id = :userId
+      AND u.appleRefreshToken = :expectedToken
+      AND u.status = 'WITHDRAWN'
+    """)
+    int clearAppleRefreshToken(
+            @Param("userId") Long userId,
+            @Param("expectedToken") String expectedToken);
+
+    // appleRefreshToken이 남아있는 APPLE 유저는 revoke 미완료이므로 삭제 제외
     @Modifying
     @Query("""
     DELETE FROM User u
     WHERE u.status = 'WITHDRAWN'
     AND u.updatedAt <= :deleteBefore
+    AND (u.socialType != 'APPLE' OR u.appleRefreshToken IS NULL)
     """)
     int deleteWithdrawnUsersBefore(@Param("deleteBefore") Instant deleteBefore);
 

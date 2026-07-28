@@ -2,6 +2,7 @@ package com.example.bookiibookii.global.auth.controller;
 
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
+import com.example.bookiibookii.global.auth.dto.req.AuthRequestDTO;
 import com.example.bookiibookii.global.auth.dto.res.AuthResponseDTO;
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
@@ -46,12 +47,12 @@ public class OAuthTestController {
         String accessToken = getKakaoAccessToken(code);
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK,
-                authService.socialLogin("KAKAO", accessToken));
+                authService.socialLogin(AuthRequestDTO.of("KAKAO", accessToken)));
     }
 
     @GetMapping("/google/callback")
     public AuthResponseDTO.LoginResponse googleCallback(@RequestParam String code) {
-        return authService.socialLogin("GOOGLE", code);
+        return authService.socialLogin(AuthRequestDTO.of("GOOGLE", code));
     }
 
     private String getKakaoAccessToken(String code) {

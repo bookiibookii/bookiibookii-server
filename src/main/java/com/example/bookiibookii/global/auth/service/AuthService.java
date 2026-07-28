@@ -2,6 +2,7 @@ package com.example.bookiibookii.global.auth.service;
 
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
+import com.example.bookiibookii.domain.user.enums.Status;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
 import com.example.bookiibookii.domain.user.repository.UserRepository;
@@ -12,6 +13,7 @@ import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.jwt.JwtProvider;
 import com.example.bookiibookii.global.auth.jwt.JwtTokenResolver;
+import com.example.bookiibookii.global.auth.social.AppleAuthClient;
 import com.example.bookiibookii.global.auth.social.SocialTokenVerifier;
 import com.example.bookiibookii.global.auth.social.SocialUserInfo;
 import com.example.bookiibookii.global.util.RedisUtil;
@@ -37,13 +39,14 @@ public class AuthService {
 
     // social Type기준으로 분기 처리
     private final List<SocialTokenVerifier> tokenVerifiers;
+    private final AppleAuthClient appleAuthClient;
 
     // 소셜 로그인
-    public AuthResponseDTO.LoginResponse socialLogin(String socialType, String token) {
+    public AuthResponseDTO.LoginResponse socialLogin(AuthRequestDTO request) {
 
         final SocialType social;
         try {
-            social = SocialType.valueOf(socialType);
+            social = SocialType.valueOf(request.getSocialType());
         } catch(IllegalArgumentException | NullPointerException e) {
             throw new AuthException(AuthErrorCode.UNSUPPORTED_SOCIAL_TYPE);
         }
@@ -55,10 +58,21 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException(AuthErrorCode.UNSUPPORTED_SOCIAL_TYPE));
 
         // 소셜 토큰 검증 → 사용자 정보 획득
-        SocialUserInfo socialUserInfo = verifier.verify(token);
+        SocialUserInfo socialUserInfo = verifier.verify(request.getToken());
 
         // 유저 조회 or 생성
         User user = userService.findOrCreateSocialUser(socialUserInfo, social);
+
+        // Apple: authorizationCode → refresh_token 교환 후 저장 (탈퇴 시 revoke에 사용)
+        // 교환 실패 시 로그인 자체를 중단 — revoke 불가 상태로 계정을 만들지 않기 위해
+        if (social == SocialType.APPLE) {
+            if (request.getAuthorizationCode() == null || request.getAuthorizationCode().isBlank()) {
+                throw new AuthException(AuthErrorCode.MISSING_AUTHORIZATION_CODE);
+            }
+            String appleRefreshToken = appleAuthClient.exchangeAuthCode(
+                    request.getAuthorizationCode(), socialUserInfo.getSocialId());
+            user.updateAppleRefreshToken(appleRefreshToken);
+        }
 
         return issueLoginToken(user);
     }
@@ -116,6 +130,10 @@ public class AuthService {
         // 사용자 존재 확인 및 권한 획득
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.NOT_FOUND));
+
+        if (user.getStatus() == Status.WITHDRAWN) {
+            throw new AuthException(AuthErrorCode.NOT_FOUND);
+        }
 
         // 신규 토큰 생성 및 Redis 갱신
         String newAT = jwtProvider.createAccessToken(userId, user.getRole().name());

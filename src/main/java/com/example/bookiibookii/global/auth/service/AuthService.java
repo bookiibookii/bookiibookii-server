@@ -66,7 +66,8 @@ public class AuthService {
         // Apple: authorizationCode → refresh_token 교환 후 저장 (탈퇴 시 revoke에 사용)
         // 교환 실패 시 로그인 자체를 중단 — revoke 불가 상태로 계정을 만들지 않기 위해
         if (social == SocialType.APPLE && request.getAuthorizationCode() != null) {
-            String appleRefreshToken = appleAuthClient.exchangeAuthCode(request.getAuthorizationCode());
+            String appleRefreshToken = appleAuthClient.exchangeAuthCode(
+                    request.getAuthorizationCode(), socialUserInfo.getSocialId());
             user.updateAppleRefreshToken(appleRefreshToken);
         }
 

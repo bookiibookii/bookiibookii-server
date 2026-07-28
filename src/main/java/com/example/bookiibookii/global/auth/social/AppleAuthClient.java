@@ -2,6 +2,7 @@ package com.example.bookiibookii.global.auth.social;
 
 import com.example.bookiibookii.global.auth.exception.AuthException;
 import com.example.bookiibookii.global.auth.exception.code.AuthErrorCode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Base64;
 import java.util.Map;
 
 /**
@@ -35,9 +37,11 @@ public class AppleAuthClient {
     private final AppleClientSecretGenerator clientSecretGenerator;
 
     /**
-     * authorizationCode를 Apple refresh_token으로 교환
+     * authorizationCode를 Apple refresh_token으로 교환.
+     * 응답의 id_token.sub가 identityToken에서 확인한 expectedSub와 일치하는지 검증하여
+     * 서로 다른 Apple 유저의 authorizationCode가 혼입되는 것을 방지한다.
      */
-    public String exchangeAuthCode(String authorizationCode) {
+    public String exchangeAuthCode(String authorizationCode, String expectedSub) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -53,11 +57,32 @@ public class AppleAuthClient {
             if (response == null || !response.containsKey("refresh_token")) {
                 throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
             }
+
+            String idToken = (String) response.get("id_token");
+            String responseSub = extractSubFromIdToken(idToken);
+            if (!expectedSub.equals(responseSub)) {
+                log.warn("Apple authorizationCode sub 불일치 — identityToken sub: {}, authorizationCode sub: {}",
+                        expectedSub, responseSub);
+                throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+            }
+
             return (String) response.get("refresh_token");
         } catch (AuthException e) {
             throw e;
         } catch (Exception e) {
             log.error("Apple authorizationCode 교환 실패", e);
+            throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
+    }
+
+    private String extractSubFromIdToken(String idToken) {
+        try {
+            String payload = idToken.split("\\.")[1];
+            byte[] decoded = Base64.getUrlDecoder().decode(payload);
+            Map<?, ?> claims = new ObjectMapper().readValue(decoded, Map.class);
+            return (String) claims.get("sub");
+        } catch (Exception e) {
+            log.error("Apple id_token payload 파싱 실패", e);
             throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
         }
     }

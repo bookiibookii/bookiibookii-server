@@ -23,10 +23,10 @@ public interface AuthControllerDocs {
                 Test: https://kauth.kakao.com/oauth/authorize?client_id=1d55fc7fcf8b8f41295f87d737babee3&redirect_uri=https://bookii.gyeonseo.com/kakao/callback&response_type=code
               - GOOGLE → ID Token
               - APPLE → Identity Token (Sign in with Apple 성공 후 Apple이 발급한 JWT)
-            - authorizationCode (APPLE 전용, 선택):
-              - ASAuthorizationAppleIDCredential.authorizationCode (String)
-              - 최초 로그인 시 전달하면 서버가 Apple refresh_token을 교환·저장
-              - 탈퇴 시 Apple token revoke에 사용됨 (App Store 심사 지침)
+            - authorizationCode (APPLE 전용, 필수):
+              - ASAuthorizationAppleIDCredential.authorizationCode를 UTF-8 String으로 변환하여 전달
+              - 누락 시 AUTH400_5 에러 반환 및 로그인 실패
+              - 서버가 Apple refresh_token으로 교환·저장하여 탈퇴 시 revoke에 사용 (App Store 심사 지침)
 
             인증 성공 시 Access Token, Refresh Token을 반환합니다.
             """

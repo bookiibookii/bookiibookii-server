@@ -54,19 +54,27 @@ public class AppleAuthClient {
 
             Map<?, ?> response = restTemplate.postForObject(
                     TOKEN_URL, new HttpEntity<>(params, headers), Map.class);
-            if (response == null || !response.containsKey("refresh_token")) {
+            if (response == null) {
                 throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
             }
 
-            String idToken = (String) response.get("id_token");
+            Object rawRefreshToken = response.get("refresh_token");
+            if (!(rawRefreshToken instanceof String refreshToken) || refreshToken.isBlank()) {
+                throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+            }
+
+            Object rawIdToken = response.get("id_token");
+            if (!(rawIdToken instanceof String idToken) || idToken.isBlank()) {
+                throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+            }
+
             String responseSub = extractSubFromIdToken(idToken);
             if (!expectedSub.equals(responseSub)) {
-                log.warn("Apple authorizationCode sub 불일치 — identityToken sub: {}, authorizationCode sub: {}",
-                        expectedSub, responseSub);
+                log.warn("Apple authorizationCode sub 불일치 — identityToken 발급 유저와 authorizationCode 발급 유저가 다름");
                 throw new AuthException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
             }
 
-            return (String) response.get("refresh_token");
+            return refreshToken;
         } catch (AuthException e) {
             throw e;
         } catch (Exception e) {

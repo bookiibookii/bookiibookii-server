@@ -53,6 +53,12 @@ public enum UserSuccessCode implements BaseCode {
     PUBLIC_PROFILE_FOUND(HttpStatus.OK,
             "USER200_13",
             "공유 프로필을 조회했습니다."),
+    GET_OTHER_PROFILE_SUCCESS(HttpStatus.OK,
+            "USER200_15",
+            "타 유저 프로필 조회에 성공했습니다."),
+    GET_OTHER_BOOKSHELF_SUCCESS(HttpStatus.OK,
+            "USER200_16",
+            "타 유저 책장 조회에 성공했습니다."),
     ;
     private final HttpStatus status;
     private final String code;

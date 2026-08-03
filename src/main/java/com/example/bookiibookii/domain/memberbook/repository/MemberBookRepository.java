@@ -1,7 +1,9 @@
 package com.example.bookiibookii.domain.memberbook.repository;
 
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,6 +15,27 @@ import java.util.Optional;
 public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
 
     Optional<MemberBook> findByIdAndMatchedMember_User_Id(Long id, Long userId);
+
+    /**
+     * 서재 제거 시 북마크 검사와 markRemoved를 직렬화하기 위한 비관적 락.
+     * {@code toggleBookmark}의 {@link #findByIdForUpdate}와 동일한 MemberBook 행 락을 공유합니다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT mb FROM MemberBook mb
+        WHERE mb.id = :id AND mb.matchedMember.user.id = :userId
+        """)
+    Optional<MemberBook> findByIdAndMatchedMember_User_IdForUpdate(
+            @Param("id") Long id,
+            @Param("userId") Long userId
+    );
+
+    /**
+     * 북마크 토글 시 대상 카드의 MemberBook을 잠가 서재 제거와 직렬화합니다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT mb FROM MemberBook mb WHERE mb.id = :id")
+    Optional<MemberBook> findByIdForUpdate(@Param("id") Long id);
 
     @Query("""
         SELECT mb FROM MemberBook mb

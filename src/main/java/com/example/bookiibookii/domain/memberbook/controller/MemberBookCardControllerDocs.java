@@ -38,8 +38,9 @@ public interface MemberBookCardControllerDocs {
             - 그룹 멤버만 조회 가능합니다.
             - 생성일 기준 오름차순으로 반환합니다.
             - 목록 조회 전 `member_card`에서 현재 사용자·그룹 기준 `hidden=true`인 카드를 먼저 조회하고 제외합니다(소프트 삭제).
-            - 각 카드에 책 제목(`bookTitle`), 작성자(`creatorName`, `creatorProfileImageUrl`), 본인 책 여부(`isMine`), 북마크 여부(`isBookmarked`),
+            - 각 카드에 책 제목(`bookTitle`), 작성자(`creatorName`, `creatorProfileImageUrl`), 본인 작성 여부(`isMine`), 북마크 여부(`isBookmarked`),
               리액션 집계(`reactionCounts`), 내 리액션(`myReactions`)이 포함됩니다.
+            - `isMine`: 조회자가 작성한 카드이면 true. (`MemberBook.isMine`=내가 가져온 책 여부와는 다름)
             """
     )
     @ApiResponses({
@@ -177,7 +178,7 @@ public interface MemberBookCardControllerDocs {
             그룹 MatchedMember(본인 포함)가 독서카드에 리액션을 남기거나 취소합니다.
 
             - **엔드포인트**: `PATCH /api/member-books/cards/{cardId}/reactions`
-            - **요청 body**: `{ "reaction": "LIKE" }` — `CardReactionType` (LIKE, SAD, CHEERUP, FEELYOU, AWESOME, FUN)
+            - **요청 body**: `{ "reaction": "LIKE" }` — `CardReactionType` (LIKE, SAD, FEELYOU, ANGRY, FUN)
             - 동일 리액션을 다시 누르면 취소됩니다(토글). 응답 `active`: true = 적용, false = 취소.
             - 카드 소유자이거나 같은 그룹 멤버만 가능합니다.
             - 내 화면에서 숨긴 카드(`hidden=true`)는 404로 처리됩니다(상세 조회와 동일).

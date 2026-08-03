@@ -23,7 +23,7 @@ public class AuthController implements AuthControllerDocs{
     ) {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.REQUEST_OK,
-                authService.socialLogin(request.getSocialType(),request.getToken()));
+                authService.socialLogin(request));
     }
 
 

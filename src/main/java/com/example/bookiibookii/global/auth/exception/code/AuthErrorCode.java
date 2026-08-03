@@ -38,6 +38,10 @@ public enum AuthErrorCode implements BaseCode {
             "AUTH404_3",
             "토큰에 저장된 해당 사용자를 찾을 수 없습니다."),
 
+    MISSING_AUTHORIZATION_CODE(HttpStatus.BAD_REQUEST,
+            "AUTH400_5",
+            "Apple 로그인에는 authorizationCode가 필요합니다."),
+
     ;
     private final HttpStatus status;
     private final String code;

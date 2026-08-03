@@ -52,7 +52,11 @@ public class UserRequestDTO {
 
             LocalDate birth,
 
-            /** Presigned URL로 업로드 후 받은 s3Key. null이면 프로필 이미지 변경 안 함. */
+            /**
+             * Presigned URL로 업로드 후 받은 s3Key.
+             * null이면 프로필 이미지 변경 안 함.
+             * "DEFAULT"이면 기본 이미지로 초기화 (기존 이미지 삭제).
+             */
             String s3Key
     ){}
 

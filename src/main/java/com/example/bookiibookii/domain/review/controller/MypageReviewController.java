@@ -28,7 +28,7 @@ public class MypageReviewController implements MypageReviewControllerDocs {
     ) {
         return ApiResponse.onSuccess(
                 ReviewSuccessCode.MYPAGE_WRITTEN_REVIEWS_FOUND,
-                mypageReviewService.getWrittenReviews(user.getId(), pageable)
+                mypageReviewService.getWrittenReviews(user.getId(), user.getLastResetAt(), pageable)
         );
     }
 
@@ -40,7 +40,7 @@ public class MypageReviewController implements MypageReviewControllerDocs {
     ) {
         return ApiResponse.onSuccess(
                 ReviewSuccessCode.MYPAGE_RECEIVED_REVIEWS_FOUND,
-                mypageReviewService.getReceivedReviews(user.getId(), pageable)
+                mypageReviewService.getReceivedReviews(user.getId(), user.getLastResetAt(), pageable)
         );
     }
 }

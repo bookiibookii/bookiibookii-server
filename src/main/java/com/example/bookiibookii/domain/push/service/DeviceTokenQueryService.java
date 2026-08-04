@@ -23,6 +23,6 @@ public class DeviceTokenQueryService {
     }
 
     private ActiveDeviceToken toActiveDeviceToken(DeviceToken deviceToken) {
-        return new ActiveDeviceToken(deviceToken.getId(), deviceToken.getToken());
+        return new ActiveDeviceToken(deviceToken.getId(), deviceToken.getToken(), deviceToken.getPlatform());
     }
 }

@@ -188,6 +188,8 @@ public class PackageDeliveryService {
     }
 
     public PartnerDeliveryResponseDTO getPartnerDelivery(Long groupId, User user) {
+        // TODO: NOTI-DEL-002 배송 상태 변경 알림은 배송 조회 API 연동 방식이 확정된 후 구현한다.
+        // 폴링, 웹훅 또는 별도 배송 상태 갱신 방식에 따라 중복 발송 방지 정책과 발송 시점을 함께 결정해야 한다.
         validatePackageGroup(groupId);
         MatchedMember me = getMyMatchedMember(groupId, user.getId());
         MatchedMember partner = getPartnerMember(groupId, me.getId());

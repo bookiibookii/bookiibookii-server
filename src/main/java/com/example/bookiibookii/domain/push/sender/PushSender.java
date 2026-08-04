@@ -5,4 +5,8 @@ import com.example.bookiibookii.domain.push.dto.PushMessage;
 public interface PushSender {
 
     void send(String deviceToken, PushMessage message);
+
+    default boolean isAvailable() {
+        return true;
+    }
 }

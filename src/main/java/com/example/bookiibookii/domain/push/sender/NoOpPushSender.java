@@ -13,11 +13,10 @@ public class NoOpPushSender implements PushSender {
     @Override
     public void send(String deviceToken, PushMessage message) {
         log.info(
-                "NoOp push. tokenSuffix={}, title={}, body={}, data={}",
+                "NoOp push. tokenSuffix={}, notificationId={}, notificationType={}",
                 tokenSuffix(deviceToken),
-                message.title(),
-                message.body(),
-                message.data()
+                message.data().getOrDefault("notificationId", "<unknown>"),
+                message.data().getOrDefault("type", "<unknown>")
         );
     }
 

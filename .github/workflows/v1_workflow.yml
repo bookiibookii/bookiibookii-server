@@ -110,6 +110,7 @@ jobs:
             --restart unless-stopped \
             --network "\$NETWORK_NAME" \
             --env-file "\$ENV_FILE" \
+            -e SPRING_PROFILES_ACTIVE=v1 \
             -p 8080:8080 \
             -v "\$LOG_DIR:/logs" \
             -v "\$FIREBASE_CREDENTIALS_FILE:\$FIREBASE_CREDENTIALS_FILE:ro" \

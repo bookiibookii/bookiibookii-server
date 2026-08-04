@@ -30,6 +30,7 @@ spring:
 logging:
   level:
     org.hibernate.SQL: debug
+    com.example.bookiibookii.domain.push: debug
 
 jwt:
   token:

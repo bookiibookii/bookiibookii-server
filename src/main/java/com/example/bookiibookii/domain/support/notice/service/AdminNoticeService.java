@@ -54,6 +54,8 @@ public class AdminNoticeService {
     }
 
     public void createNotice(Long userId, NoticeRequestDTO.CreateNoticeDTO request) {
+        // TODO: NOTI-OPS-001 운영 공지 인앱 알림은 운영자 공지 등록 기능 구현 시 함께 적용한다.
+        // 현재 출시 범위에서는 미구현이며 Push 발송 대상이 아니다.
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
 

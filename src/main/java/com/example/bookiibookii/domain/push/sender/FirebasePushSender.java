@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.push.sender;
 
 import com.example.bookiibookii.domain.push.config.FirebasePushProperties;
 import com.example.bookiibookii.domain.push.dto.PushMessage;
+import com.example.bookiibookii.domain.push.util.PushLogSanitizer;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -84,7 +85,7 @@ public class FirebasePushSender implements PushSender {
                     credentialsFileExists(),
                     credentialsFileReadable(),
                     exception.getClass().getName(),
-                    safeLogMessage(exception.getMessage())
+                    PushLogSanitizer.safeMessage(exception.getMessage())
             );
         }
     }
@@ -113,7 +114,7 @@ public class FirebasePushSender implements PushSender {
             String messageId = firebaseMessaging.send(message);
             log.debug("FCM message sent. messageId={}", messageId);
         } catch (FirebaseMessagingException exception) {
-            String safeMessage = safeExceptionMessage(exception.getMessage(), deviceToken);
+            String safeMessage = PushLogSanitizer.safeExceptionMessage(exception.getMessage(), deviceToken);
             if (exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
                 throw new InvalidPushTokenException(safeMessage, exception);
             }
@@ -153,27 +154,6 @@ public class FirebasePushSender implements PushSender {
         } catch (RuntimeException exception) {
             return false;
         }
-    }
-
-    private String safeExceptionMessage(String message, String deviceToken) {
-        if (!StringUtils.hasText(message)) {
-            return "<no-message>";
-        }
-        if (!StringUtils.hasText(deviceToken)) {
-            return message;
-        }
-        return safeLogMessage(message.replace(deviceToken, "[REDACTED_TOKEN]"));
-    }
-
-    private String safeLogMessage(String message) {
-        if (!StringUtils.hasText(message)) {
-            return "<no-message>";
-        }
-        String sanitized = message
-                .replaceAll("(?s)-----BEGIN PRIVATE KEY-----.*?-----END PRIVATE KEY-----", "[REDACTED_PRIVATE_KEY]")
-                .replace('\n', ' ')
-                .replace('\r', ' ');
-        return sanitized.length() <= 500 ? sanitized : sanitized.substring(0, 500) + "...";
     }
 
     private GoogleCredentials loadCredentials() throws IOException {

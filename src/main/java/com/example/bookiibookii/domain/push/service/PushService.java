@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import static com.example.bookiibookii.domain.push.util.PushLogSanitizer.maskedToken;
+import static com.example.bookiibookii.domain.push.util.PushLogSanitizer.safeExceptionMessage;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -64,18 +67,23 @@ public class PushService {
                 log.warn(
                         "Push delivery failed. errorCode=UNKNOWN, exceptionClass={}, exceptionMessage={}, "
                                 + "userId={}, platform={}, tokenId={}",
-                        exception.getClass().getName(), safeExceptionMessage(exception.getMessage(), token.token()),
+                        exception.getClass().getName(),
+                        safeExceptionMessage(exception.getMessage(), token.token()),
                         userId, token.platform(),
                         maskedToken(token.token())
                 );
             }
         }
-        log.info(
-                "Push delivery summary. notificationId={}, userId={}, notificationType={}, activeTokenCount={}, "
-                        + "androidTokenCount={}, iosTokenCount={}, successCount={}, failureCount={}, deactivatedCount={}",
-                notificationId, userId, notificationType, tokens.size(), androidCount, iosCount,
-                successCount, failureCount, deactivatedCount
-        );
+        String summaryFormat = "Push delivery summary. notificationId={}, userId={}, notificationType={}, "
+                + "activeTokenCount={}, androidTokenCount={}, iosTokenCount={}, successCount={}, failureCount={}, "
+                + "deactivatedCount={}";
+        if (failureCount > 0) {
+            log.warn(summaryFormat, notificationId, userId, notificationType, tokens.size(), androidCount, iosCount,
+                    successCount, failureCount, deactivatedCount);
+        } else {
+            log.debug(summaryFormat, notificationId, userId, notificationType, tokens.size(), androidCount, iosCount,
+                    successCount, failureCount, deactivatedCount);
+        }
     }
 
     private long countPlatform(List<ActiveDeviceToken> tokens, DevicePlatform platform) {
@@ -98,23 +106,9 @@ public class PushService {
                 token.platform(), maskedToken(token.token()));
     }
 
-    private String safeExceptionMessage(String message, String token) {
-        if (message == null) {
-            return "<no-message>";
-        }
-        return token == null || token.isBlank() ? message : message.replace(token, "[REDACTED_TOKEN]");
-    }
-
     private String causeClass(RuntimeException exception) {
         return exception.getCause() == null
                 ? exception.getClass().getName()
                 : exception.getCause().getClass().getName();
-    }
-
-    private String maskedToken(String token) {
-        if (token == null || token.length() < 9) {
-            return "********";
-        }
-        return token.substring(0, 4) + "..." + token.substring(token.length() - 4);
     }
 }

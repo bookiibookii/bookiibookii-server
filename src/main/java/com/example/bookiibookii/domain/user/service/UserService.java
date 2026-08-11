@@ -1,5 +1,9 @@
 package com.example.bookiibookii.domain.user.service;
 
+import com.example.bookiibookii.domain.location.repository.UserDeliveryRepository;
+import com.example.bookiibookii.domain.location.repository.UserExchangeRepository;
+import com.example.bookiibookii.domain.notification.repository.UserKeywordRepository;
+import com.example.bookiibookii.domain.push.repository.DeviceTokenRepository;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
@@ -48,6 +52,10 @@ public class UserService {
     private final BookshelfService bookshelfService;
     private final MemberReviewRepository memberReviewRepository;
     private final ProfileShareTokenRepository profileShareTokenRepository;
+    private final DeviceTokenRepository deviceTokenRepository;
+    private final UserKeywordRepository userKeywordRepository;
+    private final UserDeliveryRepository userDeliveryRepository;
+    private final UserExchangeRepository userExchangeRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -73,8 +81,12 @@ public class UserService {
     private void resetUserData(User user) {
         userTagRepository.deleteAllByUser(user);
         userBookRepository.deleteAllByUser(user);
-        userImageRepository.deleteByUser_Id(user.getId());
+        user.clearUserImage();
         profileShareTokenRepository.deleteAllByUser_Id(user.getId());
+        deviceTokenRepository.deleteAllByUser_Id(user.getId());
+        userKeywordRepository.deleteAllByUser(user);
+        userDeliveryRepository.deleteAllByUser_Id(user.getId());
+        userExchangeRepository.deleteAllByUser_Id(user.getId());
         user.reset();
     }
 

@@ -11,6 +11,7 @@ import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.domain.user.enums.WithdrawalReason;
 import com.example.bookiibookii.domain.user.exception.UserException;
 import com.example.bookiibookii.domain.user.exception.code.UserErrorCode;
+import com.example.bookiibookii.domain.user.repository.UserRepository;
 import com.example.bookiibookii.domain.user.repository.UserWithdrawalRepository;
 import com.example.bookiibookii.global.auth.social.AppleAuthClient;
 import com.example.bookiibookii.global.util.RedisUtil;
@@ -25,6 +26,7 @@ import java.util.List;
 @Transactional
 public class UserWithdrawalService {
 
+    private final UserRepository userRepository;
     private final UserWithdrawalRepository userWithdrawalRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final RedisUtil redisUtil;
@@ -32,7 +34,10 @@ public class UserWithdrawalService {
 
     private static final List<GroupStatus> ACTIVE_GROUP_STATUSES = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
 
-    public void withdraw(User user, WithdrawalReason reason, String customReason) {
+    public void withdraw(User passedUser, WithdrawalReason reason, String customReason) {
+        User user = userRepository.findById(passedUser.getId())
+                .orElseThrow(() -> new UserException(UserErrorCode.NOT_FOUND));
+
         if (matchedMemberRepository.existsByUser_IdAndStatusAndGroup_GroupStatusIn(
                 user.getId(), MemberStatus.JOINED, ACTIVE_GROUP_STATUSES)) {
             throw new UserException(UserErrorCode.ACTIVE_GROUP_EXISTS);
@@ -66,14 +71,17 @@ public class UserWithdrawalService {
         userWithdrawalRepository.save(withdrawal);
         redisUtil.delete("RT:" + user.getId());
 
+        // entity dirty checking 에 의존하지 않고 직접 UPDATE
+        // (OSIV 환경에서 JwtAuthFilter read-only 로드 시 snapshot 없어 dirty check 미동작 문제 방지)
+        userRepository.withdrawUser(user.getId());
+
         // Apple 유저: App Store 심사 지침 준수 — refresh_token revoke (실패해도 탈퇴 진행)
+        // withdrawUser() 이후 호출 → clearAppleRefreshToken의 status='WITHDRAWN' 조건 충족
         if (SocialType.APPLE.equals(user.getSocialType()) && user.getAppleRefreshToken() != null) {
             boolean revoked = appleAuthClient.revokeToken(user.getAppleRefreshToken());
             if (revoked) {
-                user.updateAppleRefreshToken(null);
+                userRepository.clearAppleRefreshToken(user.getId(), user.getAppleRefreshToken());
             }
         }
-
-        user.withdraw();
     }
 }

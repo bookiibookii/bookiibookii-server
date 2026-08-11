@@ -31,4 +31,6 @@ public interface UserDeliveryRepository extends JpaRepository<UserDelivery, Long
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "UPDATE user_delivery SET is_default = (user_delivery_id = :targetId) WHERE user_id = :userId", nativeQuery = true)
     void updateDefaultDelivery(@Param("userId") Long userId, @Param("targetId") Long targetId);
+
+    void deleteAllByUser_Id(Long userId);
 }

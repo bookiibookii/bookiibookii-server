@@ -113,6 +113,7 @@ public class User extends BaseEntity {
         this.lastResetAt = Instant.now();
         this.appleRefreshToken = null;
     }
+    public void clearUserImage() { this.userImage = null; }
     public void updateAppleRefreshToken(String token) { this.appleRefreshToken = token; }
     public void updateName(String name) { this.nickName = name; }
     public void updateIntroduction(String introduction) { this.introduction = introduction; }

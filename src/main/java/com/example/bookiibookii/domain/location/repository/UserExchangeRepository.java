@@ -30,4 +30,6 @@ public interface UserExchangeRepository extends JpaRepository<UserExchange, Long
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "UPDATE user_exchange SET is_default = (user_exchange_id = :targetId) WHERE user_id = :userId", nativeQuery = true)
     void updateDefaultExchange(@Param("userId") Long userId, @Param("targetId") Long targetId);
+
+    void deleteAllByUser_Id(Long userId);
 }

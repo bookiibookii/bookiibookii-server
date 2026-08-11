@@ -49,4 +49,6 @@ public interface UserKeywordRepository extends JpaRepository<UserKeyword, Long> 
     List<UserKeyword> findAllWithUserAndKeywordByKeywordIds(@Param("keywordIds") List<Long> keywordIds);
 
     boolean existsByUserAndKeyword_NormalizedContent(User user, String normalizedContent);
+
+    void deleteAllByUser(User user);
 }

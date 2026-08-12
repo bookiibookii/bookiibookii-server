@@ -45,8 +45,8 @@ public class ReportService {
         reportRepository.save(newReport);
     }
 
-    public List<ReportResponseDTO.ReportListDTO> getReportList(Long userId) {
-        List<Report> reports = reportRepository.findAllByUserId(userId);
+    public List<ReportResponseDTO.ReportListDTO> getReportList(User user) {
+        List<Report> reports = reportRepository.findAllByUserId(user.getId(), user.getLastResetAt());
 
         return reports.stream()
                 .map(report -> new ReportResponseDTO.ReportListDTO(

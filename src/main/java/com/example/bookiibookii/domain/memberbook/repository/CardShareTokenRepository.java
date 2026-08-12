@@ -32,4 +32,6 @@ public interface CardShareTokenRepository extends JpaRepository<CardShareToken, 
         AND c.deletedAt IS NULL
         """)
     Optional<CardShareToken> findActiveByTokenWithCardDetails(@Param("token") String token);
+
+    void deleteAllByCreatedBy_Id(Long userId);
 }

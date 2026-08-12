@@ -76,6 +76,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     """)
     List<Long> findPendingUserIdsByGroupId(@Param("groupId") Long groupId);
 
+    void deleteAllByGuest_Id(Long userId);
+
     // 내가 게스트로 '신청 중'인 개수
     long countByGuestIdAndApplicationStatus(Long guestId, ApplicationStatus status);
 

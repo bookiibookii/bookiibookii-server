@@ -16,6 +16,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     boolean existsByReceiver_IdAndDedupKey(Long receiverId, String dedupKey);
 
+    void deleteAllByReceiver_Id(Long userId);
+
     @Query("""
         select n from Notification n
         where n.receiver.id = :receiverId

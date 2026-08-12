@@ -4,7 +4,14 @@ import com.example.bookiibookii.domain.location.repository.UserDeliveryRepositor
 import com.example.bookiibookii.domain.location.repository.UserExchangeRepository;
 import com.example.bookiibookii.domain.notification.repository.UserKeywordRepository;
 import com.example.bookiibookii.domain.push.repository.DeviceTokenRepository;
+import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
+import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
+import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
+import com.example.bookiibookii.domain.memberbook.repository.CardShareTokenRepository;
+import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
+import com.example.bookiibookii.domain.policy.repository.UserPolicyAgreementRepository;
 import com.example.bookiibookii.domain.review.repository.BookReviewRepository;
+import com.example.bookiibookii.domain.support.notice.repository.UserNoticeReadRepository;
 import com.example.bookiibookii.domain.user.dto.req.UserRequestDTO;
 import com.example.bookiibookii.domain.user.dto.res.UserResponseDTO;
 import com.example.bookiibookii.domain.user.entity.*;
@@ -47,6 +54,9 @@ public class UserService {
     private final UserImageValidationService userImageValidationService;
     private final UserImageS3Service userImageS3Service;
     private final BookReviewRepository bookReviewRepository;
+    private final MemberBookRepository memberBookRepository;
+    private final MatchedMemberRepository matchedMemberRepository;
+    private final CardShareTokenRepository cardShareTokenRepository;
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
     private final BookshelfService bookshelfService;
@@ -56,6 +66,10 @@ public class UserService {
     private final UserKeywordRepository userKeywordRepository;
     private final UserDeliveryRepository userDeliveryRepository;
     private final UserExchangeRepository userExchangeRepository;
+    private final ApplicationRepository applicationRepository;
+    private final UserPolicyAgreementRepository userPolicyAgreementRepository;
+    private final UserNoticeReadRepository userNoticeReadRepository;
+    private final NotificationRepository notificationRepository;
 
     // 소셜 유저 조회 or 생성
     public User findOrCreateSocialUser(
@@ -87,6 +101,14 @@ public class UserService {
         userKeywordRepository.deleteAllByUser(user);
         userDeliveryRepository.deleteAllByUser_Id(user.getId());
         userExchangeRepository.deleteAllByUser_Id(user.getId());
+        applicationRepository.deleteAllByGuest_Id(user.getId());
+        userPolicyAgreementRepository.deleteAllByUser_Id(user.getId());
+        userNoticeReadRepository.deleteAllByUserId(user.getId());
+        notificationRepository.deleteAllByReceiver_Id(user.getId());
+        matchedMemberRepository.clearCurrentMemberBookByUserId(user.getId());
+        bookReviewRepository.deleteAllByMatchedMember_User_Id(user.getId());
+        cardShareTokenRepository.deleteAllByCreatedBy_Id(user.getId());
+        memberBookRepository.deleteAllByMatchedMember_User_Id(user.getId());
         user.reset();
     }
 

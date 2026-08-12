@@ -182,7 +182,7 @@ public class CommentService {
         CommentContext context = commentAccessPolicy.resolveContext(group);
         commentAccessPolicy.validateAccess(context, groupId, viewer);
 
-        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewer.getId());
+        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewer.getId(), viewer.getLastResetAt());
 
         // 그룹 멤버 역할 전체 로드 (user_id, mm.RoleStatus 가져옴)
         Map<Long, WriterRole> writerRoleMap = matchedMemberRepository.findWriterRowsByGroupId(groupId)

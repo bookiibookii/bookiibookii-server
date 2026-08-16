@@ -251,6 +251,7 @@ public class CommentService {
                 .commentId(c.getId())
                 .groupId(c.getGroup().getId())
                 .parentId(c.getParent() != null ? c.getParent().getId() : null)
+                .secret(c.isSecret())
                 .content(c.getContent())
                 .createdAt(c.getCreatedAt())
                 .writer(toWriterDto(c.getUser(), writerRole))

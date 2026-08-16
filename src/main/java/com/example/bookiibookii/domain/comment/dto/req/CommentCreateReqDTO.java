@@ -18,6 +18,6 @@ public class CommentCreateReqDTO {
     @Schema(description = "부모 댓글 ID (대댓글일 때만)", example = "null", nullable = true, defaultValue = "null")
     private Long parentId;
 
-    @Schema(description = "비밀 대댓글 여부 (대댓글일 때만 true 가능)", defaultValue = "false", example = "false")
+    @Schema(description = "비밀 댓글 또는 비밀 답글 여부", defaultValue = "false", example = "false")
     private boolean secret;
 }

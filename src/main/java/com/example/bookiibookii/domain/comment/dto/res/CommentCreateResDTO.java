@@ -12,6 +12,7 @@ public class CommentCreateResDTO {
     private Long commentId;
     private Long groupId;
     private Long parentId;
+    private boolean secret;
     private String content;
     private Instant createdAt;
     private WriterDto writer;

@@ -19,7 +19,7 @@ public interface CommentControllerDocs {
 
     @Operation(
             summary = "댓글 작성 api",
-            description = "대댓글이 아닐 시 parentId 에 null을 입력하세요 / 대댓글일 시 부모의 commentId를 입력하세요"
+            description = "댓글은 parentId에 null을, 답글은 부모 commentId를 입력하세요. 댓글과 답글 모두 비밀 설정이 가능합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "댓글 작성 성공"),
@@ -34,7 +34,7 @@ public interface CommentControllerDocs {
 
     @Operation(
             summary = "그룹의 댓글 조회 api",
-            description = "대댓글 - 부모댓글 순서로 조회됩니다(시간순 정렬 포함)"
+            description = "댓글과 답글을 시간순 트리로 조회합니다. 비밀 댓글/답글은 작성자, 대상자, 그룹 HOST에게만 노출됩니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "댓글 조회 성공"),

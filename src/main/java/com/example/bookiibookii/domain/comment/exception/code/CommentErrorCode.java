@@ -22,10 +22,6 @@ public enum CommentErrorCode implements BaseCode {
     REPLY_DEPTH_EXCEEDED(HttpStatus.BAD_REQUEST,
             "COMMENT400_2",
             "대댓글의 대댓글은 허용되지 않습니다."),
-    SECRET_REPLY_ONLY(HttpStatus.BAD_REQUEST,
-            "COMMENT400_3",
-            "비밀 댓글은 답글(대댓글)로만 작성할 수 있습니다."),
-
     COMMENT_WRITE_FORBIDDEN(HttpStatus.FORBIDDEN,
             "COMMENT403_1",
             "진행 중인 그룹에는 그룹 멤버만 댓글 작성이 가능합니다."),

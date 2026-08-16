@@ -156,13 +156,11 @@ public class CommentService {
         }
 
         boolean isSecret = req.isSecret();
-        if (isSecret && parent == null) {
-            throw new CommentException(CommentErrorCode.SECRET_REPLY_ONLY);
-        }
-
         Long secretTargetUserId = null;
         if (isSecret) {
-            secretTargetUserId = parent.getUser().getId();
+            secretTargetUserId = parent != null
+                    ? parent.getUser().getId()
+                    : group.getHost().getId();
         }
 
         Comment comment = Comment.builder()
@@ -253,6 +251,7 @@ public class CommentService {
                 .commentId(c.getId())
                 .groupId(c.getGroup().getId())
                 .parentId(c.getParent() != null ? c.getParent().getId() : null)
+                .secret(c.isSecret())
                 .content(c.getContent())
                 .createdAt(c.getCreatedAt())
                 .writer(toWriterDto(c.getUser(), writerRole))

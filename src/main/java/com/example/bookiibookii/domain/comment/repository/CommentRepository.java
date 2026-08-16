@@ -26,7 +26,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     where c.group.id = :groupId
     and (
         c.secret = false
-        or (c.secret = true and (c.user.id = :viewerId or c.secretTargetUserId = :viewerId))
+        or (c.secret = true and (
+            c.user.id = :viewerId
+            or c.secretTargetUserId = :viewerId
+            or c.group.host.id = :viewerId
+        ))
     )
     and (
         c.user.id <> :viewerId

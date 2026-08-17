@@ -34,6 +34,7 @@ public class ReadingCardReactionNotificationService {
                     notificationFactory.toJson(NotificationPayload.builder()
                             .redirectType(RedirectType.BOOK_CARD_DETAIL)
                             .groupId(event.groupId())
+                            .memberBookId(event.memberBookId())
                             .cardId(event.cardId())
                             .build()),
                     String.format(

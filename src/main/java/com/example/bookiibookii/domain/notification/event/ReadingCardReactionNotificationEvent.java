@@ -5,6 +5,7 @@ public record ReadingCardReactionNotificationEvent(
         String reactorNickname,
         Long receiverId,
         Long groupId,
+        Long memberBookId,
         Long cardId
 ) {
 }

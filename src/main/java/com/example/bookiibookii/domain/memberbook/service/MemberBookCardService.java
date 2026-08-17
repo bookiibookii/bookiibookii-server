@@ -251,6 +251,7 @@ public class MemberBookCardService {
                 reactor.getUser().getNickName(),
                 ownerId,
                 card.getMemberBook().getGroup().getId(),
+                card.getMemberBook().getId(),
                 card.getId()
         ));
     }

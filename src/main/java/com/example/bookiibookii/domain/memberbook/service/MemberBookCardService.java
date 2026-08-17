@@ -82,20 +82,61 @@ public class MemberBookCardService {
         Groups group = groupsRepository.findById(groupId)
                 .orElseThrow(() -> new GroupException(GroupErrorCode.GROUP_NOT_FOUND));
 
+        validateGroupCardAccess(group, userId);
+
+        return buildCardListResponse(
+                groupId,
+                userId,
+                cardsRepository.findByGroupIdWithMemberBookAndBookAndCreator(groupId),
+                presignedGetUrlExpirationMinutes
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public MemberCardListResponseDTO getCardsByMemberBookId(
+            Long memberBookId,
+            Long userId,
+            int presignedGetUrlExpirationMinutes
+    ) {
+        MemberBook referenceMemberBook = memberBookRepository.findById(memberBookId)
+                .orElseThrow(() -> new MemberBookException(MemberBookErrorCode.MEMBER_BOOK_NOT_FOUND));
+
+        Groups group = referenceMemberBook.getGroup();
+        validateGroupCardAccess(group, userId);
+
+        Long groupId = group.getId();
+        Long bookId = referenceMemberBook.getBook().getId();
+        return buildCardListResponse(
+                groupId,
+                userId,
+                cardsRepository.findByGroupIdAndBookIdWithMemberBookAndBookAndCreator(groupId, bookId),
+                presignedGetUrlExpirationMinutes
+        );
+    }
+
+    private void validateGroupCardAccess(Groups group, Long userId) {
         if (group.getGroupStatus() == GroupStatus.DELETED) {
             throw new GroupException(GroupErrorCode.GROUP_DELETED);
         }
 
-        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(groupId, userId)) {
+        if (!matchedMemberRepository.existsByGroup_IdAndUser_Id(group.getId(), userId)) {
             throw new GroupException(GroupErrorCode.FORBIDDEN_GROUP_ACCESS);
         }
+    }
+
+    private MemberCardListResponseDTO buildCardListResponse(
+            Long groupId,
+            Long userId,
+            List<Cards> queriedCards,
+            int presignedGetUrlExpirationMinutes
+    ) {
 
         // member_card에서 현재 사용자·그룹 기준 숨김(소프트 삭제) 카드 ID를 먼저 조회
         Set<Long> hiddenCardIds = Set.copyOf(
                 memberCardRepository.findHiddenCardIdsByUserIdAndGroupId(userId, groupId)
         );
 
-        List<Cards> cards = cardsRepository.findByGroupIdWithMemberBookAndBookAndCreator(groupId);
+        List<Cards> cards = queriedCards;
         if (!hiddenCardIds.isEmpty()) {
             cards = cards.stream()
                     .filter(c -> !hiddenCardIds.contains(c.getId()))

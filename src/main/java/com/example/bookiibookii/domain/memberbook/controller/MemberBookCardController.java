@@ -53,6 +53,17 @@ public class MemberBookCardController implements MemberBookCardControllerDocs {
     }
 
     @Override
+    @GetMapping("/{memberBookId}/cards")
+    public ApiResponse<MemberCardListResponseDTO> getCardsByMemberBookId(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @PathVariable Long memberBookId
+    ) {
+        MemberCardListResponseDTO response = memberBookCardService.getCardsByMemberBookId(
+                memberBookId, user.getId(), PRESIGNED_GET_URL_EXPIRATION_MINUTES);
+        return ApiResponse.onSuccess(MemberBookCardSuccessCode.CARDS_FOUND, response);
+    }
+
+    @Override
     @GetMapping("/cards/detail/{cardId}")
     public ApiResponse<MemberCardResponseDTO> getCardDetail(
             @AuthenticationPrincipal(expression = "user") User user,

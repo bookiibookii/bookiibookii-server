@@ -56,6 +56,32 @@ public interface MemberBookCardControllerDocs {
     );
 
     @Operation(
+            summary = "동일 교환독서 그룹·동일 도서의 독서카드 목록 조회",
+            description = """
+            기준 MemberBook과 동일한 교환독서 그룹 및 동일 도서에 작성된 독서카드를 조회합니다.
+
+            - **엔드포인트**: `GET /api/member-books/{memberBookId}/cards`
+            - `memberBookId`는 카드 소유 MemberBook 하나만 필터링하는 값이 아니라 조회할 그룹과 도서를 식별하는 기준입니다.
+            - 같은 그룹에서 상대방이 교환 후 동일한 책을 읽으며 작성한 카드도 함께 반환합니다.
+            - 같은 도서라도 다른 교환독서 그룹에서 작성된 카드는 반환하지 않습니다.
+            - 해당 교환독서 그룹의 멤버만 조회할 수 있습니다.
+            - 삭제된 카드와 현재 사용자가 숨긴 카드는 제외하며, 생성일 기준 오름차순으로 반환합니다.
+            - 응답 항목과 북마크·리액션·작성자 정보는 그룹 전체 카드 조회 API와 동일합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "그룹 멤버가 아님"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "멤버북 또는 그룹 없음")
+    })
+    @GetMapping("/{memberBookId}/cards")
+    ApiResponse<MemberCardListResponseDTO> getCardsByMemberBookId(
+            @AuthenticationPrincipal(expression = "user") User user,
+            @Parameter(description = "그룹과 도서를 식별할 기준 MemberBook ID", example = "1")
+            @PathVariable Long memberBookId
+    );
+
+    @Operation(
             summary = "멤버북 독서카드 상세 조회",
             description = """
             memberBook 도메인 독서카드 한 건의 상세 정보를 조회합니다.

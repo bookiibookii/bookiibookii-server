@@ -9,7 +9,10 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum AladinErrorCode implements BaseCode {
     // 404 Not Found
-    ALADIN_NOT_FOUND(HttpStatus.NOT_FOUND, "ALADIN404_1", "알라딘 책을 찾을 수 없습니다.");
+    ALADIN_NOT_FOUND(HttpStatus.NOT_FOUND, "ALADIN404_1", "알라딘 책을 찾을 수 없습니다."),
+
+    // 502 Bad Gateway
+    ALADIN_RESPONSE_PARSE_ERROR(HttpStatus.BAD_GATEWAY, "ALADIN502_1", "알라딘 응답을 처리할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

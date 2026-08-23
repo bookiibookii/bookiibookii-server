@@ -4,13 +4,16 @@ import com.example.bookiibookii.domain.aladin.exception.AladinException;
 import com.example.bookiibookii.domain.aladin.exception.code.AladinErrorCode;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import tools.jackson.core.JacksonException;
 
 import java.util.List;
 
 @Component
+@Slf4j
 public class AladinClient {
 
     private static final String ALADIN_BASE_URL = "https://www.aladin.co.kr/ttb/api";
@@ -19,28 +22,47 @@ public class AladinClient {
     private String aladinKey;
 
     private final RestClient restClient;
+    private final AladinResponseParser responseParser;
 
     public AladinClient(RestClient.Builder builder) {
         this.restClient = builder
                 .baseUrl(ALADIN_BASE_URL)
                 .build();
+        this.responseParser = new AladinResponseParser();
     }
 
     public AladinItemSearchResponse searchBooksByKeyword(String keyword, int page, int size) {
-        return restClient.get()
+        String rawBody = restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/ItemSearch.aspx")
                         .queryParam("ttbkey", aladinKey)
                         .queryParam("Query", keyword)
                         .queryParam("start", page)
                         .queryParam("MaxResults", size)
-                        .queryParam("SubSearchTarget", "Book")
+                        .queryParam("SearchTarget", "Book")
                         .queryParam("cover", "Big")
                         .queryParam("output", "JS")
                         .queryParam("Version", "20131101")
                         .build())
                 .retrieve()
-                .body(AladinItemSearchResponse.class);
+                .body(String.class);
+
+        try {
+            return responseParser.parseItemSearchResponse(rawBody);
+        } catch (JacksonException ex) {
+            Throwable rootCause = rootCauseOf(ex);
+            log.error("Failed to parse Aladin search response: keyword={}, page={}, size={}, cause={}",
+                    keyword, page, size, rootCause.getMessage());
+            throw new AladinException(AladinErrorCode.ALADIN_RESPONSE_PARSE_ERROR, ex);
+        }
+    }
+
+    private Throwable rootCauseOf(Throwable throwable) {
+        Throwable rootCause = throwable;
+        while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+            rootCause = rootCause.getCause();
+        }
+        return rootCause;
     }
 
     public AladinItemSearchResponse fetchBestsellers(int maxResults) {

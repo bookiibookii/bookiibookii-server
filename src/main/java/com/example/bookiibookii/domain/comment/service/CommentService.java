@@ -156,13 +156,11 @@ public class CommentService {
         }
 
         boolean isSecret = req.isSecret();
-        if (isSecret && parent == null) {
-            throw new CommentException(CommentErrorCode.SECRET_REPLY_ONLY);
-        }
-
         Long secretTargetUserId = null;
         if (isSecret) {
-            secretTargetUserId = parent.getUser().getId();
+            secretTargetUserId = parent != null
+                    ? parent.getUser().getId()
+                    : group.getHost().getId();
         }
 
         Comment comment = Comment.builder()
@@ -182,7 +180,7 @@ public class CommentService {
         CommentContext context = commentAccessPolicy.resolveContext(group);
         commentAccessPolicy.validateAccess(context, groupId, viewer);
 
-        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewer.getId());
+        List<Comment> comments = commentRepository.findVisibleTree(groupId, viewer.getId(), viewer.getLastResetAt());
 
         // 그룹 멤버 역할 전체 로드 (user_id, mm.RoleStatus 가져옴)
         Map<Long, WriterRole> writerRoleMap = matchedMemberRepository.findWriterRowsByGroupId(groupId)
@@ -208,7 +206,6 @@ public class CommentService {
             } else {
                 CommentTreeResDTO parent = map.get(dto.getParentId());
                 if (parent != null) parent.addChild(dto);
-                else roots.add(dto);
             }
         }
 
@@ -253,6 +250,7 @@ public class CommentService {
                 .commentId(c.getId())
                 .groupId(c.getGroup().getId())
                 .parentId(c.getParent() != null ? c.getParent().getId() : null)
+                .secret(c.isSecret())
                 .content(c.getContent())
                 .createdAt(c.getCreatedAt())
                 .writer(toWriterDto(c.getUser(), writerRole))

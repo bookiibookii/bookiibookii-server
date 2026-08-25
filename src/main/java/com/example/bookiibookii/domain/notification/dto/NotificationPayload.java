@@ -14,6 +14,7 @@ public record NotificationPayload(
         ExchangeType exchangeType,
         ExchangeRound exchangeRound,
         Long cardId,
+        Long memberBookId,
         Long commentId,
         Long parentCommentId,
         String deliveryId,

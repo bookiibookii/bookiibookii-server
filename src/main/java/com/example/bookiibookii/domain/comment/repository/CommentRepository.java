@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,10 +26,20 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     where c.group.id = :groupId
     and (
         c.secret = false
-        or (c.secret = true and (c.user.id = :viewerId or c.secretTargetUserId = :viewerId))
+        or (c.secret = true and (
+            c.user.id = :viewerId
+            or c.secretTargetUserId = :viewerId
+            or c.group.host.id = :viewerId
+        ))
+    )
+    and (
+        c.user.id <> :viewerId
+        or :viewerLastResetAt is null
+        or c.createdAt >= :viewerLastResetAt
     )
     order by c.createdAt asc
     """)
     List<Comment> findVisibleTree(@Param("groupId") Long groupId,
-                                  @Param("viewerId") Long viewerId);
+                                  @Param("viewerId") Long viewerId,
+                                  @Param("viewerLastResetAt") Instant viewerLastResetAt);
 }

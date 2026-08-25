@@ -7,4 +7,9 @@ public class AladinException extends GeneralException {
     public AladinException(BaseCode code) {
         super(code);
     }
+
+    public AladinException(BaseCode code, Throwable cause) {
+        super(code);
+        initCause(cause);
+    }
 }

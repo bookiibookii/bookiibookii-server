@@ -36,11 +36,8 @@ public class InquiryService {
     /**
      * [유저] 내 문의 내역 리스트 조회
      */
-    public List<InquiryResponseDTO.InquiryListDTO> getInquiryList(Long userId) {
-        // Repository에서 이미 @EntityGraph와 ORDER BY가 적용된 메서드 호출
-        List<Inquiry> inquiries = inquiryRepository.findAllByUserId(userId);
-
-        // Converter를 사용하여 DTO 리스트로 변환
+    public List<InquiryResponseDTO.InquiryListDTO> getInquiryList(User user) {
+        List<Inquiry> inquiries = inquiryRepository.findAllByUserId(user.getId(), user.getLastResetAt());
         return InquiryConverter.toInquiryListDTOList(inquiries);
     }
 }

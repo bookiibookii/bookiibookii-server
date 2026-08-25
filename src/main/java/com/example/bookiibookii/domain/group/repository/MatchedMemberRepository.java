@@ -10,6 +10,7 @@ import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -132,6 +133,10 @@ public interface MatchedMemberRepository extends JpaRepository<MatchedMember, Lo
         AND mm.completedAt IS NOT NULL
     """)
     List<MatchedMember> findCompletedByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE MatchedMember mm SET mm.currentMemberBook = NULL WHERE mm.user.id = :userId")
+    void clearCurrentMemberBookByUserId(@Param("userId") Long userId);
 
     @Query("""
         select distinct mm

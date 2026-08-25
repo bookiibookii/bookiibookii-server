@@ -39,7 +39,7 @@ public class InquiryController implements InquiryControllerDocs{
     public ApiResponse<List<InquiryResponseDTO.InquiryListDTO>> getInquiryList(
             @AuthenticationPrincipal(expression = "user") User user
     ) {
-        List<InquiryResponseDTO.InquiryListDTO> result = inquiryService.getInquiryList(user.getId());
+        List<InquiryResponseDTO.InquiryListDTO> result = inquiryService.getInquiryList(user);
         return ApiResponse.onSuccess(GeneralSuccessCode.REQUEST_OK, result);
     }
 }

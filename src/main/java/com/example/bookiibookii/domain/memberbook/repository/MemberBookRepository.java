@@ -96,6 +96,8 @@ public interface MemberBookRepository extends JpaRepository<MemberBook, Long> {
         """)
     List<MemberBook> findCompletedBooksByUserId(@Param("userId") Long userId);
 
+    void deleteAllByMatchedMember_User_Id(Long userId);
+
     // 내가 참여한 완료 그룹에서 함께 읽은 상대방 책 (내 MatchedMember 기준 isMine=false)
     @Query("""
         SELECT DISTINCT mb FROM MemberBook mb

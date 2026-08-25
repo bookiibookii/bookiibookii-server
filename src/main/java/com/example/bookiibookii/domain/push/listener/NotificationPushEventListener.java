@@ -27,6 +27,7 @@ public class NotificationPushEventListener {
             "exchangeType",
             "exchangeRound",
             "cardId",
+            "memberBookId",
             "commentId",
             "parentCommentId",
             "deliveryId",

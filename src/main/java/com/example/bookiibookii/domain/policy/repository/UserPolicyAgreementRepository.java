@@ -27,4 +27,6 @@ public interface UserPolicyAgreementRepository extends JpaRepository<UserPolicyA
             @Param("userId") Long userId,
             @Param("policyDocumentIds") List<Long> policyDocumentIds
     );
+
+    void deleteAllByUser_Id(Long userId);
 }

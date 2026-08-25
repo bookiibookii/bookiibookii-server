@@ -41,4 +41,8 @@ public interface CardReactionRepository extends JpaRepository<CardReaction, Long
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM CardReaction cr WHERE cr.matchedMember.id = :matchedMemberId")
     void deleteByMatchedMember_Id(@Param("matchedMemberId") Long matchedMemberId);
+
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM CardReaction cr WHERE cr.matchedMember.user.id = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }

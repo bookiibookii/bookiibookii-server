@@ -57,6 +57,8 @@ public interface BookReviewRepository extends JpaRepository<BookReview, Long> {
 
     boolean existsByMemberBookId(Long memberBookId);
 
+    void deleteAllByMatchedMember_User_Id(Long userId);
+
     @Query(
             value = """
                 SELECT br FROM BookReview br

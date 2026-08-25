@@ -8,12 +8,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 
 public interface ReportRepository extends JpaRepository<Report,Long> {
+    // since가 null이 아니면 재가입 이후 항목만 반환
     @EntityGraph(attributePaths = {"user", "group", "group.book"})
-    @Query("SELECT r FROM Report r WHERE r.user.id = :userId ORDER BY r.createdAt DESC")
-    List<Report> findAllByUserId(@Param("userId") Long userId);
+    @Query("SELECT r FROM Report r WHERE r.user.id = :userId AND (:since IS NULL OR r.createdAt >= :since) ORDER BY r.createdAt DESC")
+    List<Report> findAllByUserId(@Param("userId") Long userId, @Param("since") Instant since);
 
     // [관리자용] 전체 신고 내역 조회 (최신순 + 페치 조인)
     @EntityGraph(attributePaths = {"user"})

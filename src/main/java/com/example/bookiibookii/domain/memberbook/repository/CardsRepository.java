@@ -52,6 +52,24 @@ public interface CardsRepository extends JpaRepository<Cards, Long> {
         JOIN FETCH mb.matchedMember mm
         JOIN FETCH mm.user u
         LEFT JOIN FETCH u.userImage
+        WHERE mb.group.id = :groupId
+        AND mb.book.id = :bookId
+        AND c.deletedAt IS NULL
+        ORDER BY c.createdAt ASC
+        """)
+    List<Cards> findByGroupIdAndBookIdWithMemberBookAndBookAndCreator(
+            @Param("groupId") Long groupId,
+            @Param("bookId") Long bookId
+    );
+
+    @Query("""
+        SELECT c FROM Cards c
+        LEFT JOIN FETCH c.cardImages
+        JOIN FETCH c.memberBook mb
+        JOIN FETCH mb.book
+        JOIN FETCH mb.matchedMember mm
+        JOIN FETCH mm.user u
+        LEFT JOIN FETCH u.userImage
         JOIN FETCH mb.group
         WHERE c.id = :cardId
         AND c.deletedAt IS NULL

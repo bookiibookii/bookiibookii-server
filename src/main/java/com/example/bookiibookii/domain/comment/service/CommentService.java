@@ -206,7 +206,6 @@ public class CommentService {
             } else {
                 CommentTreeResDTO parent = map.get(dto.getParentId());
                 if (parent != null) parent.addChild(dto);
-                else roots.add(dto);
             }
         }
 

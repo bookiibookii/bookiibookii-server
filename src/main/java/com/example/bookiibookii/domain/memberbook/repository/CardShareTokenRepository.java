@@ -2,6 +2,7 @@ package com.example.bookiibookii.domain.memberbook.repository;
 
 import com.example.bookiibookii.domain.memberbook.entity.CardShareToken;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -34,4 +35,14 @@ public interface CardShareTokenRepository extends JpaRepository<CardShareToken, 
     Optional<CardShareToken> findActiveByTokenWithCardDetails(@Param("token") String token);
 
     void deleteAllByCreatedBy_Id(Long userId);
+
+    @Modifying(flushAutomatically = true)
+    @Query("""
+        DELETE FROM CardShareToken t
+        WHERE t.card.id IN (
+            SELECT c.id FROM Cards c
+            WHERE c.memberBook.matchedMember.user.id = :userId
+        )
+        """)
+    void deleteAllByCardOwnerUserId(@Param("userId") Long userId);
 }

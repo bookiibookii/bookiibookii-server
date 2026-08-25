@@ -8,6 +8,7 @@ import com.example.bookiibookii.domain.group.repository.ApplicationRepository;
 import com.example.bookiibookii.domain.group.repository.MatchedMemberRepository;
 import com.example.bookiibookii.domain.notification.repository.NotificationRepository;
 import com.example.bookiibookii.domain.memberbook.repository.CardShareTokenRepository;
+import com.example.bookiibookii.domain.memberbook.repository.CardReactionRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberBookRepository;
 import com.example.bookiibookii.domain.memberbook.repository.MemberCardRepository;
 import com.example.bookiibookii.domain.policy.repository.UserPolicyAgreementRepository;
@@ -58,6 +59,7 @@ public class UserService {
     private final MemberBookRepository memberBookRepository;
     private final MatchedMemberRepository matchedMemberRepository;
     private final CardShareTokenRepository cardShareTokenRepository;
+    private final CardReactionRepository cardReactionRepository;
     private final MemberCardRepository memberCardRepository;
     private final BadWordService badWordService;
     private final UserBookRepository userBookRepository;
@@ -111,7 +113,9 @@ public class UserService {
         bookReviewRepository.deleteAllByMatchedMember_User_Id(user.getId());
         cardShareTokenRepository.deleteAllByCreatedBy_Id(user.getId());
         cardShareTokenRepository.deleteAllByCardOwnerUserId(user.getId());
+        memberCardRepository.deleteAllByUserId(user.getId());
         memberCardRepository.deleteAllByCardOwnerUserId(user.getId());
+        cardReactionRepository.deleteAllByUserId(user.getId());
         memberBookRepository.deleteAllByMatchedMember_User_Id(user.getId());
         user.reset();
     }

@@ -7,10 +7,12 @@ import com.example.bookiibookii.domain.group.entity.MatchedMember;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.TradeType;
 import com.example.bookiibookii.domain.memberbook.entity.Cards;
+import com.example.bookiibookii.domain.memberbook.entity.CardReaction;
 import com.example.bookiibookii.domain.memberbook.entity.CardShareToken;
 import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
 import com.example.bookiibookii.domain.memberbook.entity.MemberCard;
 import com.example.bookiibookii.domain.memberbook.enums.CardType;
+import com.example.bookiibookii.domain.memberbook.enums.CardReactionType;
 import com.example.bookiibookii.domain.memberbook.enums.ShareLayout;
 import com.example.bookiibookii.domain.user.entity.User;
 import com.example.bookiibookii.domain.user.enums.SocialType;
@@ -43,6 +45,9 @@ class CardsRepositoryTest {
 
     @Autowired
     private MemberCardRepository memberCardRepository;
+
+    @Autowired
+    private CardReactionRepository cardReactionRepository;
 
     @Autowired
     private MemberBookRepository memberBookRepository;
@@ -128,6 +133,56 @@ class CardsRepositoryTest {
         assertThat(memberCardRepository.findById(otherState.getId())).isEmpty();
         assertThat(memberBookRepository.findById(ownerBook.getId())).isEmpty();
         assertThat(cardsRepository.findById(ownerCard.getId())).isEmpty();
+    }
+
+    @Test
+    void deletingMemberCardStateByUserRemovesStateOnAnotherUsersCard() {
+        User resettingUser = persistUser("reset-state-owner", "재가입 사용자");
+        User cardOwner = persistUser("reset-state-card-owner", "카드 작성자");
+        Book book = persistBook("9780000010100", "북마크 카드 책");
+        Groups group = persistGroup(book, cardOwner, "북마크 초기화 그룹");
+        MatchedMember resettingMember = persistMatchedMember(group, resettingUser);
+        MatchedMember ownerMember = persistMatchedMember(group, cardOwner);
+        MemberBook ownerBook = persistMemberBook(group, ownerMember, book, true);
+        Cards ownerCard = persistCard(ownerBook, "다른 사용자의 카드");
+        MemberCard resettingUsersState = MemberCard.builder()
+                .card(ownerCard)
+                .matchedMember(resettingMember)
+                .bookmarked(true)
+                .build();
+        entityManager.persist(resettingUsersState);
+        entityManager.flush();
+        entityManager.clear();
+
+        memberCardRepository.deleteAllByUserId(resettingUser.getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(memberCardRepository.findById(resettingUsersState.getId())).isEmpty();
+        assertThat(cardsRepository.findById(ownerCard.getId())).isPresent();
+    }
+
+    @Test
+    void deletingReactionsByUserRemovesReactionOnAnotherUsersCard() {
+        User resettingUser = persistUser("reset-reaction-owner", "재가입 사용자");
+        User cardOwner = persistUser("reset-reaction-card-owner", "카드 작성자");
+        Book book = persistBook("9780000010101", "리액션 카드 책");
+        Groups group = persistGroup(book, cardOwner, "리액션 초기화 그룹");
+        MatchedMember resettingMember = persistMatchedMember(group, resettingUser);
+        MatchedMember ownerMember = persistMatchedMember(group, cardOwner);
+        MemberBook ownerBook = persistMemberBook(group, ownerMember, book, true);
+        Cards ownerCard = persistCard(ownerBook, "반응을 남긴 카드");
+        CardReaction reaction = CardReaction.create(ownerCard, resettingMember, CardReactionType.LIKE);
+        entityManager.persist(reaction);
+        entityManager.flush();
+        entityManager.clear();
+
+        cardReactionRepository.deleteAllByUserId(resettingUser.getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(cardReactionRepository.findById(reaction.getId())).isEmpty();
+        assertThat(cardsRepository.findById(ownerCard.getId())).isPresent();
     }
 
     private User persistUser(String socialId, String nickname) {

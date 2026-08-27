@@ -65,6 +65,10 @@ dependencies {
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // DEV monitoring (endpoints are exposed only by profile configuration)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
     // 아호-코라식 알고리즘
     implementation 'org.ahocorasick:ahocorasick:0.6.3'
 }

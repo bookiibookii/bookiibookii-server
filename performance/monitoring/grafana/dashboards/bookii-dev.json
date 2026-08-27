@@ -1,0 +1,83 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "timeseries", "title": "HTTP Request Rate", "id": 1,
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{job=\"bookii-dev\"}[1m]))", "legendFormat": "requests/s", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "HTTP Response Time (p95)", "id": 2,
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"bookii-dev\"}[1m])))", "legendFormat": "p95", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "HTTP 5xx Rate", "id": 3,
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{job=\"bookii-dev\",status=~\"5..\"}[1m]))", "legendFormat": "5xx/s", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "JVM Heap", "id": 4,
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+      "targets": [
+        {"expr": "sum(jvm_memory_used_bytes{job=\"bookii-dev\",area=\"heap\"})", "legendFormat": "used", "refId": "A"},
+        {"expr": "sum(jvm_memory_max_bytes{job=\"bookii-dev\",area=\"heap\"})", "legendFormat": "max", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "Process / System CPU Usage", "id": 5,
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+      "targets": [
+        {"expr": "process_cpu_usage{job=\"bookii-dev\"}", "legendFormat": "process", "refId": "A"},
+        {"expr": "system_cpu_usage{job=\"bookii-dev\"}", "legendFormat": "system", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "JVM Live Threads", "id": 6,
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+      "targets": [{"expr": "jvm_threads_live_threads{job=\"bookii-dev\"}", "legendFormat": "live", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "GC Pause", "id": 7,
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "targets": [{"expr": "sum by (action, cause) (rate(jvm_gc_pause_seconds_sum{job=\"bookii-dev\"}[1m]))", "legendFormat": "{{action}} / {{cause}}", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "Hikari Active / Idle / Pending", "id": 8,
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "targets": [
+        {"expr": "hikaricp_connections_active{job=\"bookii-dev\"}", "legendFormat": "{{pool}} active", "refId": "A"},
+        {"expr": "hikaricp_connections_idle{job=\"bookii-dev\"}", "legendFormat": "{{pool}} idle", "refId": "B"},
+        {"expr": "hikaricp_connections_pending{job=\"bookii-dev\"}", "legendFormat": "{{pool}} pending", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0}, "overrides": []}
+    },
+    {
+      "type": "timeseries", "title": "Hikari Max Connections", "id": 9,
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "targets": [{"expr": "hikaricp_connections_max{job=\"bookii-dev\"}", "legendFormat": "{{pool}} max", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0}, "overrides": []}
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["bookii", "dev", "micrometer"],
+  "templating": {"list": []},
+  "time": {"from": "now-15m", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Bookii DEV Performance",
+  "uid": "bookii-dev-performance",
+  "version": 1
+}

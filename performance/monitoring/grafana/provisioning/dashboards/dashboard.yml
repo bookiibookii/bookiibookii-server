@@ -6,6 +6,6 @@ providers:
     folder: Bookii DEV
     type: file
     disableDeletion: true
-    editable: true
+    allowUiUpdates: false
     options:
       path: /var/lib/grafana/dashboards

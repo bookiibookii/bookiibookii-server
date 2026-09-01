@@ -3,7 +3,7 @@ import { check, fail, sleep } from 'k6';
 
 const baseUrl = (__ENV.BASE_URL || '').replace(/\/$/, '');
 const token = __ENV.TOKEN || '';
-const path = __ENV.PATH || '';
+const path = __ENV.API_PATH || '';
 const vus = Number(__ENV.VUS || 5);
 
 if (__ENV.ALLOW_LOAD_TEST !== 'true') {
@@ -13,10 +13,10 @@ if (!/^https?:\/\//.test(baseUrl)) {
   fail('BASE_URL must be an absolute http(s) URL.');
 }
 if (!path) {
-  fail('PATH is required. Set it to a safe DEV GET API path.');
+  fail('API_PATH is required. Set it to a safe DEV GET API path.');
 }
 if (!path.startsWith('/') || /[?&](delete|mutate|write)=/i.test(path)) {
-  fail('PATH must be a safe GET path beginning with /.');
+  fail('API_PATH must be a safe GET path beginning with /.');
 }
 if (!Number.isInteger(vus) || vus <= 0) {
   fail('VUS must be a positive integer.');

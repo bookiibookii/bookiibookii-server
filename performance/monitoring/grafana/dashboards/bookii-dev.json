@@ -20,7 +20,7 @@
     {
       "type": "timeseries", "title": "HTTP 5xx Rate", "id": 3,
       "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
-      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{job=\"bookii-dev\",status=~\"5..\"}[1m]))", "legendFormat": "5xx/s", "refId": "A"}],
+      "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{job=\"bookii-dev\",status=~\"5..\"}[1m])) or (0 * sum(rate(http_server_requests_seconds_count{job=\"bookii-dev\"}[1m])))", "legendFormat": "5xx/s", "refId": "A"}],
       "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
     },
     {
@@ -39,7 +39,8 @@
         {"expr": "process_cpu_usage{job=\"bookii-dev\"}", "legendFormat": "process", "refId": "A"},
         {"expr": "system_cpu_usage{job=\"bookii-dev\"}", "legendFormat": "system", "refId": "B"}
       ],
-      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []}
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "options": {"legend": {"calcs": ["max"], "displayMode": "table", "placement": "bottom", "showLegend": true}}
     },
     {
       "type": "timeseries", "title": "JVM Live Threads", "id": 6,

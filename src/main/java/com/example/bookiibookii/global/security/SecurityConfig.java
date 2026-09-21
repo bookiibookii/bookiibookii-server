@@ -40,7 +40,8 @@ public class SecurityConfig {
             "/api/auth/refresh",
             "/kakao/callback",
             "/google/callback",
-            "/api/public/**"
+            "/api/public/**",
+            "/internal/test/**"
     };
 
     // Security Filter Chain 설정

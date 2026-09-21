@@ -12,6 +12,7 @@
  * [필수 환경 변수]
  *   ALLOW_LOAD_TEST=true
  *   BASE_URL           예: http://localhost:8080
+ *   TOKEN              ADMIN 권한 JWT (트리거 엔드포인트 인증 필요)
  *
  * [선택 환경 변수]
  *   SUBSCRIBER_COUNT  (기본값: 10)  시드된 구독자 수 (측정 레이블용)
@@ -22,6 +23,7 @@ import http from 'k6/http';
 import { check, fail } from 'k6';
 
 const baseUrl         = (__ENV.BASE_URL || '').replace(/\/$/, '');
+const token           = __ENV.TOKEN || '';
 const subscriberCount = __ENV.SUBSCRIBER_COUNT || '10';
 const iterations      = Number(__ENV.ITERATIONS || 10);
 
@@ -30,6 +32,9 @@ if (__ENV.ALLOW_LOAD_TEST !== 'true') {
 }
 if (!/^https?:\/\//.test(baseUrl)) {
   fail('BASE_URL must be an absolute http(s) URL.');
+}
+if (!token) {
+  fail('TOKEN must be set. The trigger endpoint requires ADMIN role authentication.');
 }
 if (!Number.isInteger(iterations) || iterations <= 0) {
   fail('ITERATIONS must be a positive integer.');
@@ -54,6 +59,7 @@ const TARGET_PATH = '/internal/test/trigger/keyword-notification';
 
 export default function () {
   const response = http.post(`${baseUrl}${TARGET_PATH}`, null, {
+    headers: { 'Authorization': `Bearer ${token}` },
     tags: { job: 'trigger', n: subscriberCount },
     timeout: '120s',
   });

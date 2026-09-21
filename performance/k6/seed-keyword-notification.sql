@@ -18,6 +18,7 @@ CREATE PROCEDURE seed_keyword_notification(IN n INT)
 BEGIN
     DECLARE i INT DEFAULT 1;
     DECLARE kw_id BIGINT;
+    DECLARE new_user_id BIGINT;
 
     SET kw_id = (SELECT id FROM keyword WHERE normalized_content = 'test_kn_keyword' LIMIT 1);
     IF kw_id IS NULL THEN
@@ -27,11 +28,15 @@ BEGIN
     END IF;
 
     WHILE i <= n DO
+        -- 이미 존재하면 해당 행의 ID를 LAST_INSERT_ID()로 반환, 없으면 새로 생성
         INSERT INTO users (nickname, social_type, social_id, status, role, created_at, updated_at)
-        VALUES (CONCAT('TEST_KN_User_', i), 'KAKAO', CONCAT('TEST_KN_', i), 'ACTIVE', 'USER', NOW(), NOW());
+        VALUES (CONCAT('TEST_KN_User_', i), 'KAKAO', CONCAT('TEST_KN_', i), 'ACTIVE', 'USER', NOW(), NOW())
+        ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);
+        SET new_user_id = LAST_INSERT_ID();
 
-        INSERT INTO user_keyword (user_id, keyword_id, created_at, updated_at)
-        VALUES (LAST_INSERT_ID(), kw_id, NOW(), NOW());
+        -- 이미 구독 중이면 무시
+        INSERT IGNORE INTO user_keyword (user_id, keyword_id, created_at, updated_at)
+        VALUES (new_user_id, kw_id, NOW(), NOW());
 
         SET i = i + 1;
     END WHILE;

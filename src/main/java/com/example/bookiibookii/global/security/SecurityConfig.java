@@ -40,8 +40,7 @@ public class SecurityConfig {
             "/api/auth/refresh",
             "/kakao/callback",
             "/google/callback",
-            "/api/public/**",
-            "/internal/test/**"
+            "/api/public/**"
     };
 
     // Security Filter Chain 설정
@@ -57,7 +56,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능
                         .requestMatchers(PERMIT_URLS).permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // 관리자 전용 API
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/internal/test/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore( // JWT 인증 필터 등록 (UsernamePasswordAuthenticationFilter 이전에 실행)

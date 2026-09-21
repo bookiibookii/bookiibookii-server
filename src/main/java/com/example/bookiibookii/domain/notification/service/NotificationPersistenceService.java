@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class NotificationPersistenceService {
@@ -27,6 +29,20 @@ public class NotificationPersistenceService {
                 saved.getMessage(),
                 saved.getPayload()
         ));
+        return saved;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<Notification> saveAllAndFlush(List<Notification> notifications) {
+        List<Notification> saved = notificationRepository.saveAllAndFlush(notifications);
+        saved.forEach(n -> eventPublisher.publishEvent(new NotificationPushRequestedEvent(
+                n.getId(),
+                n.getReceiver().getId(),
+                n.getType().name(),
+                n.getTitle(),
+                n.getMessage(),
+                n.getPayload()
+        )));
         return saved;
     }
 }

@@ -224,10 +224,12 @@ public class GroupQueryRepository {
                 .limit(limit)
                 .fetch();
 
-        if (!visible.isEmpty()) {
+        // 서비스 전체에 조회자 외의 모집중 그룹이 있으면(집계 이후 새로 생긴 경우 포함) 필터 결과를 그대로 반환한다.
+        // 조회자 본인의 그룹뿐인 책이나 모집이 끝난 책이 대체 경로로 노출되지 않도록 기존 쿼리와 같은 조건을 유지한다.
+        if (!visible.isEmpty() || existsOtherRecruitingGroup(userId)) {
             return visible;
         }
-        // 다른 사람이 모집중인 인기 도서가 하나도 없으면 집계 순위 그대로 노출
+        // 다른 사람이 모집중인 그룹이 서비스 전체에 하나도 없을 때만 집계 순위 그대로 노출
         return queryFactory
                 .select(popularBookProjection())
                 .from(popularBook)
@@ -235,6 +237,18 @@ public class GroupQueryRepository {
                 .orderBy(popularBook.ranking.asc())
                 .limit(limit)
                 .fetch();
+    }
+
+    private boolean existsOtherRecruitingGroup(Long userId) {
+        Integer found = queryFactory
+                .selectOne()
+                .from(groups)
+                .where(
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId)
+                )
+                .fetchFirst();
+        return found != null;
     }
 
     private ConstructorExpression<HomeBookProjection> popularBookProjection() {

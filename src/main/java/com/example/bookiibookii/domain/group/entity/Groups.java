@@ -16,7 +16,17 @@ import java.util.List;
 
 
 @Entity
-@Table(name = "`groups`")//예약어 피하기
+@Table(
+        name = "`groups`", //예약어 피하기
+        indexes = {
+                // 모집중 목록/홈 섹션: WHERE group_status = ? ORDER BY created_at DESC, group_id DESC LIMIT n
+                @Index(name = "idx_groups_status_created", columnList = "group_status, created_at, group_id"),
+                // 홈 인기 도서 집계: book → groups 조인 후 group_status 필터 + MAX(created_at)를 인덱스만으로 처리
+                @Index(name = "idx_groups_book_status_created", columnList = "book_id, group_status, created_at"),
+                // 홈 인기 도서 서브쿼리/카테고리 섹션: 모집중 + host 제외 조건을 인덱스만으로 처리
+                @Index(name = "idx_groups_status_book_host", columnList = "group_status, book_id, host_id")
+        }
+)
 @Getter
 @Setter
 @Builder
@@ -72,9 +82,6 @@ public class Groups extends BaseEntity {
     @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedMember> matchedMember = new ArrayList<>();
-
-    @OneToOne(mappedBy = "group", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private GroupPlace groupPlace;
 
     @Builder.Default
     @BatchSize(size = 10)

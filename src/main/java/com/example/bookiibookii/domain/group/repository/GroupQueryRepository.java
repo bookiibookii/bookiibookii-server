@@ -1,6 +1,5 @@
 package com.example.bookiibookii.domain.group.repository;
 
-import com.example.bookiibookii.domain.book.entity.QBook;
 import com.example.bookiibookii.domain.book.enums.CategoryGroup;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.group.dto.req.GroupRequestDTO;
@@ -10,6 +9,7 @@ import com.example.bookiibookii.domain.group.enums.GroupSortType;
 import com.example.bookiibookii.domain.group.enums.GroupStatus;
 import com.example.bookiibookii.domain.group.enums.HomeCandidateSectionType;
 import com.example.bookiibookii.domain.group.enums.TradeType;
+import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
@@ -34,6 +34,7 @@ import static com.example.bookiibookii.domain.aladin.entity.QBestsellerIsbn.best
 import static com.example.bookiibookii.domain.group.entity.QGroupPlace.groupPlace;
 import static com.example.bookiibookii.domain.group.entity.QGroups.groups;
 import static com.example.bookiibookii.domain.group.entity.QHomeSectionBookCandidate.homeSectionBookCandidate;
+import static com.example.bookiibookii.domain.group.entity.QPopularBook.popularBook;
 import static com.example.bookiibookii.domain.user.entity.QUser.user;
 
 @Repository
@@ -63,14 +64,14 @@ public class GroupQueryRepository {
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin() // 도서 정보 페치 조인
                 .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
-                .leftJoin(groups.groupPlace, groupPlace)
+                .leftJoin(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         inTradeTypes(filter.tradeTypes()),
                         containsRegions(filter.regions()),
                         inCategories(filter.categories()),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
-                .groupBy(groups.id)
+                // to-one 조인만 있어 행이 중복되지 않으므로 GROUP BY 없이 (group_status, created_at) 인덱스 순서로 LIMIT까지만 읽는다
                 .orderBy(getSortOrder(filter.sort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
@@ -132,7 +133,7 @@ public class GroupQueryRepository {
                 .select(groups.countDistinct())
                 .from(groups)
                 .join(groups.book, book)
-                .leftJoin(groups.groupPlace, groupPlace)
+                .leftJoin(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         inTradeTypes(filter.tradeTypes()),
                         containsRegions(filter.regions()),
@@ -154,7 +155,6 @@ public class GroupQueryRepository {
                         searchwordContains(searchword),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
-                .groupBy(groups.id) // 태그 조인으로 인한 중복 제거
                 .orderBy(getSearchSortOrder(sort))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -203,67 +203,86 @@ public class GroupQueryRepository {
                 .fetch();
     }
 
+    // 홈 인기 도서: 스케줄러가 미리 집계한 popular_book에서 읽고, 조회자 본인 외에 모집중인 그룹이 있는 책만 노출
     public List<HomeBookProjection> findPopularBooks(Long userId, int limit) {
-        BooleanExpression visibleRecruitingCandidate =
-                hasVisibleRecruitingGroups(userId)
-                        ? isbn13WithVisibleRecruitingGroups(userId)
-                        : null;
-        NumberExpression<Long> groupCount = groups.id.count();
-        DateTimeExpression<Instant> latestGroupCreatedAt = groups.createdAt.max();
+        QGroups otherRecruitingGroups = new QGroups("otherRecruitingGroups");
 
+        List<HomeBookProjection> visible = queryFactory
+                .select(popularBookProjection())
+                .from(popularBook)
+                .join(popularBook.book, book)
+                .where(JPAExpressions
+                        .selectOne()
+                        .from(otherRecruitingGroups)
+                        .where(
+                                otherRecruitingGroups.book.id.eq(popularBook.book.id),
+                                otherRecruitingGroups.groupStatus.eq(GroupStatus.RECRUITING),
+                                otherRecruitingGroups.host.id.ne(userId)
+                        )
+                        .exists())
+                .orderBy(popularBook.ranking.asc())
+                .limit(limit)
+                .fetch();
+
+        // 서비스 전체에 조회자 외의 모집중 그룹이 있으면(집계 이후 새로 생긴 경우 포함) 필터 결과를 그대로 반환한다.
+        // 조회자 본인의 그룹뿐인 책이나 모집이 끝난 책이 대체 경로로 노출되지 않도록 기존 쿼리와 같은 조건을 유지한다.
+        if (!visible.isEmpty() || existsOtherRecruitingGroup(userId)) {
+            return visible;
+        }
+        // 다른 사람이 모집중인 그룹이 서비스 전체에 하나도 없을 때만 집계 순위 그대로 노출
         return queryFactory
-                .select(Projections.constructor(
-                        HomeBookProjection.class,
-                        book.isbn13,
-                        book.title,
-                        book.author,
-                        book.image
-                ))
-                .from(groups)
-                .join(groups.book, book)
-                .where(
-                        groups.groupStatus.ne(GroupStatus.DELETED),
-                        visibleRecruitingCandidate
-                )
-                .groupBy(book.id, book.isbn13, book.title, book.author, book.image)
-                .orderBy(
-                        groupCount.desc(),
-                        latestGroupCreatedAt.desc(),
-                        book.id.desc()
-                )
+                .select(popularBookProjection())
+                .from(popularBook)
+                .join(popularBook.book, book)
+                .orderBy(popularBook.ranking.asc())
                 .limit(limit)
                 .fetch();
     }
 
-    private boolean hasVisibleRecruitingGroups(Long userId) {
-        QGroups recruitingGroups = new QGroups("visibleRecruitingGroups");
-
+    private boolean existsOtherRecruitingGroup(Long userId) {
         Integer found = queryFactory
                 .selectOne()
-                .from(recruitingGroups)
+                .from(groups)
                 .where(
-                        recruitingGroups.groupStatus.eq(GroupStatus.RECRUITING),
-                        recruitingGroups.host.id.ne(userId)
+                        groups.groupStatus.eq(GroupStatus.RECRUITING),
+                        groups.host.id.ne(userId)
                 )
                 .fetchFirst();
         return found != null;
     }
 
-    private BooleanExpression isbn13WithVisibleRecruitingGroups(Long userId) {
-        QGroups candidateGroups = new QGroups("popularCandidateGroups");
-        QBook candidateBook = new QBook("popularCandidateBook");
+    private ConstructorExpression<HomeBookProjection> popularBookProjection() {
+        return Projections.constructor(HomeBookProjection.class, book.isbn13, book.title, book.author, book.image);
+    }
 
-        return book.isbn13.in(
-                JPAExpressions
-                        .select(candidateBook.isbn13)
-                        .distinct()
-                        .from(candidateGroups)
-                        .join(candidateGroups.book, candidateBook)
-                        .where(
-                                candidateGroups.groupStatus.eq(GroupStatus.RECRUITING),
-                                candidateGroups.host.id.ne(userId)
-                        )
-        );
+    public record PopularBookAggregate(Long bookId, Long groupCount, Instant lastGroupCreatedAt) {}
+
+    // 인기 도서 집계 (PopularBookScheduler 전용): 현재 모집중인 그룹이 있는 책 중 삭제되지 않은 그룹 수 상위 limit권
+    // 바깥 집계는 idx_groups_book_status_created, 서브쿼리는 idx_groups_status_book_host로 테이블 접근 없이 처리된다.
+    public List<PopularBookAggregate> aggregatePopularBooks(int limit) {
+        QGroups recruitingGroups = new QGroups("recruitingGroups");
+        NumberExpression<Long> groupCount = groups.id.count();
+        DateTimeExpression<Instant> latestGroupCreatedAt = groups.createdAt.max();
+
+        return queryFactory
+                .select(Projections.constructor(
+                        PopularBookAggregate.class,
+                        groups.book.id,
+                        groupCount,
+                        latestGroupCreatedAt
+                ))
+                .from(groups)
+                .where(
+                        groups.groupStatus.ne(GroupStatus.DELETED),
+                        groups.book.id.in(JPAExpressions
+                                .select(recruitingGroups.book.id)
+                                .from(recruitingGroups)
+                                .where(recruitingGroups.groupStatus.eq(GroupStatus.RECRUITING)))
+                )
+                .groupBy(groups.book.id)
+                .orderBy(groupCount.desc(), latestGroupCreatedAt.desc(), groups.book.id.desc())
+                .limit(limit)
+                .fetch();
     }
 
     public List<HomeBestsellerBookProjection> findBestsellerBooks(int limit) {
@@ -368,7 +387,7 @@ public class GroupQueryRepository {
         Integer found = queryFactory
                 .selectOne()
                 .from(groups)
-                .join(groups.groupPlace, groupPlace)
+                .join(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
                         groups.host.id.ne(userId),
@@ -390,7 +409,7 @@ public class GroupQueryRepository {
             return List.of();
         }
         return homeGroupQuery(userId)
-                .join(groups.groupPlace, groupPlace).fetchJoin()
+                .join(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
                         groups.tradeType.eq(TradeType.DIRECT),
@@ -410,7 +429,6 @@ public class GroupQueryRepository {
                 .leftJoin(user.userImage).fetchJoin()
                 .where(
                         groups.host.id.ne(userId)
-                )
-                .distinct();
+                );
     }
 }

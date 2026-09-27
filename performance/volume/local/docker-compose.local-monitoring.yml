@@ -1,0 +1,42 @@
+# 로컬 볼륨/부하 테스트용 모니터링 (앱·MySQL은 호스트에서 실행)
+# 실행: docker compose -f performance/volume/local/docker-compose.local-monitoring.yml up -d
+name: bookii-volume-monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus.local.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus.token:/etc/prometheus/prometheus.token:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.17.2
+    command:
+      - --mysqld.address=host.docker.internal:3307
+      - --mysqld.username=exporter
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${MYSQLD_EXPORTER_PASSWORD:-exporter-local-only}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus

@@ -30,6 +30,10 @@ import static com.example.bookiibookii.domain.user.enums.Status.ACTIVE;
                 @UniqueConstraint(
                         columnNames = {"social_type", "social_id"}
                 )
+        },
+        indexes = {
+                // 타 유저 프로필/책장 조회: WHERE nickname = ?
+                @Index(name = "idx_users_nickname", columnList = "nickname")
         }
 )
 public class User extends BaseEntity {

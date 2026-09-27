@@ -26,8 +26,10 @@ const stepRate = Number(__ENV.STEP_RATE || 50);
 if (__ENV.ALLOW_LOAD_TEST !== 'true') {
   fail('Refusing to run: set ALLOW_LOAD_TEST=true only after confirming BASE_URL is DEV.');
 }
-if (!/^https?:\/\//.test(baseUrl)) {
-  fail('BASE_URL must be an absolute http(s) URL.');
+// Bearer 토큰이 평문으로 노출되지 않도록 원격 서버는 https만 허용하고, http는 로컬 루프백 주소에서만 허용한다.
+const isLoopbackHttp = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(baseUrl);
+if (!/^https:\/\//.test(baseUrl) && !isLoopbackHttp) {
+  fail('BASE_URL must be an absolute https URL (http is allowed only for localhost).');
 }
 if (!token) {
   fail('TOKEN is required.');

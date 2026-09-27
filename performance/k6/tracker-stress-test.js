@@ -87,6 +87,13 @@ function buildScenario() {
     };
   }
   if (mode === 'stress') {
+    // STEP_RATE가 0 이하이거나 숫자가 아니면 아래 반복문이 끝나지 않으므로 먼저 검증한다.
+    if (!Number.isInteger(stepRate) || stepRate <= 0) {
+      fail('STEP_RATE must be a positive integer.');
+    }
+    if (!Number.isInteger(maxRate) || maxRate < stepRate) {
+      fail('MAX_RATE must be an integer greater than or equal to STEP_RATE.');
+    }
     const stages = [];
     for (let r = stepRate; r <= maxRate; r += stepRate) {
       stages.push({ target: r, duration: '15s' }); // 램프

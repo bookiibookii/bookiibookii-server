@@ -265,6 +265,36 @@ public class GroupQueryRepository {
         );
     }
 
+    public record PopularBookAggregate(Long bookId, Long groupCount, Instant lastGroupCreatedAt) {}
+
+    // 인기 도서 집계 (PopularBookScheduler 전용): 현재 모집중인 그룹이 있는 책 중 삭제되지 않은 그룹 수 상위 limit권
+    // 바깥 집계는 idx_groups_book_status_created, 서브쿼리는 idx_groups_status_book_host로 테이블 접근 없이 처리된다.
+    public List<PopularBookAggregate> aggregatePopularBooks(int limit) {
+        QGroups recruitingGroups = new QGroups("recruitingGroups");
+        NumberExpression<Long> groupCount = groups.id.count();
+        DateTimeExpression<Instant> latestGroupCreatedAt = groups.createdAt.max();
+
+        return queryFactory
+                .select(Projections.constructor(
+                        PopularBookAggregate.class,
+                        groups.book.id,
+                        groupCount,
+                        latestGroupCreatedAt
+                ))
+                .from(groups)
+                .where(
+                        groups.groupStatus.ne(GroupStatus.DELETED),
+                        groups.book.id.in(JPAExpressions
+                                .select(recruitingGroups.book.id)
+                                .from(recruitingGroups)
+                                .where(recruitingGroups.groupStatus.eq(GroupStatus.RECRUITING)))
+                )
+                .groupBy(groups.book.id)
+                .orderBy(groupCount.desc(), latestGroupCreatedAt.desc(), groups.book.id.desc())
+                .limit(limit)
+                .fetch();
+    }
+
     public List<HomeBestsellerBookProjection> findBestsellerBooks(int limit) {
         return queryFactory
                 .select(Projections.constructor(

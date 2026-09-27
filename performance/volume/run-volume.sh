@@ -47,9 +47,18 @@ for c in "${CASES[@]}"; do
   MSYS_NO_PATHCONV=1 k6 run --quiet -e TOKEN="$token" -e TARGET="$target" -e NICKNAME="${nick:-reader1}" \
     -e MODE=single -e DURATION=5s volume-test.js > /dev/null 2>&1 || true
 
+  # 같은 STAGE를 다시 돌릴 때 이전 결과가 새 결과로 기록되지 않도록 먼저 지운다.
+  # (k6 종료 코드는 임계값 초과로도 0이 아니므로, 성공 여부는 요약 파일 생성 여부로 판단한다)
+  rm -f "$OUT_DIR/$label.json"
   MSYS_NO_PATHCONV=1 k6 run --quiet -e TOKEN="$token" -e TARGET="$target" -e NICKNAME="${nick:-reader1}" \
     -e MODE=single -e DURATION="$DURATION" --summary-export="$OUT_DIR/$label.json" volume-test.js \
     > "$OUT_DIR/$label.log" 2>&1 || true
+
+  if [ ! -s "$OUT_DIR/$label.json" ]; then
+    echo "$STAGE,$label,FAILED,,,,,," >> "$CSV"
+    echo "측정 실패: $label (로그: $OUT_DIR/$label.log)" >&2
+    continue
+  fi
 
   python - "$OUT_DIR/$label.json" "$STAGE" "$label" >> "$CSV" <<'EOF'
 import json, sys

@@ -22,6 +22,24 @@ SET SESSION sql_log_bin = 0;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ---------------------------------------------------------------------
+-- 이전 실행이 남긴 테스트 데이터 정리 (재실행 시 호스트 그룹 한도·중복 신청에 걸리지 않도록)
+--   * group_id 2100001 이상: 이 스크립트가 만든 그룹 + 테스트 중 POST /api/groups로 생성된 그룹
+--     (seed.sql의 그룹은 2,000,006번까지라 겹치지 않는다)
+--   * 신청: 위 그룹에 대한 신청 + 분산 신청 테스트에서 기존 그룹에 넣은 신청(신청자 300001~302000, 402001~404000)
+--   * 알림: notification_id 2,000,000 초과 (seed.sql의 알림은 2,000,000번까지)
+-- ---------------------------------------------------------------------
+DELETE FROM application
+WHERE group_id >= 2100001
+   OR guest_id BETWEEN 300001 AND 302000
+   OR guest_id BETWEEN 402001 AND 404000;
+DELETE FROM member_book WHERE group_id >= 2100001;
+DELETE FROM matchedmember WHERE group_id >= 2100001;
+DELETE FROM group_place WHERE group_id >= 2100001;
+DELETE FROM group_rule WHERE group_id >= 2100001;
+DELETE FROM `groups` WHERE group_id >= 2100001;
+DELETE FROM notification WHERE notification_id > 2000000;
+
+-- ---------------------------------------------------------------------
 -- 유저
 -- ---------------------------------------------------------------------
 DELETE FROM users WHERE id BETWEEN 400001 AND 404500;
@@ -42,12 +60,6 @@ FROM seq WHERE n BETWEEN 1 AND 1000;
 -- ---------------------------------------------------------------------
 -- 그룹 (인기 그룹 3개 + 수락 테스트 그룹 12개): groups + group_place + host matchedmember
 -- ---------------------------------------------------------------------
-DELETE FROM application WHERE group_id BETWEEN 2100001 AND 2200003;
-DELETE FROM member_book WHERE group_id BETWEEN 2100001 AND 2200003;
-DELETE FROM matchedmember WHERE group_id BETWEEN 2100001 AND 2200003;
-DELETE FROM group_place WHERE group_id BETWEEN 2100001 AND 2200003;
-DELETE FROM group_rule WHERE group_id BETWEEN 2100001 AND 2200003;
-DELETE FROM `groups` WHERE group_id BETWEEN 2100001 AND 2200003;
 
 DROP TEMPORARY TABLE IF EXISTS wgroup;
 CREATE TEMPORARY TABLE wgroup (group_id BIGINT PRIMARY KEY, host_id BIGINT, pending INT);

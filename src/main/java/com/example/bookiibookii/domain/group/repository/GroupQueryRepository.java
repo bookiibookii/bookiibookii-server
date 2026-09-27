@@ -70,7 +70,7 @@ public class GroupQueryRepository {
                         inCategories(filter.categories()),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
-                .groupBy(groups.id)
+                // to-one 조인만 있어 행이 중복되지 않으므로 GROUP BY 없이 (group_status, created_at) 인덱스 순서로 LIMIT까지만 읽는다
                 .orderBy(getSortOrder(filter.sort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize() + 1)
@@ -154,7 +154,6 @@ public class GroupQueryRepository {
                         searchwordContains(searchword),
                         groups.groupStatus.eq(GroupStatus.RECRUITING)
                 )
-                .groupBy(groups.id) // 태그 조인으로 인한 중복 제거
                 .orderBy(getSearchSortOrder(sort))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -410,7 +409,6 @@ public class GroupQueryRepository {
                 .leftJoin(user.userImage).fetchJoin()
                 .where(
                         groups.host.id.ne(userId)
-                )
-                .distinct();
+                );
     }
 }

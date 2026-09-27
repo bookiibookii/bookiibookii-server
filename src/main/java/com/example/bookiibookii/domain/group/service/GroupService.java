@@ -121,7 +121,6 @@ public class GroupService {
 
         Groups savedGroup = groupsRepository.save(group);
         GroupPlace groupPlace = createGroupPlace(savedGroup, host, request);
-        group.setGroupPlace(groupPlace);
         groupPlaceRepository.save(groupPlace);
 
         // 규칙 저장 (모든 트레이드 타입 공통)
@@ -436,6 +435,7 @@ public class GroupService {
         // 6. 조회자의 역할(방장/게스트)과 그룹 상태에 따라 하단에 노출될 버튼의 종류를 결정
         String buttonStatus = determineButtonStatus(group, userId, matchedMembers);
 
+        GroupPlace groupPlace = groupPlaceRepository.findByGroup_Id(groupId).orElse(null);
 
         // 7. 최종 DTO 조립 (엔티티 데이터를 화면 요구사항에 맞게 변환)
         return GroupResponseDTO.GroupDetailDTO.builder()
@@ -444,9 +444,9 @@ public class GroupService {
                 .groupStatus(group.getGroupStatus().name())
                 .isHost(group.getHost().getId().equals(userId))
                 .tradeType(group.getTradeType().name())
-                .placeName(group.getGroupPlace() != null ? group.getGroupPlace().getPlaceName() : null)
-                .address(group.getGroupPlace() != null ? group.getGroupPlace().getAddress() : null)
-                .detailAddress(group.getGroupPlace() != null ? group.getGroupPlace().getAddressDetail() : null)
+                .placeName(groupPlace != null ? groupPlace.getPlaceName() : null)
+                .address(groupPlace != null ? groupPlace.getAddress() : null)
+                .detailAddress(groupPlace != null ? groupPlace.getAddressDetail() : null)
                 .title(group.getBook().getTitle())
                 .bookImage(group.getBook().getImage())
                 .author(group.getBook().getAuthor())

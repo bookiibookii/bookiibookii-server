@@ -63,7 +63,7 @@ public class GroupQueryRepository {
                 .selectFrom(groups)
                 .join(groups.book, book).fetchJoin() // 도서 정보 페치 조인
                 .join(groups.host, user).fetchJoin() // 호스트 정보 페치 조인
-                .leftJoin(groups.groupPlace, groupPlace)
+                .leftJoin(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         inTradeTypes(filter.tradeTypes()),
                         containsRegions(filter.regions()),
@@ -132,7 +132,7 @@ public class GroupQueryRepository {
                 .select(groups.countDistinct())
                 .from(groups)
                 .join(groups.book, book)
-                .leftJoin(groups.groupPlace, groupPlace)
+                .leftJoin(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         inTradeTypes(filter.tradeTypes()),
                         containsRegions(filter.regions()),
@@ -368,7 +368,7 @@ public class GroupQueryRepository {
         Integer found = queryFactory
                 .selectOne()
                 .from(groups)
-                .join(groups.groupPlace, groupPlace)
+                .join(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
                         groups.host.id.ne(userId),
@@ -390,7 +390,7 @@ public class GroupQueryRepository {
             return List.of();
         }
         return homeGroupQuery(userId)
-                .join(groups.groupPlace, groupPlace).fetchJoin()
+                .join(groupPlace).on(groupPlace.group.eq(groups))
                 .where(
                         groups.groupStatus.eq(GroupStatus.RECRUITING),
                         groups.tradeType.eq(TradeType.DIRECT),

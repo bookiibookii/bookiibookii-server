@@ -73,9 +73,6 @@ public class Groups extends BaseEntity {
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
     private List<MatchedMember> matchedMember = new ArrayList<>();
 
-    @OneToOne(mappedBy = "group", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private GroupPlace groupPlace;
-
     @Builder.Default
     @BatchSize(size = 10)
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)

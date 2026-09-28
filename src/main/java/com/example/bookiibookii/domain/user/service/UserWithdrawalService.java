@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.List;
 
 @Service
@@ -31,6 +32,7 @@ public class UserWithdrawalService {
     private final MatchedMemberRepository matchedMemberRepository;
     private final RedisUtil redisUtil;
     private final AppleAuthClient appleAuthClient;
+    private final Clock clock;
 
     private static final List<GroupStatus> ACTIVE_GROUP_STATUSES = List.of(GroupStatus.RECRUITING, GroupStatus.MATCHED);
 
@@ -73,7 +75,7 @@ public class UserWithdrawalService {
 
         // entity dirty checking 에 의존하지 않고 직접 UPDATE
         // (OSIV 환경에서 JwtAuthFilter read-only 로드 시 snapshot 없어 dirty check 미동작 문제 방지)
-        userRepository.withdrawUser(user.getId());
+        userRepository.withdrawUser(user.getId(), clock.instant());
 
         // Apple 유저: App Store 심사 지침 준수 — refresh_token revoke (실패해도 탈퇴 진행)
         // withdrawUser() 이후 호출 → clearAppleRefreshToken의 status='WITHDRAWN' 조건 충족

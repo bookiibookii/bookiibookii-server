@@ -12,6 +12,7 @@ import com.example.bookiibookii.domain.tracker.enums.ExchangeRound;
 import com.example.bookiibookii.domain.tracker.event.DeliveryNotificationEvent;
 import com.example.bookiibookii.domain.tracker.service.DeliveryNotificationService;
 import com.example.bookiibookii.domain.tracker.service.TrackerNotificationService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -28,6 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,9 +42,32 @@ class NotificationEventListenerTransactionTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
     @Autowired
+    private TrackerNotificationService trackerNotificationService;
+    @Autowired
+    private KeywordNotificationService keywordNotificationService;
+    @Autowired
+    private CommentNotificationService commentNotificationService;
+    @Autowired
+    private GroupNotificationService groupNotificationService;
+    @Autowired
     private DirectExchangeNotificationService directExchangeNotificationService;
     @Autowired
+    private ReadingCardReactionNotificationService readingCardReactionNotificationService;
+    @Autowired
     private DeliveryNotificationService deliveryNotificationService;
+
+    @BeforeEach
+    void clearMockInvocations() {
+        clearInvocations(
+                trackerNotificationService,
+                keywordNotificationService,
+                commentNotificationService,
+                groupNotificationService,
+                directExchangeNotificationService,
+                readingCardReactionNotificationService,
+                deliveryNotificationService
+        );
+    }
 
     @Test
     void handlesDeliveryEventOnlyAfterCommit() {
@@ -123,9 +148,6 @@ class NotificationEventListenerTransactionTest {
 
         verify(readingCardReactionNotificationService(), never()).send(event);
     }
-
-    @Autowired
-    private ReadingCardReactionNotificationService readingCardReactionNotificationService;
 
     private ReadingCardReactionNotificationService readingCardReactionNotificationService() {
         return readingCardReactionNotificationService;

@@ -25,7 +25,7 @@ class UserRepositoryTest {
                 .socialType(SocialType.KAKAO)
                 .socialId("withdraw-user")
                 .build());
-        Instant withdrawnAt = user.getUpdatedAt().plusSeconds(1);
+        Instant withdrawnAt = Instant.parse("2030-01-01T00:00:00Z");
 
         userRepository.withdrawUser(user.getId(), withdrawnAt);
 

@@ -47,8 +47,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 탈퇴 처리: entity dirty checking 에 의존하지 않고 직접 UPDATE
     // (OSIV 환경에서 JwtAuthFilter가 read-only로 로드한 엔티티는 snapshot 없음 → dirty check 미동작)
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("UPDATE User u SET u.status = 'WITHDRAWN', u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = :userId")
-    void withdrawUser(@Param("userId") Long userId);
+    @Query("UPDATE User u SET u.status = 'WITHDRAWN', u.updatedAt = :updatedAt WHERE u.id = :userId")
+    void withdrawUser(@Param("userId") Long userId, @Param("updatedAt") Instant updatedAt);
 
     // revoke 재시도 대상: WITHDRAWN + APPLE + appleRefreshToken 있는 유저
     @Query("""

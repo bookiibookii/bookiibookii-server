@@ -62,6 +62,27 @@ aws:
 server:
   forward-headers-strategy: framework
 
+# Prometheus reaches this DEV host JVM through Docker's host gateway.
+# Keep 9091 closed in the EC2 security group; only health and prometheus are exposed.
+management:
+  server:
+    port: 9091
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
 discord:
   webhook:
     enabled: ${DISCORD_WEBHOOK_ENABLED:false}

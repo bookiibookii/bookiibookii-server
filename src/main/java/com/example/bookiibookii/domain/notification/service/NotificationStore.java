@@ -7,6 +7,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -34,6 +35,38 @@ public class NotificationStore {
             );
             return Optional.empty();
         }
+    }
+
+    public List<Notification> saveAll(List<Notification> notifications) {
+        if (notifications.isEmpty()) return List.of();
+        try {
+            return persistenceService.saveAllAndFlush(notifications);
+        } catch (DataIntegrityViolationException e) {
+            if (!isDedupConstraintViolation(e)) throw e;
+            return notifications.stream()
+                    .map(this::copyForRetry)
+                    .map(this::save)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
+        }
+    }
+
+    private Notification copyForRetry(Notification notification) {
+        // A rolled-back IDENTITY insert can leave an ID on the entity without a database row.
+        // Retry with a fresh entity so JPA inserts it instead of merging the rolled-back ID.
+        return Notification.builder()
+                .receiver(notification.getReceiver())
+                .actor(notification.getActor())
+                .category(notification.getCategory())
+                .type(notification.getType())
+                .title(notification.getTitle())
+                .message(notification.getMessage())
+                .payload(notification.getPayload())
+                .dedupKey(notification.getDedupKey())
+                .read(notification.isRead())
+                .readAt(notification.getReadAt())
+                .build();
     }
 
     private boolean isDedupConstraintViolation(Throwable throwable) {

@@ -1,0 +1,73 @@
+# Test-classpath only: no developer credentials, services, or persistent database.
+spring:
+  datasource:
+    url: jdbc:h2:mem:bookii-${random.uuid};MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  sql:
+    init:
+      mode: never
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+jwt:
+  token:
+    secret-key: test-only-jwt-secret-not-for-production-1234567890
+    expiration:
+      access: 3600000
+      refresh: 86400000
+
+oauth:
+  google:
+    client-id: test-google-client
+  kakao:
+    client-id: test-kakao-client
+    redirect-uri: http://localhost/test/callback
+  apple:
+    team-id: test-team
+    key-id: test-key
+    bundle-id: test.bundle
+    private-key: test-only-unused-key
+
+aws:
+  s3:
+    bucket-name: test-bucket
+    region: ap-northeast-2
+
+aladin:
+  ttbkey: test-only-unused-key
+
+swagger:
+  auth:
+    username: test
+    password: test
+
+push:
+  firebase:
+    enabled: false
+
+discord:
+  webhook:
+    enabled: false
+
+management:
+  health:
+    redis:
+      enabled: false
+  prometheus:
+    metrics:
+      export:
+        enabled: false
+
+app:
+  share:
+    web-base-url: http://localhost/test/share/cards
+    profile-web-base-url: http://localhost/test/share/profile

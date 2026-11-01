@@ -7,6 +7,13 @@ springdoc:
     doc-expansion: none
     tags-sorter: none
 
+# Opt in only from profiles that run Prometheus; this keeps the registry inactive in PROD.
+management:
+  prometheus:
+    metrics:
+      export:
+        enabled: false
+
 scheduler:
   bestseller:
     cron: "0 0 0 * * *"

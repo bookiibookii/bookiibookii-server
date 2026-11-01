@@ -7,6 +7,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -33,6 +34,20 @@ public class NotificationStore {
                     dedupKey
             );
             return Optional.empty();
+        }
+    }
+
+    public List<Notification> saveAll(List<Notification> notifications) {
+        if (notifications.isEmpty()) return List.of();
+        try {
+            return persistenceService.saveAllAndFlush(notifications);
+        } catch (DataIntegrityViolationException e) {
+            if (!isDedupConstraintViolation(e)) throw e;
+            return notifications.stream()
+                    .map(this::save)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
         }
     }
 

@@ -45,6 +45,9 @@ aws:
 aladin:
   ttbkey: test-only-unused-key
 
+nlgoKr:
+  certKey: test-only-unused-key
+
 swagger:
   auth:
     username: test

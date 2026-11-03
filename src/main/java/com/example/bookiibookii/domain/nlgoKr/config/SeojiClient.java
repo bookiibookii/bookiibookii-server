@@ -6,9 +6,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
+import java.time.Duration;
 import java.util.List;
 
 @Component
@@ -23,23 +26,34 @@ public class SeojiClient {
     private final RestClient restClient;
 
     public SeojiClient(RestClient.Builder builder) {
-        this.restClient = builder
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(3));
+        factory.setReadTimeout(Duration.ofSeconds(5));
+
+        this.restClient = builder.clone()
                 .baseUrl(SEOJI_BASE_URL)
+                .requestFactory(factory)
                 .build();
     }
 
     public SeojiSearchResponse searchBooks(String keyword, int page, int size) {
-        SeojiSearchResponse response = restClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/SearchApi.do")
-                        .queryParam("cert_key", certKey)
-                        .queryParam("result_style", "json")
-                        .queryParam("page_no", page)
-                        .queryParam("page_size", size)
-                        .queryParam("title", keyword)
-                        .build())
-                .retrieve()
-                .body(SeojiSearchResponse.class);
+        SeojiSearchResponse response;
+        try {
+            response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/SearchApi.do")
+                            .queryParam("cert_key", certKey)
+                            .queryParam("result_style", "json")
+                            .queryParam("page_no", page)
+                            .queryParam("page_size", size)
+                            .queryParam("title", keyword)
+                            .build())
+                    .retrieve()
+                    .body(SeojiSearchResponse.class);
+        } catch (RestClientException e) {
+            log.error("[Seoji] 검색 API 호출 실패 keyword={}", keyword, e);
+            throw new SeojiException(SeojiErrorCode.SEOJI_API_ERROR, e);
+        }
 
         if (response == null) {
             log.warn("[Seoji] 검색 응답 없음 keyword={}", keyword);
@@ -49,17 +63,23 @@ public class SeojiClient {
     }
 
     public SeojiBookItem lookupBookByIsbn13(String isbn13) {
-        SeojiSearchResponse response = restClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/SearchApi.do")
-                        .queryParam("cert_key", certKey)
-                        .queryParam("result_style", "json")
-                        .queryParam("page_no", 1)
-                        .queryParam("page_size", 1)
-                        .queryParam("isbn", isbn13)
-                        .build())
-                .retrieve()
-                .body(SeojiSearchResponse.class);
+        SeojiSearchResponse response;
+        try {
+            response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/SearchApi.do")
+                            .queryParam("cert_key", certKey)
+                            .queryParam("result_style", "json")
+                            .queryParam("page_no", 1)
+                            .queryParam("page_size", 1)
+                            .queryParam("isbn", isbn13)
+                            .build())
+                    .retrieve()
+                    .body(SeojiSearchResponse.class);
+        } catch (RestClientException e) {
+            log.error("[Seoji] 단건 조회 API 호출 실패 isbn13={}", isbn13, e);
+            throw new SeojiException(SeojiErrorCode.SEOJI_API_ERROR, e);
+        }
 
         if (response == null || response.docs() == null || response.docs().isEmpty()) {
             log.warn("[Seoji] 책 조회 결과 없음 isbn13={}", isbn13);

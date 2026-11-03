@@ -1,11 +1,11 @@
 package com.example.bookiibookii.domain.book.service;
 
-import com.example.bookiibookii.domain.aladin.config.AladinClient;
 import com.example.bookiibookii.domain.book.entity.Book;
 import com.example.bookiibookii.domain.book.enums.CustomCategory;
 import com.example.bookiibookii.domain.book.exception.BookException;
 import com.example.bookiibookii.domain.book.exception.code.BookErrorCode;
 import com.example.bookiibookii.domain.book.repository.BookRepository;
+import com.example.bookiibookii.domain.nlgoKr.config.SeojiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class BookService {
     private final BookRepository bookRepository;
-    private final AladinClient aladinClient;
+    private final SeojiClient seojiClient;
     private final BookCategoryMapper bookCategoryMapper;
     private final BookAuthorMapper bookAuthorMapper;
 
@@ -28,11 +28,11 @@ public class BookService {
 
         return bookRepository.findByIsbn13(isbn13) // db에 저장된 책 있을 시 - 그걸로 return
                 .orElseGet(() -> { // 없을 시
-                    // 1) 알라딘에서 단건 조회
-                    AladinClient.AladinBookItem item = aladinClient.lookupBookByIsbn13(isbn13);
-                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(
-                            item.categoryId(),
-                            item.categoryName(),
+                    // 1) 국립중앙도서관 seoji에서 단건 조회
+                    SeojiClient.SeojiBookItem item = seojiClient.lookupBookByIsbn13(isbn13);
+                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategoryByKdc(
+                            item.kdc(),
+                            item.addCode(),
                             item.isbn13(),
                             item.title()
                     );
@@ -46,9 +46,9 @@ public class BookService {
                             .title(item.title())
                             .author(bookAuthorMapper.mapFirstWriterOnly(item.author()))
                             .publisher(item.publisher())
-                            .image(item.cover())
-                            .totalPages(item.itemPage())
-                            .link(item.link())
+                            .image(item.titleUrl())
+                            .totalPages(item.pageCount() != null ? item.pageCount() : 0)
+                            .link("https://seoji.nl.go.kr/landingPage?isbn=" + item.isbn13())
                             .category(cc.get())
                             .build();
 
@@ -62,5 +62,4 @@ public class BookService {
                     }
                 });
     }
-
 }

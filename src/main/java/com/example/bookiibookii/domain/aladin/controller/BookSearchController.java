@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.aladin.controller;
 
-import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
+import com.example.bookiibookii.domain.aladin.dto.BookSearchResDTO;
 import com.example.bookiibookii.domain.aladin.service.BookSearchService;
 import com.example.bookiibookii.global.apiPayload.ApiResponse;
 import com.example.bookiibookii.global.apiPayload.code.GeneralSuccessCode;
@@ -17,7 +17,7 @@ public class BookSearchController {
     private final BookSearchService bookSearchService;
 
     @GetMapping("/search")
-    public ApiResponse<AladinSearchBooksResDTO> search(
+    public ApiResponse<BookSearchResDTO> search(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size

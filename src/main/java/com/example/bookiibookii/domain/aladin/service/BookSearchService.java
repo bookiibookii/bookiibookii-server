@@ -1,6 +1,6 @@
 package com.example.bookiibookii.domain.aladin.service;
 
-import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
+import com.example.bookiibookii.domain.aladin.dto.BookSearchResDTO;
 import com.example.bookiibookii.domain.book.dto.res.BookResDTO;
 import com.example.bookiibookii.domain.book.service.BookAuthorMapper;
 import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
@@ -21,7 +21,7 @@ public class BookSearchService {
     private final BookCategoryMapper bookCategoryMapper;
     private final BookAuthorMapper bookAuthorMapper;
 
-    public AladinSearchBooksResDTO searchBooks(String keyword, int page, int size) {
+    public BookSearchResDTO searchBooks(String keyword, int page, int size) {
         SeojiClient.SeojiSearchResponse raw = seojiClient.searchBooks(keyword, page, size);
 
         int totalResults = parseTotalCount(raw.totalCount());
@@ -54,7 +54,7 @@ public class BookSearchService {
 
         int totalPage = (int) Math.ceil(totalResults / (double) size);
 
-        return AladinSearchBooksResDTO.builder()
+        return BookSearchResDTO.builder()
                 .books(books)
                 .totalResults(totalResults)
                 .totalPage(totalPage)

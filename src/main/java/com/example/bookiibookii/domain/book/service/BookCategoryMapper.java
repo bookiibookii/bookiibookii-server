@@ -159,7 +159,18 @@ public class BookCategoryMapper {
                 default       -> CustomCategory.LITERATURE_ETC;     // 기타 한국문학
             };
         }
-        if (code >= 820 && code <= 899) return CustomCategory.WORLD_NOVEL;    // 외국문학
+        // 820~889: 외국문학 (세 번째 자릿수로 장르 구분)
+        if (code >= 820 && code <= 889) {
+            return switch (code % 10) {
+                case 1 -> CustomCategory.POETRY_ESSAY;    // 시
+                case 2 -> CustomCategory.PLAY_LITERATURE; // 희곡
+                case 3 -> CustomCategory.WORLD_NOVEL;     // 소설
+                case 4 -> CustomCategory.POETRY_ESSAY;    // 수필
+                default -> CustomCategory.LITERATURE_ETC; // 총류·기타
+            };
+        }
+        // 890~899: 기타 언어권 외국문학 (세분화 미적용)
+        if (code >= 890 && code <= 899) return CustomCategory.WORLD_NOVEL;
         if (code >= 800 && code <= 899) return CustomCategory.LITERATURE_ETC; // 문학 총류
 
         // 역사/지리 (9xx), 철학 (1xx)

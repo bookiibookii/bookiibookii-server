@@ -24,7 +24,8 @@ public class BookSearchService {
     public BookSearchResDTO searchBooks(String keyword, int page, int size) {
         SeojiClient.SeojiSearchResponse raw = seojiClient.searchBooks(keyword, page, size);
 
-        int totalResults = parseTotalCount(raw.totalCount());
+        // seoji 원본 건수: 차단 카테고리 필터 전 값으로 totalPage 계산에만 사용
+        int rawTotal = parseTotalCount(raw.totalCount());
 
         List<BookResDTO> books = raw.docs() == null ? List.of()
                 : raw.docs().stream()
@@ -52,11 +53,11 @@ public class BookSearchService {
                 })
                 .toList();
 
-        int totalPage = (int) Math.ceil(totalResults / (double) size);
+        int totalPage = (int) Math.ceil(rawTotal / (double) size);
 
         return BookSearchResDTO.builder()
                 .books(books)
-                .totalResults(totalResults)
+                .totalResults(books.size())  // 필터 후 이 페이지의 실제 결과 수
                 .totalPage(totalPage)
                 .build();
     }

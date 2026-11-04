@@ -169,8 +169,10 @@ public class BookCategoryMapper {
                 default -> CustomCategory.LITERATURE_ETC; // 총류·기타
             };
         }
-        // 890~899: 기타 언어권 외국문학 (세분화 미적용)
-        if (code >= 890 && code <= 899) return CustomCategory.WORLD_NOVEL;
+        // 890~899: 기타 언어권 외국문학 (아랍·히브리·아프리카 등)
+        // KDC에서 이 범위는 하위 자릿수가 언어 그룹 구분자이며 형식(시·소설·희곡) 구분 미명시.
+        // 소설 여부를 알 수 없으므로 WORLD_NOVEL 대신 LITERATURE_ETC로 처리한다.
+        if (code >= 890 && code <= 899) return CustomCategory.LITERATURE_ETC;
         if (code >= 800 && code <= 899) return CustomCategory.LITERATURE_ETC; // 문학 총류
 
         // 역사/지리 (9xx), 철학 (1xx)

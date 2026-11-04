@@ -108,6 +108,97 @@ public class BookCategoryMapper {
             Map.entry(51046L, CustomCategory.POLITICS_SOCIETY)   // 법과 생활
     );
 
+    // ── KDC 기반 매핑 (국립중앙도서관 seoji API) ─────────────────────────────
+
+    private static final Set<String> BLOCKED_ADD_CODES = Set.of(
+            "5",  // 학습참고서 (중/고)
+            "6",  // 학습참고서 (초등)
+            "7"   // 아동
+    );
+
+    /**
+     * KDC 분류코드 + ISBN 부가기호(addCode)로 CustomCategory 매핑.
+     * 반환값이 empty이면 차단 카테고리.
+     */
+    public Optional<CustomCategory> mapCategoryByKdc(
+            String kdcCode,
+            String addCode,
+            String isbn13,
+            String title
+    ) {
+        if (isBlockedByAddCode(addCode)) {
+            return Optional.empty();
+        }
+
+        if (kdcCode == null || kdcCode.isBlank()) {
+            log.debug("KDC 코드 없음 isbn={}, title={} → 기타 분류", isbn13, title);
+            return Optional.of(CustomCategory.NON_LITERATURE_ETC);
+        }
+
+        String digits = kdcCode.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) {
+            return Optional.of(CustomCategory.NON_LITERATURE_ETC);
+        }
+
+        int code = Integer.parseInt(digits.substring(0, Math.min(3, digits.length())));
+        return Optional.of(mapByKdcCode(code, isbn13, title));
+    }
+
+    private boolean isBlockedByAddCode(String addCode) {
+        if (addCode == null || addCode.isBlank()) return false;
+        return BLOCKED_ADD_CODES.contains(addCode.trim().substring(0, 1));
+    }
+
+    private CustomCategory mapByKdcCode(int code, String isbn13, String title) {
+        // 문학 (8xx)
+        if (code >= 811 && code <= 819) {
+            return switch (code) {
+                case 811, 814 -> CustomCategory.POETRY_ESSAY;      // 한국시, 한국수필
+                case 812      -> CustomCategory.PLAY_LITERATURE;    // 한국희곡
+                case 813      -> CustomCategory.KOREAN_NOVEL;       // 한국소설
+                default       -> CustomCategory.LITERATURE_ETC;     // 기타 한국문학
+            };
+        }
+        // 820~889: 외국문학 (세 번째 자릿수로 장르 구분)
+        if (code >= 820 && code <= 889) {
+            return switch (code % 10) {
+                case 1 -> CustomCategory.POETRY_ESSAY;    // 시
+                case 2 -> CustomCategory.PLAY_LITERATURE; // 희곡
+                case 3 -> CustomCategory.WORLD_NOVEL;     // 소설
+                case 4 -> CustomCategory.POETRY_ESSAY;    // 수필
+                default -> CustomCategory.LITERATURE_ETC; // 총류·기타
+            };
+        }
+        // 890~899: 기타 언어권 외국문학 (아랍·히브리·아프리카 등)
+        // KDC에서 이 범위는 하위 자릿수가 언어 그룹 구분자이며 형식(시·소설·희곡) 구분 미명시.
+        // 소설 여부를 알 수 없으므로 WORLD_NOVEL 대신 LITERATURE_ETC로 처리한다.
+        if (code >= 890 && code <= 899) return CustomCategory.LITERATURE_ETC;
+        if (code >= 800 && code <= 899) return CustomCategory.LITERATURE_ETC; // 문학 총류
+
+        // 역사/지리 (9xx), 철학 (1xx)
+        if (code >= 900 || (code >= 100 && code <= 199)) return CustomCategory.HUMANITIES_HISTORY;
+
+        // 사회과학 (3xx)
+        if (code >= 320 && code <= 329) return CustomCategory.ECONOMY_BUSINESS;  // 경제학
+        if (code >= 300 && code <= 399) return CustomCategory.POLITICS_SOCIETY;  // 사회과학
+
+        // 자연과학 (4xx)
+        if (code >= 400 && code <= 499) return CustomCategory.SCIENCE_IT;
+
+        // 기술과학 (5xx)
+        if (code >= 590 && code <= 599) return CustomCategory.HOME_HOBBY;  // 가정학
+        if (code >= 500 && code <= 599) return CustomCategory.SCIENCE_IT;
+
+        // 예술 (6xx)
+        if (code >= 690 && code <= 699) return CustomCategory.HOME_HOBBY;  // 오락/운동
+        if (code >= 600 && code <= 699) return CustomCategory.ART_CULTURE;
+
+        log.debug("KDC 매핑 실패 code={}, isbn={}, title={} → 기타 분류", code, isbn13, title);
+        return CustomCategory.NON_LITERATURE_ETC;
+    }
+
+    // ── 알라딘 카테고리 기반 매핑 (기존) ─────────────────────────────────────
+
     public Optional<CustomCategory> mapCategory(
             Long aladinCategoryId,
             String categoryName,

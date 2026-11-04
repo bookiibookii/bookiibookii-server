@@ -53,6 +53,9 @@ oauth:
 aladin:
   ttbkey: ${ALADIN_TTB_KEY}
 
+nlgoKr:
+  certKey: ${NLGO_CERT_KEY}
+
 aws:
   s3:
     bucket-name: ${S3_BUCKET_NAME}

@@ -220,7 +220,7 @@ public class BookCategoryMapper {
         return false;
     }
 
-    private boolean isBlockedCategoryName(String categoryName) {
+    static boolean isBlockedCategoryName(String categoryName) {
         if (categoryName == null || categoryName.isBlank()) {
             return false;
         }

@@ -22,7 +22,7 @@ public class LibraryCatalogClient {
 
     @Autowired
     LibraryCatalogClient(ObjectMapper json, @Value("${DATA4LIBRARY_AUTH_KEY:}") String naruKey,
-                         @Value("${NL_CERT_KEY:}") String nlKey) {
+                         @Value("${NLGO_CERT_KEY:}") String nlKey) {
         this(new LibraryTransport(json, "https://data4library.kr/api/", "authKey", naruKey, 1000, Duration.ofSeconds(4)),
                 new LibraryTransport(json, "https://www.nl.go.kr/seoji/", "cert_key", nlKey, 1000, Duration.ofSeconds(4)));
     }

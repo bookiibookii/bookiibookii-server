@@ -1,67 +1,46 @@
 package com.example.bookiibookii.domain.aladin.service;
 
-import com.example.bookiibookii.domain.aladin.config.AladinClient;
 import com.example.bookiibookii.domain.aladin.dto.AladinSearchBooksResDTO;
+import com.example.bookiibookii.domain.book.catalog.CatalogBook;
+import com.example.bookiibookii.domain.book.catalog.LibraryCatalogClient;
 import com.example.bookiibookii.domain.book.dto.res.BookResDTO;
+import com.example.bookiibookii.domain.book.exception.BookException;
+import com.example.bookiibookii.domain.book.exception.code.BookErrorCode;
 import com.example.bookiibookii.domain.book.service.BookAuthorMapper;
-import com.example.bookiibookii.domain.book.service.BookCategoryMapper;
+import com.example.bookiibookii.domain.book.service.LibraryCategoryMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.example.bookiibookii.domain.book.enums.CustomCategory;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AladinService {
-
-    private final AladinClient aladinClient;
-    private final BookCategoryMapper bookCategoryMapper;
-    private final BookAuthorMapper bookAuthorMapper;
+    private final LibraryCatalogClient catalog;
+    private final LibraryCategoryMapper categories;
+    private final BookAuthorMapper authors;
 
     public AladinSearchBooksResDTO searchBooks(String keyword, int page, int size) {
-        AladinClient.AladinItemSearchResponse raw = aladinClient.searchBooksByKeyword(keyword, page, size);
-
-        int totalResults = raw.totalResults();
-
-        List<BookResDTO> books = raw.item() == null ? List.of()
-                : raw.item().stream()
-                .flatMap(item -> {
-                    Optional<CustomCategory> cc = bookCategoryMapper.mapCategory(
-                            item.categoryId(),
-                            item.categoryName(),
-                            item.isbn13(),
-                            item.title()
-                    );
-                    if (cc.isEmpty()) return Stream.empty(); // 차단 카테고리일 시 제거
-
-                    return Stream.of(
-                            BookResDTO.builder()
-                                    .title(nvl(item.title()))
-                                    .author(nvl(bookAuthorMapper.mapFirstWriterOnly(item.author())))
-                                    .image(nvl(item.cover()))
-                                    .publisher(nvl(item.publisher()))
-                                    .isbn13(nvl(item.isbn13()))
-                                    .link(nvl(item.link()))
-                                    .category(cc.get())
-                                    .categoryLabel(cc.get().getLabel())
-                                    .build()
-                    );
-                })
-                .toList();
-
-        int totalPage = (int) Math.ceil(totalResults / (double) size);
-
-        return AladinSearchBooksResDTO.builder()
-                .books(books)
-                .totalResults(totalResults)
-                .totalPage(totalPage)
-                .build();
-    }
-
-    private String nvl(String s) {
-        return (s == null) ? "" : s;
+        if (keyword == null || keyword.isBlank() || page < 1 || size < 1) {
+            throw new BookException(BookErrorCode.INVALID_SEARCH);
+        }
+        var result = catalog.keyword(keyword, page, size);
+        var blocked = result.books().stream().filter(categories::blockedInCatalog)
+                .map(CatalogBook::isbn).collect(Collectors.toSet());
+        var seen = new HashSet<String>();
+        var books = new ArrayList<BookResDTO>();
+        for (var book : result.books()) {
+            if (!CatalogBook.validIsbn(book.isbn()) || blocked.contains(book.isbn()) || !seen.add(book.isbn())) continue;
+            var category = categories.catalogCategory(book.kdc());
+            books.add(BookResDTO.builder().title(book.title()).author(Objects.toString(authors.mapFirstWriterOnly(book.author()), ""))
+                    .publisher(book.publisher()).image(book.cover()).isbn13(book.isbn()).link(book.link())
+                    .category(category).categoryLabel(category.getLabel()).build());
+        }
+        // The existing contract counts raw upstream hits, before filtering each page.
+        return AladinSearchBooksResDTO.builder().books(books).totalResults(result.total())
+                .totalPage((int) Math.ceil(result.total() / (double) size)).build();
     }
 }

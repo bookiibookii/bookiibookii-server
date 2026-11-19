@@ -45,9 +45,9 @@ public class LibraryCatalogClient {
 
     List<CatalogBook> naruByIsbn(String isbn) {
         SearchPage page = search("isbn13", isbn, 1, 10);
-        var match = page.books.stream().filter(b -> isbn.equals(b.isbn())).toList();
-        if (match.isEmpty() && page.total > page.books.size()) throw unavailable();
-        return match;
+        // An unseen duplicate can carry a conflicting audience code.
+        if (page.total != page.books.size()) throw unavailable();
+        return page.books.stream().filter(b -> isbn.equals(b.isbn())).toList();
     }
 
     private SearchPage search(String field, String value, int page, int size) {
@@ -87,6 +87,7 @@ public class LibraryCatalogClient {
         var docs = root.path("docs");
         if (root.hasNonNull("error_code") || root.hasNonNull("ERROR_CODE") || !docs.isArray()) throw unavailable();
         int total = count(root, "TOTAL_COUNT");
+        if (total != docs.size()) throw unavailable();
         var matches = new ArrayList<CatalogBook>();
         for (var b : docs) {
             if (!b.isObject()) throw unavailable();
@@ -95,7 +96,6 @@ public class LibraryCatalogClient {
                     CatalogBook.externalUrl(text(b, "TITLE_URL")), text(b, "BOOK_INTRODUCTION"), pages(text(b, "PAGE")),
                     "", text(b, "KDC"), "", text(b, "EA_ADD_CODE")));
         }
-        if (docs.size() > total || (matches.isEmpty() && total > docs.size())) throw unavailable();
         return matches;
     }
 

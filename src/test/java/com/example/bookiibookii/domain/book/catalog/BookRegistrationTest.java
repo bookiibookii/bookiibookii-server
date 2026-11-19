@@ -6,7 +6,17 @@ import com.example.bookiibookii.domain.book.repository.BookRepository;
 import com.example.bookiibookii.domain.book.service.BookService;
 import com.example.bookiibookii.domain.book.service.LibraryCategoryMapper;
 import com.example.bookiibookii.domain.book.service.BookAuthorMapper;
+import com.example.bookiibookii.domain.group.entity.Application;
+import com.example.bookiibookii.domain.group.entity.Groups;
+import com.example.bookiibookii.domain.group.entity.MatchedMember;
+import com.example.bookiibookii.domain.group.enums.ApplicationStatus;
+import com.example.bookiibookii.domain.memberbook.entity.MemberBook;
+import com.example.bookiibookii.domain.tracker.enums.ReadingStatus;
+import com.example.bookiibookii.domain.user.entity.User;
+import com.example.bookiibookii.domain.user.entity.UserBook;
+import com.example.bookiibookii.domain.user.enums.SocialType;
 import com.example.bookiibookii.global.time.TimeConfig;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -17,6 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
@@ -32,6 +43,7 @@ import static org.mockito.Mockito.*;
 @Import({BookService.class, HybridBookCatalog.class, LibraryCategoryMapper.class, BookAuthorMapper.class, TimeConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class BookRegistrationTest {
+    @Autowired EntityManager em;
     @Autowired BookService service;
     @Autowired BookRepository books;
     @MockitoBean LibraryCatalogClient client;
@@ -59,6 +71,48 @@ class BookRegistrationTest {
         verify(client).nationalDetail(isbn);
         verify(client).naruByIsbn(isbn);
         verifyNoMoreInteractions(client);
+    }
+
+    @Test
+    @Transactional
+    void linklessEditionRetainsShelfApplicationAndReadingReferencesAfterExchange() {
+        String isbn = "9780306406157";
+        when(client.nationalDetail(isbn)).thenReturn(List.of(metadata(isbn, 240, "")));
+        Book guestBook = service.getOrCreateByIsbn13(isbn);
+        Book hostBook = books.save(candidate("9780140327243", 180));
+        var host = User.builder().socialType(SocialType.KAKAO).socialId("catalog-host").nickName("방장").build();
+        var guest = User.builder().socialType(SocialType.KAKAO).socialId("catalog-guest").nickName("신청자").build();
+        em.persist(host);
+        em.persist(guest);
+        var shelf = UserBook.createFavorite(guest, guestBook, 1);
+        em.persist(shelf);
+        var group = Groups.builder().book(hostBook).host(host).build();
+        em.persist(group);
+        var application = Application.builder().book(guestBook).group(group).guest(guest)
+                .applicationStatus(ApplicationStatus.ACCEPTED).build();
+        em.persist(application);
+        var member = MatchedMember.builder().group(group).user(host).build();
+        em.persist(member);
+        var own = MemberBook.builder().group(group).matchedMember(member).book(hostBook).isMine(true).build();
+        var partner = MemberBook.builder().group(group).matchedMember(member).book(guestBook).isMine(false).build();
+        em.persist(own);
+        em.persist(partner);
+        member.startMatchedReading(own, Instant.now());
+        member.updateReadingStatus(ReadingStatus.EXCHANGING);
+        member.changeCurrentBook(partner, Instant.now());
+        partner.updateCurrentPage(12);
+        em.flush();
+        em.clear();
+
+        Book reloaded = service.getOrCreateByIsbn13(isbn);
+        assertThat(reloaded.getId()).isEqualTo(guestBook.getId());
+        assertThat(reloaded.getLink()).isEmpty();
+        assertThat(em.find(UserBook.class, shelf.getId()).getBook()).isEqualTo(reloaded);
+        assertThat(em.find(Application.class, application.getApplicationId()).getBook()).isEqualTo(reloaded);
+        assertThat(em.find(Groups.class, group.getId()).getBook().getId()).isEqualTo(hostBook.getId());
+        var reading = em.find(MatchedMember.class, member.getId()).getCurrentMemberBook();
+        assertThat(reading.getBook()).isEqualTo(reloaded);
+        assertThat(reading.getCurrentPage()).isEqualTo(12);
     }
 
     @Test

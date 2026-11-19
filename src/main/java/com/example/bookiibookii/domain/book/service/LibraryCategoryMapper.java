@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 @Component
 public class LibraryCategoryMapper {
     private static final Pattern KDC = Pattern.compile("[0-9]{3}(?:\\.[0-9]+)?");
-    private static final Pattern RESTRICTED_AUDIENCE = Pattern.compile("[567](?:[0-9]{4})?");
+    private static final Pattern RESTRICTED_AUDIENCE = Pattern.compile("[5679](?:[0-9]{4})?");
     private static final Set<String> RESTRICTED_LABELS = Set.of(
             "대학교재", "전문서적", "수험서", "자격증", "학습참고서", "참고서", "아동", "전집");
 

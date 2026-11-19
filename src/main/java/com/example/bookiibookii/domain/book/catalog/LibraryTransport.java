@@ -15,8 +15,10 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /** One limiter per provider per JVM, shared by detail and search calls. */
@@ -57,7 +59,7 @@ final class LibraryTransport {
                     }
                     lastStart = System.nanoTime();
                     try {
-                        var response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                        var response = receive(request);
                         if (response.statusCode() >= 500 && attempt == 0) continue;
                         if (response.statusCode() != 200) throw unavailable();
                         return json.readTree(response.body());
@@ -74,6 +76,22 @@ final class LibraryTransport {
             // Deliberately discard upstream text and exceptions containing authenticated URLs.
         }
         throw unavailable();
+    }
+
+    private HttpResponse<byte[]> receive(HttpRequest request) throws InterruptedException, IOException {
+        var exchange = http.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray());
+        try {
+            return exchange.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException ex) {
+            exchange.cancel(true);
+            throw unavailable();
+        } catch (InterruptedException ex) {
+            exchange.cancel(true);
+            throw ex;
+        } catch (ExecutionException ex) {
+            if (ex.getCause() instanceof IOException io) throw io;
+            throw unavailable();
+        }
     }
 
     static BookException unavailable() {

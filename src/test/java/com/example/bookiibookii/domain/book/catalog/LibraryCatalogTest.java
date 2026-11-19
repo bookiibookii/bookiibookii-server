@@ -26,6 +26,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -124,7 +126,39 @@ class LibraryCatalogTest {
         ok("srchDtlList", DETAIL);
         ok("SearchApi.do", NATIONAL);
         ok("srchBooks", LINK.replace(ISBN, "9788936434120"));
-        expect(BookErrorCode.DETAIL_LINK_UNAVAILABLE, () -> catalog.lookup(ISBN));
+        assertThat(catalog.lookup(ISBN).getLink()).isEmpty();
+    }
+
+    @Test
+    void incompleteNationalPageCannotAuthorizeRegistrationEvenWithAnExactMatch() {
+        ok("srchDtlList", DETAIL);
+        ok("SearchApi.do", NATIONAL.replace("\"2\"", "\"11\""));
+        expect(BookErrorCode.CATALOG_UNAVAILABLE, () -> catalog.lookup(ISBN));
+    }
+
+    @Test
+    void incompleteNaruPageCannotAuthorizeRegistrationEvenWithAnExactMatch() {
+        ok("srchDtlList", DETAIL);
+        ok("SearchApi.do", NATIONAL);
+        ok("srchBooks", LINK.replace("\"numFound\":1", "\"numFound\":11"));
+        expect(BookErrorCode.CATALOG_UNAVAILABLE, () -> catalog.lookup(ISBN));
+    }
+
+    @Test
+    void laterExactNaruRecordCanBlockAnEarlierAllowedMatch() {
+        ok("srchDtlList", DETAIL);
+        ok("SearchApi.do", NATIONAL);
+        ok("srchBooks", LINK.replace("\"numFound\":1", "\"numFound\":2")
+                .replace("]}}", ",{\"doc\":{\"isbn13\":\"" + ISBN + "\",\"addition_symbol\":\"93510\"}}]}}"));
+        expect(BookErrorCode.BLOCKED_CATEGORY, () -> catalog.lookup(ISBN));
+    }
+
+    @Test
+    void oversizedOptionalLinkIsOmitted() {
+        ok("srchDtlList", DETAIL);
+        ok("SearchApi.do", NATIONAL);
+        ok("srchBooks", LINK.replace("edition", "a".repeat(256)));
+        assertThat(catalog.lookup(ISBN).getLink()).isEmpty();
     }
 
     @Test
@@ -251,6 +285,26 @@ class LibraryCatalogTest {
         assertThat(CatalogBook.externalUrl("javascript:alert(1)")).isEmpty();
         assertThat(CatalogBook.externalUrl("https://example.org/api?authKey=private")).isEmpty();
         assertThat(CatalogBook.externalUrl("https://user@example.org/")).isEmpty();
+    }
+
+    @Test
+    void stalledBodyTimesOutAndReleasesProviderPermit() {
+        var started = new CountDownLatch(1);
+        server.createContext("/stall", exchange -> {
+            exchange.sendResponseHeaders(200, 10);
+            exchange.getResponseBody().write('{');
+            exchange.getResponseBody().flush();
+            started.countDown();
+            // Leave the response open until the client cancels.
+        });
+        ok("healthy", "{\"ok\":true}");
+        var transport = new LibraryTransport(new ObjectMapper(),
+                "http://127.0.0.1:" + server.getAddress().getPort() + "/", "key", credential, 0, Duration.ofSeconds(1));
+        org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
+            expect(BookErrorCode.CATALOG_UNAVAILABLE, () -> transport.get("stall", Map.of()));
+            assertThat(started.getCount()).isZero();
+            assertThat(transport.get("healthy", Map.of()).path("ok").asBoolean()).isTrue();
+        });
     }
 
     private void expect(BookErrorCode code, org.assertj.core.api.ThrowableAssert.ThrowingCallable work) {

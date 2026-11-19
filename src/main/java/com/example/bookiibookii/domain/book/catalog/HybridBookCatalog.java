@@ -39,7 +39,6 @@ public class HybridBookCatalog {
         var sources = Stream.of(detail.books(), search, national).flatMap(List::stream).toList();
         if (sources.stream().anyMatch(categories::blockedInCatalog)) throw new BookException(BookErrorCode.BLOCKED_CATEGORY);
         CatalogBook book = sources.stream().reduce(CatalogBook::supplement).orElseThrow();
-        if (book.link().isEmpty()) throw new BookException(BookErrorCode.DETAIL_LINK_UNAVAILABLE);
         String author = sources.stream().map(CatalogBook::author).map(authors::mapFirstWriterOnly)
                 .filter(Objects::nonNull).findFirst().orElse(null);
         if (book.title().isEmpty() || author == null || book.publisher().isEmpty() || book.cover().isEmpty()) {
@@ -47,13 +46,14 @@ public class HybridBookCatalog {
             throw new BookException(BookErrorCode.INCOMPLETE_BOOK);
         }
         // Book의 문자열 컬럼 길이를 초과한 URL이나 이름을 잘라서 저장하지 않는다.
-        if (Stream.of(book.title(), author, book.publisher(), book.cover(), book.link())
+        if (Stream.of(book.title(), author, book.publisher(), book.cover())
                 .anyMatch(value -> value.codePointCount(0, value.length()) > 255)) {
             throw new BookException(BookErrorCode.INCOMPLETE_BOOK);
         }
+        String link = book.link().codePointCount(0, book.link().length()) <= 255 ? book.link() : "";
         CustomCategory category = categories.catalogCategory(book.kdc());
         return Book.builder().isbn13(isbn).title(book.title()).author(author).publisher(book.publisher())
-                .totalPages(book.pages()).link(book.link()).image(book.cover()).category(category).build();
+                .totalPages(book.pages()).link(link).image(book.cover()).category(category).build();
     }
 
     private record Lookup(List<CatalogBook> books, boolean failed) {}

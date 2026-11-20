@@ -14,13 +14,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.InetSocketAddress;
-import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
@@ -81,8 +82,7 @@ class LibraryCatalogTest {
     private void endpoint(String path, Reply... replies) {
         var queue = new ArrayDeque<>(List.of(replies));
         server.createContext("/" + path, exchange -> {
-            requests.add(URLDecoder.decode(exchange.getRequestURI().toString(), StandardCharsets.UTF_8)
-                    .replace(credential, "[hidden]"));
+            requests.add(exchange.getRequestURI().toString().replace(credential, "[hidden]"));
             var reply = queue.size() > 1 ? queue.removeFirst() : queue.element();
             byte[] body = reply.body.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(reply.status, body.length);
@@ -94,19 +94,21 @@ class LibraryCatalogTest {
 
     @Test
     void mergesOnlyExactEditionsAndUsesAnActualReturnedDetailLink() {
-        ok("srchDtlList", DETAIL);
+        ok("srchDtlList", DETAIL.replace("https://example.org/img", "http://image.aladin.co.kr/cover.jpg"));
         ok("SearchApi.do", NATIONAL);
         ok("srchBooks", LINK);
         var b = catalog.lookup(ISBN);
         assertThat(b.getTitle()).isEqualTo("제목");
         assertThat(b.getAuthor()).isEqualTo("김작가");
         assertThat(b.getPublisher()).isEqualTo("출판사");
-        assertThat(b.getImage()).isEqualTo("https://example.org/img");
+        assertThat(b.getImage()).isEqualTo("https://image.aladin.co.kr/cover.jpg");
         assertThat(b.getTotalPages()).isEqualTo(320);
         assertThat(b.getLink()).isEqualTo("https://example.org/edition");
         assertThat(b.getCategory()).isEqualTo(CustomCategory.KOREAN_NOVEL);
         assertThat(client.naruDetail(ISBN).get(0).description()).isEqualTo("소개");
-        assertThat(requests).anySatisfy(q -> assertThat(q).startsWith("/srchBooks?").contains("isbn13=" + ISBN));
+        assertThat(requests).anySatisfy(q -> assertThat(q).startsWith("/srchBooks?")
+                .contains("isbn13=" + ISBN, "pageNo=1", "pageSize=10")
+                .doesNotContain("title=", "keyword="));
     }
 
     @ParameterizedTest
@@ -221,7 +223,7 @@ class LibraryCatalogTest {
     @Test
     void malformedSearchPayloadIsAnOutage() {
         ok("srchBooks", "{\"response\":{}}");
-        expect(BookErrorCode.CATALOG_UNAVAILABLE, () -> client.keyword("단어", 1, 10));
+        expect(BookErrorCode.CATALOG_UNAVAILABLE, () -> client.searchByTitle("단어", 1, 10));
     }
 
     @Test
@@ -238,6 +240,33 @@ class LibraryCatalogTest {
         expect(BookErrorCode.BLOCKED_CATEGORY, () -> catalog.lookup(ISBN));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "나미야, 나미야 잡화점의 기적, 9788972756194",
+            "프로젝트 헤일메리, 프로젝트 헤일메리, 9788925588735",
+            "눈물, 눈물점, 9788998791995"
+    })
+    void searchesByTitleAndReturnsMatchingBookThroughPublicKeywordParameter(String keyword, String title, String isbn)
+            throws Exception {
+        ok("srchBooks", """
+                {"response":{"numFound":1,"docs":[{"doc":{
+                    "bookname":"%s","isbn13":"%s","class_no":"843",
+                    "bookImageURL":"http://image.aladin.co.kr/cover.jpg"
+                }}]}}
+                """.formatted(title, isbn));
+        var mvc = MockMvcBuilders.standaloneSetup(new AladinController(new AladinService(client, categories, authors))).build();
+
+        mvc.perform(get("/api/books/search").param("keyword", keyword))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.books[0].title").value(title))
+                .andExpect(jsonPath("$.result.books[0].isbn13").value(isbn))
+                .andExpect(jsonPath("$.result.books[0].category").value("WORLD_NOVEL"))
+                .andExpect(jsonPath("$.result.books[0].image").value("https://image.aladin.co.kr/cover.jpg"));
+        assertThat(requests).singleElement().asString().startsWith("/srchBooks?")
+                .contains("title=" + URLEncoder.encode(keyword, StandardCharsets.UTF_8) + "&")
+                .doesNotContain("keyword=");
+    }
+
     @Test
     void searchRetainsHttpContractRawPaginationAndOrderAfterFiltering() throws Exception {
         String blocked = BOOK.replace(ISBN, "9788936434120").replace("\"class_no\"", "\"addition_symbol\":\"63810\",\"class_no\"");
@@ -251,7 +280,9 @@ class LibraryCatalogTest {
                         "image":"https://example.org/img","publisher":"","isbn13":"9788936434267","link":"",
                         "category":"KOREAN_NOVEL","categoryLabel":"한국소설"}]}}
                         """, JsonCompareMode.STRICT));
-        assertThat(requests).singleElement().asString().contains("keyword=한 글&", "pageNo=2", "pageSize=3");
+        assertThat(requests).singleElement().asString()
+                .contains("title=" + URLEncoder.encode("한 글&", StandardCharsets.UTF_8) + "&", "pageNo=2", "pageSize=3")
+                .doesNotContain("keyword=");
     }
 
     @Test
@@ -276,8 +307,23 @@ class LibraryCatalogTest {
     @Test
     void quotaErrorDoesNotRetryOrExposeCredential() {
         endpoint("srchBooks", new Reply(429, credential));
-        expect(BookErrorCode.CATALOG_UNAVAILABLE, () -> client.keyword("books", 1, 10));
+        expect(BookErrorCode.CATALOG_UNAVAILABLE, () -> client.searchByTitle("books", 1, 10));
         assertThat(requests).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "HTTP://IMAGE.ALADIN.CO.KR/a%20b.jpg?v=a%2Fb#cover, https://IMAGE.ALADIN.CO.KR/a%20b.jpg?v=a%2Fb#cover",
+            "http://image.aladin.co.kr:80/cover.jpg, https://image.aladin.co.kr/cover.jpg",
+            "http://image.aladin.co.kr:8080/cover.jpg, http://image.aladin.co.kr:8080/cover.jpg",
+            "https://image.aladin.co.kr/cover.jpg, https://image.aladin.co.kr/cover.jpg",
+            "http://image.aladin.co.kr.example.org/cover.jpg, http://image.aladin.co.kr.example.org/cover.jpg",
+            "http://www.aladin.co.kr/cover.jpg, http://www.aladin.co.kr/cover.jpg",
+            "http://example.org/cover.jpg, http://example.org/cover.jpg"
+    })
+    void upgradesOnlyVerifiedAladinCoverUrls(String original, String normalized) {
+        assertThat(CatalogBook.coverUrl(original)).isEqualTo(normalized);
+        assertThat(CatalogBook.externalUrl(original)).isEqualTo(original);
     }
 
     @Test

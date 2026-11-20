@@ -32,11 +32,26 @@ public record CatalogBook(String isbn, String title, String author, String publi
     }
 
     static String externalUrl(String value) {
+        return externalUrl(value, false);
+    }
+
+    static String coverUrl(String value) {
+        return externalUrl(value, true);
+    }
+
+    private static String externalUrl(String value, boolean cover) {
         try {
             URI uri = URI.create(value);
             if (uri.getQuery() != null && AUTH_QUERY.matcher(uri.getQuery()).find()) return "";
-            if (("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
-                    && uri.getHost() != null && uri.getUserInfo() == null) return value;
+            boolean http = "http".equalsIgnoreCase(uri.getScheme());
+            if ((!http && !"https".equalsIgnoreCase(uri.getScheme()))
+                    || uri.getHost() == null || uri.getUserInfo() != null) return "";
+            if (cover && http && "image.aladin.co.kr".equalsIgnoreCase(uri.getHost())
+                    && (uri.getPort() == -1 || uri.getPort() == 80)) {
+                int authorityEnd = "http://".length() + uri.getRawAuthority().length();
+                return "https://" + uri.getHost() + value.substring(authorityEnd);
+            }
+            return value;
         } catch (IllegalArgumentException ignored) {
             // Malformed provider metadata is a missing field.
         }

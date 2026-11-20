@@ -27,7 +27,7 @@ public class AladinService {
         if (keyword == null || keyword.isBlank() || page < 1 || size < 1) {
             throw new BookException(BookErrorCode.INVALID_SEARCH);
         }
-        var result = catalog.keyword(keyword, page, size);
+        var result = catalog.searchByTitle(keyword, page, size);
         var blocked = result.books().stream().filter(categories::blockedInCatalog)
                 .map(CatalogBook::isbn).collect(Collectors.toSet());
         var seen = new HashSet<String>();

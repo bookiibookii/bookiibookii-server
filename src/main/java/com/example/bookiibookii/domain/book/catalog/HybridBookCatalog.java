@@ -51,7 +51,7 @@ public class HybridBookCatalog {
             throw new BookException(BookErrorCode.INCOMPLETE_BOOK);
         }
         String link = book.link().codePointCount(0, book.link().length()) <= 255 ? book.link() : "";
-        CustomCategory category = categories.catalogCategory(book.kdc());
+        CustomCategory category = categories.registrationCategory(book.kdc(), national);
         return Book.builder().isbn13(isbn).title(book.title()).author(author).publisher(book.publisher())
                 .totalPages(book.pages()).link(link).image(book.cover()).category(category).build();
     }

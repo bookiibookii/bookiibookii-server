@@ -16,15 +16,16 @@ class CatalogMappingTest {
     @CsvSource({"813.7,KOREAN_NOVEL", "843,WORLD_NOVEL", "811.6,POETRY_ESSAY", "814,POETRY_ESSAY",
             "842,PLAY_LITERATURE", "004.73,SCIENCE_IT", "420,SCIENCE_IT", "598.1,HOME_HOBBY",
             "325.04,ECONOMY_BUSINESS", "325.211,SELF_DEVELOPMENT", "340,POLITICS_SOCIETY", "651,ART_CULTURE",
-            "911,HUMANITIES_HISTORY", "800,LITERATURE_ETC", "892.8,LITERATURE_ETC", "invalid,NON_LITERATURE_ETC"})
+            "892.83,WORLD_NOVEL", "892.81,LITERATURE_ETC", "001.3,HUMANITIES_HISTORY",
+            "001,NON_LITERATURE_ETC", "911,HUMANITIES_HISTORY", "800,LITERATURE_ETC", "892.8,LITERATURE_ETC", "invalid,NON_LITERATURE_ETC"})
     void mapsSubjectCodesIncludingUncertainGenres(String kdc, CustomCategory expected) {
         assertThat(categories.catalogCategory(kdc)).isEqualTo(expected);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"대학교재", "유아", "참고서", "전집", "수험서", "잡지", "전문서적"})
+    @ValueSource(strings = {"대학교재", "유아", "참고서", "전집", "수험서", "잡지", "전문서적", "아동", "학습참고서"})
     void retainsExplicitBlockedClasses(String classification) {
-        var book = new CatalogBook("", "", "", "", "", "", null, "", "", classification, "");
+        var book = new CatalogBook("", "", "", "", "", "", null, "", "", "", classification, "");
         assertThat(categories.blockedInCatalog(book)).isTrue();
     }
 

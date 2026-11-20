@@ -76,7 +76,7 @@ public class LibraryCatalogClient {
             if (!b.isObject()) throw unavailable();
             books.add(new CatalogBook(isbn(b, "isbn13"), text(b, "bookname"), text(b, "authors"),
                     text(b, "publisher"), CatalogBook.coverUrl(text(b, "bookImageURL")), text(b, "description"),
-                    null, wrapper.equals("doc") ? CatalogBook.externalUrl(text(b, "bookDtlUrl")) : "", text(b, "class_no"),
+                    null, wrapper.equals("doc") ? CatalogBook.externalUrl(text(b, "bookDtlUrl")) : "", text(b, "class_no"), "",
                     text(b, "class_nm"), text(b, "addition_symbol")));
         }
         return books;
@@ -94,7 +94,7 @@ public class LibraryCatalogClient {
             if (!isbn.equals(isbn(b, "EA_ISBN"))) continue;
             matches.add(new CatalogBook(isbn, text(b, "TITLE"), text(b, "AUTHOR"), text(b, "PUBLISHER"),
                     CatalogBook.coverUrl(text(b, "TITLE_URL")), text(b, "BOOK_INTRODUCTION"), pages(text(b, "PAGE")),
-                    "", text(b, "KDC"), "", text(b, "EA_ADD_CODE")));
+                    "", text(b, "KDC"), text(b, "DDC"), "", text(b, "EA_ADD_CODE")));
         }
         return matches;
     }

@@ -143,7 +143,7 @@ class BookRegistrationTest {
 
     private CatalogBook metadata(String isbn, Integer pages, String link) {
         return new CatalogBook(isbn, "제목", "지은이: 작가", "출판사", "https://example.org/cover", "소개",
-                pages, link, "813.7", "", "03810");
+                pages, link, "813.7", "", "", "03810");
     }
 
     private Book candidate(String isbn, int pages) {

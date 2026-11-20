@@ -272,7 +272,7 @@ class LibraryCatalogTest {
             throws Exception {
         ok("srchBooks", """
                 {"response":{"numFound":1,"docs":[{"doc":{
-                    "bookname":"%s","isbn13":"%s","class_no":"843",
+                    "bookname":"%s","isbn13":"%s","class_no":"843","authors":"홍길동 (지은이), 김철수",
                     "bookImageURL":"http://image.aladin.co.kr/cover.jpg"
                 }}]}}
                 """.formatted(title, isbn));
@@ -280,6 +280,7 @@ class LibraryCatalogTest {
 
         mvc.perform(get("/api/books/search").param("keyword", keyword))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.books[0].author").value("홍길동"))
                 .andExpect(jsonPath("$.result.books[0].title").value(title))
                 .andExpect(jsonPath("$.result.books[0].isbn13").value(isbn))
                 .andExpect(jsonPath("$.result.books[0].category").value("WORLD_NOVEL"))

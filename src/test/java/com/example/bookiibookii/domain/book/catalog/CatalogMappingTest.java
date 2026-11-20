@@ -34,4 +34,16 @@ class CatalogMappingTest {
     void normalizesFirstAuthor(String input) {
         assertThat(new BookAuthorMapper().mapFirstWriterOnly(input)).isEqualTo("홍길동");
     }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "홍길동，김철수 | 홍길동",
+            "홍길동；김철수 | 홍길동",
+            "Jane Austen, Virginia Woolf | Jane Austen",
+            "지은이: Austen, Jane (지은이), 김철수 | Austen, Jane",
+            "Tolkien, J. R. R.; 다른 저자 | Tolkien, J. R. R."
+    })
+    void distinguishesAuthorListsFromInvertedNames(String input, String expected) {
+        assertThat(new BookAuthorMapper().mapFirstWriterOnly(input)).isEqualTo(expected);
+    }
 }

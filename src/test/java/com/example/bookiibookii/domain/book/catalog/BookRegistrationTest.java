@@ -64,6 +64,7 @@ class BookRegistrationTest {
         when(client.nationalDetail(isbn)).thenReturn(List.of(metadata(isbn, 311, "")));
         when(client.naruByIsbn(isbn)).thenReturn(List.of(metadata(isbn, null, "https://example.org/book")));
         Book book = service.getOrCreateByIsbn13(isbn);
+        assertThat(books.findById(book.getId()).orElseThrow().getAuthor()).isEqualTo("Austen, Jane");
         assertThat(book.getTotalPages()).isEqualTo(311);
         assertThat(book.getLink()).isEqualTo("https://example.org/book");
         assertThat(service.getOrCreateByIsbn13(isbn).getId()).isEqualTo(book.getId());
@@ -142,7 +143,7 @@ class BookRegistrationTest {
     }
 
     private CatalogBook metadata(String isbn, Integer pages, String link) {
-        return new CatalogBook(isbn, "제목", "지은이: 작가", "출판사", "https://example.org/cover", "소개",
+        return new CatalogBook(isbn, "제목", "지은이: Austen, Jane；김철수", "출판사", "https://example.org/cover", "소개",
                 pages, link, "813.7", "", "", "03810");
     }
 

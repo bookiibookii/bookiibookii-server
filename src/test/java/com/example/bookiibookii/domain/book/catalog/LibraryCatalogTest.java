@@ -123,6 +123,28 @@ class LibraryCatalogTest {
         verifyNoMoreInteractions(repository);
     }
 
+    @ParameterizedTest
+    @CsvSource({"892.83,'',WORLD_NOVEL", "892.8,891.73,LITERATURE_ETC", "813,813,KOREAN_NOVEL",
+            "'',813,WORLD_NOVEL", "'',895.73,KOREAN_NOVEL", "'',891.73,WORLD_NOVEL",
+            "'',909.82,HUMANITIES_HISTORY", "'',895.7,LITERATURE_ETC", "'',unknown,NON_LITERATURE_ETC"})
+    void mapsLibraryCodesThroughRegistration(String naruKdc, String nationalDdc, CustomCategory expected) {
+        ok("srchDtlList", DETAIL.replace("813.7", naruKdc));
+        ok("SearchApi.do", NATIONAL.replace("\"EA_ADD_CODE\"", "\"DDC\":\"" + nationalDdc + "\",\"EA_ADD_CODE\""));
+        ok("srchBooks", LINK);
+
+        assertThat(catalog.lookup(ISBN).getCategory()).isEqualTo(expected);
+    }
+
+    @Test
+    void conflictingDdcFictionCodesKeepLiteratureFallback() {
+        ok("srchDtlList", DETAIL.replace("813.7", ""));
+        ok("SearchApi.do", NATIONAL.replace("97889364342671", ISBN)
+                .replace("\"PAGE\":\"111\"", "\"DDC\":\"813\"")
+                .replace("\"EA_ADD_CODE\"", "\"DDC\":\"895.73\",\"EA_ADD_CODE\""));
+        ok("srchBooks", LINK);
+        assertThat(catalog.lookup(ISBN).getCategory()).isEqualTo(CustomCategory.LITERATURE_ETC);
+    }
+
     @Test
     void missingExactLinkCannotBeFilledFromAnotherEdition() {
         ok("srchDtlList", DETAIL);

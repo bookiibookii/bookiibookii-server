@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 
 /** Transient metadata for one edition. Descriptions are never persisted. */
 public record CatalogBook(String isbn, String title, String author, String publisher, String cover,
-                          String description, Integer pages, String link, String kdc, String classification,
+                          String description, Integer pages, String link, String kdc, String ddc, String classification,
                           String additionSymbol) {
 
     private static final Pattern ISBN = Pattern.compile("97[89][0-9]{10}");
@@ -24,7 +24,7 @@ public record CatalogBook(String isbn, String title, String author, String publi
         return new CatalogBook(isbn, first(title, other.title), first(author, other.author),
                 first(publisher, other.publisher), first(cover, other.cover), first(description, other.description),
                 pages == null ? other.pages : pages, first(link, other.link), first(kdc, other.kdc),
-                first(classification, other.classification), first(additionSymbol, other.additionSymbol));
+                first(ddc, other.ddc), first(classification, other.classification), first(additionSymbol, other.additionSymbol));
     }
 
     static String first(String value, String fallback) {

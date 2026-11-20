@@ -1,6 +1,7 @@
 package com.example.bookiibookii.support;
 
 import com.example.bookiibookii.domain.aladin.config.AladinClient;
+import com.example.bookiibookii.domain.book.catalog.LibraryCatalogClient;
 import com.example.bookiibookii.global.auth.social.AppleAuthClient;
 import com.example.bookiibookii.global.auth.social.AppleTokenVerifier;
 import com.example.bookiibookii.global.auth.social.GoogleTokenVerifier;
@@ -28,7 +29,7 @@ import java.lang.annotation.Target;
         S3Client.class, S3Presigner.class,
         LettuceConnectionFactory.class, RedisUtil.class,
         AppleTokenVerifier.class, GoogleTokenVerifier.class, KakaoTokenVerifier.class,
-        AppleAuthClient.class, AladinClient.class
+        AppleAuthClient.class, AladinClient.class, LibraryCatalogClient.class
 })
 // Keep @Scheduled registration validation active while preventing task execution in tests.
 @MockitoBean(types = TaskScheduler.class)

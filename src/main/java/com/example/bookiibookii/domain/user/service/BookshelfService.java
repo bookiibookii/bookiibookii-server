@@ -145,6 +145,10 @@ public class BookshelfService {
     // 온보딩 전용: 인생책 등록 + displayOrder 자동 부여로 대표책 동시 등록
     @Transactional
     public void replaceAllFavoriteBooks(User user, List<BookReqDTO.UserPickISBN> isbnList) {
+        if (isbnList == null) {
+            userBookRepository.deleteAllByUser(user);
+            return;
+        }
         List<String> isbn13s = isbnList.stream()
                 .filter(Objects::nonNull)
                 .map(BookReqDTO.UserPickISBN::isbn13)

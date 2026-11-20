@@ -39,8 +39,8 @@ public class LibraryCatalogClient {
 
     public record SearchPage(int total, List<CatalogBook> books) {}
 
-    public SearchPage keyword(String keyword, int page, int size) {
-        return search("keyword", keyword, page, size);
+    public SearchPage searchByTitle(String title, int page, int size) {
+        return search("title", title, page, size);
     }
 
     List<CatalogBook> naruByIsbn(String isbn) {
@@ -75,7 +75,7 @@ public class LibraryCatalogClient {
             var b = row.path(wrapper);
             if (!b.isObject()) throw unavailable();
             books.add(new CatalogBook(isbn(b, "isbn13"), text(b, "bookname"), text(b, "authors"),
-                    text(b, "publisher"), CatalogBook.externalUrl(text(b, "bookImageURL")), text(b, "description"),
+                    text(b, "publisher"), CatalogBook.coverUrl(text(b, "bookImageURL")), text(b, "description"),
                     null, wrapper.equals("doc") ? CatalogBook.externalUrl(text(b, "bookDtlUrl")) : "", text(b, "class_no"),
                     text(b, "class_nm"), text(b, "addition_symbol")));
         }
@@ -93,7 +93,7 @@ public class LibraryCatalogClient {
             if (!b.isObject()) throw unavailable();
             if (!isbn.equals(isbn(b, "EA_ISBN"))) continue;
             matches.add(new CatalogBook(isbn, text(b, "TITLE"), text(b, "AUTHOR"), text(b, "PUBLISHER"),
-                    CatalogBook.externalUrl(text(b, "TITLE_URL")), text(b, "BOOK_INTRODUCTION"), pages(text(b, "PAGE")),
+                    CatalogBook.coverUrl(text(b, "TITLE_URL")), text(b, "BOOK_INTRODUCTION"), pages(text(b, "PAGE")),
                     "", text(b, "KDC"), "", text(b, "EA_ADD_CODE")));
         }
         return matches;
